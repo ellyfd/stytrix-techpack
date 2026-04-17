@@ -1,0 +1,1348 @@
+import { useState, useMemo, useEffect } from "react";
+
+/* ═══════════════════════════════════════════════════════════════════
+   StyTrix — Techpack Creation + Measurement Spec v10
+
+   v10: Enterprise Utility redesign
+   - 從 v8（邏輯版）重寫 styling，跳過 v9 editorial 裝飾
+   - 淺色系 monochrome + 唯一 accent #065f46（只出現在數字和完成狀態）
+   - 無序號、無 kicker、無 corner ticks、無 uppercase 裝飾
+   - 精簡版 filter bar：flush label + underline select
+   - Tab：最簡 underline（2px accent）
+   - Typography：Outfit 400/600/700 三檔 + JetBrains Mono 純數字
+   - 商用 SaaS 風格（Figma/Linear/Notion 層級）
+   ═══════════════════════════════════════════════════════════════════ */
+
+const SKETCH_IMG = "data:image/jpeg;base64,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svxDL8s/iFI0PXyLRQ35knFAFHXnvp7rR1vGigWW/j22qEMxAyck+2O3FdbWTpvh+xsLg3Z8y6vD1ubh97/h6fhWtQAUUUUAFFFFAHKyG5i8c3YtJ4UkmtInEUvSXaWGAeoIz2rXGqzRHbdaZdo3rGokX8x/hUuqaRY6tGq3sIZkOUkU7XQ+qsORWaula7Z/LY66JYuyXsAcj/gQwTQBcOsO5222mX0rdt0flr+bVj6g13c+JdEt7uWEOJXnNtFz5YVDhievfHpV06d4jufludbhgj7/AGW2wx/FicVe0rRbLSg7W6M88vMk8rb5JPqx/lQBo0UUUAFFFFABRRRQAUUUUAFFFFAHM+JmeLX9DljuY7Zi0yCSQZXJXgH64rSGpXVvxf6fLj/nrb/vEPvjqPyq7eWdrf27W95BHPE3VHXIrGHhy4sv+QLrF1aIOkMuJ4x9A3I/OgC6Ne03HMzqfRoXB/lSHW4HO20tru5b/YhIH5tgVU8jxYvC32lOP7z27g/o1B0vxBcjF5rywp3W0twp/wC+mzigDO8VXF7PZW9tcmC2FzdQxrbht8jguM5PYD2rsKytN8Padp0xuEiaa6PW4nYySH8T0/CtWgAooooAKKKKACiiigAprf6xfxp1Nb/WL+NADqKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACmt/rF/GnU1v8AWL+NADqKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACmt/rF/GnU1v9Yv40AOooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKa3+sX8adTW/1i/jQA6iiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAprf6xfxp1Nb/WL+NADqKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACmt/rF/GnU1v8AWL+NADqKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACmt/rF/GnU1v9Yv40AOooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKa3+sX8adTW/1i/jQA6iiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAprf6xfxp1Nb/WL+NADqKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACmt/rF/GnUhVW+8AfrQAtFN8tP7i/lR5af3F/KgB1FN8tP7i/lR5af3F/KgB1FN8tP7i/lR5af3F/KgB1FN8tP7i/lR5af3F/KgB1FN8tP7i/lR5af3F/KgB1FN8tP7i/lR5af3F/KgB1FN8tP7i/lR5af3F/KgB1FN8tP7i/lR5af3F/KgB1FN8tP7i/lR5af3F/KgB1FN8tP7i/lR5af3F/KgB1FN8tP7i/lR5af3F/KgB1FN8tP7i/lR5af3F/KgB1FN8tP7i/lR5af3F/KgB1FN8tP7i/lR5af3F/KgB1FN8tP7i/lR5af3F/KgB1FN8tP7i/lR5af3F/KgB1FN8tP7i/lR5af3F/KgB1FN8tP7i/lR5af3F/KgB1FN8tP7i/lR5af3F/KgB1FN8tP7i/lR5af3F/KgB1FN8tP7i/lR5af3F/KgB1FN8tP7i/lR5af3F/KgB1FN8tP7i/lR5af3F/KgB1FN8tP7i/lR5af3F/KgB1FN8tP7i/lR5af3F/KgB1FN8tP7i/lR5af3F/KgB1FN8tP7i/lR5af3F/KgB1FN8tP7i/lRQA6iiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigD//Z";
+
+const BRANDS = [
+  { code: "TGT" }, { code: "UAM" }, { code: "DKS" }, { code: "KOH" },
+  { code: "A_F" }, { code: "JOE" }, { code: "ONY" }, { code: "ATH" },
+  { code: "BNN" }, { code: "BYY" }, { code: "ASC" }, { code: "SMA" }, { code: "OKY" }
+];
+
+/* 每張 card 的 L1 (部位) + L2 (零件) 是設計師主要看到的語言
+   matchCode (如 WB_002_a01) 是次要的參考圖代號
+   source: ai = 從 sketch + 參考圖匹配, struct = 褲型必備推斷 */
+const CARDS = [
+  { id: 1, l1: "腰頭", l2: "剪接腰頭_整圈",
+    source: "ai", conf: 92, matchCode: "WB_002_a11",
+    px: 30, py: 9, side: "right", ie: 0.368, l3s: [
+    { name: "接鬆緊帶_1道", ie: 0.011, auto: false, pick: 1,
+      opts: [{ n: "拷克接合", p: 50 }, { n: "平車接合", p: 25 }, { n: "自動拼接橡筋機", p: 25 }] },
+    { name: "接表腰脅(直)_2道", ie: 0.032, auto: false, pick: 0,
+      opts: [{ n: "併縫", p: 36 }, { n: "壓腰脅", p: 24 }, { n: "平車+燙開", p: 22 }, { n: "拷合", p: 18 }] },
+    { name: "接裡腰脅(直)_2道", ie: 0.032, auto: false, pick: 0,
+      opts: [{ n: "併縫", p: 36 }, { n: "壓腰脅", p: 24 }, { n: "平車+燙開", p: 22 }, { n: "拷合", p: 18 }] },
+    { name: "四片式腰頭_腰頂鬆緊帶", ie: 0.112, auto: false, pick: 0,
+      opts: [{ n: "平車+拷邊", p: 55 }, { n: "拷合", p: 45 }] },
+    { name: "整圈鬆緊帶_腰頭固雙", ie: 0.027, auto: false, pick: 0,
+      opts: [{ n: "不含鬆緊帶", p: 20 }, { n: "有壓到", p: 20 }, { n: "無壓到", p: 20 }, { n: "固雙+壓中_有壓", p: 20 }, { n: "固雙+壓中_無壓", p: 20 }] },
+    { name: "上腰頭", ie: 0.154, auto: true, pick: 0,
+      opts: [{ n: "平車車合+縫份拷邊+壓線", p: 100 }] },
+  ]},
+  { id: 2, l1: "口袋", l2: "貼袋_上貼",
+    source: "ai", conf: 88, matchCode: "PK_003_a12",
+    px: 86, py: 22, side: "right", ie: 0.117, l3s: [
+    { name: "袋口", ie: 0.034, auto: false, pick: 0,
+      opts: [{ n: "只壓明線", p: 17 }, { n: "壓暗明線", p: 17 }, { n: "壓暗+壓明線", p: 17 }, { n: "無壓線", p: 17 }] },
+    { name: "方形貼袋x1_固雙", ie: 0.060, auto: true, pick: 0,
+      opts: [{ n: "袋中無褶+固雙", p: 100 }] },
+    { name: "斜插袋_打結", ie: 0.023, auto: false, pick: 0,
+      opts: [{ n: "固線", p: 38 }, { n: "手工類", p: 28 }, { n: "車縫類", p: 11 }] },
+  ]},
+  { id: 3, l1: "褶", l2: "死褶",
+    source: "ai", conf: 76, matchCode: "PD_001_a03",
+    px: 22, py: 14, side: "left", ie: 0.241, l3s: [
+    { name: "腰褶（×2 對）", ie: 0.176, auto: false, pick: 0,
+      opts: [{ n: "不同裁片+平車+拷邊", p: 10 }, { n: "不同裁片+鎖鏈+拷邊", p: 9 }, { n: "同裁片+平車+拷邊", p: 9 }, { n: "同裁片+鎖鏈+拷邊", p: 9 }] },
+    { name: "打結車+修線尾", ie: 0.065, auto: false, pick: 0,
+      opts: [{ n: "車縫+修線尾", p: 57 }, { n: "手工類", p: 43 }] },
+  ]},
+  { id: 4, l1: "剪接線", l2: "橫向剪接(1對)",
+    source: "ai", conf: 85, matchCode: "SB_022_a10",
+    px: 82, py: 18, side: "right", ie: 0.026, l3s: [
+    { name: "橫向剪接_併縫", ie: 0.026, auto: true, pick: 0,
+      opts: [{ n: "併縫", p: 100 }] },
+  ]},
+  { id: 5, l1: "剪接線", l2: "直向剪接(1對)",
+    source: "ai", conf: 93, matchCode: "SB_020_a10",
+    px: 84, py: 38, side: "right", ie: 0.106, l3s: [
+    { name: "直向剪接", ie: 0.064, auto: false, pick: 0,
+      opts: [{ n: "壓直向剪接明線", p: 32 }, { n: "平車+拷邊", p: 23 }, { n: "平車+滾邊", p: 23 }, { n: "拷合", p: 11 }] },
+    { name: "直向剪接_修線尾", ie: 0.042, auto: false, pick: 0,
+      opts: [{ n: "燙襯", p: 36 }, { n: "車縫類", p: 21 }] },
+  ]},
+  { id: 6, l1: "褲合身", l2: "合內長_一起",
+    source: "struct", conf: null, matchCode: null,
+    px: 50, py: 55, side: "left", ie: 0.186, l3s: [
+    { name: "三角型剪接（襠底）", ie: 0.041, auto: false, pick: 0,
+      opts: [{ n: "併縫", p: 14 }, { n: "拷克拉開(SPI20-25)", p: 14 }, { n: "拷克拉開(SPI25-30)", p: 14 }, { n: "拷克拉開(SPI30-35)", p: 14 }] },
+    { name: "合內長_併縫", ie: 0.083, auto: true, pick: 0,
+      opts: [{ n: "併縫", p: 100 }] },
+    { name: "合前襠", ie: 0.029, auto: false, pick: 0,
+      opts: [{ n: "壓前襠明線", p: 23 }, { n: "平車+拷邊", p: 19 }, { n: "平車+滾邊", p: 19 }, { n: "拷合", p: 10 }] },
+    { name: "合後襠", ie: 0.033, auto: false, pick: 0,
+      opts: [{ n: "壓後襠明線", p: 23 }, { n: "平車+拷邊", p: 19 }, { n: "平車+滾邊", p: 19 }, { n: "拷合", p: 10 }] },
+  ]},
+  { id: 7, l1: "褲口", l2: "反折褲口",
+    source: "ai", conf: 90, matchCode: "LO_005_a01",
+    px: 14, py: 90, side: "left", ie: 0.065, l3s: [
+    { name: "修褲口（手工）", ie: 0.021, auto: false, pick: 1,
+      opts: [{ n: "車縫類", p: 57 }, { n: "手工類", p: 43 }] },
+    { name: "直接反折", ie: 0.044, auto: false, pick: 0,
+      opts: [{ n: "散邊+拷邊+壓線", p: 20 }, { n: "散邊+壓三本", p: 19 }, { n: "整圈+拷邊+壓線", p: 18 }, { n: "整圈+壓三本", p: 17 }] },
+  ]}
+];
+
+const ADDON = { name: "商標 Labels", ie: 0.080, steps: [
+  { l3: "上商標_對折標1個", ie: 0.013 },
+  { l3: "熱轉印標x1", ie: 0.042 },
+  { l3: "熱轉印標x1（第二處）", ie: 0.025 }
+]};
+
+const MC = ["#b45309", "#0369a1", "#7e22ce", "#be123c", "#be185d", "#065f46", "#a21caf"];
+const TAGS = [
+  { l: "下衣", c: "#0369a1" }, { l: "Legging", c: "#7e22ce" },
+  { l: "口袋", c: "#b45309" }, { l: "High Rise", c: "#065f46" }, { l: "褶", c: "#a21caf" }
+];
+const SRC = {
+  ai:     { label: "AI 偵測", bg: "#e0f2fe", c: "#0369a1", icon: "👁" },
+  struct: { label: "結構推斷", bg: "#d1fae5", c: "#065f46", icon: "⚙" }
+};
+
+/* ─── 長度相關 POM codes（PETITE / TALL 跟 MISSY 有差的） ─── */
+const LENGTH_POMS = new Set(["K1","K2","O4","N5","N7","L2"]);
+
+/* ─── Mock Data ─── */
+const MISSY_POMS = {
+  must: [
+    { code: "H1", name: "Waistband Height", mVal: 4.25, tol: [0.25, 0.25],
+      grading: { XS:-0.125, S:0, M:0, L:0, XL:0.125, XXL:0.125 },
+      subRows: [{ label: "CF", mVal: 4.25 }, { label: "SS", mVal: 4.0 }, { label: "CB", mVal: 4.625 }],
+      petite: null, tall: null },
+    { code: "T10", name: "Hem Height", mVal: 0.75, tol: [0.25, 0.25],
+      grading: { XS:0, S:0, M:0, L:0, XL:0, XXL:0 },
+      petite: null, tall: null },
+    { code: "K1", name: "Front Rise", mVal: 11.0, tol: [0.375, 0.375],
+      grading: { XS:-0.5, S:-0.25, M:0, L:0.25, XL:0.5, XXL:0.75 },
+      petite: { mVal: 10.5, note: "Rise 短 ½\"" }, tall: { mVal: 11.75, note: "Rise 長 ¾\"" } },
+    { code: "K2", name: "Back Rise", mVal: 14.75, tol: [0.375, 0.375],
+      grading: { XS:-0.5, S:-0.25, M:0, L:0.25, XL:0.5, XXL:0.75 },
+      petite: { mVal: 14.25, note: "Rise 短 ½\"" }, tall: { mVal: 15.5, note: "Rise 長 ¾\"" } },
+    { code: "O4", name: "Inseam", mVal: 28.0, tol: [0.5, 0.5],
+      grading: { XS:0, S:0, M:0, L:0, XL:0, XXL:0 },
+      petite: { mVal: 26.0, note: "短 2\"" }, tall: { mVal: 31.0, note: "長 3\"" } },
+    { code: "L8", name: "Low Hip", mVal: 20.0, tol: [0.5, 0.5],
+      grading: { XS:-2.0, S:-1.0, M:0, L:1.0, XL:2.0, XXL:3.0 },
+      petite: null, tall: null },
+  ],
+  recommend: [
+    { code: "L2", name: "Hip Position (3-point)", mVal: 18.5, tol: [0.5, 0.5],
+      grading: { XS:-1.5, S:-0.75, M:0, L:0.75, XL:1.5, XXL:2.25 },
+      petite: { mVal: 18.0, note: "短 ½\"" }, tall: { mVal: 19.0, note: "長 ½\"" } },
+    { code: "N9", name: "Leg Opening", mVal: 5.0, tol: [0.375, 0.375],
+      grading: { XS:-0.5, S:-0.25, M:0, L:0.25, XL:0.5, XXL:0.75 },
+      petite: null, tall: null },
+    { code: "N3", name: "Thigh (1\" below crotch)", mVal: 11.75, tol: [0.375, 0.375],
+      grading: { XS:-0.75, S:-0.375, M:0, L:0.375, XL:0.75, XXL:1.125 },
+      petite: null, tall: null },
+    { code: "H2", name: "Waistband Relaxed", mVal: 14.0, tol: [0.5, 0.5],
+      grading: { XS:-1.5, S:-0.75, M:0, L:0.75, XL:1.5, XXL:2.25 },
+      petite: null, tall: null },
+    { code: "Z18", name: "Stretch - Waist", mVal: 19.0, tol: [1.0, 1.0],
+      grading: { XS:-2.0, S:-1.0, M:0, L:1.0, XL:2.0, XXL:3.0 },
+      petite: null, tall: null },
+  ],
+  optional: [
+    { code: "N5", name: "Knee", mVal: 7.0, tol: [0.375, 0.375],
+      grading: { XS:-0.5, S:-0.25, M:0, L:0.25, XL:0.5, XXL:0.75 },
+      petite: { mVal: 6.5, note: "短 ½\"" }, tall: { mVal: 7.5, note: "長 ½\"" } },
+    { code: "N7", name: "Calf", mVal: 6.5, tol: [0.375, 0.375],
+      grading: { XS:-0.5, S:-0.25, M:0, L:0.25, XL:0.5, XXL:0.75 },
+      petite: { mVal: 6.0, note: "短 ½\"" }, tall: { mVal: 7.0, note: "長 ½\"" } },
+    { code: "H4", name: "Waist Extended", mVal: 22.0, tol: [0.5, 0.5],
+      grading: { XS:-1.5, S:-0.75, M:0, L:0.75, XL:1.5, XXL:2.25 },
+      petite: null, tall: null },
+  ],
+};
+
+/* PLUS: 不同 size run + 不同 POM code */
+const PLUS_POMS = {
+  must: [
+    { code: "H1", name: "Waistband Height", mVal: 4.5, tol: [0.25, 0.25],
+      grading: { "1X":-0.125, "2X":0, "3X":0, "4X":0.125 } },
+    { code: "T10", name: "Hem Height", mVal: 0.75, tol: [0.25, 0.25],
+      grading: { "1X":0, "2X":0, "3X":0, "4X":0 } },
+    { code: "K1", name: "Front Rise", mVal: 12.5, tol: [0.375, 0.375],
+      grading: { "1X":-0.375, "2X":0, "3X":0.375, "4X":0.75 },
+      noteVsMissy: "POM code 不同：MISSY 用 K1.6（to Waist Seam）" },
+    { code: "K2", name: "Back Rise", mVal: 16.25, tol: [0.375, 0.375],
+      grading: { "1X":-0.375, "2X":0, "3X":0.375, "4X":0.75 },
+      noteVsMissy: "POM code 不同：MISSY 用 K2.8（to Waist Seam）" },
+    { code: "O4", name: "Inseam", mVal: 28.0, tol: [0.5, 0.5],
+      grading: { "1X":0, "2X":0, "3X":0, "4X":0 } },
+    { code: "L8", name: "Low Hip", mVal: 24.0, tol: [0.5, 0.5],
+      grading: { "1X":-1.5, "2X":0, "3X":1.5, "4X":3.0 } },
+  ],
+  recommend: [
+    { code: "L2", name: "Hip Position (3-point)", mVal: 22.0, tol: [0.5, 0.5],
+      grading: { "1X":-1.125, "2X":0, "3X":1.125, "4X":2.25 },
+      noteVsMissy: "POM code 不同：MISSY 用 L2.6" },
+    { code: "N9", name: "Leg Opening", mVal: 6.5, tol: [0.375, 0.375],
+      grading: { "1X":-0.375, "2X":0, "3X":0.375, "4X":0.75 } },
+    { code: "N3", name: "Thigh", mVal: 14.0, tol: [0.375, 0.375],
+      grading: { "1X":-0.5625, "2X":0, "3X":0.5625, "4X":1.125 } },
+    { code: "H2", name: "Waistband Relaxed", mVal: 18.0, tol: [0.5, 0.5],
+      grading: { "1X":-1.125, "2X":0, "3X":1.125, "4X":2.25 } },
+  ],
+  optional: [
+    { code: "N5", name: "Knee", mVal: 8.5, tol: [0.375, 0.375],
+      grading: { "1X":-0.375, "2X":0, "3X":0.375, "4X":0.75 },
+      noteVsMissy: "PLUS 用 N5.11（Compression）" },
+    { code: "H4", name: "Waist Extended", mVal: 26.0, tol: [0.5, 0.5],
+      grading: { "1X":-1.125, "2X":0, "3X":1.125, "4X":2.25 } },
+  ],
+};
+
+const MISSY_META = { sizes: ["XS","S","M","L","XL","XXL"], base: "M", rule: "Old Navy Womens Alpha" };
+const PLUS_META  = { sizes: ["1X","2X","3X","4X"], base: "2X", rule: "Old Navy Womens Plus Alpha" };
+
+const TIER = {
+  must:      { label: "必備", bg: "#dc262615", c: "#dc2626", icon: "●" },
+  recommend: { label: "建議", bg: "#b4530915", c: "#b45309", icon: "◐" },
+  optional:  { label: "選配", bg: "#0369a115", c: "#0369a1", icon: "○" },
+};
+
+/* GT options — 不含 Knit/Woven，由 Step 1 繼承 */
+const GT_OPTIONS = ["TOP","BOTTOM","DRESS","ROMPER_JUMPSUIT","OUTERWEAR","SET","SWIM"];
+
+/* IT_OPTIONS 以 fabric_GT 為 key，依繼承 fabric 決定子層 */
+const IT_OPTIONS = {
+  Knit_BOTTOM:  ["LEGGINGS","PANTS","SHORTS","JOGGERS","BIKE SHORTS"],
+  Knit_TOP:     ["TEE","TANK","HOODIE","PULLOVER","CARDIGAN"],
+  Woven_BOTTOM: ["PANTS","SHORTS","SKIRT","WIDE LEG"],
+  Woven_TOP:    ["BLOUSE","SHIRT","JACKET"],
+  /* 沒有子層的 GT 不列 */
+};
+
+/* ─── Helpers ─── */
+const frmt = (v) => {
+  if (v === 0) return "—";
+  const neg = v < 0;
+  const abs = Math.abs(v);
+  const whole = Math.floor(abs);
+  const frac = abs - whole;
+  let f = "";
+  if (frac >= 0.875) return (neg ? "-" : "") + (whole + 1);
+  else if (frac >= 0.625) f = "¾";
+  else if (frac >= 0.375) f = "½";
+  else if (frac >= 0.125) f = "¼";
+  else if (frac > 0.05) f = "⅛";
+  if (f) return (neg ? "-" : "") + (whole > 0 ? whole : "") + f;
+  return (neg ? "-" : "") + String(whole);
+};
+
+/* ─── Sel（v10 enterprise utility） ─── */
+function Sel({ label, value, onChange, options, disabled, badgeMap }) {
+  const filled = !!value;
+  return (
+    <div>
+      <div style={{ fontSize: "11px", color: "#888", marginBottom: "6px", fontWeight: 500 }}>{label}</div>
+      <select value={value} onChange={e => onChange(e.target.value)} disabled={disabled}
+        style={{
+          width: "100%", padding: "6px 0", fontSize: "14px",
+          background: "transparent", color: filled ? "#1a1a1a" : "#bbb",
+          fontWeight: filled ? 600 : 400,
+          border: "none", borderBottom: `1.5px solid ${disabled ? "#eee" : (filled ? "#1a1a1a" : "#d4d4d4")}`,
+          outline: "none", fontFamily: "inherit", cursor: disabled ? "not-allowed" : "pointer",
+          borderRadius: 0, transition: "border-color 0.15s",
+        }}>
+        <option value="">—</option>
+        {options.map(o => {
+          const badge = badgeMap && badgeMap[o];
+          return <option key={o} value={o}>{o}{badge ? ` (${badge})` : ""}</option>;
+        })}
+      </select>
+    </div>
+  );
+}
+
+/* ─── Sketch ─── */
+function Sketch({ src, hl, onClick, ok, vis }) {
+  if (!src) return null;
+  return (
+    <div style={{ position: "relative", width: "100%" }}>
+      <img src={src} alt="sketch" style={{ width: "100%", display: "block", borderRadius: "4px" }} />
+      {ok && <svg style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none" }} viewBox="0 0 100 133">
+        {CARDS.map((c, i) => {
+          if (!vis.has(c.id)) return null;
+          const a = hl === c.id, col = MC[i], lx = c.side === "left" ? 2 : 56;
+          const isStruct = c.source === "struct";
+          return <g key={c.id} style={{ pointerEvents: "auto", cursor: "pointer" }} onClick={() => onClick(c.id)} opacity={hl === null || a ? 1 : 0.15}>
+            <line x1={c.px} y1={c.py} x2={lx} y2={c.py} stroke={col} strokeWidth={a ? 0.6 : 0.3}
+              strokeDasharray={isStruct ? "1.5,1" : (a ? "none" : "1.2,0.8")} />
+            <circle cx={c.px} cy={c.py} r={a ? 1.8 : 1.2} fill={col} opacity={isStruct ? 0.5 : 1} />
+            <circle cx={lx} cy={c.py} r={a ? 4.5 : 3.8} fill={a ? col : "#fff"} stroke={col}
+              strokeWidth={a ? 0 : 0.6} strokeDasharray={isStruct ? "1.5,1" : "none"} />
+            <text x={lx} y={c.py + 1.4} textAnchor="middle" fontSize="3.5" fontWeight="700" fill={a ? "#fff" : col}>{c.id}</text>
+          </g>;
+        })}
+      </svg>}
+    </div>
+  );
+}
+
+/* ─── L3 Row ─── */
+function L3Line({ l3, editId, setEditId, idx, col }) {
+  const [sel, setSel] = useState(l3.pick);
+  const [changed, setChanged] = useState(false);
+  const isEditing = editId === idx;
+  const chosen = l3.opts[sel];
+
+  return (
+    <div style={{
+      padding: "8px 0 8px 10px", borderBottom: "1px solid #f0eeeb",
+      borderLeft: changed ? `3px solid ${col}` : "3px solid transparent",
+      transition: "border-color 0.2s"
+    }}>
+      <div style={{ fontSize: "12px", color: "#666", marginBottom: "4px", lineHeight: 1.3 }}>{l3.name}</div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "6px", flex: 1, minWidth: 0 }}>
+          <span style={{ fontSize: "14px", color: "#1a1a1a", fontWeight: 600 }}>{chosen.n}</span>
+          {!l3.auto && chosen.p < 100 && (
+            <span style={{ fontSize: "11px", color: "#999", background: "#f5f4f0", padding: "1px 7px", borderRadius: "4px" }}>{chosen.p}%</span>
+          )}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
+          <span style={{ fontSize: "14px", color: "#1a1a1a", fontWeight: 700, fontVariantNumeric: "tabular-nums", fontFamily: "'JetBrains Mono',monospace" }}>{l3.ie.toFixed(3)}</span>
+          {l3.auto
+            ? <span style={{ fontSize: "10px", color: "#065f46", background: "#ecfdf5", padding: "2px 8px", borderRadius: "5px", fontWeight: 600, letterSpacing: "0.3px" }}>auto</span>
+            : <button onClick={() => setEditId(isEditing ? null : idx)}
+                style={{
+                  width: "30px", height: "30px", borderRadius: "7px",
+                  border: isEditing ? `2px solid ${col}` : "1.5px solid #ddd",
+                  background: isEditing ? col : "#fff",
+                  color: isEditing ? "#fff" : "#777",
+                  fontSize: "15px", cursor: "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  transition: "all 0.15s", flexShrink: 0
+                }}
+                onMouseEnter={e => { if (!isEditing) { e.currentTarget.style.borderColor = "#aaa"; e.currentTarget.style.background = "#f5f4f0"; }}}
+                onMouseLeave={e => { if (!isEditing) { e.currentTarget.style.borderColor = "#ddd"; e.currentTarget.style.background = "#fff"; }}}
+              >ⓘ</button>
+          }
+        </div>
+      </div>
+      <div style={{
+        maxHeight: isEditing ? "200px" : "0", overflow: "hidden",
+        transition: "max-height 0.25s ease, opacity 0.2s ease, margin 0.2s ease",
+        opacity: isEditing ? 1 : 0, marginTop: isEditing ? "8px" : "0"
+      }}>
+        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+          {l3.opts.map((o, oi) => (
+            <button key={oi} onClick={() => { setSel(oi); setChanged(oi !== l3.pick); setEditId(null); }}
+              style={{
+                fontSize: "12px", padding: "7px 14px", borderRadius: "7px", cursor: "pointer",
+                minHeight: "36px", lineHeight: 1.3,
+                border: sel === oi ? `2px solid ${col}` : "1.5px solid #e0ddda",
+                background: sel === oi ? col + "10" : "#fff",
+                color: sel === oi ? col : "#666",
+                fontWeight: sel === oi ? 700 : 400,
+                transition: "all 0.12s"
+              }}>
+              {o.n} <span style={{ opacity: 0.5, marginLeft: "3px" }}>{o.p}%</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Card ─── */
+function Card({ card, isOpen, onToggle, onRemove, col }) {
+  const [editId, setEditId] = useState(null);
+  const [showTip, setShowTip] = useState(false);
+  useEffect(() => { if (!isOpen) setEditId(null); }, [isOpen]);
+  const autoN = card.l3s.filter(l => l.auto).length;
+  const adjN = card.l3s.length - autoN;
+  const src = SRC[card.source];
+
+  return (
+    <div style={{
+      background: "#fff",
+      border: `1.5px solid ${isOpen ? col + "50" : "#e8e5e1"}`,
+      borderRadius: "12px", marginBottom: "8px", overflow: "hidden",
+      boxShadow: isOpen ? `0 4px 16px ${col}12` : "0 1px 3px rgba(0,0,0,0.04)",
+      transition: "all 0.2s"
+    }}>
+      <div onClick={onToggle} style={{
+        padding: "12px 14px", cursor: "pointer",
+        display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "10px",
+        background: isOpen ? col + "06" : "transparent", transition: "background 0.2s"
+      }}>
+        {/* LEFT: number + L1 › L2 */}
+        <div style={{ display: "flex", alignItems: "flex-start", gap: "10px", flex: 1, minWidth: 0 }}>
+          <div style={{
+            width: "30px", height: "30px", borderRadius: "9px",
+            background: isOpen ? col : "#fff", color: isOpen ? "#fff" : col,
+            border: isOpen ? "none" : `2.5px solid ${col}`,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: "14px", fontWeight: 800, flexShrink: 0,
+            marginTop: "1px", transition: "all 0.15s"
+          }}>{card.id}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {/* Line 1: L1 › L2 (the MAIN label) */}
+            <div style={{ fontSize: "15px", color: "#1a1a1a", fontWeight: 700, lineHeight: 1.3, display: "flex", alignItems: "baseline", gap: "6px", flexWrap: "wrap" }}>
+              <span>{card.l1}</span>
+              <span style={{ color: "#ccc", fontWeight: 400, fontSize: "13px" }}>›</span>
+              <span style={{ color: col }}>{card.l2}</span>
+            </div>
+            {/* Line 2: source badge + confidence */}
+            <div style={{ display: "flex", alignItems: "center", gap: "5px", marginTop: "4px", flexWrap: "wrap" }}>
+              <span style={{ fontSize: "10px", color: src.c, background: src.bg, padding: "2px 7px", borderRadius: "4px", fontWeight: 600 }}>{src.icon} {src.label}</span>
+              {card.conf !== null && <span style={{ fontSize: "10px", color: "#666", background: "#f5f4f0", padding: "2px 7px", borderRadius: "4px", fontWeight: 600, fontFamily: "'JetBrains Mono',monospace" }}>信心 {card.conf}%</span>}
+              {card.matchCode && (
+                <span
+                  onMouseEnter={e => { e.stopPropagation(); setShowTip(true); }}
+                  onMouseLeave={() => setShowTip(false)}
+                  style={{
+                    fontSize: "10px", color: "#aaa", fontFamily: "'JetBrains Mono',monospace",
+                    cursor: "help", position: "relative"
+                  }}>
+                  ref: {card.matchCode}
+                  {showTip && (
+                    <span style={{
+                      position: "absolute", bottom: "100%", left: 0, marginBottom: "6px",
+                      background: "#1a1a1a", color: "#fff", padding: "6px 10px",
+                      borderRadius: "6px", fontSize: "10px", whiteSpace: "nowrap",
+                      fontFamily: "'Outfit',sans-serif", zIndex: 10,
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.15)"
+                    }}>
+                      五階層參考圖代號（工程用）
+                    </span>
+                  )}
+                </span>
+              )}
+            </div>
+            {/* Line 3: stats */}
+            <div style={{ fontSize: "11px", color: "#999", marginTop: "3px" }}>
+              {card.l3s.length} 工段
+              {autoN > 0 && <span style={{ color: "#065f46", marginLeft: "4px" }}>· {autoN} auto</span>}
+              {adjN > 0 && <span style={{ marginLeft: "4px" }}>· {adjN} 可調</span>}
+            </div>
+          </div>
+        </div>
+        {/* RIGHT: IE + controls */}
+        <div style={{ display: "flex", alignItems: "flex-start", gap: "8px", flexShrink: 0, paddingTop: "2px" }}>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontSize: "18px", color: "#1a1a1a", fontWeight: 800, fontFamily: "'JetBrains Mono',monospace", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>{card.ie.toFixed(3)}</div>
+            <div style={{ fontSize: "9px", color: "#bbb", letterSpacing: "0.5px", marginTop: "2px" }}>IE</div>
+          </div>
+          <button onClick={(e) => { e.stopPropagation(); onRemove(card.id); }}
+            style={{ background: "none", border: "none", cursor: "pointer", fontSize: "17px",
+              color: "#dc2626", opacity: 0.7, padding: "4px", transition: "opacity 0.15s", marginTop: "-2px" }}
+            onMouseEnter={e => e.currentTarget.style.opacity = "1"}
+            onMouseLeave={e => e.currentTarget.style.opacity = "0.7"}>🗑</button>
+          <div style={{ fontSize: "14px", color: "#ccc", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
+            transition: "transform 0.25s", display: "inline-block", marginTop: "2px" }}>▾</div>
+        </div>
+      </div>
+      <div style={{ maxHeight: isOpen ? "1400px" : "0", overflow: "hidden", transition: "max-height 0.35s ease" }}>
+        <div style={{ padding: "0 14px 14px" }}>
+          <div style={{ fontSize: "11px", color: "#aaa", padding: "8px 0 4px 10px" }}>
+            點 <span style={{ display: "inline-flex", width: "20px", height: "20px", borderRadius: "5px", border: "1.5px solid #ddd", alignItems: "center", justifyContent: "center", fontSize: "12px", verticalAlign: "middle" }}>ⓘ</span> 查看替代工法
+          </div>
+          {card.l3s.map((l3, i) => <L3Line key={i} l3={l3} editId={editId} setEditId={setEditId} idx={i} col={col} />)}
+          <div style={{ display: "flex", justifyContent: "flex-end", padding: "8px 0 0", gap: "8px" }}>
+            <span style={{ fontSize: "13px", color: "#aaa" }}>小計</span>
+            <span style={{ fontSize: "14px", color: "#1a1a1a", fontWeight: 800, fontFamily: "'JetBrains Mono',monospace" }}>{card.ie.toFixed(3)}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+/* ─── POM Row for MISSY ─── */
+function MissyPomRow({ pom, tier, isOpen, onToggle, onToggleInclude, included, showPetite, showTall }) {
+  const tc = TIER[tier];
+  const sizes = MISSY_META.sizes;
+  const baseIdx = sizes.indexOf(MISSY_META.base);
+  const hasVariant = pom.petite || pom.tall;
+  const showingPetite = showPetite && pom.petite;
+  const showingTall = showTall && pom.tall;
+
+  return (
+    <div style={{
+      background: "#fff", border: `1.5px solid ${isOpen ? tc.c + "40" : "#e8e5e1"}`,
+      borderRadius: "10px", marginBottom: "6px", overflow: "hidden",
+      opacity: included ? 1 : 0.4, transition: "all 0.2s"
+    }}>
+      {/* Header */}
+      <div onClick={onToggle} style={{
+        padding: "10px 14px", cursor: "pointer",
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        background: isOpen ? tc.c + "08" : "transparent", transition: "background 0.2s"
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", flex: 1, minWidth: 0 }}>
+          <input type="checkbox" checked={included} onChange={e => { e.stopPropagation(); onToggleInclude(); }}
+            style={{ width: "16px", height: "16px", accentColor: tc.c, cursor: "pointer", flexShrink: 0 }} />
+          <span style={{ fontSize: "13px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: tc.c, width: "34px", flexShrink: 0 }}>{pom.code}</span>
+          <span style={{ fontSize: "14px", fontWeight: 600, color: "#1a1a1a" }}>{pom.name}</span>
+          {hasVariant && <span style={{ fontSize: "9px", color: "#7e22ce", background: "#f5f3ff", padding: "2px 6px", borderRadius: "4px", fontWeight: 600 }}>P/T 差異</span>}
+          {pom.subRows && <span style={{ fontSize: "9px", color: "#666", background: "#f5f4f0", padding: "2px 6px", borderRadius: "4px" }}>{pom.subRows.length} sub</span>}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
+          <span style={{ fontSize: "10px", color: tc.c, background: tc.bg, padding: "2px 7px", borderRadius: "5px", fontWeight: 600 }}>{tc.icon} {tc.label}</span>
+          <span style={{ fontSize: "15px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: "#1a1a1a" }}>{frmt(pom.mVal)}"</span>
+          <div style={{ fontSize: "13px", color: "#ccc", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.25s" }}>▾</div>
+        </div>
+      </div>
+
+      {/* Expanded */}
+      <div style={{ maxHeight: isOpen ? "900px" : "0", overflow: "hidden", transition: "max-height 0.35s ease" }}>
+        <div style={{ padding: "0 14px 14px" }}>
+          {/* Tol */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #f0eeeb" }}>
+            <span style={{ fontSize: "11px", color: "#999" }}>Tolerance</span>
+            <span style={{ fontSize: "12px", fontFamily: "'JetBrains Mono',monospace", color: "#666" }}>−{frmt(pom.tol[0])} / +{frmt(pom.tol[1])}</span>
+          </div>
+
+          {/* MISSY size grid */}
+          <div style={{ marginTop: "10px" }}>
+            <div style={{ fontSize: "10px", fontWeight: 600, color: "#1a1a1a", marginBottom: "4px", letterSpacing: "0.3px" }}>MISSY</div>
+            <div style={{ display: "grid", gridTemplateColumns: `72px repeat(${sizes.length}, 1fr)`, gap: "1px", fontSize: "11px" }}>
+              <div style={{ padding: "5px 4px", fontWeight: 600, color: "#999", fontSize: "10px" }}>SIZE</div>
+              {sizes.map((s, i) => (
+                <div key={s} style={{
+                  padding: "5px 2px", textAlign: "center", fontWeight: 700,
+                  color: i === baseIdx ? "#065f46" : "#1a1a1a",
+                  background: i === baseIdx ? "#ecfdf5" : "#faf9f7",
+                  borderRadius: "4px", fontSize: "11px", fontFamily: "'JetBrains Mono',monospace"
+                }}>{s}{i === baseIdx && <span style={{ display: "block", fontSize: "7px", color: "#065f46", fontWeight: 500 }}>BASE</span>}</div>
+              ))}
+              <div style={{ padding: "6px 4px", fontWeight: 600, color: "#1a1a1a", fontSize: "10px" }}>Value</div>
+              {sizes.map((s, i) => {
+                const val = pom.mVal + (pom.grading[s] || 0);
+                return (
+                  <div key={s} style={{ padding: "3px 1px", textAlign: "center" }}>
+                    <div style={{
+                      fontSize: "13px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace",
+                      color: i === baseIdx ? "#065f46" : "#1a1a1a",
+                      padding: "3px 1px", borderRadius: "4px",
+                      border: i === baseIdx ? "2px solid #065f46" : "1.5px solid #e8e5e1",
+                      background: i === baseIdx ? "#ecfdf5" : "#fff",
+                    }}>{frmt(val)}"</div>
+                  </div>
+                );
+              })}
+              <div style={{ padding: "5px 4px", fontSize: "9px", color: "#aaa" }}>Grade</div>
+              {sizes.map((s, i) => {
+                const g = pom.grading[s] || 0;
+                const prev = i > 0 ? (pom.grading[sizes[i - 1]] || 0) : null;
+                const delta = prev !== null ? g - prev : null;
+                return (
+                  <div key={s} style={{ padding: "5px 2px", textAlign: "center", fontSize: "10px", fontFamily: "'JetBrains Mono',monospace", color: delta === 0 || delta === null ? "#ccc" : "#b45309" }}>
+                    {delta !== null ? (delta >= 0 ? `+${frmt(delta)}` : frmt(delta)) : "—"}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* PETITE variant row */}
+          {showingPetite && (
+            <div style={{ marginTop: "8px", padding: "8px 10px", background: "#faf5ff", borderRadius: "8px", border: "1.5px solid #e9d5ff" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <span style={{ fontSize: "10px", fontWeight: 700, color: "#7e22ce", background: "#f3e8ff", padding: "2px 8px", borderRadius: "4px" }}>PETITE</span>
+                  <span style={{ fontSize: "12px", color: "#7e22ce", fontWeight: 600 }}>{pom.petite.note}</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "baseline", gap: "4px" }}>
+                  <span style={{ fontSize: "10px", color: "#999" }}>M =</span>
+                  <span style={{ fontSize: "15px", fontWeight: 800, fontFamily: "'JetBrains Mono',monospace", color: "#7e22ce" }}>{frmt(pom.petite.mVal)}"</span>
+                </div>
+              </div>
+              {/* Petite full row */}
+              <div style={{ display: "grid", gridTemplateColumns: `72px repeat(${sizes.length}, 1fr)`, gap: "1px", marginTop: "6px" }}>
+                <div style={{ fontSize: "9px", color: "#999", padding: "3px 4px" }}>Value</div>
+                {sizes.map((s, i) => {
+                  const diff = pom.petite.mVal - pom.mVal;
+                  const val = pom.petite.mVal + (pom.grading[s] || 0);
+                  return (
+                    <div key={s} style={{ textAlign: "center", fontSize: "12px", fontFamily: "'JetBrains Mono',monospace", color: "#7e22ce", fontWeight: 600, padding: "3px 0" }}>{frmt(val)}"</div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* TALL variant row */}
+          {showingTall && (
+            <div style={{ marginTop: "6px", padding: "8px 10px", background: "#eff6ff", borderRadius: "8px", border: "1.5px solid #bfdbfe" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <span style={{ fontSize: "10px", fontWeight: 700, color: "#1d4ed8", background: "#dbeafe", padding: "2px 8px", borderRadius: "4px" }}>TALL</span>
+                  <span style={{ fontSize: "12px", color: "#1d4ed8", fontWeight: 600 }}>{pom.tall.note}</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "baseline", gap: "4px" }}>
+                  <span style={{ fontSize: "10px", color: "#999" }}>M =</span>
+                  <span style={{ fontSize: "15px", fontWeight: 800, fontFamily: "'JetBrains Mono',monospace", color: "#1d4ed8" }}>{frmt(pom.tall.mVal)}"</span>
+                </div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: `72px repeat(${sizes.length}, 1fr)`, gap: "1px", marginTop: "6px" }}>
+                <div style={{ fontSize: "9px", color: "#999", padding: "3px 4px" }}>Value</div>
+                {sizes.map((s) => {
+                  const val = pom.tall.mVal + (pom.grading[s] || 0);
+                  return (
+                    <div key={s} style={{ textAlign: "center", fontSize: "12px", fontFamily: "'JetBrains Mono',monospace", color: "#1d4ed8", fontWeight: 600, padding: "3px 0" }}>{frmt(val)}"</div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Sub-rows */}
+          {pom.subRows && (
+            <div style={{ marginTop: "8px", padding: "8px 10px", background: "#faf9f7", borderRadius: "8px", border: "1px solid #f0eeeb" }}>
+              <div style={{ fontSize: "9px", color: "#999", fontWeight: 600, marginBottom: "4px", letterSpacing: "0.5px" }}>SUB-ROWS</div>
+              {pom.subRows.map(sr => (
+                <div key={sr.label} style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", borderBottom: "1px solid #f0eeeb" }}>
+                  <span style={{ fontSize: "11px", color: "#666" }}>↳ {sr.label}</span>
+                  <span style={{ fontSize: "12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{frmt(sr.mVal)}"</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div style={{ fontSize: "9px", color: "#ccc", marginTop: "6px", fontFamily: "'JetBrains Mono',monospace" }}>source: 943 DNs × 3yr median · {MISSY_META.rule}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── POM Row for PLUS ─── */
+function PlusPomRow({ pom, tier, isOpen, onToggle, onToggleInclude, included }) {
+  const tc = TIER[tier];
+  const sizes = PLUS_META.sizes;
+  const baseIdx = sizes.indexOf(PLUS_META.base);
+
+  return (
+    <div style={{
+      background: "#fff", border: `1.5px solid ${isOpen ? tc.c + "40" : "#e8e5e1"}`,
+      borderRadius: "10px", marginBottom: "6px", overflow: "hidden",
+      opacity: included ? 1 : 0.4, transition: "all 0.2s"
+    }}>
+      <div onClick={onToggle} style={{
+        padding: "10px 14px", cursor: "pointer",
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        background: isOpen ? tc.c + "08" : "transparent"
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", flex: 1, minWidth: 0 }}>
+          <input type="checkbox" checked={included} onChange={e => { e.stopPropagation(); onToggleInclude(); }}
+            style={{ width: "16px", height: "16px", accentColor: tc.c, cursor: "pointer", flexShrink: 0 }} />
+          <span style={{ fontSize: "13px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: tc.c, width: "34px", flexShrink: 0 }}>{pom.code}</span>
+          <span style={{ fontSize: "14px", fontWeight: 600, color: "#1a1a1a" }}>{pom.name}</span>
+          {pom.noteVsMissy && <span style={{ fontSize: "9px", color: "#be185d", background: "#fdf2f8", padding: "2px 6px", borderRadius: "4px", fontWeight: 600 }}>≠ MISSY</span>}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
+          <span style={{ fontSize: "10px", color: tc.c, background: tc.bg, padding: "2px 7px", borderRadius: "5px", fontWeight: 600 }}>{tc.icon} {tc.label}</span>
+          <span style={{ fontSize: "15px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{frmt(pom.mVal)}"</span>
+          <div style={{ fontSize: "13px", color: "#ccc", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.25s" }}>▾</div>
+        </div>
+      </div>
+      <div style={{ maxHeight: isOpen ? "500px" : "0", overflow: "hidden", transition: "max-height 0.35s ease" }}>
+        <div style={{ padding: "0 14px 14px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #f0eeeb" }}>
+            <span style={{ fontSize: "11px", color: "#999" }}>Tolerance</span>
+            <span style={{ fontSize: "12px", fontFamily: "'JetBrains Mono',monospace", color: "#666" }}>−{frmt(pom.tol[0])} / +{frmt(pom.tol[1])}</span>
+          </div>
+          {pom.noteVsMissy && (
+            <div style={{ padding: "6px 8px", marginTop: "6px", background: "#fdf2f8", borderRadius: "6px", fontSize: "10px", color: "#be185d" }}>⚠ {pom.noteVsMissy}</div>
+          )}
+          <div style={{ marginTop: "8px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: `72px repeat(${sizes.length}, 1fr)`, gap: "1px" }}>
+              <div style={{ padding: "5px 4px", fontWeight: 600, color: "#999", fontSize: "10px" }}>SIZE</div>
+              {sizes.map((s, i) => (
+                <div key={s} style={{
+                  padding: "5px 2px", textAlign: "center", fontWeight: 700,
+                  color: i === baseIdx ? "#065f46" : "#1a1a1a",
+                  background: i === baseIdx ? "#ecfdf5" : "#faf9f7",
+                  borderRadius: "4px", fontSize: "11px", fontFamily: "'JetBrains Mono',monospace"
+                }}>{s}{i === baseIdx && <span style={{ display: "block", fontSize: "7px", color: "#065f46" }}>BASE</span>}</div>
+              ))}
+              <div style={{ padding: "6px 4px", fontWeight: 600, fontSize: "10px" }}>Value</div>
+              {sizes.map((s, i) => {
+                const val = pom.mVal + (pom.grading[s] || 0);
+                return (
+                  <div key={s} style={{ padding: "3px 1px", textAlign: "center" }}>
+                    <div style={{
+                      fontSize: "13px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace",
+                      color: i === baseIdx ? "#065f46" : "#1a1a1a",
+                      padding: "3px 1px", borderRadius: "4px",
+                      border: i === baseIdx ? "2px solid #065f46" : "1.5px solid #e8e5e1",
+                      background: i === baseIdx ? "#ecfdf5" : "#fff",
+                    }}>{frmt(val)}"</div>
+                  </div>
+                );
+              })}
+              <div style={{ padding: "5px 4px", fontSize: "9px", color: "#aaa" }}>Grade</div>
+              {sizes.map((s, i) => {
+                const g = pom.grading[s] || 0;
+                const prev = i > 0 ? (pom.grading[sizes[i - 1]] || 0) : null;
+                const delta = prev !== null ? g - prev : null;
+                return (
+                  <div key={s} style={{ padding: "5px 2px", textAlign: "center", fontSize: "10px", fontFamily: "'JetBrains Mono',monospace", color: delta === 0 || delta === null ? "#ccc" : "#b45309" }}>
+                    {delta !== null ? (delta >= 0 ? `+${frmt(delta)}` : frmt(delta)) : "—"}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <div style={{ fontSize: "9px", color: "#ccc", marginTop: "6px", fontFamily: "'JetBrains Mono',monospace" }}>source: 943 DNs × 3yr median · {PLUS_META.rule}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Section Header ─── */
+function TierSection({ tier, count, children }) {
+  const tc = TIER[tier];
+  const rateLabel = tier === "must" ? "≥80%" : tier === "recommend" ? "50-80%" : "<50%";
+  return (
+    <div>
+      <div style={{ fontSize: "12px", color: tc.c, fontWeight: 700, marginTop: "14px", marginBottom: "6px" }}>{tc.icon} {tc.label} POM — {count} 項（出現率 {rateLabel}）</div>
+      {children}
+    </div>
+  );
+}
+/* ═══════════════════════════════════════════════════════════════════
+   Main App
+   ═══════════════════════════════════════════════════════════════════ */
+export default function App() {
+  /* ── 共用 filter state ── */
+  const [brand, setBrand] = useState("");
+  const [fabric, setFabric] = useState("");
+  const [gender, setGender] = useState("");
+  const [gt, setGt] = useState("");
+  const [it, setIt] = useState("");
+
+  /* ── 切換 tab ── */
+  const [activeTab, setActiveTab] = useState("construction"); // "construction" | "measurement"
+
+  /* ── Sketch 上傳 ── */
+  const [sketchSrc, setSketchSrc] = useState(SKETCH_IMG); // 預設用 mock；正式版初始值改 null
+  const handleSketchUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => setSketchSrc(ev.target.result);
+    reader.readAsDataURL(file);
+  };
+  const handleSketchDrop = (e) => {
+    e.preventDefault();
+    const file = e.dataTransfer?.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => setSketchSrc(ev.target.result);
+    reader.readAsDataURL(file);
+  };
+
+  /* ── 作工建議 tab state ── */
+  const [cStep, setCStep] = useState(0);       // 0=idle, 1=analyzing, 2=done
+  const [cAnalyzing, setCAnalyzing] = useState(false);
+  const [cStage, setCStage] = useState(0);
+  const [removed, setRemoved] = useState(new Set());
+  const [openId, setOpenId] = useState(null);
+  const [addonOn, setAddonOn] = useState(true);
+
+  /* ── 尺寸表 tab state ── */
+  const [mStep, setMStep] = useState(0);
+  const [mAnalyzing, setMAnalyzing] = useState(false);
+  const [mStage, setMStage] = useState(0);
+  const [sizeRun, setSizeRun] = useState("missy"); // "missy" | "plus"
+  const [showPetite, setShowPetite] = useState(true);
+  const [showTall, setShowTall] = useState(true);
+  const [openPom, setOpenPom] = useState(null);
+  const [excluded, setExcluded] = useState(new Set());
+
+  /* ── Derived ── */
+  const designNo = "D75816";
+  const sewingIE = "1.150";
+
+  const canAnalyze = brand && fabric && gender && gt && it && sketchSrc;
+  const canGenerateSpec = brand && fabric && gender && gt && it; // 尺寸表不需要 sketch
+  const cDone = cStep >= 2;
+  const mDone = mStep >= 2;
+
+  // Construction derived
+  const vis = CARDS.filter(c => !removed.has(c.id));
+  const visSet = useMemo(() => new Set(vis.map(c => c.id)), [removed]);
+  const aiIE = vis.reduce((s, c) => s + c.ie, 0);
+  const totalIE = aiIE + (addonOn ? ADDON.ie : 0);
+  const aiCount = vis.filter(c => c.source === "ai").length;
+  const structCount = vis.filter(c => c.source === "struct").length;
+
+  // Measurement derived
+  const curPoms = sizeRun === "missy" ? MISSY_POMS : PLUS_POMS;
+  const allCodes = [...curPoms.must, ...curPoms.recommend, ...curPoms.optional].map(p => p.code);
+  const includedCount = allCodes.filter(c => !excluded.has(c)).length;
+
+  const gtBadgeMap = useMemo(() => {
+    const map = {};
+    if (!fabric) return map;
+    GT_OPTIONS.forEach(g => {
+      const key = `${fabric}_${g}`;
+      if (IT_OPTIONS[key]) map[g] = IT_OPTIONS[key].length;
+    });
+    return map;
+  }, [fabric]);
+
+  const curItOptions = useMemo(() => {
+    if (!gt || !fabric) return [];
+    return IT_OPTIONS[`${fabric}_${gt}`] || [];
+  }, [fabric, gt]);
+
+  const ptCount = useMemo(() => {
+    let p = 0, t = 0;
+    [...MISSY_POMS.must, ...MISSY_POMS.recommend, ...MISSY_POMS.optional].forEach(pom => {
+      if (pom.petite) p++;
+      if (pom.tall) t++;
+    });
+    return { petite: p, tall: t };
+  }, []);
+
+  const C_STAGES = [
+    "① 偵測 L1 部位（bbox）...",
+    "② 比對 5,203 張零件參考圖 → L2 零件...",
+    "③ 歷史配方帶 L3 候選...",
+    "④ 零件圖匹配確認 L3...",
+    "⑤ 查 204K DB → L4 眾數推薦...",
+    "✓ 完成"
+  ];
+  const M_STAGES = [
+    "① 載入 GT×Gender POM 規則表...",
+    "② 查 943 unique DNs → M 碼中位數...",
+    "③ 比對 984 Grading POM families...",
+    "④ 帶入 Body Type 差異（PETITE / TALL / PLUS）...",
+    "⑤ Tolerance 眾數推薦...",
+    "✓ 尺寸建議表生成完成"
+  ];
+
+  const runConstruction = () => {
+    setCStep(1); setCAnalyzing(true); setCStage(0);
+    setRemoved(new Set()); setOpenId(null); setAddonOn(true);
+    const si = setInterval(() => setCStage(s => s < 5 ? s + 1 : s), 280);
+    setTimeout(() => { clearInterval(si); setCAnalyzing(false); setCStep(2); }, 1800);
+  };
+  const runMeasurement = () => {
+    setMStep(1); setMAnalyzing(true); setMStage(0);
+    setExcluded(new Set()); setOpenPom(null); setSizeRun("missy");
+    setShowPetite(true); setShowTall(true);
+    const si = setInterval(() => setMStage(s => s < 5 ? s + 1 : s), 350);
+    setTimeout(() => { clearInterval(si); setMAnalyzing(false); setMStep(2); }, 2200);
+  };
+  const toggle = (id) => setOpenId(prev => prev === id ? null : id);
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#fafafa", color: "#1a1a1a", fontFamily: "'Outfit','Noto Sans TC',system-ui,sans-serif" }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&display=swap');
+@keyframes slideUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:.25}50%{opacity:.8}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes scanDown{from{top:0%}to{top:98%}}
+*{box-sizing:border-box}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:#ccc;border-radius:2px}`}</style>
+
+      {/* ─── Header (v10: minimal) ─── */}
+      <div style={{ padding: "12px 24px", background: "#fff", borderBottom: "1px solid #eee", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <span style={{ fontSize: "15px", fontWeight: 700, color: "#1a1a1a" }}>StyTrix</span>
+          <span style={{ width: "1px", height: "14px", background: "#ddd" }} />
+          <span style={{ fontSize: "12px", color: "#999", fontWeight: 500 }}>Techpack</span>
+        </div>
+        <span style={{ fontSize: "11px", color: "#aaa", fontFamily: "'JetBrains Mono',monospace" }}>{designNo}</span>
+      </div>
+
+      <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "24px 28px" }}>
+        {/* ─── Title (v10: one-line clean) ─── */}
+        <div style={{ marginBottom: "24px" }}>
+          <div style={{ fontSize: "22px", fontWeight: 700, color: "#1a1a1a", letterSpacing: "-0.3px", marginBottom: "6px" }}>
+            {designNo} <span style={{ color: "#888", fontWeight: 400 }}>Fitted HR Studio Smooth Legging</span>
+          </div>
+          <div style={{ fontSize: "12px", color: "#aaa", fontFamily: "'JetBrains Mono',monospace" }}>
+            {[brand, fabric, gender, gt, it].filter(Boolean).join(" · ") || "—"}{" · "}IE {sewingIE}
+          </div>
+        </div>
+
+        {/* ─── Filter (v10: flush underline selects) ─── */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "24px", marginBottom: "28px", paddingBottom: "24px", borderBottom: "1px solid #eee" }}>
+          <Sel label="Brand" value={brand} onChange={setBrand}
+            options={BRANDS.map(b => b.code)} />
+          <Sel label="Fabric" value={fabric}
+            onChange={v => { setFabric(v); setIt(""); }}
+            options={["Woven", "Knit"]} />
+          <Sel label="Gender" value={gender} onChange={setGender}
+            options={["Men's", "Women's", "Boy", "Girl", "Baby"]} />
+          <Sel label="Garment Type" value={gt}
+            onChange={v => { setGt(v); setIt(""); }}
+            options={GT_OPTIONS} badgeMap={gtBadgeMap} />
+          <Sel label="Item Type" value={it} onChange={setIt}
+            options={curItOptions}
+            disabled={curItOptions.length === 0} />
+        </div>
+
+        {/* ─── Tabs (v10: underline only) ─── */}
+        <div style={{ display: "flex", borderBottom: "1px solid #eee", marginBottom: "24px" }}>
+          {[
+            { key: "construction", label: "作工建議", done: cDone,
+              badge: cDone ? `${vis.length} 部位 · IE ${totalIE.toFixed(3)}` : null },
+            { key: "measurement", label: "尺寸表", done: mDone,
+              badge: mDone ? `${includedCount} POMs` : null },
+          ].map(t => {
+            const active = activeTab === t.key;
+            return (
+              <button key={t.key} onClick={() => setActiveTab(t.key)} style={{
+                padding: "12px 0", marginRight: "32px", background: "none", border: "none",
+                borderBottom: active ? "2px solid #065f46" : "2px solid transparent",
+                cursor: "pointer", color: active ? "#1a1a1a" : "#aaa",
+                fontSize: "14px", fontWeight: active ? 700 : 500,
+                marginBottom: "-1px", transition: "all 0.15s", fontFamily: "inherit",
+                display: "flex", alignItems: "center", gap: "8px",
+              }}>
+                {t.label}
+                {t.done && t.badge && (
+                  <span style={{ fontSize: "11px", color: "#065f46", fontFamily: "'JetBrains Mono',monospace", fontWeight: 600 }}>{t.badge}</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* ═══ Construction Tab Panel ═══ */}
+        {activeTab === "construction" && (
+          <div style={{ animation: "fadeIn 0.2s ease" }}>
+            {/* Action bar (v10: clean) */}
+            <div style={{
+              background: "#fff", border: "1px solid #eee", borderRadius: "10px",
+              padding: "16px 20px", marginBottom: "16px",
+              display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px"
+            }}>
+              <div>
+                <div style={{ fontSize: "15px", fontWeight: 700, marginBottom: "3px", color: "#1a1a1a" }}>作工建議</div>
+                <div style={{ fontSize: "12px", color: "#999" }}>Sketch → 部位偵測 → 零件匹配 → 工段推薦 → IE</div>
+              </div>
+              {!cDone && (
+                <button onClick={runConstruction} disabled={!canAnalyze || cAnalyzing} style={{
+                  padding: "10px 24px", background: (canAnalyze && !cAnalyzing) ? "#1a1a1a" : "#eee",
+                  color: (canAnalyze && !cAnalyzing) ? "#fff" : "#bbb",
+                  border: "none", borderRadius: "8px",
+                  fontSize: "13px", fontWeight: 600, cursor: (canAnalyze && !cAnalyzing) ? "pointer" : "not-allowed",
+                  fontFamily: "inherit",
+                }}>{cAnalyzing ? "分析中…" : "Analyze"}</button>
+              )}
+              {cDone && (
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontSize: "10px", color: "#999" }}>Sewing IE</div>
+                    <div style={{ fontSize: "18px", color: "#065f46", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{totalIE.toFixed(3)}</div>
+                  </div>
+                  <button onClick={runConstruction} style={{
+                    padding: "8px 14px", background: "#fff", color: "#999",
+                    border: "1px solid #eee", borderRadius: "8px", fontSize: "12px", cursor: "pointer", fontFamily: "inherit"
+                  }}>Re-analyze</button>
+                </div>
+              )}
+            </div>
+
+            {/* 2-col layout: sketch + cards */}
+            <div style={{ display: "grid", gridTemplateColumns: "minmax(480px, 540px) 1fr", gap: "16px" }}>
+              {/* Sketch upload + preview */}
+              <div style={{ background: "#fff", borderRadius: "10px", overflow: "hidden", border: "1px solid #eee", alignSelf: "start" }}>
+                {!sketchSrc ? (
+                  /* ─── Dropzone ─── */
+                  <label
+                    onDragOver={e => e.preventDefault()}
+                    onDrop={handleSketchDrop}
+                    style={{
+                      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                      minHeight: "400px", cursor: "pointer", padding: "40px",
+                      color: "#bbb", textAlign: "center",
+                    }}
+                  >
+                    <input type="file" accept="image/*" onChange={handleSketchUpload} style={{ display: "none" }} />
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="17 8 12 3 7 8" />
+                      <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                    <div style={{ fontSize: "14px", fontWeight: 600, color: "#999", marginTop: "16px" }}>上傳設計圖</div>
+                    <div style={{ fontSize: "12px", color: "#ccc", marginTop: "6px" }}>拖曳或點擊上傳 · PNG / JPG</div>
+                  </label>
+                ) : (
+                  /* ─── Preview ─── */
+                  <>
+                    <div style={{ padding: "10px 16px", borderBottom: "1px solid #f0f0f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ fontSize: "12px", color: "#888", fontWeight: 500 }}>Sketch</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                        <span style={{ fontSize: "11px", fontFamily: "'JetBrains Mono',monospace", color: "#ccc" }}>{designNo}</span>
+                        <label style={{ fontSize: "11px", color: "#999", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: "2px" }}>
+                          <input type="file" accept="image/*" onChange={handleSketchUpload} style={{ display: "none" }} />
+                          更換
+                        </label>
+                      </div>
+                    </div>
+                    <div style={{ padding: "8px", position: "relative" }}>
+                      <Sketch src={sketchSrc} hl={openId} onClick={toggle} ok={cDone} vis={visSet} />
+                      {cAnalyzing && <div style={{ position: "absolute", inset: "8px", background: "rgba(255,255,255,0.6)", borderRadius: "4px" }}>
+                        <div style={{ position: "absolute", left: "10%", right: "10%", height: "2px", background: "#1a1a1a",
+                          borderRadius: "1px", animation: "scanDown 1.5s ease-in-out infinite" }} />
+                      </div>}
+                    </div>
+                    {cDone && <div style={{ padding: "10px 16px", borderTop: "1px solid #f0f0f0", display: "flex", gap: "5px", flexWrap: "wrap" }}>
+                      {[brand, fabric, gender, gt, it].filter(Boolean).map((v, i) => (
+                        <span key={v} style={{ fontSize: "11px", padding: "2px 8px", background: i === 0 ? "#1a1a1a" : "#f5f5f5", borderRadius: "4px", color: i === 0 ? "#fff" : "#777", fontWeight: i === 0 ? 600 : 400 }}>{v}</span>
+                      ))}
+                    </div>}
+                  </>
+                )}
+              </div>
+
+              {/* Cards area */}
+              <div style={{ alignSelf: "start" }}>
+                {!cDone && !cAnalyzing && <div style={{
+                  minHeight: "300px", display: "flex", alignItems: "center", justifyContent: "center",
+                  flexDirection: "column", gap: "8px", color: "#bbb",
+                  border: "1px solid #eee", borderRadius: "10px", background: "#fff"
+                }}>
+                  <div style={{ fontSize: "13px", fontWeight: 500 }}>
+                    {canAnalyze ? "按上方 Analyze 開始" : (sketchSrc ? "請先完成 filter" : "請先上傳設計圖並完成 filter")}
+                  </div>
+                </div>}
+
+                {cAnalyzing && <div style={{
+                  minHeight: "300px", display: "flex", alignItems: "flex-start", justifyContent: "center",
+                  flexDirection: "column", gap: "6px",
+                  border: "1px solid #eee", borderRadius: "10px", background: "#fff",
+                  padding: "28px"
+                }}>
+                  {C_STAGES.slice(0, cStage + 1).map((s, i) => (
+                    <div key={i} style={{
+                      fontSize: "12px", lineHeight: 1.6,
+                      color: i === cStage ? "#1a1a1a" : "#ccc",
+                      fontWeight: i === cStage ? 600 : 400,
+                      fontFamily: "'JetBrains Mono',monospace",
+                      animation: "fadeIn 0.3s ease"
+                    }}>{s}</div>
+                  ))}
+                </div>}
+
+                {cDone && <div style={{ animation: "slideUp 0.3s ease" }}>
+                  {/* Summary */}
+                  <div style={{
+                    background: "#fff", border: "1px solid #eee", borderRadius: "10px",
+                    padding: "14px 18px", marginBottom: "12px",
+                    display: "flex", justifyContent: "space-between", alignItems: "center"
+                  }}>
+                    <div>
+                      <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
+                        <span style={{ fontSize: "20px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{vis.length}</span>
+                        <span style={{ fontSize: "12px", color: "#bbb" }}>/ {CARDS.length} 部位</span>
+                        {addonOn && <span style={{ fontSize: "11px", color: "#888" }}>+ 套組</span>}
+                      </div>
+                      <div style={{ display: "flex", gap: "6px", marginTop: "4px" }}>
+                        <span style={{ fontSize: "11px", color: "#888" }}>{aiCount} AI 偵測</span>
+                        <span style={{ fontSize: "11px", color: "#888" }}>·</span>
+                        <span style={{ fontSize: "11px", color: "#888" }}>{structCount} 結構推斷</span>
+                      </div>
+                    </div>
+                    <span style={{ fontSize: "11px", color: "#065f46", fontWeight: 600 }}>已自動選好</span>
+                  </div>
+
+                  {removed.size > 0 && <div style={{
+                    padding: "10px 14px", marginBottom: "10px", borderRadius: "8px",
+                    background: "#fef9f9", border: "1px solid #f5e0e0",
+                    display: "flex", justifyContent: "space-between", alignItems: "center"
+                  }}>
+                    <span style={{ fontSize: "12px", color: "#b91c1c" }}>已刪除 {removed.size} 個部位</span>
+                    <button onClick={() => setRemoved(new Set())} style={{
+                      fontSize: "11px", color: "#b91c1c", background: "#fff",
+                      border: "1px solid #f5e0e0", borderRadius: "6px",
+                      padding: "4px 12px", cursor: "pointer", fontWeight: 600, fontFamily: "inherit"
+                    }}>復原</button>
+                  </div>}
+
+                  <div style={{ fontSize: "11px", color: "#bbb", marginBottom: "10px" }}>
+                    展開卡片後點 ⓘ 可改工法
+                  </div>
+
+                  {vis.map((c, i) => (
+                    <Card key={c.id} card={c} col={MC[i]} isOpen={openId === c.id}
+                      onToggle={() => toggle(c.id)}
+                      onRemove={id => { setRemoved(p => new Set([...p, id])); if (openId === id) setOpenId(null); }} />
+                  ))}
+
+                  <div style={{ fontSize: "12px", color: "#888", fontWeight: 600, marginTop: "16px", marginBottom: "6px" }}>{brand} 品牌套組</div>
+                  <div style={{
+                    background: "#fff", border: `1px solid ${addonOn ? "#ddd" : "#eee"}`,
+                    borderRadius: "10px", padding: "14px 16px",
+                    display: "flex", justifyContent: "space-between", alignItems: "center",
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <input type="checkbox" checked={addonOn} onChange={() => setAddonOn(!addonOn)}
+                        style={{ width: "16px", height: "16px", accentColor: "#1a1a1a", cursor: "pointer" }} />
+                      <div>
+                        <div style={{ fontSize: "14px", fontWeight: 600 }}>{ADDON.name}</div>
+                        <div style={{ fontSize: "11px", color: "#999" }}>{ADDON.steps.length} 工段</div>
+                      </div>
+                    </div>
+                    <span style={{ fontSize: "16px", color: addonOn ? "#1a1a1a" : "#ccc", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{ADDON.ie.toFixed(3)}</span>
+                  </div>
+
+                  <div style={{ display: "flex", gap: "8px", marginTop: "20px" }}>
+                    <button onClick={() => setActiveTab("measurement")} style={{
+                      flex: 1, padding: "12px", background: "#1a1a1a", color: "#fff",
+                      border: "none", borderRadius: "8px", fontSize: "13px", fontWeight: 600,
+                      cursor: "pointer", fontFamily: "inherit",
+                    }}>Next — 尺寸表</button>
+                    <button style={{
+                      padding: "12px 18px", background: "#fff", color: "#999",
+                      border: "1px solid #eee", borderRadius: "8px",
+                      fontSize: "12px", cursor: "pointer", fontFamily: "inherit"
+                    }}>Export</button>
+                  </div>
+                </div>}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ═══ Measurement Tab Panel ═══ */}
+        {activeTab === "measurement" && (
+          <div style={{ animation: "fadeIn 0.2s ease" }}>
+            {/* Action bar (v10: clean) */}
+            <div style={{
+              background: "#fff", border: "1px solid #eee", borderRadius: "10px",
+              padding: "16px 20px", marginBottom: "16px",
+              display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px"
+            }}>
+              <div>
+                <div style={{ fontSize: "15px", fontWeight: 700, marginBottom: "3px", color: "#1a1a1a" }}>尺寸表</div>
+                <div style={{ fontSize: "12px", color: "#999" }}>POM 建議 × Grading × Body Type</div>
+              </div>
+              {!mDone && (
+                <button onClick={runMeasurement} disabled={!canGenerateSpec || mAnalyzing} style={{
+                  padding: "10px 24px", background: (canGenerateSpec && !mAnalyzing) ? "#065f46" : "#eee",
+                  color: (canGenerateSpec && !mAnalyzing) ? "#fff" : "#bbb",
+                  border: "none", borderRadius: "8px",
+                  fontSize: "13px", fontWeight: 600, cursor: (canGenerateSpec && !mAnalyzing) ? "pointer" : "not-allowed",
+                  fontFamily: "inherit",
+                }}>{mAnalyzing ? "生成中…" : "Generate Spec"}</button>
+              )}
+              {mDone && (
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontSize: "10px", color: "#999" }}>Included</div>
+                    <div style={{ fontSize: "18px", color: "#065f46", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{includedCount}/{allCodes.length}</div>
+                  </div>
+                  <button onClick={runMeasurement} style={{
+                    padding: "8px 14px", background: "#fff", color: "#999",
+                    border: "1px solid #eee", borderRadius: "8px", fontSize: "12px", cursor: "pointer", fontFamily: "inherit"
+                  }}>Re-generate</button>
+                </div>
+              )}
+            </div>
+
+            {/* Main content */}
+            {!mDone && !mAnalyzing && (
+              <div style={{
+                minHeight: "300px", display: "flex", alignItems: "center", justifyContent: "center",
+                flexDirection: "column", gap: "8px", color: "#bbb",
+                border: "1px solid #eee", borderRadius: "10px", background: "#fff"
+              }}>
+                <div style={{ fontSize: "13px", fontWeight: 500 }}>
+                  {canGenerateSpec ? "按上方 Generate Spec 開始" : "請先完成 filter"}
+                </div>
+              </div>
+            )}
+
+            {mAnalyzing && (
+              <div style={{
+                minHeight: "300px", display: "flex", alignItems: "flex-start", justifyContent: "center",
+                flexDirection: "column", gap: "6px",
+                border: "1px solid #eee", borderRadius: "10px", background: "#fff", padding: "28px"
+              }}>
+                {M_STAGES.slice(0, mStage + 1).map((s, i) => (
+                  <div key={i} style={{
+                    fontSize: "12px", lineHeight: 1.6,
+                    color: i === mStage ? "#1a1a1a" : "#ccc",
+                    fontWeight: i === mStage ? 600 : 400,
+                    fontFamily: "'JetBrains Mono',monospace",
+                    animation: "fadeIn 0.3s ease"
+                  }}>{s}</div>
+                ))}
+              </div>
+            )}
+
+            {mDone && (
+              <div style={{ animation: "slideUp 0.3s ease" }}>
+                {/* Summary */}
+                <div style={{
+                  background: "#fff", border: "1px solid #eee", borderRadius: "10px",
+                  padding: "14px 18px", marginBottom: "12px",
+                  display: "flex", justifyContent: "space-between", alignItems: "center"
+                }}>
+                  <div>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
+                      <span style={{ fontSize: "20px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{includedCount}</span>
+                      <span style={{ fontSize: "12px", color: "#bbb" }}>/ {allCodes.length} POMs</span>
+                    </div>
+                    <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
+                      <span style={{ fontSize: "11px", color: "#888" }}>{curPoms.must.length} 必備 · {curPoms.recommend.length} 建議 · {curPoms.optional.length} 選配</span>
+                    </div>
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#999", fontFamily: "'JetBrains Mono',monospace" }}>inches (fractions)</div>
+                </div>
+
+                {/* MISSY / PLUS sub-tabs */}
+                <div style={{ display: "flex", gap: "6px", marginBottom: "8px", alignItems: "center", flexWrap: "wrap" }}>
+                  <button onClick={() => { setSizeRun("missy"); setOpenPom(null); }} style={{
+                    padding: "8px 18px", borderRadius: "8px", cursor: "pointer",
+                    border: sizeRun === "missy" ? "2px solid #1a1a1a" : "1.5px solid #e8e5e1",
+                    background: sizeRun === "missy" ? "#1a1a1a" : "#fff",
+                    color: sizeRun === "missy" ? "#fff" : "#666", fontSize: "12px", fontWeight: 700
+                  }}>MISSY <span style={{ fontSize: "9px", opacity: 0.6 }}>XS–XXL</span></button>
+                  <button onClick={() => { setSizeRun("plus"); setOpenPom(null); }} style={{
+                    padding: "8px 18px", borderRadius: "8px", cursor: "pointer",
+                    border: sizeRun === "plus" ? "2px solid #be185d" : "1.5px solid #e8e5e1",
+                    background: sizeRun === "plus" ? "#be185d" : "#fff",
+                    color: sizeRun === "plus" ? "#fff" : "#666", fontSize: "12px", fontWeight: 700
+                  }}>PLUS <span style={{ fontSize: "9px", opacity: 0.6 }}>1X–4X</span></button>
+
+                  {sizeRun === "missy" && (
+                    <div style={{ display: "flex", gap: "4px", marginLeft: "auto" }}>
+                      <label style={{
+                        display: "flex", alignItems: "center", gap: "5px", padding: "6px 12px",
+                        borderRadius: "8px", cursor: "pointer", fontSize: "11px", fontWeight: 600,
+                        background: showPetite ? "#f5f3ff" : "#fff",
+                        border: showPetite ? "1.5px solid #c4b5fd" : "1.5px solid #e8e5e1",
+                        color: showPetite ? "#7e22ce" : "#999", transition: "all 0.15s"
+                      }}>
+                        <input type="checkbox" checked={showPetite} onChange={() => setShowPetite(!showPetite)}
+                          style={{ width: "14px", height: "14px", accentColor: "#7e22ce" }} />
+                        +PETITE <span style={{ fontSize: "9px", opacity: 0.6 }}>{ptCount.petite} POMs</span>
+                      </label>
+                      <label style={{
+                        display: "flex", alignItems: "center", gap: "5px", padding: "6px 12px",
+                        borderRadius: "8px", cursor: "pointer", fontSize: "11px", fontWeight: 600,
+                        background: showTall ? "#eff6ff" : "#fff",
+                        border: showTall ? "1.5px solid #93c5fd" : "1.5px solid #e8e5e1",
+                        color: showTall ? "#1d4ed8" : "#999", transition: "all 0.15s"
+                      }}>
+                        <input type="checkbox" checked={showTall} onChange={() => setShowTall(!showTall)}
+                          style={{ width: "14px", height: "14px", accentColor: "#1d4ed8" }} />
+                        +TALL <span style={{ fontSize: "9px", opacity: 0.6 }}>{ptCount.tall} POMs</span>
+                      </label>
+                    </div>
+                  )}
+                </div>
+
+                {/* Size run info bar */}
+                <div style={{
+                  background: sizeRun === "missy" ? "#ecfdf5" : "#fdf2f8",
+                  border: `1.5px solid ${sizeRun === "missy" ? "#a7f3d0" : "#fbcfe8"}`,
+                  borderRadius: "10px", padding: "8px 14px", marginBottom: "10px",
+                  display: "flex", justifyContent: "space-between", alignItems: "center"
+                }}>
+                  <div style={{ fontSize: "11px", color: sizeRun === "missy" ? "#065f46" : "#be185d" }}>
+                    <span style={{ fontWeight: 700 }}>{sizeRun === "missy" ? "MISSY" : "PLUS"}</span>
+                    {" · "}{(sizeRun === "missy" ? MISSY_META : PLUS_META).sizes.join(" / ")}
+                    {" · Base: "}<span style={{ fontWeight: 700 }}>{(sizeRun === "missy" ? MISSY_META : PLUS_META).base}</span>
+                    {sizeRun === "missy" && showPetite && <span style={{ marginLeft: "8px", color: "#7e22ce" }}>+PETITE</span>}
+                    {sizeRun === "missy" && showTall && <span style={{ marginLeft: "4px", color: "#1d4ed8" }}>+TALL</span>}
+                  </div>
+                  <div style={{ fontSize: "10px", color: sizeRun === "missy" ? "#065f46" : "#be185d", fontFamily: "'JetBrains Mono',monospace" }}>
+                    {(sizeRun === "missy" ? MISSY_META : PLUS_META).rule}
+                  </div>
+                </div>
+
+                {/* POM Lists */}
+                {sizeRun === "missy" ? (
+                  <>
+                    <TierSection tier="must" count={MISSY_POMS.must.length}>
+                      {MISSY_POMS.must.map(p => <MissyPomRow key={p.code} pom={p} tier="must"
+                        isOpen={openPom === p.code} onToggle={() => setOpenPom(openPom === p.code ? null : p.code)}
+                        included={!excluded.has(p.code)} onToggleInclude={() => setExcluded(prev => { const n = new Set(prev); n.has(p.code) ? n.delete(p.code) : n.add(p.code); return n; })}
+                        showPetite={showPetite} showTall={showTall} />)}
+                    </TierSection>
+                    <TierSection tier="recommend" count={MISSY_POMS.recommend.length}>
+                      {MISSY_POMS.recommend.map(p => <MissyPomRow key={p.code} pom={p} tier="recommend"
+                        isOpen={openPom === p.code} onToggle={() => setOpenPom(openPom === p.code ? null : p.code)}
+                        included={!excluded.has(p.code)} onToggleInclude={() => setExcluded(prev => { const n = new Set(prev); n.has(p.code) ? n.delete(p.code) : n.add(p.code); return n; })}
+                        showPetite={showPetite} showTall={showTall} />)}
+                    </TierSection>
+                    <TierSection tier="optional" count={MISSY_POMS.optional.length}>
+                      {MISSY_POMS.optional.map(p => <MissyPomRow key={p.code} pom={p} tier="optional"
+                        isOpen={openPom === p.code} onToggle={() => setOpenPom(openPom === p.code ? null : p.code)}
+                        included={!excluded.has(p.code)} onToggleInclude={() => setExcluded(prev => { const n = new Set(prev); n.has(p.code) ? n.delete(p.code) : n.add(p.code); return n; })}
+                        showPetite={showPetite} showTall={showTall} />)}
+                    </TierSection>
+                  </>
+                ) : (
+                  <>
+                    <TierSection tier="must" count={PLUS_POMS.must.length}>
+                      {PLUS_POMS.must.map(p => <PlusPomRow key={p.code} pom={p} tier="must"
+                        isOpen={openPom === p.code} onToggle={() => setOpenPom(openPom === p.code ? null : p.code)}
+                        included={!excluded.has(p.code)} onToggleInclude={() => setExcluded(prev => { const n = new Set(prev); n.has(p.code) ? n.delete(p.code) : n.add(p.code); return n; })} />)}
+                    </TierSection>
+                    <TierSection tier="recommend" count={PLUS_POMS.recommend.length}>
+                      {PLUS_POMS.recommend.map(p => <PlusPomRow key={p.code} pom={p} tier="recommend"
+                        isOpen={openPom === p.code} onToggle={() => setOpenPom(openPom === p.code ? null : p.code)}
+                        included={!excluded.has(p.code)} onToggleInclude={() => setExcluded(prev => { const n = new Set(prev); n.has(p.code) ? n.delete(p.code) : n.add(p.code); return n; })} />)}
+                    </TierSection>
+                    <TierSection tier="optional" count={PLUS_POMS.optional.length}>
+                      {PLUS_POMS.optional.map(p => <PlusPomRow key={p.code} pom={p} tier="optional"
+                        isOpen={openPom === p.code} onToggle={() => setOpenPom(openPom === p.code ? null : p.code)}
+                        included={!excluded.has(p.code)} onToggleInclude={() => setExcluded(prev => { const n = new Set(prev); n.has(p.code) ? n.delete(p.code) : n.add(p.code); return n; })} />)}
+                    </TierSection>
+                  </>
+                )}
+
+                {excluded.size > 0 && (
+                  <div style={{
+                    padding: "10px 14px", marginTop: "10px", borderRadius: "8px",
+                    background: "#fef9f9", border: "1px solid #f5e0e0",
+                    display: "flex", justifyContent: "space-between", alignItems: "center"
+                  }}>
+                    <span style={{ fontSize: "12px", color: "#b91c1c" }}>已排除 {excluded.size} 個 POM</span>
+                    <button onClick={() => setExcluded(new Set())} style={{
+                      fontSize: "11px", color: "#b91c1c", background: "#fff",
+                      border: "1px solid #f5e0e0", borderRadius: "6px",
+                      padding: "4px 12px", cursor: "pointer", fontWeight: 600, fontFamily: "inherit"
+                    }}>復原</button>
+                  </div>
+                )}
+
+                <div style={{ display: "flex", gap: "8px", marginTop: "20px" }}>
+                  <button style={{
+                    flex: 1, padding: "12px", background: "#1a1a1a", color: "#fff",
+                    border: "none", borderRadius: "8px", fontSize: "13px", fontWeight: 600,
+                    cursor: "pointer", fontFamily: "inherit",
+                  }}>Export Techpack</button>
+                  <button style={{
+                    padding: "12px 18px", background: "#fff", color: "#999",
+                    border: "1px solid #eee", borderRadius: "8px",
+                    fontSize: "12px", cursor: "pointer", fontFamily: "inherit"
+                  }}>Export CSV</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
