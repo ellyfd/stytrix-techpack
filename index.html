@@ -533,6 +533,11 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod }) {
             工段 · 秒數
           </div>
           {card.l3s.map((l3, i) => <L3Line key={`${card.methodIdx}-${i}`} l3={l3} editId={editId} setEditId={setEditId} idx={i} col={col} />)}
+          {card.noFiveLevel && (
+            <div style={{ padding: "12px 10px", fontSize: "12px", color: "#92400e", background: "#fffbeb", border: "1px dashed #fde68a", borderRadius: "6px", marginTop: "4px" }}>
+              五階 DB 此 L2/L3/L4 組合下無工段資料
+            </div>
+          )}
           <div style={{ display: "flex", justifyContent: "flex-end", padding: "8px 0 0", gap: "8px" }}>
             <span style={{ fontSize: "13px", color: "#aaa" }}>小計</span>
             <span style={{ fontSize: "14px", color: "#1a1a1a", fontWeight: 800, fontFamily: "'JetBrains Mono',monospace" }}>{Math.round(card.ie)}<span style={{ fontSize: "11px", color: "#aaa", marginLeft: "3px", fontWeight: 500 }}>秒</span></span>
@@ -1222,14 +1227,21 @@ function App() {
           ? rec.options.map(o => ({ n: `${o.iso} ${o.zh}`, p: Math.round(o.percentage) }))
           : [{ n: "無資料", p: 100 }];
 
-        // L1 → L2[0] → L3[0] → L4[0] (pre-selected, most common; user can switch later)
-        // Within chosen L4, take 主 L5 steps only, dedupe same (name,grade) duplicates
-        // that exist only because of image/caption variants, sum seconds → minutes.
+        // L1 → L2 → L3 → L4 (pre-selected). "** … _其它" = xlsx misc/catchall
+        // buckets — skip those in favour of real named L2/shape/method when
+        // possible so defaults land on actual construction data, not on rows
+        // that are just there to catch stragglers.
+        const isReal = (s) => s && !String(s).startsWith("**");
+        const firstReal = (arr, key) => arr.find(x => isReal(x?.[key])) || arr[0];
         const ie = ieByCode[d.code];
         const l2Arr = ie?.[fabricKey] || [];
-        const firstL2 = l2Arr[0];
-        const firstShape = firstL2?.shapes?.[0];
-        const methods = firstShape?.methods || [];
+        const firstL2 = firstReal(l2Arr, "l2");
+        const firstShape = firstReal(firstL2?.shapes || [], "l3");
+        const methodsAll = firstShape?.methods || [];
+        // Methods are already pre-sorted so that ** ones sit at the end;
+        // pick the first non-** if any, else fall back to whatever exists.
+        const realMethods = methodsAll.filter(m => isReal(m.l4));
+        const methods = realMethods.length ? realMethods : methodsAll;
         // Pre-compute every L4 variant's step list + total so switching methods
         // at runtime is a pure lookup — no re-parsing of raw xlsx rows.
         const buildSteps = (rawSteps) => {
@@ -1283,13 +1295,8 @@ function App() {
           presencePct: presenceByCode[d.code]?.presence_pct ?? null,
           methodIdx,
           methodVariants,
-          l3s: stepList.length ? stepList : [{
-            name: rec ? `ISO ${rec.recommended_iso} (${rec.recommended_iso_pct}% 推薦)` : "尚未推薦",
-            ie: 0,
-            auto: rec?.action === "auto_recommend",
-            pick: 0,
-            opts
-          }]
+          noFiveLevel: !stepList.length,
+          l3s: stepList
         };
       });
       clearInterval(si);
