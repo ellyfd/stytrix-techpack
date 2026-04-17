@@ -794,6 +794,13 @@ function BucketPomRow({ code, tier, measurement, median, grading, pomName, isOpe
   const sizes = median?.size_medians ? Object.keys(median.size_medians) : [];
   const nameEn = pomName?.en || code;
   const nameZh = pomName?.zh || "";
+  // tolerance 可能是 object {standard, display} 或 number
+  const tol = measurement?.tolerance;
+  const tolDisplay = (tol && typeof tol === "object")
+    ? (tol.display || frmt(tol.standard))
+    : (tol != null ? frmt(tol) : null);
+  // median 主值：size_medians.M（若有）或第一個 size
+  const medianM = median?.size_medians?.M ?? (sizes.length ? median.size_medians[sizes[Math.floor(sizes.length/2)]] : null);
   return (
     <div style={{
       background: "#fff", border: `1.5px solid ${isOpen ? tc.c + "40" : "#e8e5e1"}`,
@@ -816,29 +823,31 @@ function BucketPomRow({ code, tier, measurement, median, grading, pomName, isOpe
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
           <span style={{ fontSize: "10px", color: tc.c, background: tc.bg, padding: "2px 7px", borderRadius: "5px", fontWeight: 600 }}>{tc.icon} {tc.label}</span>
-          <span style={{ fontSize: "10px", color: "#666", fontFamily: "'JetBrains Mono',monospace" }}>{Math.round((measurement?.rate || 0) * 100)}%</span>
-          <span style={{ fontSize: "15px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: "#1a1a1a" }}>{median?.median_m ? frmt(median.median_m) + '"' : "—"}</span>
+          <span title={`${measurement?.count || 0} designs`} style={{ fontSize: "10px", color: "#666", fontFamily: "'JetBrains Mono',monospace" }}>{Math.round((measurement?.rate || 0) * 100)}%</span>
+          {tolDisplay && <span style={{ fontSize: "10px", color: "#7e22ce", background: "#f5f3ff", padding: "2px 6px", borderRadius: "4px", fontWeight: 600, fontFamily: "'JetBrains Mono',monospace" }}>±{tolDisplay}"</span>}
+          <span style={{ fontSize: "15px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: "#1a1a1a" }}>{medianM != null ? frmt(medianM) + '"' : "—"}</span>
           <div style={{ fontSize: "13px", color: "#ccc", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.25s" }}>▾</div>
         </div>
       </div>
       <div style={{ maxHeight: isOpen ? "700px" : "0", overflow: "hidden", transition: "max-height 0.35s ease" }}>
         <div style={{ padding: "0 14px 14px" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px", padding: "10px 0", borderBottom: "1px solid #f0eeeb" }}>
-            <div><div style={{ fontSize: "10px", color: "#999" }}>Tolerance</div><div style={{ fontSize: "12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{measurement?.tolerance != null ? "±" + frmt(measurement.tolerance) + '"' : "—"}</div></div>
-            <div><div style={{ fontSize: "10px", color: "#999" }}>Grading</div><div style={{ fontSize: "12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{grading?.typical_increment != null ? "+" + frmt(grading.typical_increment) + '"' : "—"}</div></div>
-            <div><div style={{ fontSize: "10px", color: "#999" }}>n (designs)</div><div style={{ fontSize: "12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{median?.n || 0}</div></div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "10px", padding: "10px 0", borderBottom: "1px solid #f0eeeb" }}>
+            <div><div style={{ fontSize: "10px", color: "#999" }}>Tolerance</div><div style={{ fontSize: "12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{tolDisplay ? "±" + tolDisplay + '"' : "—"}</div></div>
+            <div><div style={{ fontSize: "10px", color: "#999" }}>Grading</div><div style={{ fontSize: "12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{grading?.typical_increment != null ? (grading.typical_increment >= 0 ? "+" : "") + frmt(grading.typical_increment) + '"' : "—"}</div></div>
+            <div><div style={{ fontSize: "10px", color: "#999" }}>Rate</div><div style={{ fontSize: "12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{measurement?.rate != null ? Math.round(measurement.rate * 100) + "%" : "—"}</div></div>
+            <div><div style={{ fontSize: "10px", color: "#999" }}>Count</div><div style={{ fontSize: "12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{measurement?.count || grading?.n_pairs || 0}</div></div>
           </div>
           {sizes.length > 0 && (
             <div style={{ marginTop: "10px" }}>
               <div style={{ display: "grid", gridTemplateColumns: `72px repeat(${sizes.length}, 1fr)`, gap: "1px" }}>
                 <div style={{ padding: "5px 4px", fontWeight: 600, color: "#999", fontSize: "10px" }}>SIZE</div>
                 {sizes.map(s => (
-                  <div key={s} style={{ padding: "5px 2px", textAlign: "center", fontWeight: 700, color: "#1a1a1a", background: "#faf9f7", borderRadius: "4px", fontSize: "11px", fontFamily: "'JetBrains Mono',monospace" }}>{s}</div>
+                  <div key={s} style={{ padding: "5px 2px", textAlign: "center", fontWeight: 700, color: s === "M" ? "#065f46" : "#1a1a1a", background: s === "M" ? "#ecfdf5" : "#faf9f7", borderRadius: "4px", fontSize: "11px", fontFamily: "'JetBrains Mono',monospace" }}>{s}{s === "M" && <span style={{ display: "block", fontSize: "7px", color: "#065f46" }}>BASE</span>}</div>
                 ))}
                 <div style={{ padding: "6px 4px", fontWeight: 600, fontSize: "10px" }}>Median</div>
                 {sizes.map(s => (
                   <div key={s} style={{ padding: "3px 1px", textAlign: "center" }}>
-                    <div style={{ fontSize: "12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: "#1a1a1a", padding: "3px 1px", borderRadius: "4px", border: "1.5px solid #e8e5e1", background: "#fff" }}>{frmt(median.size_medians[s])}"</div>
+                    <div style={{ fontSize: "12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: s === "M" ? "#065f46" : "#1a1a1a", padding: "3px 1px", borderRadius: "4px", border: s === "M" ? "2px solid #065f46" : "1.5px solid #e8e5e1", background: s === "M" ? "#ecfdf5" : "#fff" }}>{frmt(median.size_medians[s])}"</div>
                   </div>
                 ))}
               </div>
