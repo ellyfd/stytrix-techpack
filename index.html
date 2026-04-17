@@ -217,6 +217,42 @@ const frmt = (v) => {
   return (neg ? "-" : "") + String(whole);
 };
 
+/* ─── POM 排序：身體部位從上到下、從前到後 ───
+   優先用 bucket.pom_sort_order（若資料有）；否則 fallback 用 code 前綴字母。
+   前綴對應部位：
+   A 帽 → B 領 → C 肩 → D 袖籠/肩帶 → E 袖 → F 胸 → G 育克
+   → H 腰 → I 下擺/側縫 → J 身長 → K 前後浪 → L 臀
+   → M 襠 → N 大腿/膝/小腿/腿口 → O 內長/裙長
+   → Q 繩帶 → R 省/褶 → S 鈕扣 → T 下擺/貼邊 → Z 裝飾
+   → P 口袋（放最後，通常量完其他再標口袋）
+*/
+const POM_PREFIX_ORDER = {
+  A: 1, B: 2, C: 3, D: 4, E: 5, F: 6, G: 7,
+  H: 8, I: 9, J: 10, K: 11, L: 12, M: 13, N: 14, O: 15,
+  Q: 16, R: 17, S: 18, T: 19, Z: 20, P: 21,
+  U: 22, V: 23, W: 24, X: 25, Y: 26,
+};
+const sortPomCodes = (codes, bucketSortOrder) => {
+  if (bucketSortOrder && bucketSortOrder.length) {
+    const idx = {};
+    bucketSortOrder.forEach((c, i) => { idx[c] = i; });
+    return [...codes].sort((a, b) => {
+      const ia = idx[a] !== undefined ? idx[a] : 9999;
+      const ib = idx[b] !== undefined ? idx[b] : 9999;
+      if (ia !== ib) return ia - ib;
+      return a.localeCompare(b);
+    });
+  }
+  return [...codes].sort((a, b) => {
+    const pa = POM_PREFIX_ORDER[a[0]] || 99;
+    const pb = POM_PREFIX_ORDER[b[0]] || 99;
+    if (pa !== pb) return pa - pb;
+    const na = parseInt(a.slice(1), 10) || 0;
+    const nb = parseInt(b.slice(1), 10) || 0;
+    return na - nb;
+  });
+};
+
 /* ─── Sel（v10 enterprise utility） ─── */
 function Sel({ label, value, onChange, options, disabled, badgeMap, labelMap, locked, onToggleLock }) {
   const filled = !!value;
@@ -1619,7 +1655,7 @@ function App() {
                   </div>
                   {["must", "recommend", "optional"].map(tier => tierPoms(tier).length > 0 && (
                     <TierSection key={tier} tier={tier} count={tierPoms(tier).length}>
-                      {tierPoms(tier).map(code => (
+                      {sortPomCodes(tierPoms(tier), currentBucket.pom_sort_order).map(code => (
                         <BucketPomRow key={code} code={code} tier={tier}
                           measurement={mr[tier][code]} median={mv[code]} grading={gr[code]}
                           pomName={pomNames[code]}
