@@ -273,7 +273,7 @@ function L3Line({ l3, editId, setEditId, idx, col }) {
   const [sel, setSel] = useState(l3.pick);
   const [changed, setChanged] = useState(false);
   const isEditing = editId === idx;
-  const chosen = l3.opts[sel];
+  const chosen = l3.opts[sel] || l3.opts[0] || { n: "—", p: 0 };
 
   return (
     <div style={{
@@ -926,7 +926,9 @@ function App() {
         // Match ISO entry by Chinese L1 name (handles ISO-JSON-code ≠ 38-table-code cases).
         const isoByNameClean = isoByName[l1] || isoByName[l1.replace(/\(.*?\)/, "")] || null;
         const rec = isoByNameClean;
-        const opts = rec ? rec.options.map(o => ({ n: `${o.iso} ${o.zh}`, p: Math.round(o.percentage) })) : [];
+        const opts = rec && rec.options.length
+          ? rec.options.map(o => ({ n: `${o.iso} ${o.zh}`, p: Math.round(o.percentage) }))
+          : [{ n: "無資料", p: 100 }];
         return {
           id: i + 1,
           l1,
