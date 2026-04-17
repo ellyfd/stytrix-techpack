@@ -218,17 +218,33 @@ const frmt = (v) => {
 };
 
 /* ─── Sel（v10 enterprise utility） ─── */
-function Sel({ label, value, onChange, options, disabled, badgeMap, labelMap }) {
+function Sel({ label, value, onChange, options, disabled, badgeMap, labelMap, locked, onToggleLock }) {
   const filled = !!value;
   return (
     <div>
-      <div style={{ fontSize: "11px", color: "#888", marginBottom: "6px", fontWeight: 500 }}>{label}</div>
+      <div style={{ fontSize: "11px", color: "#888", marginBottom: "6px", fontWeight: 500, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span>{label}</span>
+        {onToggleLock && (
+          <button onClick={onToggleLock}
+            title={locked ? "已鎖 — refresh 不會重設" : "按一下鎖住，refresh 不會重設"}
+            style={{
+              background: "none", border: "none", cursor: "pointer",
+              fontSize: "11px", padding: "0 2px", lineHeight: 1,
+              color: locked ? "#065f46" : "#ccc", fontWeight: locked ? 700 : 400,
+              opacity: locked ? 1 : 0.6, transition: "opacity 0.15s"
+            }}
+            onMouseEnter={e => e.currentTarget.style.opacity = "1"}
+            onMouseLeave={e => e.currentTarget.style.opacity = locked ? "1" : "0.6"}>
+            {locked ? "🔒" : "🔓"}
+          </button>
+        )}
+      </div>
       <select value={value} onChange={e => onChange(e.target.value)} disabled={disabled}
         style={{
           width: "100%", padding: "6px 0", fontSize: "14px",
           background: "transparent", color: filled ? "#1a1a1a" : "#bbb",
           fontWeight: filled ? 600 : 400,
-          border: "none", borderBottom: `1.5px solid ${disabled ? "#eee" : (filled ? "#1a1a1a" : "#d4d4d4")}`,
+          border: "none", borderBottom: `1.5px solid ${disabled ? "#eee" : (filled ? (locked ? "#065f46" : "#1a1a1a") : "#d4d4d4")}`,
           outline: "none", fontFamily: "inherit", cursor: disabled ? "not-allowed" : "pointer",
           borderRadius: 0, transition: "border-color 0.15s",
         }}>
@@ -698,13 +714,32 @@ function TierSection({ tier, count, children }) {
    Main App
    ═══════════════════════════════════════════════════════════════════ */
 function App() {
-  /* ── 共用 filter state ── */
-  const [brand, setBrand] = useState("");
-  const [fabric, setFabric] = useState("");
-  const [dept, setDept] = useState("");
-  const [gender, setGender] = useState("");
-  const [gt, setGt] = useState("");
-  const [it, setIt] = useState("");
+  /* ── 共用 filter state + 鎖 + localStorage persistence ── */
+  const loadSaved = () => {
+    try {
+      const locks = JSON.parse(localStorage.getItem("stytrix_locks") || "{}");
+      const values = JSON.parse(localStorage.getItem("stytrix_values") || "{}");
+      const restored = {};
+      Object.keys(locks).forEach(k => { if (locks[k] && values[k]) restored[k] = values[k]; });
+      return { locks, values: restored };
+    } catch { return { locks: {}, values: {} }; }
+  };
+  const _saved = loadSaved();
+  const [brand, setBrand] = useState(_saved.values.brand || "");
+  const [fabric, setFabric] = useState(_saved.values.fabric || "");
+  const [dept, setDept] = useState(_saved.values.dept || "");
+  const [gender, setGender] = useState(_saved.values.gender || "");
+  const [gt, setGt] = useState(_saved.values.gt || "");
+  const [it, setIt] = useState(_saved.values.it || "");
+  const [locks, setLocks] = useState(_saved.locks);
+  const toggleLock = (key) => setLocks(prev => ({ ...prev, [key]: !prev[key] }));
+  useEffect(() => {
+    localStorage.setItem("stytrix_locks", JSON.stringify(locks));
+    const vals = { brand, fabric, dept, gender, gt, it };
+    const toSave = {};
+    Object.keys(locks).forEach(k => { if (locks[k] && vals[k]) toSave[k] = vals[k]; });
+    localStorage.setItem("stytrix_values", JSON.stringify(toSave));
+  }, [locks, brand, fabric, dept, gender, gt, it]);
 
   /* ── 切換 tab ── */
   const [activeTab, setActiveTab] = useState("construction"); // "construction" | "measurement"
@@ -1089,24 +1124,30 @@ function App() {
         {/* ─── Filter (v10: flush underline selects) ─── */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "20px", marginBottom: "28px", paddingBottom: "24px", borderBottom: "1px solid #eee" }}>
           <Sel label="Brand" value={brand} onChange={setBrand}
-            options={BRANDS.map(b => b.code)} badgeMap={brandBadgeMap} />
+            options={BRANDS.map(b => b.code)} badgeMap={brandBadgeMap}
+            locked={!!locks.brand} onToggleLock={() => toggleLock("brand")} />
           <Sel label="Fabric" value={fabric}
             onChange={v => { setFabric(v); setIt(""); }}
-            options={["Woven", "Knit"]} badgeMap={fabricBadgeMap} />
+            options={["Woven", "Knit"]} badgeMap={fabricBadgeMap}
+            locked={!!locks.fabric} onToggleLock={() => toggleLock("fabric")} />
           <Sel label="Gender" value={gender} onChange={setGender}
             options={pomRules ? Object.keys(genderBadgeMap).filter(v => genderBadgeMap[v] > 0).sort((a,b) => GENDER_OPTIONS.findIndex(g => g.value === a) - GENDER_OPTIONS.findIndex(g => g.value === b)) : GENDER_OPTIONS.map(g => g.value)}
             labelMap={Object.fromEntries(GENDER_OPTIONS.map(g => [g.value, g.label]))}
-            badgeMap={genderBadgeMap} />
+            badgeMap={genderBadgeMap}
+            locked={!!locks.gender} onToggleLock={() => toggleLock("gender")} />
           <Sel label="Department" value={dept} onChange={setDept}
             options={pomRules ? Object.keys(deptBadgeMap).filter(d => deptBadgeMap[d] > 0).sort() : DEPT_OPTIONS}
-            badgeMap={deptBadgeMap} />
+            badgeMap={deptBadgeMap}
+            locked={!!locks.dept} onToggleLock={() => toggleLock("dept")} />
           <Sel label="Garment Type" value={gt}
             onChange={v => { setGt(v); setIt(""); }}
             options={pomRules ? Object.keys(gtBadgeMap).filter(g => gtBadgeMap[g] > 0).sort() : GT_OPTIONS}
-            badgeMap={gtBadgeMap} />
+            badgeMap={gtBadgeMap}
+            locked={!!locks.gt} onToggleLock={() => toggleLock("gt")} />
           <Sel label="Item Type" value={it} onChange={setIt}
             options={curItOptions}
-            disabled={curItOptions.length === 0} />
+            disabled={curItOptions.length === 0}
+            locked={!!locks.it} onToggleLock={() => toggleLock("it")} />
         </div>
 
         {/* ─── Tabs (v10: underline only) ─── */}
