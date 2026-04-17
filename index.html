@@ -1988,45 +1988,132 @@ function App() {
               const gr = currentBucket.grading_rules || {};
               const tierPoms = tier => Object.keys(mr[tier] || {});
               const totalPoms = tierPoms("must").length + tierPoms("recommend").length + tierPoms("optional").length;
-              const bucketIncluded = Object.keys(mr.must || {}).concat(Object.keys(mr.recommend || {}), Object.keys(mr.optional || {})).filter(c => !excluded.has(c)).length;
+              const allCodesSorted = sortPomCodes(
+                [...tierPoms("must"), ...tierPoms("recommend"), ...tierPoms("optional")],
+                currentBucket.pom_sort_order
+              );
+              const bucketIncluded = allCodesSorted.filter(c => !excluded.has(c)).length;
+              const sizes = currentBucket.size_range || [];
+              const tierOf = code => mr.must?.[code] ? "must" : mr.recommend?.[code] ? "recommend" : "optional";
+              const tolStr = m => {
+                const t = m?.tolerance;
+                if (!t) return "—";
+                if (typeof t === "object") return "±" + (t.display || frmt(t.standard)) + '"';
+                return "±" + frmt(t) + '"';
+              };
               return (
                 <div style={{ animation: "slideUp 0.3s ease" }}>
+                  {/* Summary bar */}
                   <div style={{ background: "#fff", border: "1px solid #eee", borderRadius: "10px", padding: "14px 18px", marginBottom: "12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <div>
                       <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
                         <span style={{ fontSize: "20px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{bucketIncluded}</span>
                         <span style={{ fontSize: "12px", color: "#bbb" }}>/ {totalPoms} POMs</span>
                       </div>
-                      <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
-                        <span style={{ fontSize: "11px", color: "#888" }}>{tierPoms("must").length} 必備 · {tierPoms("recommend").length} 建議 · {tierPoms("optional").length} 選配</span>
-                      </div>
+                      <div style={{ fontSize: "11px", color: "#888", marginTop: "4px" }}>{tierPoms("must").length} 必備 · {tierPoms("recommend").length} 建議 · {tierPoms("optional").length} 選配</div>
                     </div>
                     <div style={{ textAlign: "right" }}>
                       <div style={{ fontSize: "11px", color: "#065f46", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{currentBucket.bucket}</div>
                       <div style={{ fontSize: "10px", color: "#999" }}>n={currentBucket.n} designs · inches (fractions)</div>
                     </div>
                   </div>
-                  <div style={{ background: "#ecfdf5", border: "1.5px solid #a7f3d0", borderRadius: "10px", padding: "8px 14px", marginBottom: "10px", display: "flex", justifyContent: "space-between" }}>
-                    <div style={{ fontSize: "11px", color: "#065f46" }}>
-                      <span style={{ fontWeight: 700 }}>Size Range</span>{" · "}{(currentBucket.size_range || []).join(" / ")}
-                    </div>
-                    <div style={{ fontSize: "10px", color: "#065f46", fontFamily: "'JetBrains Mono',monospace" }}>
-                      {currentBucket.department}_{currentBucket.garment_type}|{currentBucket.gender}
-                    </div>
+
+                  {/* 基碼 (Base M) table */}
+                  <div style={{ fontSize: "13px", fontWeight: 700, color: "#1a1a1a", marginTop: "18px", marginBottom: "8px" }}>
+                    基碼 <span style={{ fontSize: "11px", color: "#999", fontWeight: 400 }}>M size 基本尺寸 · {allCodesSorted.length} 項</span>
                   </div>
-                  {["must", "recommend", "optional"].map(tier => tierPoms(tier).length > 0 && (
-                    <TierSection key={tier} tier={tier} count={tierPoms(tier).length}>
-                      {sortPomCodes(tierPoms(tier), currentBucket.pom_sort_order).map(code => (
-                        <BucketPomRow key={code} code={code} tier={tier}
-                          measurement={mr[tier][code]} median={mv[code]} grading={gr[code]}
-                          pomName={pomNames[code]}
-                          isOpen={openPom === code}
-                          onToggle={() => setOpenPom(openPom === code ? null : code)}
-                          included={!excluded.has(code)}
-                          onToggleInclude={() => setExcluded(prev => { const n = new Set(prev); n.has(code) ? n.delete(code) : n.add(code); return n; })} />
-                      ))}
-                    </TierSection>
-                  ))}
+                  <div style={{ background: "#fff", border: "1px solid #e8e5e1", borderRadius: "10px", overflow: "hidden", marginBottom: "20px" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
+                      <thead>
+                        <tr style={{ background: "#faf9f7", borderBottom: "1.5px solid #e8e5e1" }}>
+                          <th style={{ padding: "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", width: "30px" }}>✓</th>
+                          <th style={{ padding: "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", width: "60px" }}>POM</th>
+                          <th style={{ padding: "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999" }}>Name</th>
+                          <th style={{ padding: "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", width: "60px" }}>Tier</th>
+                          <th style={{ padding: "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#999", width: "50px" }}>Rate</th>
+                          <th style={{ padding: "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#999", width: "80px" }}>Tolerance</th>
+                          <th style={{ padding: "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#065f46", width: "80px" }}>Base (M)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {allCodesSorted.map(code => {
+                          const tier = tierOf(code);
+                          const tc = TIER[tier];
+                          const m = mr[tier][code];
+                          const mvRow = mv[code];
+                          const baseM = mvRow?.size_medians?.M;
+                          const included = !excluded.has(code);
+                          const pn = pomNames[code] || {};
+                          return (
+                            <tr key={code} style={{ borderBottom: "1px solid #f0eeeb", opacity: included ? 1 : 0.35, transition: "opacity 0.15s" }}>
+                              <td style={{ padding: "6px 10px" }}>
+                                <input type="checkbox" checked={included}
+                                  onChange={() => setExcluded(prev => { const n = new Set(prev); n.has(code) ? n.delete(code) : n.add(code); return n; })}
+                                  style={{ width: "14px", height: "14px", accentColor: tc.c, cursor: "pointer" }} />
+                              </td>
+                              <td style={{ padding: "6px 10px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: tc.c }}>{code}</td>
+                              <td style={{ padding: "6px 10px" }}>
+                                <div style={{ fontWeight: 600, color: "#1a1a1a" }}>{pn.en || code}</div>
+                                {pn.zh && <div style={{ fontSize: "10px", color: "#999" }}>{pn.zh}</div>}
+                              </td>
+                              <td style={{ padding: "6px 10px" }}>
+                                <span style={{ fontSize: "10px", color: tc.c, background: tc.bg, padding: "2px 6px", borderRadius: "4px", fontWeight: 600 }}>{tc.icon} {tc.label}</span>
+                              </td>
+                              <td style={{ padding: "6px 10px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", color: "#666" }}>{Math.round((m?.rate || 0) * 100)}%</td>
+                              <td style={{ padding: "6px 10px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", color: "#7e22ce", fontWeight: 600 }}>{tolStr(m)}</td>
+                              <td style={{ padding: "6px 10px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", fontWeight: 700, color: "#065f46", background: "#ecfdf5" }}>{baseM != null ? frmt(baseM) + '"' : "—"}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* 跳檔 (Grading / size matrix) table */}
+                  <div style={{ fontSize: "13px", fontWeight: 700, color: "#1a1a1a", marginTop: "18px", marginBottom: "8px" }}>
+                    跳檔 <span style={{ fontSize: "11px", color: "#999", fontWeight: 400 }}>各 size 中位數 + 跳碼 · {sizes.length} sizes</span>
+                  </div>
+                  <div style={{ background: "#fff", border: "1px solid #e8e5e1", borderRadius: "10px", overflow: "auto", marginBottom: "20px" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px" }}>
+                      <thead>
+                        <tr style={{ background: "#faf9f7", borderBottom: "1.5px solid #e8e5e1" }}>
+                          <th style={{ padding: "8px 8px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", position: "sticky", left: 0, background: "#faf9f7", width: "60px" }}>POM</th>
+                          <th style={{ padding: "8px 8px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", minWidth: "120px" }}>Name</th>
+                          <th style={{ padding: "8px 8px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#b45309", width: "70px" }}>Grading</th>
+                          {sizes.map(s => (
+                            <th key={s} style={{ padding: "8px 6px", textAlign: "center", fontWeight: 700, fontSize: "10px", color: s === "M" ? "#065f46" : "#666", fontFamily: "'JetBrains Mono',monospace", background: s === "M" ? "#ecfdf5" : "transparent", minWidth: "48px" }}>{s}{s === "M" && <div style={{ fontSize: "7px", color: "#065f46" }}>BASE</div>}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {allCodesSorted.map(code => {
+                          const tier = tierOf(code);
+                          const tc = TIER[tier];
+                          const mvRow = mv[code];
+                          const grRow = gr[code];
+                          const included = !excluded.has(code);
+                          const pn = pomNames[code] || {};
+                          return (
+                            <tr key={code} style={{ borderBottom: "1px solid #f0eeeb", opacity: included ? 1 : 0.35, transition: "opacity 0.15s" }}>
+                              <td style={{ padding: "5px 8px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: tc.c, position: "sticky", left: 0, background: "#fff" }}>{code}</td>
+                              <td style={{ padding: "5px 8px", fontSize: "11px", color: "#1a1a1a" }}>{pn.en || code}</td>
+                              <td style={{ padding: "5px 8px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", color: "#b45309", fontWeight: 600 }}>
+                                {grRow?.typical_increment != null ? (grRow.typical_increment >= 0 ? "+" : "") + frmt(grRow.typical_increment) + '"' : "—"}
+                              </td>
+                              {sizes.map(s => {
+                                const val = mvRow?.size_medians?.[s];
+                                return (
+                                  <td key={s} style={{ padding: "5px 6px", textAlign: "center", fontFamily: "'JetBrains Mono',monospace", color: s === "M" ? "#065f46" : "#1a1a1a", fontWeight: s === "M" ? 700 : 500, background: s === "M" ? "#ecfdf5" : "transparent" }}>
+                                    {val != null ? frmt(val) + '"' : "—"}
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               );
             })()}
