@@ -37,79 +37,25 @@ const BRANDS = [
   { code: "BNN" }, { code: "BYY" }, { code: "ASC" }, { code: "SMA" }, { code: "OKY" }
 ];
 
-/* 每張 card 的 L1 (部位) + L2 (零件) 是設計師主要看到的語言
-   matchCode (如 WB_002_a01) 是次要的參考圖代號
-   source: ai = 從 sketch + 參考圖匹配, struct = 褲型必備推斷 */
-const CARDS = [
-  { id: 1, l1: "腰頭", l2: "剪接腰頭_整圈",
-    source: "ai", conf: 92, matchCode: "WB_002_a11",
-    px: 30, py: 9, side: "right", ie: 0.368, l3s: [
-    { name: "接鬆緊帶_1道", ie: 0.011, auto: false, pick: 1,
-      opts: [{ n: "拷克接合", p: 50 }, { n: "平車接合", p: 25 }, { n: "自動拼接橡筋機", p: 25 }] },
-    { name: "接表腰脅(直)_2道", ie: 0.032, auto: false, pick: 0,
-      opts: [{ n: "併縫", p: 36 }, { n: "壓腰脅", p: 24 }, { n: "平車+燙開", p: 22 }, { n: "拷合", p: 18 }] },
-    { name: "接裡腰脅(直)_2道", ie: 0.032, auto: false, pick: 0,
-      opts: [{ n: "併縫", p: 36 }, { n: "壓腰脅", p: 24 }, { n: "平車+燙開", p: 22 }, { n: "拷合", p: 18 }] },
-    { name: "四片式腰頭_腰頂鬆緊帶", ie: 0.112, auto: false, pick: 0,
-      opts: [{ n: "平車+拷邊", p: 55 }, { n: "拷合", p: 45 }] },
-    { name: "整圈鬆緊帶_腰頭固雙", ie: 0.027, auto: false, pick: 0,
-      opts: [{ n: "不含鬆緊帶", p: 20 }, { n: "有壓到", p: 20 }, { n: "無壓到", p: 20 }, { n: "固雙+壓中_有壓", p: 20 }, { n: "固雙+壓中_無壓", p: 20 }] },
-    { name: "上腰頭", ie: 0.154, auto: true, pick: 0,
-      opts: [{ n: "平車車合+縫份拷邊+壓線", p: 100 }] },
-  ]},
-  { id: 2, l1: "口袋", l2: "貼袋_上貼",
-    source: "ai", conf: 88, matchCode: "PK_003_a12",
-    px: 86, py: 22, side: "right", ie: 0.117, l3s: [
-    { name: "袋口", ie: 0.034, auto: false, pick: 0,
-      opts: [{ n: "只壓明線", p: 17 }, { n: "壓暗明線", p: 17 }, { n: "壓暗+壓明線", p: 17 }, { n: "無壓線", p: 17 }] },
-    { name: "方形貼袋x1_固雙", ie: 0.060, auto: true, pick: 0,
-      opts: [{ n: "袋中無褶+固雙", p: 100 }] },
-    { name: "斜插袋_打結", ie: 0.023, auto: false, pick: 0,
-      opts: [{ n: "固線", p: 38 }, { n: "手工類", p: 28 }, { n: "車縫類", p: 11 }] },
-  ]},
-  { id: 3, l1: "褶", l2: "死褶",
-    source: "ai", conf: 76, matchCode: "PD_001_a03",
-    px: 22, py: 14, side: "left", ie: 0.241, l3s: [
-    { name: "腰褶（×2 對）", ie: 0.176, auto: false, pick: 0,
-      opts: [{ n: "不同裁片+平車+拷邊", p: 10 }, { n: "不同裁片+鎖鏈+拷邊", p: 9 }, { n: "同裁片+平車+拷邊", p: 9 }, { n: "同裁片+鎖鏈+拷邊", p: 9 }] },
-    { name: "打結車+修線尾", ie: 0.065, auto: false, pick: 0,
-      opts: [{ n: "車縫+修線尾", p: 57 }, { n: "手工類", p: 43 }] },
-  ]},
-  { id: 4, l1: "剪接線", l2: "橫向剪接(1對)",
-    source: "ai", conf: 85, matchCode: "SB_022_a10",
-    px: 82, py: 18, side: "right", ie: 0.026, l3s: [
-    { name: "橫向剪接_併縫", ie: 0.026, auto: true, pick: 0,
-      opts: [{ n: "併縫", p: 100 }] },
-  ]},
-  { id: 5, l1: "剪接線", l2: "直向剪接(1對)",
-    source: "ai", conf: 93, matchCode: "SB_020_a10",
-    px: 84, py: 38, side: "right", ie: 0.106, l3s: [
-    { name: "直向剪接", ie: 0.064, auto: false, pick: 0,
-      opts: [{ n: "壓直向剪接明線", p: 32 }, { n: "平車+拷邊", p: 23 }, { n: "平車+滾邊", p: 23 }, { n: "拷合", p: 11 }] },
-    { name: "直向剪接_修線尾", ie: 0.042, auto: false, pick: 0,
-      opts: [{ n: "燙襯", p: 36 }, { n: "車縫類", p: 21 }] },
-  ]},
-  { id: 6, l1: "褲合身", l2: "合內長_一起",
-    source: "struct", conf: null, matchCode: null,
-    px: 50, py: 55, side: "left", ie: 0.186, l3s: [
-    { name: "三角型剪接（襠底）", ie: 0.041, auto: false, pick: 0,
-      opts: [{ n: "併縫", p: 14 }, { n: "拷克拉開(SPI20-25)", p: 14 }, { n: "拷克拉開(SPI25-30)", p: 14 }, { n: "拷克拉開(SPI30-35)", p: 14 }] },
-    { name: "合內長_併縫", ie: 0.083, auto: true, pick: 0,
-      opts: [{ n: "併縫", p: 100 }] },
-    { name: "合前襠", ie: 0.029, auto: false, pick: 0,
-      opts: [{ n: "壓前襠明線", p: 23 }, { n: "平車+拷邊", p: 19 }, { n: "平車+滾邊", p: 19 }, { n: "拷合", p: 10 }] },
-    { name: "合後襠", ie: 0.033, auto: false, pick: 0,
-      opts: [{ n: "壓後襠明線", p: 23 }, { n: "平車+拷邊", p: 19 }, { n: "平車+滾邊", p: 19 }, { n: "拷合", p: 10 }] },
-  ]},
-  { id: 7, l1: "褲口", l2: "反折褲口",
-    source: "ai", conf: 90, matchCode: "LO_005_a01",
-    px: 14, py: 90, side: "left", ie: 0.065, l3s: [
-    { name: "修褲口（手工）", ie: 0.021, auto: false, pick: 1,
-      opts: [{ n: "車縫類", p: 57 }, { n: "手工類", p: 43 }] },
-    { name: "直接反折", ie: 0.044, auto: false, pick: 0,
-      opts: [{ n: "散邊+拷邊+壓線", p: 20 }, { n: "散邊+壓三本", p: 19 }, { n: "整圈+拷邊+壓線", p: 18 }, { n: "整圈+壓三本", p: 17 }] },
-  ]}
-];
+/* Cards are populated at runtime by runConstruction() from the AI
+   /api/analyze response + l1_iso_recommendations_v1.json (ISO picks)
+   + l2_l3_ie/<code>.json (L2 shape / L5 step IE). Shape per card:
+   { id, l1, l1_code, l2, ie, source, conf, matchCode, action,
+     px, py, side, l3s: [{name, ie, auto, pick, opts:[{n,p}]}] }
+   source: ai = AI vision 偵測, struct = 結構推斷
+   action: auto_recommend | recommend_with_alternatives | user_select */
+
+/* L1 code → Chinese name, for mapping xlsx-side codes (what /api/analyze
+   returns) back to Chinese for joining against l1_iso_recommendations. */
+const L1_CODE_TO_NAME = {
+  AE:"袖孔",AH:"袖圍",BM:"下襬",BN:"貼合",BP:"襬叉",BS:"釦鎖",
+  DC:"繩類",DP:"裝飾片",FP:"袋蓋",FY:"前立",HD:"帽子",HL:"釦環",
+  KH:"Keyhole",LB:"商標",LI:"裡布",LO:"褲口",LP:"帶絆",NK:"領",
+  NP:"領襟",NT:"領貼條",OT:"其它",PD:"褶",PK:"口袋",PL:"門襟",
+  PS:"褲合身",QT:"行縫(固定棉)",RS:"褲襠",SA:"剪接線_上身類",
+  SB:"剪接線_下身類",SH:"肩",SL:"袖口",SP:"袖叉",SR:"裙合身",
+  SS:"脅邊",ST:"肩帶",TH:"拇指洞",WB:"腰頭",ZP:"拉鍊"
+};
 
 const ADDON = { name: "商標 Labels", ie: 0.080, steps: [
   { l3: "上商標_對折標1個", ie: 0.013 },
@@ -298,13 +244,13 @@ function Sel({ label, value, onChange, options, disabled, badgeMap, labelMap }) 
 }
 
 /* ─── Sketch ─── */
-function Sketch({ src, hl, onClick, ok, vis }) {
+function Sketch({ src, hl, onClick, ok, vis, cards }) {
   if (!src) return null;
   return (
     <div style={{ position: "relative", width: "100%" }}>
       <img src={src} alt="sketch" style={{ width: "100%", display: "block", borderRadius: "4px" }} />
       {ok && <svg style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none" }} viewBox="0 0 100 133">
-        {CARDS.map((c, i) => {
+        {cards.map((c, i) => {
           if (!vis.has(c.id)) return null;
           const a = hl === c.id, col = MC[i], lx = c.side === "left" ? 2 : 56;
           const isStruct = c.source === "struct";
@@ -327,7 +273,7 @@ function L3Line({ l3, editId, setEditId, idx, col }) {
   const [sel, setSel] = useState(l3.pick);
   const [changed, setChanged] = useState(false);
   const isEditing = editId === idx;
-  const chosen = l3.opts[sel];
+  const chosen = l3.opts[sel] || l3.opts[0] || { n: "—", p: 0 };
 
   return (
     <div style={{
@@ -818,6 +764,16 @@ function App() {
   const [removed, setRemoved] = useState(new Set());
   const [openId, setOpenId] = useState(null);
   const [addonOn, setAddonOn] = useState(true);
+  const [cards, setCards] = useState([]);
+  const [isoRec, setIsoRec] = useState(null);
+  const [analyzeErr, setAnalyzeErr] = useState(null);
+
+  useEffect(() => {
+    fetch('./l1_iso_recommendations_v1.json')
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(setIsoRec)
+      .catch(err => console.error('載入 l1_iso_recommendations 失敗:', err));
+  }, []);
 
   /* ── 尺寸表 tab state ── */
   const [mStep, setMStep] = useState(0);
@@ -836,8 +792,8 @@ function App() {
   const mDone = mStep >= 2;
 
   // Construction derived
-  const vis = CARDS.filter(c => !removed.has(c.id));
-  const visSet = useMemo(() => new Set(vis.map(c => c.id)), [removed]);
+  const vis = cards.filter(c => !removed.has(c.id));
+  const visSet = useMemo(() => new Set(vis.map(c => c.id)), [removed, cards]);
   const aiIE = vis.reduce((s, c) => s + c.ie, 0);
   const totalIE = aiIE + (addonOn ? ADDON.ie : 0);
   const aiCount = vis.filter(c => c.source === "ai").length;
@@ -980,11 +936,73 @@ function App() {
     "✓ 尺寸建議表生成完成"
   ];
 
-  const runConstruction = () => {
+  const runConstruction = async () => {
     setCStep(1); setCAnalyzing(true); setCStage(0);
     setRemoved(new Set()); setOpenId(null); setAddonOn(true);
+    setCards([]); setAnalyzeErr(null);
     const si = setInterval(() => setCStage(s => s < 5 ? s + 1 : s), 280);
-    setTimeout(() => { clearInterval(si); setCAnalyzing(false); setCStep(2); }, 1800);
+    try {
+      const resp = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          image: sketchSrc, brand, fabric, gender,
+          garment_type: gt, item_type: it
+        })
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+      const detected = Array.isArray(data.detected) ? data.detected : [];
+
+      // Build ISO lookup: prefer GT|IT bucket, fallback to GT bucket, index by Chinese L1 name.
+      const bucketKey = gt && it ? `${gt}|${it}` : null;
+      const bucket = (isoRec && bucketKey && isoRec.by_gt_it[bucketKey])
+        || (isoRec && gt && isoRec.by_gt[gt])
+        || null;
+      const isoByName = {};
+      if (bucket) bucket.parts.forEach(p => { isoByName[p.l1] = p; });
+
+      const built = detected.map((d, i) => {
+        const l1 = L1_CODE_TO_NAME[d.code] || d.code;
+        // Match ISO entry by Chinese L1 name (handles ISO-JSON-code ≠ 38-table-code cases).
+        const isoByNameClean = isoByName[l1] || isoByName[l1.replace(/\(.*?\)/, "")] || null;
+        const rec = isoByNameClean;
+        const opts = rec && rec.options.length
+          ? rec.options.map(o => ({ n: `${o.iso} ${o.zh}`, p: Math.round(o.percentage) }))
+          : [{ n: "無資料", p: 100 }];
+        return {
+          id: i + 1,
+          l1,
+          l1_code: d.code,
+          l2: rec ? `${rec.recommended_iso} ${isoRec?.iso_reference?.[rec.recommended_iso]?.zh || ""}` : "—",
+          source: "ai",
+          conf: Number.isFinite(d.confidence) ? d.confidence : null,
+          matchCode: null,
+          px: Number.isFinite(d.x) ? d.x : 50,
+          py: Number.isFinite(d.y) ? d.y : 50,
+          side: d.side === "back" ? "right" : "left",
+          ie: 0,
+          action: rec?.action || "user_select",
+          l3s: [{
+            name: rec ? `ISO ${rec.recommended_iso} (${rec.recommended_iso_pct}% 推薦)` : "尚未推薦",
+            ie: 0,
+            auto: rec?.action === "auto_recommend",
+            pick: 0,
+            opts
+          }]
+        };
+      });
+      clearInterval(si);
+      setCards(built);
+      setCStage(5);
+      setCAnalyzing(false);
+      setCStep(2);
+    } catch (e) {
+      clearInterval(si);
+      setAnalyzeErr(String(e?.message || e));
+      setCAnalyzing(false);
+      setCStep(0);
+    }
   };
   const runMeasurement = () => {
     setMStep(1); setMAnalyzing(true); setMStage(0);
@@ -1140,6 +1158,7 @@ function App() {
                   fontFamily: "inherit",
                 }}>{cAnalyzing ? "分析中…" : "Analyze"}</button>
               )}
+              {analyzeErr && <span style={{ fontSize: "11px", color: "#dc2626" }}>分析失敗: {analyzeErr}</span>}
               {cDone && (
                 <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                   <div style={{ textAlign: "right" }}>
@@ -1195,7 +1214,7 @@ function App() {
                       </div>
                     </div>
                     <div style={{ padding: "8px", position: "relative" }}>
-                      <Sketch src={sketchSrc} hl={openId} onClick={toggle} ok={cDone} vis={visSet} />
+                      <Sketch src={sketchSrc} hl={openId} onClick={toggle} ok={cDone} vis={visSet} cards={cards} />
                       {cAnalyzing && <div style={{ position: "absolute", inset: "8px", background: "rgba(255,255,255,0.6)", borderRadius: "4px" }}>
                         <div style={{ position: "absolute", left: "10%", right: "10%", height: "2px", background: "#1a1a1a",
                           borderRadius: "1px", animation: "scanDown 1.5s ease-in-out infinite" }} />
@@ -1249,7 +1268,7 @@ function App() {
                     <div>
                       <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
                         <span style={{ fontSize: "20px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{vis.length}</span>
-                        <span style={{ fontSize: "12px", color: "#bbb" }}>/ {CARDS.length} 部位</span>
+                        <span style={{ fontSize: "12px", color: "#bbb" }}>/ {cards.length} 部位</span>
                         {addonOn && <span style={{ fontSize: "11px", color: "#888" }}>+ 套組</span>}
                       </div>
                       <div style={{ display: "flex", gap: "6px", marginTop: "4px" }}>
