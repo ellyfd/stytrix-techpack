@@ -970,15 +970,15 @@ function App() {
             onChange={v => { setFabric(v); setIt(""); }}
             options={["Woven", "Knit"]} />
           <Sel label="Gender" value={gender} onChange={setGender}
-            options={pomRules ? GENDER_OPTIONS.map(g => g.value).filter(v => (genderBadgeMap[v] || 0) > 0) : GENDER_OPTIONS.map(g => g.value)}
+            options={pomRules ? Object.keys(genderBadgeMap).filter(v => genderBadgeMap[v] > 0).sort((a,b) => GENDER_OPTIONS.findIndex(g => g.value === a) - GENDER_OPTIONS.findIndex(g => g.value === b)) : GENDER_OPTIONS.map(g => g.value)}
             labelMap={Object.fromEntries(GENDER_OPTIONS.map(g => [g.value, g.label]))}
             badgeMap={genderBadgeMap} />
           <Sel label="Department" value={dept} onChange={setDept}
-            options={pomRules ? DEPT_OPTIONS.filter(d => (deptBadgeMap[d] || 0) > 0) : DEPT_OPTIONS}
+            options={pomRules ? Object.keys(deptBadgeMap).filter(d => deptBadgeMap[d] > 0).sort() : DEPT_OPTIONS}
             badgeMap={deptBadgeMap} />
           <Sel label="Garment Type" value={gt}
             onChange={v => { setGt(v); setIt(""); }}
-            options={pomRules ? GT_OPTIONS.filter(g => (gtBadgeMap[g] || 0) > 0) : GT_OPTIONS}
+            options={pomRules ? Object.keys(gtBadgeMap).filter(g => gtBadgeMap[g] > 0).sort() : GT_OPTIONS}
             badgeMap={gtBadgeMap} />
           <Sel label="Item Type" value={it} onChange={setIt}
             options={curItOptions}
