@@ -533,11 +533,6 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod }) {
             工段 · 秒數
           </div>
           {card.l3s.map((l3, i) => <L3Line key={`${card.methodIdx}-${i}`} l3={l3} editId={editId} setEditId={setEditId} idx={i} col={col} />)}
-          {card.noFiveLevel && (
-            <div style={{ padding: "12px 10px", fontSize: "12px", color: "#92400e", background: "#fffbeb", border: "1px dashed #fde68a", borderRadius: "6px", marginTop: "4px" }}>
-              五階 DB 此 L2/L3/L4 組合下無工段資料
-            </div>
-          )}
           <div style={{ display: "flex", justifyContent: "flex-end", padding: "8px 0 0", gap: "8px" }}>
             <span style={{ fontSize: "13px", color: "#aaa" }}>小計</span>
             <span style={{ fontSize: "14px", color: "#1a1a1a", fontWeight: 800, fontFamily: "'JetBrains Mono',monospace" }}>{Math.round(card.ie)}<span style={{ fontSize: "11px", color: "#aaa", marginLeft: "3px", fontWeight: 500 }}>秒</span></span>
@@ -1242,21 +1237,29 @@ function App() {
         // pick the first non-** if any, else fall back to whatever exists.
         const realMethods = methodsAll.filter(m => isReal(m.l4));
         const methods = realMethods.length ? realMethods : methodsAll;
-        // Pre-compute every L4 variant's step list + total so switching methods
-        // at runtime is a pure lookup — no re-parsing of raw xlsx rows.
+        // Pre-compute every L4 variant's step list. Prefer 主 (main path) rows,
+        // but if a given method only has 副 rows we still surface them instead
+        // of pretending there's no 五階 data — the xlsx always has steps for
+        // every L1/L2/L3/L4 combo, it's just that '主' tagging isn't always
+        // present in the '_其它' misc buckets.
         const buildSteps = (rawSteps) => {
-          const seen = new Set();
-          const list = [];
-          for (const row of rawSteps || []) {
-            const [name, grade, seconds, mainSub] = row;
-            if (mainSub && mainSub !== "主") continue;
-            const key = `${name}|${grade}`;
-            if (seen.has(key)) continue;
-            seen.add(key);
-            const sec = Number(seconds) || 0;
-            list.push({ name, ie: sec, auto: rec?.action === "auto_recommend", pick: 0, opts });
-          }
-          return list;
+          const rows = rawSteps || [];
+          const tryFilter = (mainOnly) => {
+            const seen = new Set();
+            const list = [];
+            for (const row of rows) {
+              const [name, grade, seconds, mainSub] = row;
+              if (mainOnly && mainSub && mainSub !== "主") continue;
+              const key = `${name}|${grade}`;
+              if (seen.has(key)) continue;
+              seen.add(key);
+              const sec = Number(seconds) || 0;
+              list.push({ name, ie: sec, auto: rec?.action === "auto_recommend", pick: 0, opts });
+            }
+            return list;
+          };
+          const main = tryFilter(true);
+          return main.length ? main : tryFilter(false);
         };
         const methodVariants = methods.map(m => {
           const steps = buildSteps(m.steps);
@@ -1295,7 +1298,6 @@ function App() {
           presencePct: presenceByCode[d.code]?.presence_pct ?? null,
           methodIdx,
           methodVariants,
-          noFiveLevel: !stepList.length,
           l3s: stepList
         };
       });
