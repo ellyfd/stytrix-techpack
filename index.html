@@ -390,10 +390,11 @@ function L3Line({ l3, editId, setEditId, idx, col }) {
 }
 
 /* ─── Card ─── */
-function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod }) {
+function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL2 }) {
   const [editId, setEditId] = useState(null);
   const [showTip, setShowTip] = useState(false);
   const [showMethods, setShowMethods] = useState(false);
+  const [showL2Alts, setShowL2Alts] = useState(false);
   useEffect(() => { if (!isOpen) setEditId(null); }, [isOpen]);
   const autoN = card.l3s.filter(l => l.auto).length;
   const adjN = card.l3s.length - autoN;
@@ -491,8 +492,52 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod }) {
             transition: "transform 0.25s", display: "inline-block", marginTop: "2px" }}>▾</div>
         </div>
       </div>
-      <div style={{ maxHeight: isOpen ? "1600px" : "0", overflow: "hidden", transition: "max-height 0.35s ease" }}>
+      <div style={{ maxHeight: isOpen ? "1800px" : "0", overflow: "hidden", transition: "max-height 0.35s ease" }}>
         <div style={{ padding: "0 14px 14px" }}>
+          {card.l2Variants && card.l2Variants.length > 1 && (
+            <div style={{ marginTop: "10px", border: "1px solid #eee", borderRadius: "8px", background: "#f8fafc", padding: "8px 10px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
+                <div style={{ fontSize: "11px", color: "#666", fontWeight: 600 }}>
+                  L2 零件 · {card.l2Variants[card.l2Idx ?? 0]?.display_name || card.l2Variants[card.l2Idx ?? 0]?.xlsx_name || "—"}
+                  {card.ai_l2_confidence != null && card.l2Variants[card.l2Idx ?? 0]?.code === card.ai_l2_code && (
+                    <span style={{ marginLeft: "6px", fontSize: "10px", color: "#0369a1", background: "#e0f2fe", padding: "1px 6px", borderRadius: "4px", fontWeight: 600 }}>AI {card.ai_l2_confidence}%</span>
+                  )}
+                </div>
+                <button onClick={() => setShowL2Alts(v => !v)}
+                  style={{ fontSize: "11px", color: col, background: "#fff", border: `1px solid ${col}40`, padding: "3px 10px", borderRadius: "5px", cursor: "pointer", fontWeight: 600, fontFamily: "inherit" }}>
+                  {showL2Alts ? "收合" : `切換 (${card.l2Variants.length})`} ▾
+                </button>
+              </div>
+              {showL2Alts && (
+                <div style={{ marginTop: "8px", maxHeight: "280px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "4px" }}>
+                  {card.l2Variants.map((v, idx) => {
+                    const active = idx === (card.l2Idx ?? 0);
+                    const tierColor = v.tier === "green" ? "#15803d" : v.tier === "yellow" ? "#92400e" : v.tier === "red" ? "#b91c1c" : "#6b7280";
+                    return (
+                      <div key={v.code} onClick={() => onSwitchL2 && onSwitchL2(card.id, idx)}
+                        style={{
+                          padding: "6px 10px", borderRadius: "6px", cursor: "pointer",
+                          background: active ? col + "10" : "#fff",
+                          border: active ? `1.5px solid ${col}` : "1px solid #eee"
+                        }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
+                          <span style={{ fontSize: "12px", color: active ? col : "#1a1a1a", fontWeight: active ? 700 : 600 }}>
+                            {v.code} · {v.display_name}
+                          </span>
+                          <span style={{ display: "flex", gap: "4px", fontSize: "10px", flexShrink: 0 }}>
+                            {v.ai_confidence != null && <span style={{ color: "#0369a1", background: "#e0f2fe", padding: "1px 6px", borderRadius: "3px", fontWeight: 600 }}>AI {v.ai_confidence}%</span>}
+                            {v.freq > 0 && <span style={{ color: "#666", fontFamily: "'JetBrains Mono',monospace" }}>{v.freq}</span>}
+                            <span style={{ color: tierColor, fontWeight: 600 }}>●</span>
+                          </span>
+                        </div>
+                        {v.feature && <div style={{ fontSize: "11px", color: "#777", marginTop: "2px", lineHeight: 1.35 }}>{v.feature}</div>}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
           {card.methodVariants && card.methodVariants.length > 1 && (
             <div style={{ marginTop: "10px", border: "1px solid #eee", borderRadius: "8px", background: "#fafafa", padding: "8px 10px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
@@ -960,6 +1005,7 @@ function App() {
   const [cards, setCards] = useState([]);
   const [isoRec, setIsoRec] = useState(null);
   const [partPresence, setPartPresence] = useState(null);
+  const [visualGuide, setVisualGuide] = useState(null);
   const [analyzeErr, setAnalyzeErr] = useState(null);
 
   useEffect(() => {
@@ -971,6 +1017,10 @@ function App() {
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(setPartPresence)
       .catch(err => console.error('載入 l1_part_presence 失敗:', err));
+    fetch('./data/l2_visual_guide.json')
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(setVisualGuide)
+      .catch(err => console.error('載入 l2_visual_guide 失敗:', err));
   }, []);
 
   /* ── 尺寸表 tab state ── */
@@ -1230,7 +1280,43 @@ function App() {
         const firstReal = (arr, key) => arr.find(x => isReal(x?.[key])) || arr[0];
         const ie = ieByCode[d.code];
         const l2Arr = ie?.[fabricKey] || [];
-        const firstL2 = firstReal(l2Arr, "l2");
+
+        // Build L2 variants list from the visual guide registry, merging AI
+        // confidence (primary rank) with xlsx frequency (secondary rank).
+        // Pre-select the AI's pick when it returned one; otherwise first
+        // non-'**' L2 in the xlsx data (legacy behaviour).
+        const guideSection = visualGuide?.l1?.[d.code];
+        const guideL2Map = guideSection?.l2 || {};
+        const aiMainConfByCode = {};
+        if (d.l2_code) aiMainConfByCode[d.l2_code] = Number(d.l2_confidence) || 0;
+        for (const alt of d.l2_alternatives || []) {
+          if (alt.l2_code) aiMainConfByCode[alt.l2_code] = Math.max(aiMainConfByCode[alt.l2_code] || 0, Number(alt.confidence) || 0);
+        }
+        const l2Variants = Object.entries(guideL2Map).map(([code, info]) => ({
+          code,
+          xlsx_name: info.name,
+          display_name: info.display_name || info.name,
+          feature: info.feature || "",
+          tier: info.tier || "unknown",
+          freq: info.freq || 0,
+          ai_confidence: aiMainConfByCode[code] ?? null,
+        })).sort((a, b) => {
+          const ac = a.ai_confidence ?? -1, bc = b.ai_confidence ?? -1;
+          if (ac !== bc) return bc - ac;
+          return (b.freq || 0) - (a.freq || 0);
+        });
+
+        // Pick the variant whose xlsx_name exists in l2_l3_ie for this fabric.
+        const l2NameSet = new Set(l2Arr.map(x => x.l2));
+        const pickedL2Variant =
+          l2Variants.find(v => v.xlsx_name && l2NameSet.has(v.xlsx_name))
+          || null;
+        const firstL2 = pickedL2Variant
+          ? l2Arr.find(x => x.l2 === pickedL2Variant.xlsx_name)
+          : firstReal(l2Arr, "l2");
+        const l2Idx = pickedL2Variant
+          ? Math.max(0, l2Variants.findIndex(v => v === pickedL2Variant))
+          : 0;
         const firstShape = firstReal(firstL2?.shapes || [], "l3");
         const methodsAll = firstShape?.methods || [];
         // Methods are already pre-sorted so that ** ones sit at the end;
@@ -1298,6 +1384,10 @@ function App() {
           presencePct: presenceByCode[d.code]?.presence_pct ?? null,
           methodIdx,
           methodVariants,
+          l2Idx,
+          l2Variants,
+          ai_l2_code: d.l2_code || null,
+          ai_l2_confidence: Number.isFinite(d.l2_confidence) ? d.l2_confidence : null,
           l3s: stepList
         };
       });
@@ -1628,6 +1718,56 @@ function App() {
                           ie: v.totalSec,
                           l2: cc.l2Base ? `${cc.l2Base}${l4Short ? " · " + l4Short : ""}` : cc.l2
                         };
+                      }))}
+                      onSwitchL2={(cardId, newL2Idx) => setCards(cs => cs.map(cc => {
+                        if (cc.id !== cardId) return cc;
+                        const variant = cc.l2Variants?.[newL2Idx];
+                        if (!variant) return cc;
+                        // Re-enter the l2_l3_ie data at the newly-chosen L2 xlsx name.
+                        const fabricKey = (fabric || "Knit").toLowerCase() === "woven" ? "woven" : "knit";
+                        const path = `./l2_l3_ie/${cc.l1_code}.json`;
+                        fetch(path).then(r => r.ok ? r.json() : Promise.reject(r.status)).then(ie => {
+                          const l2Arr = ie[fabricKey] || [];
+                          const isReal = (s) => s && !String(s).startsWith("**");
+                          const firstReal = (arr, key) => arr.find(x => isReal(x?.[key])) || arr[0];
+                          const chosen = l2Arr.find(x => x.l2 === variant.xlsx_name) || firstReal(l2Arr, "l2");
+                          const shape = firstReal(chosen?.shapes || [], "l3");
+                          const methodsAll = shape?.methods || [];
+                          const realMethods = methodsAll.filter(m => isReal(m.l4));
+                          const methods = realMethods.length ? realMethods : methodsAll;
+                          const tryFilter = (rows, mainOnly) => {
+                            const seen = new Set(); const list = [];
+                            for (const row of rows || []) {
+                              const [nm, gr, sc, ms] = row;
+                              if (mainOnly && ms && ms !== "主") continue;
+                              const k = `${nm}|${gr}`;
+                              if (seen.has(k)) continue;
+                              seen.add(k);
+                              list.push({ name: nm, ie: Number(sc) || 0, auto: false, pick: 0, opts: [{n:"無資料", p:100}] });
+                            }
+                            return list;
+                          };
+                          const variants = methods.map(m => {
+                            const mainPath = tryFilter(m.steps, true);
+                            const steps = mainPath.length ? mainPath : tryFilter(m.steps, false);
+                            const totalSec = steps.reduce((s, x) => s + x.ie, 0);
+                            return { l4: m.l4, steps, totalSec: +totalSec.toFixed(0) };
+                          });
+                          const cur = variants[0] || { l4: null, steps: [], totalSec: 0 };
+                          const l2Base = chosen?.l2 ? `${chosen.l2}${shape?.l3 ? " · " + shape.l3 : ""}` : null;
+                          const l4Short = cur.l4 ? (cur.l4.length > 40 ? cur.l4.slice(0, 40) + "…" : cur.l4) : null;
+                          setCards(prev => prev.map(pc => pc.id === cardId ? {
+                            ...pc,
+                            l2Idx: newL2Idx,
+                            methodIdx: 0,
+                            methodVariants: variants,
+                            l3s: cur.steps,
+                            ie: cur.totalSec,
+                            l2Base,
+                            l2: l2Base ? `${l2Base}${l4Short ? " · " + l4Short : ""}` : pc.l2
+                          } : pc));
+                        }).catch(err => console.error('載入 l2_l3_ie 失敗:', err));
+                        return cc; // placeholder; real update happens inside fetch callback
                       }))} />
                   ))}
 
