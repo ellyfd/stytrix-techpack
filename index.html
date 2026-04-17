@@ -1986,13 +1986,20 @@ function App() {
               const mr = currentBucket.measurement_rules || {};
               const mv = currentBucket.median_values || {};
               const gr = currentBucket.grading_rules || {};
-              const tierPoms = tier => Object.keys(mr[tier] || {});
-              const totalPoms = tierPoms("must").length + tierPoms("recommend").length + tierPoms("optional").length;
-              const allCodesSorted = sortPomCodes(
-                [...tierPoms("must"), ...tierPoms("recommend"), ...tierPoms("optional")],
+              const tierPoms = tier => Object.keys(mr[tier] || {}).filter(c => mr[tier][c] != null);
+              const tiersOrdered = ["must", "recommend", "optional"];
+              const codesByTier = Object.fromEntries(
+                tiersOrdered.map(t => [t, sortPomCodes(tierPoms(t), currentBucket.pom_sort_order)])
+              );
+              const totalPoms = tiersOrdered.reduce((s, t) => s + codesByTier[t].length, 0);
+              // 基碼 = 分區排列（必備 → 建議 → 選配）
+              // 跳檔 = 平鋪排序，只顯示未排除
+              const allCodesFlat = sortPomCodes(
+                tiersOrdered.flatMap(t => codesByTier[t]),
                 currentBucket.pom_sort_order
               );
-              const bucketIncluded = allCodesSorted.filter(c => !excluded.has(c)).length;
+              const gradingCodes = allCodesFlat.filter(c => !excluded.has(c));
+              const bucketIncluded = gradingCodes.length;
               const sizes = currentBucket.size_range || [];
               const tierOf = code => mr.must?.[code] ? "must" : mr.recommend?.[code] ? "recommend" : "optional";
               const tolStr = m => {
@@ -2018,9 +2025,9 @@ function App() {
                     </div>
                   </div>
 
-                  {/* 基碼 (Base M) table */}
+                  {/* 基碼 (Base M) table — 分區：必備 → 建議 → 選配 */}
                   <div style={{ fontSize: "13px", fontWeight: 700, color: "#1a1a1a", marginTop: "18px", marginBottom: "8px" }}>
-                    基碼 <span style={{ fontSize: "11px", color: "#999", fontWeight: 400 }}>M size 基本尺寸 · {allCodesSorted.length} 項</span>
+                    基碼 <span style={{ fontSize: "11px", color: "#999", fontWeight: 400 }}>M size 基本尺寸 · {totalPoms} 項（{codesByTier.must.length} 必備 · {codesByTier.recommend.length} 建議 · {codesByTier.optional.length} 選配）</span>
                   </div>
                   <div style={{ background: "#fff", border: "1px solid #e8e5e1", borderRadius: "10px", overflow: "hidden", marginBottom: "20px" }}>
                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
@@ -2036,43 +2043,60 @@ function App() {
                         </tr>
                       </thead>
                       <tbody>
-                        {allCodesSorted.map(code => {
-                          const tier = tierOf(code);
+                        {tiersOrdered.map(tier => {
+                          const codes = codesByTier[tier];
+                          if (!codes.length) return null;
                           const tc = TIER[tier];
-                          const m = mr[tier][code];
-                          const mvRow = mv[code];
-                          const baseM = mvRow?.size_medians?.M;
-                          const included = !excluded.has(code);
-                          const pn = pomNames[code] || {};
                           return (
-                            <tr key={code} style={{ borderBottom: "1px solid #f0eeeb", opacity: included ? 1 : 0.35, transition: "opacity 0.15s" }}>
-                              <td style={{ padding: "6px 10px" }}>
-                                <input type="checkbox" checked={included}
-                                  onChange={() => setExcluded(prev => { const n = new Set(prev); n.has(code) ? n.delete(code) : n.add(code); return n; })}
-                                  style={{ width: "14px", height: "14px", accentColor: tc.c, cursor: "pointer" }} />
-                              </td>
-                              <td style={{ padding: "6px 10px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: tc.c }}>{code}</td>
-                              <td style={{ padding: "6px 10px" }}>
-                                <div style={{ fontWeight: 600, color: "#1a1a1a" }}>{pn.en || code}</div>
-                                {pn.zh && <div style={{ fontSize: "10px", color: "#999" }}>{pn.zh}</div>}
-                              </td>
-                              <td style={{ padding: "6px 10px" }}>
-                                <span style={{ fontSize: "10px", color: tc.c, background: tc.bg, padding: "2px 6px", borderRadius: "4px", fontWeight: 600 }}>{tc.icon} {tc.label}</span>
-                              </td>
-                              <td style={{ padding: "6px 10px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", color: "#666" }}>{Math.round((m?.rate || 0) * 100)}%</td>
-                              <td style={{ padding: "6px 10px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", color: "#7e22ce", fontWeight: 600 }}>{tolStr(m)}</td>
-                              <td style={{ padding: "6px 10px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", fontWeight: 700, color: "#065f46", background: "#ecfdf5" }}>{baseM != null ? frmt(baseM) + '"' : "—"}</td>
-                            </tr>
+                            <React.Fragment key={tier}>
+                              <tr style={{ background: tc.bg }}>
+                                <td colSpan={7} style={{ padding: "6px 10px", fontSize: "10px", fontWeight: 700, color: tc.c, letterSpacing: "0.03em" }}>
+                                  {tc.icon} {tc.label} · {codes.length} 項
+                                </td>
+                              </tr>
+                              {codes.map(code => {
+                                const m = mr[tier][code];
+                                const mvRow = mv[code];
+                                const baseM = mvRow?.size_medians?.M;
+                                const included = !excluded.has(code);
+                                const pn = pomNames[code] || {};
+                                return (
+                                  <tr key={code} style={{ borderBottom: "1px solid #f0eeeb", opacity: included ? 1 : 0.35, transition: "opacity 0.15s" }}>
+                                    <td style={{ padding: "6px 10px" }}>
+                                      <input type="checkbox" checked={included}
+                                        onChange={() => setExcluded(prev => { const n = new Set(prev); n.has(code) ? n.delete(code) : n.add(code); return n; })}
+                                        style={{ width: "14px", height: "14px", accentColor: tc.c, cursor: "pointer" }} />
+                                    </td>
+                                    <td style={{ padding: "6px 10px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: tc.c }}>{code}</td>
+                                    <td style={{ padding: "6px 10px" }}>
+                                      <div style={{ fontWeight: 600, color: "#1a1a1a" }}>{pn.en || code}</div>
+                                      {pn.zh && <div style={{ fontSize: "10px", color: "#999" }}>{pn.zh}</div>}
+                                    </td>
+                                    <td style={{ padding: "6px 10px" }}>
+                                      <span style={{ fontSize: "10px", color: tc.c, background: tc.bg, padding: "2px 6px", borderRadius: "4px", fontWeight: 600 }}>{tc.icon} {tc.label}</span>
+                                    </td>
+                                    <td style={{ padding: "6px 10px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", color: "#666" }}>{Math.round((m?.rate || 0) * 100)}%</td>
+                                    <td style={{ padding: "6px 10px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", color: "#7e22ce", fontWeight: 600 }}>{tolStr(m)}</td>
+                                    <td style={{ padding: "6px 10px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", fontWeight: 700, color: "#065f46", background: "#ecfdf5" }}>{baseM != null ? frmt(baseM) + '"' : "—"}</td>
+                                  </tr>
+                                );
+                              })}
+                            </React.Fragment>
                           );
                         })}
                       </tbody>
                     </table>
                   </div>
 
-                  {/* 跳檔 (Grading / size matrix) table */}
+                  {/* 跳檔 / 全碼 (Grading / size matrix) — 平鋪排序，只顯示已勾選 */}
                   <div style={{ fontSize: "13px", fontWeight: 700, color: "#1a1a1a", marginTop: "18px", marginBottom: "8px" }}>
-                    跳檔 <span style={{ fontSize: "11px", color: "#999", fontWeight: 400 }}>各 size 中位數 + 跳碼 · {sizes.length} sizes</span>
+                    全碼 <span style={{ fontSize: "11px", color: "#999", fontWeight: 400 }}>各 size 中位數 + 跳碼 · {sizes.length} sizes · {gradingCodes.length}/{totalPoms} 已勾選</span>
                   </div>
+                  {gradingCodes.length === 0 ? (
+                    <div style={{ background: "#fff", border: "1px dashed #e8e5e1", borderRadius: "10px", padding: "20px", textAlign: "center", fontSize: "12px", color: "#999", marginBottom: "20px" }}>
+                      尚未勾選任何 POM — 回到上方基碼表勾選要納入的項目
+                    </div>
+                  ) : (
                   <div style={{ background: "#fff", border: "1px solid #e8e5e1", borderRadius: "10px", overflow: "auto", marginBottom: "20px" }}>
                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px" }}>
                       <thead>
@@ -2086,15 +2110,14 @@ function App() {
                         </tr>
                       </thead>
                       <tbody>
-                        {allCodesSorted.map(code => {
+                        {gradingCodes.map(code => {
                           const tier = tierOf(code);
                           const tc = TIER[tier];
                           const mvRow = mv[code];
                           const grRow = gr[code];
-                          const included = !excluded.has(code);
                           const pn = pomNames[code] || {};
                           return (
-                            <tr key={code} style={{ borderBottom: "1px solid #f0eeeb", opacity: included ? 1 : 0.35, transition: "opacity 0.15s" }}>
+                            <tr key={code} style={{ borderBottom: "1px solid #f0eeeb" }}>
                               <td style={{ padding: "5px 8px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: tc.c, position: "sticky", left: 0, background: "#fff" }}>{code}</td>
                               <td style={{ padding: "5px 8px", fontSize: "11px", color: "#1a1a1a" }}>{pn.en || code}</td>
                               <td style={{ padding: "5px 8px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", color: "#b45309", fontWeight: 600 }}>
@@ -2114,6 +2137,7 @@ function App() {
                       </tbody>
                     </table>
                   </div>
+                  )}
                 </div>
               );
             })()}
