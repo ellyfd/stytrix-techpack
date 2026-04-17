@@ -996,29 +996,72 @@ function App() {
         || null;
       const isoByName = {};
       if (bucket) bucket.parts.forEach(p => { isoByName[p.l1] = p; });
+      // Normalize xlsx Chinese names to ISO-JSON Chinese names (different character choices).
+      const ISO_NAME_ALIAS = {
+        "帽子":"帽", "下襬":"下擺", "商標":"標",
+        "脅邊":"脇縫", "行縫(固定棉)":"行縫固定棉",
+        "袖孔":"袖襱", "袖圍":"袖襱"
+      };
+      const findIso = (name) => isoByName[name]
+        || isoByName[ISO_NAME_ALIAS[name]]
+        || isoByName[name.replace(/[()（）]/g, "")] || null;
+
+      // Lazy-load l2_l3_ie/<code>.json for each detected part in parallel.
+      const fabricKey = (fabric || "Knit").toLowerCase() === "woven" ? "woven" : "knit";
+      const ieByCode = {};
+      await Promise.all(detected.map(async d => {
+        try {
+          const r = await fetch(`/l2_l3_ie/${d.code}.json`);
+          if (r.ok) ieByCode[d.code] = await r.json();
+        } catch {}
+      }));
 
       const built = detected.map((d, i) => {
         const l1 = L1_CODE_TO_NAME[d.code] || d.code;
-        // Match ISO entry by Chinese L1 name (handles ISO-JSON-code ≠ 38-table-code cases).
-        const isoByNameClean = isoByName[l1] || isoByName[l1.replace(/\(.*?\)/, "")] || null;
-        const rec = isoByNameClean;
+        const rec = findIso(l1);
         const opts = rec && rec.options.length
           ? rec.options.map(o => ({ n: `${o.iso} ${o.zh}`, p: Math.round(o.percentage) }))
           : [{ n: "無資料", p: 100 }];
+
+        // Pick first L2 shape + first L3 design from the fabric-appropriate bucket,
+        // build l3s from its L5 steps (using each step's first grade's seconds).
+        const ie = ieByCode[d.code];
+        const l2Arr = ie?.[fabricKey] || [];
+        const firstL2 = l2Arr[0];
+        const firstShape = firstL2?.shapes?.[0];
+        const rawSteps = firstShape?.steps || [];
+        // Deduplicate steps by name; take the first occurrence's seconds.
+        const seen = new Set();
+        const stepList = [];
+        for (const [name, , seconds] of rawSteps) {
+          if (seen.has(name)) continue;
+          seen.add(name);
+          const sec = Number(seconds) || 0;
+          stepList.push({
+            name,
+            ie: +(sec / 60).toFixed(3),
+            auto: false,
+            pick: 0,
+            opts
+          });
+        }
+        const totalMinutes = stepList.reduce((s, x) => s + x.ie, 0);
+
         return {
           id: i + 1,
           l1,
           l1_code: d.code,
-          l2: rec ? `${rec.recommended_iso} ${isoRec?.iso_reference?.[rec.recommended_iso]?.zh || ""}` : "—",
+          l2: firstL2?.l2 ? `${firstL2.l2}${firstShape?.l3 ? " · " + firstShape.l3 : ""}`
+                         : (rec ? `${rec.recommended_iso} ${isoRec?.iso_reference?.[rec.recommended_iso]?.zh || ""}` : "—"),
           source: "ai",
           conf: Number.isFinite(d.confidence) ? d.confidence : null,
           matchCode: null,
           px: Number.isFinite(d.x) ? d.x : 50,
           py: Number.isFinite(d.y) ? d.y : 50,
           side: d.side === "back" ? "right" : "left",
-          ie: 0,
+          ie: +totalMinutes.toFixed(3),
           action: rec?.action || "user_select",
-          l3s: [{
+          l3s: stepList.length ? stepList : [{
             name: rec ? `ISO ${rec.recommended_iso} (${rec.recommended_iso_pct}% 推薦)` : "尚未推薦",
             ie: 0,
             auto: rec?.action === "auto_recommend",
