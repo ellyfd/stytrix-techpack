@@ -753,10 +753,10 @@ function App() {
   const [sketchSrc, setSketchSrc] = useState(null);
   const [pomRules, setPomRules] = useState(null);
   useEffect(() => {
-    fetch('./pom_rules.json')
+    fetch('./pom_rules/_index.json')
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(data => { setPomRules(data); window.POM_RULES = data; })
-      .catch(err => console.error('載入 pom_rules.json 失敗:', err));
+      .catch(err => console.error('載入 pom_rules/_index.json 失敗:', err));
   }, []);
   const handleSketchUpload = (e) => {
     const file = e.target.files?.[0];
