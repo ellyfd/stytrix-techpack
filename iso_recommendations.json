@@ -1,0 +1,44 @@
+{
+  "version": "v1.0",
+  "created": "2026-04-17",
+  "description": "Techpack Creation UI input: per GT×IT L1×ISO recommendation with confidence scoring",
+  "data_source": {
+    "designs": 446,
+    "designs_with_gt_it": 406,
+    "bridge_version": "v6.0_expanded",
+    "base_data": "ONY 2026 6 seasons, 5,095 TXT files"
+  },
+  "confidence_rules": {
+    "high": "Top ISO ≥ 60% AND N ≥ 5 designs → auto_recommend (綠色, AI 自動選)",
+    "medium": "Top ISO ≥ 40% AND N ≥ 5 → recommend_with_alternatives (黃色, 推薦但可改)",
+    "low": "Top ISO < 40% OR N < 5 → user_select (灰色, 列選項讓人選)"
+  },
+  "iso_reference": {
+    "301": { "en": "Lockstitch", "zh": "平車" },
+    "304": { "en": "Zigzag", "zh": "曲折縫" },
+    "401": { "en": "Chainstitch", "zh": "鎖鍊" },
+    "406": { "en": "Coverstitch", "zh": "三本雙針/壓三本" },
+    "407": { "en": "Coverstitch 3-needle", "zh": "三本三針" },
+    "504": { "en": "Safety Stitch", "zh": "安全縫" },
+    "512": { "en": "Mock Safety", "zh": "假安全縫" },
+    "514": { "en": "4-thread Overlock", "zh": "四線拷克" },
+    "514+401": { "en": "Overlock + Chainstitch", "zh": "拷克+鏈縫" },
+    "514+605": { "en": "Overlock + Flatseam", "zh": "拷克+爬網" },
+    "516": { "en": "5-thread Overlock", "zh": "五線拷克" },
+    "602": { "en": "Flatseam 2-needle", "zh": "併縫" },
+    "605": { "en": "Flatseam Binding", "zh": "三針五線爬網" },
+    "607": { "en": "Flatlock", "zh": "併逢車" }
+  },
+  "l1_codes": {
+    "腰頭": "WB", "口袋": "PK", "褶": "PD", "剪接線": "SB", "褲合身": "PS",
+    "褲口": "LO", "下擺": "HM", "大身": "BD", "領": "NK", "袖": "SL",
+    "袖口": "CF", "袖襱": "AH", "肩": "SH", "門襟": "PL", "前立": "FP",
+    "鬆緊帶": "EL", "脇縫": "SS", "標": "LB", "帽": "HD", "過肩": "YK",
+    "褲底檔": "GS", "繩類": "DC", "裡布": "LN", "貼邊": "FC", "滾條": "BN",
+    "鈕扣": "BT", "褲耳": "BL", "拉鍊": "ZP", "肩帶": "ST", "釦鎖": "BH",
+    "貼合": "FU", "行縫固定棉": "IL", "前褲身": "FR", "後褲身": "BR"
+  },
+  "note_knit_woven": "目前資料只有 Knit 品類,Woven 資料進來後需要重新計算",
+  "by_gt_it": {},
+  "by_gt": {}
+}
