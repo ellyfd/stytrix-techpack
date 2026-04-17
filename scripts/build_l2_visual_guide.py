@@ -4,27 +4,31 @@ Parse L2_Visual_Differentiation_FullAnalysis.md → data/l2_visual_guide.json
 Goal: give /api/analyze and the UI a structured JSON of every L2's
 visual feature + AI-ability tier, grouped by L1 code. Also join with
 l2_l3_ie/*.json row counts so we have a historical-frequency number
-per L2 for dropdown sorting when AI can't decide (user said: "歷史資料,
-但不是 ISO 的").
+per L2 for dropdown sorting when AI can't decide.
+
+Primary L2 registry (authoritative list of every valid L2 code + its
+xlsx name) comes from L2_代號中文對照表.xlsx (L1代碼 / L1名稱 /
+L2代碼 / L2名稱 / L3數). Markdown only supplies visual-feature text
+that overlays this.
 
 Output shape:
   {
-    "version": "v1",
+    "version": "v2",
     "l1": {
       "AH": {
         "name": "袖圍",
-        "section_note": "AI 可完全區分",
         "l2": {
           "AH_001": {
-            "name": "一般上袖 set-in",
+            "name": "合袖",               // xlsx canonical (matches l2_l3_ie)
+            "display_name": "一般上袖 set-in",  // from markdown if present
             "feature": "袖線在自然肩線,弧形接合",
-            "tier": "green",        // green | yellow | red | unknown
-            "vs": null              // "005" if '🔴 vs 005' flagged
-          },
-          ...
+            "tier": "green",              // green | yellow | red | unknown
+            "vs": null,
+            "l3_count": 17,               // from registry
+            "freq": 698                   // row count in l2_l3_ie
+          }, ...
         }
-      },
-      ...
+      }, ...
     }
   }
 
@@ -34,12 +38,46 @@ Tier markers in the markdown:
   🔴 → red    (AI 無法分,需 IE)
 """
 
-import json, re, os, glob
+import json, re, os, zipfile
 from collections import OrderedDict
+from xml.etree import ElementTree as ET
 
+NS = '{http://schemas.openxmlformats.org/spreadsheetml/2006/main}'
+
+# ------------------------------------------------------------
+# 1. Read the L2 code registry (authoritative)
+# ------------------------------------------------------------
+def read_registry(path='L2_代號中文對照表.xlsx'):
+    with zipfile.ZipFile(path) as z:
+        with z.open('xl/worksheets/sheet1.xml') as f:
+            root = ET.parse(f).getroot()
+    def cval(c):
+        t = c.get('t')
+        if t == 'inlineStr':
+            is_el = c.find(f'{NS}is')
+            if is_el is not None:
+                return ''.join(tt.text or '' for tt in is_el.iter(f'{NS}t'))
+        v = c.find(f'{NS}v')
+        return v.text if v is not None else ''
+    rows = root.findall(f'.//{NS}row')
+    out = []
+    for i, r in enumerate(rows):
+        cells = [cval(c) for c in r.findall(f'{NS}c')]
+        if i == 0 or len(cells) < 4: continue
+        l1_code, l1_name, l2_code, l2_name = cells[:4]
+        l3_count = int(cells[4]) if len(cells) > 4 and str(cells[4]).isdigit() else None
+        if not l2_code or not l2_code.startswith(l1_code): continue
+        out.append({
+            "l1_code": l1_code, "l1_name": l1_name,
+            "l2_code": l2_code, "l2_name": l2_name,
+            "l3_count": l3_count
+        })
+    return out
+
+# ------------------------------------------------------------
+# 2. Parse markdown for per-L2 feature text
+# ------------------------------------------------------------
 MD = open('L2_Visual_Differentiation_FullAnalysis.md', encoding='utf-8').read()
-
-# Scan L1 section headers: "### CODE(Chinese name)— N L2 [suffix]"
 SECTION_RE = re.compile(r'^###\s+([A-Z]{2})(?:([^\s—]+))?\s*—\s*(\d+)\s+L2\s*(.*)$', re.M)
 
 def tier_from_emoji(cell):
@@ -53,100 +91,113 @@ def vs_from_cell(cell):
     return m.group(1) if m else None
 
 def strip_md(s):
-    # Remove **bold**, *italic*, extra whitespace
     s = re.sub(r'\*+([^*]+)\*+', r'\1', s)
     return s.strip()
 
-# Parse sections
+md_features = {}  # l2_code -> {display_name, feature, tier, vs}
 sections = list(SECTION_RE.finditer(MD))
-l1_data = OrderedDict()
-
 for i, m in enumerate(sections):
     code = m.group(1)
-    cn_raw = m.group(2) or ''
-    cn = cn_raw.strip('()()')
-    header_suffix = m.group(4).strip()
-    # Section body: from end of this header line to start of next section header
     start = m.end()
     end = sections[i+1].start() if i+1 < len(sections) else len(MD)
     body = MD[start:end]
-
-    entries = OrderedDict()
-    # Match rows like: | AH_001 | 一般上袖 set-in | 袖線... | 🟢 |
     row_re = re.compile(rf'^\|\s*({code}_\d{{3}})\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|\n]+?)\s*\|', re.M)
     for row in row_re.finditer(body):
         l2_code = row.group(1)
-        name = strip_md(row.group(2))
-        feature = strip_md(row.group(3))
-        tier_cell = row.group(4).strip()
-        entries[l2_code] = {
-            "name": name,
-            "feature": feature,
-            "tier": tier_from_emoji(tier_cell),
-            "vs": vs_from_cell(tier_cell),
+        md_features[l2_code] = {
+            "display_name": strip_md(row.group(2)),
+            "feature": strip_md(row.group(3)),
+            "tier": tier_from_emoji(row.group(4)),
+            "vs": vs_from_cell(row.group(4)),
         }
 
-    # Section-level note: capture first non-empty line mentioning AI/判定 after the header suffix
-    section_note = header_suffix
-    # Also capture "結論" line for context
-    con_m = re.search(r'\*\*結論\*\*\s*[:：]\s*(.*)', body)
-    conclusion = con_m.group(1).strip() if con_m else None
-
-    l1_data[code] = {
-        "name": cn,
-        "section_note": section_note,
-        "conclusion": conclusion,
-        "l2": entries,
-    }
-
-# Join with l2_l3_ie/*.json row counts (historical frequency proxy)
-for l1_code, info in l1_data.items():
+# ------------------------------------------------------------
+# 3. Read xlsx row-count frequency from l2_l3_ie/*.json
+# ------------------------------------------------------------
+def freq_for(l1_code):
     path = f'l2_l3_ie/{l1_code}.json'
-    if not os.path.exists(path): continue
+    if not os.path.exists(path): return {}
     ie = json.load(open(path, encoding='utf-8'))
-    # Count rows across knit + woven for each L2 NAME
     freq = {}
     for fk in ('knit', 'woven'):
         for l2 in ie.get(fk, []):
-            name = l2.get('l2')
-            total = 0
+            name = l2.get('l2'); total = 0
             for sh in l2.get('shapes', []):
                 for method in sh.get('methods', []):
                     total += len(method.get('steps', []))
             freq[name] = freq.get(name, 0) + total
-    # Attach freq to L2 entries by matching on name. Many xlsx L2 names
-    # won't literally match the 報告's L2 naming — that's fine, we'll
-    # surface the freq map at L1 level so the UI can still sort.
-    info['freq_by_l2_name'] = freq
+    return freq
 
-# Rebuild SL section's missing 015 note explicitly
-# (The report says SL has 15 L2 but the table skips 015 and includes 016.)
-# Nothing to fix here — parser already records whatever is in the table.
+# ------------------------------------------------------------
+# 4. Merge all three sources
+# ------------------------------------------------------------
+registry = read_registry()
+l1_data = OrderedDict()
+for row in registry:
+    l1c = row['l1_code']
+    if l1c not in l1_data:
+        l1_data[l1c] = {"name": row['l1_name'], "l2": OrderedDict()}
+    entry = {
+        "name": row['l2_name'],
+        "l3_count": row['l3_count'],
+    }
+    md = md_features.get(row['l2_code'])
+    if md:
+        entry.update({
+            "display_name": md['display_name'],
+            "feature": md['feature'],
+            "tier": md['tier'],
+            "vs": md['vs'],
+            "source": "registry+markdown",
+        })
+    else:
+        entry.update({
+            "display_name": row['l2_name'],
+            "feature": "",
+            "tier": "unknown",
+            "vs": None,
+            "source": "registry",
+        })
+    l1_data[l1c]['l2'][row['l2_code']] = entry
 
+# Attach freq by matching registry name against xlsx L2 names in l2_l3_ie.
+for l1_code, info in l1_data.items():
+    freq = freq_for(l1_code)
+    for l2_code, entry in info['l2'].items():
+        entry['freq'] = freq.get(entry['name'], 0)
+
+# ------------------------------------------------------------
+# 5. Write output
+# ------------------------------------------------------------
 out = {
-    "version": "v1",
+    "version": "v2",
     "created": "2026-04-17",
-    "source_markdown": "L2_Visual_Differentiation_FullAnalysis.md",
+    "sources": {
+        "registry": "L2_代號中文對照表.xlsx (283 L2s, authoritative)",
+        "markdown": "L2_Visual_Differentiation_FullAnalysis.md (visual features overlay)",
+        "freq": "l2_l3_ie/*.json row counts (historical frequency)"
+    },
     "tier_rules": {
         "green":   "AI 可直接用視覺判定",
         "yellow":  "需看細節但有望可行",
         "red":     "AI 無法從 sketch 判定,需 IE 文字或歷史資料補足",
-        "unknown": "報告未標註(例如 L1 只有 1 個 L2 無須區分,或屬於敘事段落未入表)"
+        "unknown": "報告未標註特徵,僅有 registry 基本資訊"
     },
     "l1": l1_data,
 }
-
 os.makedirs('data', exist_ok=True)
 with open('data/l2_visual_guide.json', 'w', encoding='utf-8') as f:
     json.dump(out, f, ensure_ascii=False, indent=2)
 
-# Summary
 total_l2 = sum(len(v['l2']) for v in l1_data.values())
+with_feat = sum(1 for v in l1_data.values() for l2 in v['l2'].values() if l2.get('feature'))
 by_tier = {'green':0,'yellow':0,'red':0,'unknown':0}
 for v in l1_data.values():
     for l2 in v['l2'].values():
         by_tier[l2['tier']] = by_tier.get(l2['tier'],0) + 1
 print(f'L1 sections: {len(l1_data)}')
-print(f'L2 entries extracted: {total_l2}')
-print(f'Tier breakdown: {by_tier}')
+print(f'L2 entries (registry): {total_l2}')
+print(f'  with markdown feature text: {with_feat}')
+print(f'  tier breakdown: {by_tier}')
 print(f'Output: data/l2_visual_guide.json ({os.path.getsize("data/l2_visual_guide.json")/1024:.1f} KB)')
+
