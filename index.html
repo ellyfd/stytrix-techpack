@@ -765,6 +765,8 @@ function App() {
 
   /* ── Sketch 上傳 ── */
   const [sketchSrc, setSketchSrc] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchFocused, setSearchFocused] = useState(false);
   const [pomRules, setPomRules] = useState(null);
   useEffect(() => {
     fetch('./pom_rules/_index.json')
@@ -913,6 +915,45 @@ function App() {
     return IT_OPTIONS[gt] || [];
   }, [gt]);
 
+  /* Search: 打 hoodie 等關鍵字搜尋所有 filter 選項，點一下自動填 */
+  const searchMatches = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (q.length < 2) return [];
+    const matches = [];
+    Object.entries(IT_OPTIONS).forEach(([g, items]) => {
+      items.forEach(item => {
+        if (item.toLowerCase().includes(q)) {
+          matches.push({ type: "IT", gt: g, it: item, label: item, hint: `Garment Type: ${g}` });
+        }
+      });
+    });
+    (pomRules ? [...new Set(pomRules.buckets.map(b => b.garment_type))] : Object.keys(IT_OPTIONS)).forEach(g => {
+      if (g !== "UNKNOWN" && g.toLowerCase().includes(q)) {
+        matches.push({ type: "GT", gt: g, label: g, hint: "Garment Type" });
+      }
+    });
+    (pomRules ? [...new Set(pomRules.buckets.map(b => b.department))] : DEPT_OPTIONS).forEach(d => {
+      if (d.toLowerCase().includes(q)) {
+        matches.push({ type: "Dept", dept: d, label: d, hint: "Department" });
+      }
+    });
+    GENDER_OPTIONS.forEach(g => {
+      if (g.label.toLowerCase().includes(q) || g.value.toLowerCase().includes(q)) {
+        matches.push({ type: "Gender", gender: g.value, label: g.label, hint: "Gender" });
+      }
+    });
+    return matches.slice(0, 8);
+  }, [searchQuery, pomRules]);
+
+  const applySearchMatch = (m) => {
+    if (m.type === "IT") { setGt(m.gt); setIt(m.it); }
+    else if (m.type === "GT") { setGt(m.gt); setIt(""); }
+    else if (m.type === "Dept") { setDept(m.dept); }
+    else if (m.type === "Gender") { setGender(m.gender); }
+    setSearchQuery("");
+    setSearchFocused(false);
+  };
+
   const ptCount = useMemo(() => {
     let p = 0, t = 0;
     [...MISSY_POMS.must, ...MISSY_POMS.recommend, ...MISSY_POMS.optional].forEach(pom => {
@@ -988,6 +1029,45 @@ function App() {
       </div>
 
       <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "24px 28px" }}>
+        {/* ─── Quick search ─── */}
+        <div style={{ position: "relative", marginBottom: "16px" }}>
+          <input type="text" value={searchQuery}
+            onChange={e => { setSearchQuery(e.target.value); setSearchFocused(true); }}
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
+            placeholder="🔍 快速搜尋（例如打 hoodie / leggings / active / mens ... 自動填 filter）"
+            style={{
+              width: "100%", padding: "10px 14px", fontSize: "13px",
+              border: "1.5px solid #e8e5e1", borderRadius: "8px",
+              background: "#fff", fontFamily: "inherit", outline: "none",
+              transition: "border-color 0.15s",
+            }}
+            onMouseEnter={e => e.currentTarget.style.borderColor = "#d4d4d4"}
+            onMouseLeave={e => e.currentTarget.style.borderColor = "#e8e5e1"} />
+          {searchFocused && searchMatches.length > 0 && (
+            <div style={{
+              position: "absolute", top: "100%", left: 0, right: 0, marginTop: "4px",
+              background: "#fff", border: "1.5px solid #e8e5e1", borderRadius: "8px",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.08)", zIndex: 20, maxHeight: "320px", overflowY: "auto"
+            }}>
+              {searchMatches.map((m, i) => (
+                <div key={i} onMouseDown={() => applySearchMatch(m)}
+                  style={{
+                    padding: "8px 14px", cursor: "pointer", fontSize: "13px",
+                    display: "flex", justifyContent: "space-between", alignItems: "center",
+                    borderBottom: i < searchMatches.length - 1 ? "1px solid #f0eeeb" : "none",
+                    transition: "background 0.1s"
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = "#faf9f7"}
+                  onMouseLeave={e => e.currentTarget.style.background = "#fff"}>
+                  <span style={{ fontWeight: 600, color: "#1a1a1a" }}>{m.label}</span>
+                  <span style={{ fontSize: "11px", color: "#999" }}>{m.hint}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* ─── Filter (v10: flush underline selects) ─── */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "20px", marginBottom: "28px", paddingBottom: "24px", borderBottom: "1px solid #eee" }}>
           <Sel label="Brand" value={brand} onChange={setBrand}
