@@ -231,7 +231,7 @@ const TIER = {
 };
 
 /* Filter options — 對應 pom_rules 資料結構 */
-const DEPT_OPTIONS = ["RTW","Swimwear","Sleepwear","Fleece","Maternity"];
+const DEPT_OPTIONS = ["RTW","Swimwear","Sleepwear","Fleece","Maternity","Performance"];
 const GENDER_OPTIONS = [
   { value: "MENS",    label: "Men's" },
   { value: "WOMENS",  label: "Women's" },
@@ -969,12 +969,12 @@ function App() {
           <Sel label="Fabric" value={fabric}
             onChange={v => { setFabric(v); setIt(""); }}
             options={["Woven", "Knit"]} />
-          <Sel label="Department" value={dept} onChange={setDept}
-            options={DEPT_OPTIONS} badgeMap={deptBadgeMap} />
           <Sel label="Gender" value={gender} onChange={setGender}
             options={GENDER_OPTIONS.map(g => g.value)}
             labelMap={Object.fromEntries(GENDER_OPTIONS.map(g => [g.value, g.label]))}
             badgeMap={genderBadgeMap} />
+          <Sel label="Department" value={dept} onChange={setDept}
+            options={DEPT_OPTIONS} badgeMap={deptBadgeMap} />
           <Sel label="Garment Type" value={gt}
             onChange={v => { setGt(v); setIt(""); }}
             options={GT_OPTIONS} badgeMap={gtBadgeMap} />
