@@ -231,7 +231,7 @@ const TIER = {
 };
 
 /* Filter options — 對應 pom_rules 資料結構 */
-const DEPT_OPTIONS = ["RTW","Swimwear","Sleepwear","Fleece","Maternity","Performance"];
+const DEPT_OPTIONS = ["RTW","Swimwear","Sleepwear","Fleece","Maternity"];
 const GENDER_OPTIONS = [
   { value: "MENS",    label: "Men's" },
   { value: "WOMENS",  label: "Women's" },
@@ -970,14 +970,16 @@ function App() {
             onChange={v => { setFabric(v); setIt(""); }}
             options={["Woven", "Knit"]} />
           <Sel label="Gender" value={gender} onChange={setGender}
-            options={GENDER_OPTIONS.map(g => g.value)}
+            options={pomRules ? GENDER_OPTIONS.map(g => g.value).filter(v => (genderBadgeMap[v] || 0) > 0) : GENDER_OPTIONS.map(g => g.value)}
             labelMap={Object.fromEntries(GENDER_OPTIONS.map(g => [g.value, g.label]))}
             badgeMap={genderBadgeMap} />
           <Sel label="Department" value={dept} onChange={setDept}
-            options={DEPT_OPTIONS} badgeMap={deptBadgeMap} />
+            options={pomRules ? DEPT_OPTIONS.filter(d => (deptBadgeMap[d] || 0) > 0) : DEPT_OPTIONS}
+            badgeMap={deptBadgeMap} />
           <Sel label="Garment Type" value={gt}
             onChange={v => { setGt(v); setIt(""); }}
-            options={GT_OPTIONS} badgeMap={gtBadgeMap} />
+            options={pomRules ? GT_OPTIONS.filter(g => (gtBadgeMap[g] || 0) > 0) : GT_OPTIONS}
+            badgeMap={gtBadgeMap} />
           <Sel label="Item Type" value={it} onChange={setIt}
             options={curItOptions}
             disabled={curItOptions.length === 0} />
