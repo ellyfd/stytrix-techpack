@@ -69,8 +69,16 @@ const TAGS = [
   { l: "口袋", c: "#b45309" }, { l: "High Rise", c: "#065f46" }, { l: "褶", c: "#a21caf" }
 ];
 const SRC = {
-  ai:     { label: "AI 偵測", bg: "#e0f2fe", c: "#0369a1", icon: "👁" },
-  struct: { label: "結構推斷", bg: "#d1fae5", c: "#065f46", icon: "⚙" }
+  ai:       { label: "AI 偵測", bg: "#e0f2fe", c: "#0369a1", icon: "👁" },
+  struct:   { label: "結構推斷", bg: "#d1fae5", c: "#065f46", icon: "⚙" },
+  presence: { label: "歷史資料", bg: "#fef3c7", c: "#92400e", icon: "📊" }
+};
+
+const TIER_BADGE = {
+  essential:  { label: "必備",  bg: "#dcfce7", c: "#15803d" },
+  common:     { label: "常見",  bg: "#dbeafe", c: "#1d4ed8" },
+  occasional: { label: "偶爾",  bg: "#f1f5f9", c: "#475569" },
+  rare:       { label: "少見",  bg: "#fee2e2", c: "#b91c1c" }
 };
 
 /* ─── 長度相關 POM codes（PETITE / TALL 跟 MISSY 有差的） ─── */
@@ -430,6 +438,13 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod }) {
                 background: card.isoConfidence === "high" ? "#ecfdf5" : card.isoConfidence === "medium" ? "#fffbeb" : "#f3f4f6",
                 color: card.isoConfidence === "high" ? "#065f46" : card.isoConfidence === "medium" ? "#92400e" : "#6b7280"
               }}>ISO {card.isoConfidence === "high" ? "高" : card.isoConfidence === "medium" ? "中" : "低"}信心</span>}
+              {card.presenceTier && TIER_BADGE[card.presenceTier] && (
+                <span style={{
+                  fontSize: "10px", fontWeight: 600, padding: "2px 7px", borderRadius: "4px",
+                  background: TIER_BADGE[card.presenceTier].bg,
+                  color: TIER_BADGE[card.presenceTier].c
+                }}>{TIER_BADGE[card.presenceTier].label} {card.presencePct != null ? Math.round(card.presencePct) + "%" : ""}</span>
+              )}
               {card.matchCode && (
                 <span
                   onMouseEnter={e => { e.stopPropagation(); setShowTip(true); }}
@@ -944,6 +959,7 @@ function App() {
   const [addonOn, setAddonOn] = useState(true);
   const [cards, setCards] = useState([]);
   const [isoRec, setIsoRec] = useState(null);
+  const [partPresence, setPartPresence] = useState(null);
   const [analyzeErr, setAnalyzeErr] = useState(null);
 
   useEffect(() => {
@@ -951,6 +967,10 @@ function App() {
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(setIsoRec)
       .catch(err => console.error('載入 l1_iso_recommendations 失敗:', err));
+    fetch('./l1_part_presence_v1.json')
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(setPartPresence)
+      .catch(err => console.error('載入 l1_part_presence 失敗:', err));
   }, []);
 
   /* ── 尺寸表 tab state ── */
@@ -1138,8 +1158,7 @@ function App() {
       });
       const data = await resp.json();
       if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
-      // Deduplicate detections by L1 code (AI often returns front + back as two rows);
-      // keep the entry with highest confidence so only one card per part is rendered.
+      // Deduplicate AI detections by L1 code (front + back views collapse into one).
       const raw = Array.isArray(data.detected) ? data.detected : [];
       const byCode = new Map();
       for (const d of raw) {
@@ -1148,13 +1167,32 @@ function App() {
           byCode.set(d.code, d);
         }
       }
+
+      // Layer in l1_part_presence_v1: for this GT×IT, look up every part with its
+      // historical presence %. Essential (≥80%) parts are added as ghost cards even
+      // if the AI didn't draw a bbox, so the user sees what the data says should be
+      // there and can confirm/remove. Tier info is merged into every card for UI.
+      const bucketKey = gt && it ? `${gt}|${it}` : null;
+      const presenceBucket = (partPresence && bucketKey && partPresence.by_gt_it?.[bucketKey])
+        || (partPresence && gt && partPresence.by_gt?.[gt])
+        || null;
+      const presenceByCode = {};
+      if (presenceBucket) {
+        for (const p of presenceBucket.parts || []) presenceByCode[p.l1_code] = p;
+      }
+      // Add essential parts the AI missed so they still render (tier_en === 'essential').
+      for (const code of Object.keys(presenceByCode)) {
+        if (byCode.has(code)) continue;
+        if (presenceByCode[code].tier_en !== "essential") continue;
+        byCode.set(code, { code, confidence: null, x: 50, y: 50, side: "front", _fromPresence: true });
+      }
       const detected = Array.from(byCode.values());
 
       // Build ISO lookup: prefer GT|IT bucket, fallback to GT bucket, index by Chinese L1 name.
-      const bucketKey = gt && it ? `${gt}|${it}` : null;
-      const bucket = (isoRec && bucketKey && isoRec.by_gt_it[bucketKey])
+      const isoBucket = (isoRec && bucketKey && isoRec.by_gt_it[bucketKey])
         || (isoRec && gt && isoRec.by_gt[gt])
         || null;
+      const bucket = isoBucket;
       const isoByName = {};
       if (bucket) bucket.parts.forEach(p => { isoByName[p.l1] = p; });
       // Normalize xlsx Chinese names to ISO-JSON Chinese names (different character choices).
@@ -1232,7 +1270,7 @@ function App() {
             ? `${l2Base}${l4Short ? " · " + l4Short : ""}`
             : (rec ? `${rec.recommended_iso} ${isoRec?.iso_reference?.[rec.recommended_iso]?.zh || ""}` : "—"),
           l2Base,
-          source: "ai",
+          source: d._fromPresence ? "presence" : "ai",
           conf: Number.isFinite(d.confidence) ? d.confidence : null,
           matchCode: null,
           px: Number.isFinite(d.x) ? d.x : 50,
@@ -1241,6 +1279,8 @@ function App() {
           ie: +totalSeconds.toFixed(0),
           action: rec?.action || "user_select",
           isoConfidence: rec?.confidence || null,
+          presenceTier: presenceByCode[d.code]?.tier_en || null,
+          presencePct: presenceByCode[d.code]?.presence_pct ?? null,
           methodIdx,
           methodVariants,
           l3s: stepList.length ? stepList : [{
