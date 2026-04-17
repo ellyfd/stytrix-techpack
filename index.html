@@ -1038,24 +1038,24 @@ function App() {
           ? rec.options.map(o => ({ n: `${o.iso} ${o.zh}`, p: Math.round(o.percentage) }))
           : [{ n: "無資料", p: 100 }];
 
-        // Pick first L2 shape + first L3 design from the fabric-appropriate bucket,
-        // keep only 主 (main path) L5 steps, then dedupe by BASE name (everything before
-        // the first '_'): xlsx lists alternative methods as "修線尾_三本", "修線尾_雙針鎖鍊"
-        // etc., which are stitching alternatives for the same step — production picks one,
-        // so IE should only count one. First-seen wins.
+        // L1 → L2[0] → L3[0] → L4[0] (pre-selected, most common; user can switch later)
+        // Within chosen L4, take 主 L5 steps only, dedupe same (name,grade) duplicates
+        // that exist only because of image/caption variants, sum seconds → minutes.
         const ie = ieByCode[d.code];
         const l2Arr = ie?.[fabricKey] || [];
         const firstL2 = l2Arr[0];
         const firstShape = firstL2?.shapes?.[0];
-        const rawSteps = firstShape?.steps || [];
+        const methods = firstShape?.methods || [];
+        const firstMethod = methods[0];
+        const rawSteps = firstMethod?.steps || [];
         const seen = new Set();
         const stepList = [];
         for (const row of rawSteps) {
-          const [name, , seconds, mainSub] = row;
+          const [name, grade, seconds, mainSub] = row;
           if (mainSub && mainSub !== "主") continue;
-          const base = String(name).split("_")[0];
-          if (seen.has(base)) continue;
-          seen.add(base);
+          const key = `${name}|${grade}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
           const sec = Number(seconds) || 0;
           stepList.push({
             name,
@@ -1066,13 +1066,18 @@ function App() {
           });
         }
         const totalMinutes = stepList.reduce((s, x) => s + x.ie, 0);
+        // Truncate very long L4 label for header
+        const l4Short = firstMethod?.l4
+          ? (firstMethod.l4.length > 40 ? firstMethod.l4.slice(0, 40) + "…" : firstMethod.l4)
+          : null;
 
         return {
           id: i + 1,
           l1,
           l1_code: d.code,
-          l2: firstL2?.l2 ? `${firstL2.l2}${firstShape?.l3 ? " · " + firstShape.l3 : ""}`
-                         : (rec ? `${rec.recommended_iso} ${isoRec?.iso_reference?.[rec.recommended_iso]?.zh || ""}` : "—"),
+          l2: firstL2?.l2
+            ? `${firstL2.l2}${firstShape?.l3 ? " · " + firstShape.l3 : ""}${l4Short ? " · " + l4Short : ""}`
+            : (rec ? `${rec.recommended_iso} ${isoRec?.iso_reference?.[rec.recommended_iso]?.zh || ""}` : "—"),
           source: "ai",
           conf: Number.isFinite(d.confidence) ? d.confidence : null,
           matchCode: null,
