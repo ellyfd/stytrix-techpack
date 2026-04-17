@@ -352,9 +352,10 @@ function L3Line({ l3, editId, setEditId, idx, col }) {
 }
 
 /* ─── Card ─── */
-function Card({ card, isOpen, onToggle, onRemove, col }) {
+function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod }) {
   const [editId, setEditId] = useState(null);
   const [showTip, setShowTip] = useState(false);
+  const [showMethods, setShowMethods] = useState(false);
   useEffect(() => { if (!isOpen) setEditId(null); }, [isOpen]);
   const autoN = card.l3s.filter(l => l.auto).length;
   const adjN = card.l3s.length - autoN;
@@ -445,12 +446,48 @@ function Card({ card, isOpen, onToggle, onRemove, col }) {
             transition: "transform 0.25s", display: "inline-block", marginTop: "2px" }}>▾</div>
         </div>
       </div>
-      <div style={{ maxHeight: isOpen ? "1400px" : "0", overflow: "hidden", transition: "max-height 0.35s ease" }}>
+      <div style={{ maxHeight: isOpen ? "1600px" : "0", overflow: "hidden", transition: "max-height 0.35s ease" }}>
         <div style={{ padding: "0 14px 14px" }}>
+          {card.methodVariants && card.methodVariants.length > 1 && (
+            <div style={{ marginTop: "10px", border: "1px solid #eee", borderRadius: "8px", background: "#fafafa", padding: "8px 10px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
+                <div style={{ fontSize: "11px", color: "#666", fontWeight: 600 }}>
+                  工法變體 · 目前第 {(card.methodIdx ?? 0) + 1} / {card.methodVariants.length}
+                </div>
+                <button onClick={() => setShowMethods(v => !v)}
+                  style={{ fontSize: "11px", color: col, background: "#fff", border: `1px solid ${col}40`, padding: "3px 10px", borderRadius: "5px", cursor: "pointer", fontWeight: 600, fontFamily: "inherit" }}>
+                  {showMethods ? "收合" : "展開切換"} ▾
+                </button>
+              </div>
+              {showMethods && (
+                <div style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "4px" }}>
+                  {card.methodVariants.map((v, idx) => {
+                    const active = idx === (card.methodIdx ?? 0);
+                    return (
+                      <div key={idx} onClick={() => onSwitchMethod && onSwitchMethod(card.id, idx)}
+                        style={{
+                          padding: "6px 10px", borderRadius: "6px", cursor: "pointer",
+                          background: active ? col + "10" : "#fff",
+                          border: active ? `1.5px solid ${col}` : "1px solid #eee",
+                          display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px"
+                        }}>
+                        <span style={{ fontSize: "11px", color: active ? col : "#444", fontWeight: active ? 700 : 500, flex: 1, lineHeight: 1.4 }}>
+                          {v.l4 || "—"}
+                        </span>
+                        <span style={{ fontSize: "11px", color: "#888", fontFamily: "'JetBrains Mono',monospace", flexShrink: 0 }}>
+                          {v.steps.length}工段 · {v.totalSec}秒
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
           <div style={{ fontSize: "11px", color: "#aaa", padding: "8px 0 4px 10px" }}>
             點 <span style={{ display: "inline-flex", width: "20px", height: "20px", borderRadius: "5px", border: "1.5px solid #ddd", alignItems: "center", justifyContent: "center", fontSize: "12px", verticalAlign: "middle" }}>ⓘ</span> 查看替代工法
           </div>
-          {card.l3s.map((l3, i) => <L3Line key={i} l3={l3} editId={editId} setEditId={setEditId} idx={i} col={col} />)}
+          {card.l3s.map((l3, i) => <L3Line key={`${card.methodIdx}-${i}`} l3={l3} editId={editId} setEditId={setEditId} idx={i} col={col} />)}
           <div style={{ display: "flex", justifyContent: "flex-end", padding: "8px 0 0", gap: "8px" }}>
             <span style={{ fontSize: "13px", color: "#aaa" }}>小計</span>
             <span style={{ fontSize: "14px", color: "#1a1a1a", fontWeight: 800, fontFamily: "'JetBrains Mono',monospace" }}>{Math.round(card.ie)}<span style={{ fontSize: "11px", color: "#aaa", marginLeft: "3px", fontWeight: 500 }}>秒</span></span>
@@ -1046,38 +1083,46 @@ function App() {
         const firstL2 = l2Arr[0];
         const firstShape = firstL2?.shapes?.[0];
         const methods = firstShape?.methods || [];
-        const firstMethod = methods[0];
-        const rawSteps = firstMethod?.steps || [];
-        const seen = new Set();
-        const stepList = [];
-        for (const row of rawSteps) {
-          const [name, grade, seconds, mainSub] = row;
-          if (mainSub && mainSub !== "主") continue;
-          const key = `${name}|${grade}`;
-          if (seen.has(key)) continue;
-          seen.add(key);
-          const sec = Number(seconds) || 0;
-          stepList.push({
-            name,
-            ie: sec,
-            auto: rec?.action === "auto_recommend",
-            pick: 0,
-            opts
-          });
-        }
-        const totalSeconds = stepList.reduce((s, x) => s + x.ie, 0);
-        // Truncate very long L4 label for header
-        const l4Short = firstMethod?.l4
-          ? (firstMethod.l4.length > 40 ? firstMethod.l4.slice(0, 40) + "…" : firstMethod.l4)
+        // Pre-compute every L4 variant's step list + total so switching methods
+        // at runtime is a pure lookup — no re-parsing of raw xlsx rows.
+        const buildSteps = (rawSteps) => {
+          const seen = new Set();
+          const list = [];
+          for (const row of rawSteps || []) {
+            const [name, grade, seconds, mainSub] = row;
+            if (mainSub && mainSub !== "主") continue;
+            const key = `${name}|${grade}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            const sec = Number(seconds) || 0;
+            list.push({ name, ie: sec, auto: rec?.action === "auto_recommend", pick: 0, opts });
+          }
+          return list;
+        };
+        const methodVariants = methods.map(m => {
+          const steps = buildSteps(m.steps);
+          const totalSec = steps.reduce((s, x) => s + x.ie, 0);
+          return { l4: m.l4, steps, totalSec: +totalSec.toFixed(0) };
+        });
+        const methodIdx = 0;
+        const current = methodVariants[methodIdx] || { l4: null, steps: [], totalSec: 0 };
+        const stepList = current.steps;
+        const totalSeconds = current.totalSec;
+        const l2Base = firstL2?.l2
+          ? `${firstL2.l2}${firstShape?.l3 ? " · " + firstShape.l3 : ""}`
+          : null;
+        const l4Short = current.l4
+          ? (current.l4.length > 40 ? current.l4.slice(0, 40) + "…" : current.l4)
           : null;
 
         return {
           id: i + 1,
           l1,
           l1_code: d.code,
-          l2: firstL2?.l2
-            ? `${firstL2.l2}${firstShape?.l3 ? " · " + firstShape.l3 : ""}${l4Short ? " · " + l4Short : ""}`
+          l2: l2Base
+            ? `${l2Base}${l4Short ? " · " + l4Short : ""}`
             : (rec ? `${rec.recommended_iso} ${isoRec?.iso_reference?.[rec.recommended_iso]?.zh || ""}` : "—"),
+          l2Base,
           source: "ai",
           conf: Number.isFinite(d.confidence) ? d.confidence : null,
           matchCode: null,
@@ -1087,6 +1132,8 @@ function App() {
           ie: +totalSeconds.toFixed(0),
           action: rec?.action || "user_select",
           isoConfidence: rec?.confidence || null,
+          methodIdx,
+          methodVariants,
           l3s: stepList.length ? stepList : [{
             name: rec ? `ISO ${rec.recommended_iso} (${rec.recommended_iso_pct}% 推薦)` : "尚未推薦",
             ie: 0,
@@ -1410,7 +1457,20 @@ function App() {
                   {vis.map((c, i) => (
                     <Card key={c.id} card={c} col={MC[i]} isOpen={openId === c.id}
                       onToggle={() => toggle(c.id)}
-                      onRemove={id => { setRemoved(p => new Set([...p, id])); if (openId === id) setOpenId(null); }} />
+                      onRemove={id => { setRemoved(p => new Set([...p, id])); if (openId === id) setOpenId(null); }}
+                      onSwitchMethod={(cardId, newIdx) => setCards(cs => cs.map(cc => {
+                        if (cc.id !== cardId) return cc;
+                        const v = cc.methodVariants?.[newIdx];
+                        if (!v) return cc;
+                        const l4Short = v.l4 ? (v.l4.length > 40 ? v.l4.slice(0, 40) + "…" : v.l4) : null;
+                        return {
+                          ...cc,
+                          methodIdx: newIdx,
+                          l3s: v.steps.length ? v.steps : cc.l3s,
+                          ie: v.totalSec,
+                          l2: cc.l2Base ? `${cc.l2Base}${l4Short ? " · " + l4Short : ""}` : cc.l2
+                        };
+                      }))} />
                   ))}
 
                   <div style={{ fontSize: "12px", color: "#888", fontWeight: 600, marginTop: "16px", marginBottom: "6px" }}>{brand} 品牌套組</div>
