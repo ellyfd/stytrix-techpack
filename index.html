@@ -217,6 +217,42 @@ const frmt = (v) => {
   return (neg ? "-" : "") + String(whole);
 };
 
+/* ─── POM 排序：身體部位從上到下、從前到後 ───
+   優先用 bucket.pom_sort_order（若資料有）；否則 fallback 用 code 前綴字母。
+   前綴對應部位：
+   A 帽 → B 領 → C 肩 → D 袖籠/肩帶 → E 袖 → F 胸 → G 育克
+   → H 腰 → I 下擺/側縫 → J 身長 → K 前後浪 → L 臀
+   → M 襠 → N 大腿/膝/小腿/腿口 → O 內長/裙長
+   → Q 繩帶 → R 省/褶 → S 鈕扣 → T 下擺/貼邊 → Z 裝飾
+   → P 口袋（放最後，通常量完其他再標口袋）
+*/
+const POM_PREFIX_ORDER = {
+  A: 1, B: 2, C: 3, D: 4, E: 5, F: 6, G: 7,
+  H: 8, I: 9, J: 10, K: 11, L: 12, M: 13, N: 14, O: 15,
+  Q: 16, R: 17, S: 18, T: 19, Z: 20, P: 21,
+  U: 22, V: 23, W: 24, X: 25, Y: 26,
+};
+const sortPomCodes = (codes, bucketSortOrder) => {
+  if (bucketSortOrder && bucketSortOrder.length) {
+    const idx = {};
+    bucketSortOrder.forEach((c, i) => { idx[c] = i; });
+    return [...codes].sort((a, b) => {
+      const ia = idx[a] !== undefined ? idx[a] : 9999;
+      const ib = idx[b] !== undefined ? idx[b] : 9999;
+      if (ia !== ib) return ia - ib;
+      return a.localeCompare(b);
+    });
+  }
+  return [...codes].sort((a, b) => {
+    const pa = POM_PREFIX_ORDER[a[0]] || 99;
+    const pb = POM_PREFIX_ORDER[b[0]] || 99;
+    if (pa !== pb) return pa - pb;
+    const na = parseInt(a.slice(1), 10) || 0;
+    const nb = parseInt(b.slice(1), 10) || 0;
+    return na - nb;
+  });
+};
+
 /* ─── Sel（v10 enterprise utility） ─── */
 function Sel({ label, value, onChange, options, disabled, badgeMap, labelMap, locked, onToggleLock }) {
   const filled = !!value;
@@ -746,6 +782,68 @@ function TierSection({ tier, count, children }) {
     </div>
   );
 }
+/* ─── BucketPomRow: 從 currentBucket 動態渲染單一 POM ─── */
+function BucketPomRow({ code, tier, measurement, median, grading, pomName, isOpen, onToggle, onToggleInclude, included }) {
+  const tc = TIER[tier];
+  const sizes = median?.size_medians ? Object.keys(median.size_medians) : [];
+  const nameEn = pomName?.en || code;
+  const nameZh = pomName?.zh || "";
+  return (
+    <div style={{
+      background: "#fff", border: `1.5px solid ${isOpen ? tc.c + "40" : "#e8e5e1"}`,
+      borderRadius: "10px", marginBottom: "6px", overflow: "hidden",
+      opacity: included ? 1 : 0.4, transition: "all 0.2s"
+    }}>
+      <div onClick={onToggle} style={{
+        padding: "10px 14px", cursor: "pointer",
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        background: isOpen ? tc.c + "08" : "transparent", transition: "background 0.2s"
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", flex: 1, minWidth: 0 }}>
+          <input type="checkbox" checked={included} onChange={e => { e.stopPropagation(); onToggleInclude(); }}
+            style={{ width: "16px", height: "16px", accentColor: tc.c, cursor: "pointer", flexShrink: 0 }} />
+          <span style={{ fontSize: "13px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: tc.c, width: "42px", flexShrink: 0 }}>{code}</span>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: "14px", fontWeight: 600, color: "#1a1a1a", lineHeight: 1.2 }}>{nameEn}</div>
+            {nameZh && <div style={{ fontSize: "11px", color: "#999", marginTop: "2px" }}>{nameZh}</div>}
+          </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
+          <span style={{ fontSize: "10px", color: tc.c, background: tc.bg, padding: "2px 7px", borderRadius: "5px", fontWeight: 600 }}>{tc.icon} {tc.label}</span>
+          <span style={{ fontSize: "10px", color: "#666", fontFamily: "'JetBrains Mono',monospace" }}>{Math.round((measurement?.rate || 0) * 100)}%</span>
+          <span style={{ fontSize: "15px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: "#1a1a1a" }}>{median?.median_m ? frmt(median.median_m) + '"' : "—"}</span>
+          <div style={{ fontSize: "13px", color: "#ccc", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.25s" }}>▾</div>
+        </div>
+      </div>
+      <div style={{ maxHeight: isOpen ? "700px" : "0", overflow: "hidden", transition: "max-height 0.35s ease" }}>
+        <div style={{ padding: "0 14px 14px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px", padding: "10px 0", borderBottom: "1px solid #f0eeeb" }}>
+            <div><div style={{ fontSize: "10px", color: "#999" }}>Tolerance</div><div style={{ fontSize: "12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{measurement?.tolerance != null ? "±" + frmt(measurement.tolerance) + '"' : "—"}</div></div>
+            <div><div style={{ fontSize: "10px", color: "#999" }}>Grading</div><div style={{ fontSize: "12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{grading?.typical_increment != null ? "+" + frmt(grading.typical_increment) + '"' : "—"}</div></div>
+            <div><div style={{ fontSize: "10px", color: "#999" }}>n (designs)</div><div style={{ fontSize: "12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{median?.n || 0}</div></div>
+          </div>
+          {sizes.length > 0 && (
+            <div style={{ marginTop: "10px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: `72px repeat(${sizes.length}, 1fr)`, gap: "1px" }}>
+                <div style={{ padding: "5px 4px", fontWeight: 600, color: "#999", fontSize: "10px" }}>SIZE</div>
+                {sizes.map(s => (
+                  <div key={s} style={{ padding: "5px 2px", textAlign: "center", fontWeight: 700, color: "#1a1a1a", background: "#faf9f7", borderRadius: "4px", fontSize: "11px", fontFamily: "'JetBrains Mono',monospace" }}>{s}</div>
+                ))}
+                <div style={{ padding: "6px 4px", fontWeight: 600, fontSize: "10px" }}>Median</div>
+                {sizes.map(s => (
+                  <div key={s} style={{ padding: "3px 1px", textAlign: "center" }}>
+                    <div style={{ fontSize: "12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: "#1a1a1a", padding: "3px 1px", borderRadius: "4px", border: "1.5px solid #e8e5e1", background: "#fff" }}>{frmt(median.size_medians[s])}"</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    Main App
    ═══════════════════════════════════════════════════════════════════ */
@@ -874,6 +972,14 @@ function App() {
   const curPoms = sizeRun === "missy" ? MISSY_POMS : PLUS_POMS;
   const allCodes = [...curPoms.must, ...curPoms.recommend, ...curPoms.optional].map(p => p.code);
   const includedCount = allCodes.filter(c => !excluded.has(c)).length;
+  const bucketCodes = currentBucket ? [
+    ...Object.keys(currentBucket.measurement_rules?.must || {}),
+    ...Object.keys(currentBucket.measurement_rules?.recommend || {}),
+    ...Object.keys(currentBucket.measurement_rules?.optional || {}),
+  ] : [];
+  const bucketIncludedCount = bucketCodes.filter(c => !excluded.has(c)).length;
+  const displayPomCount = currentBucket ? bucketCodes.length : allCodes.length;
+  const displayIncludedCount = currentBucket ? bucketIncludedCount : includedCount;
 
   /* Badge = 選這個選項後，下一層 filter 會有幾個選項
      Brand → Fabric          : 2（Knit, Woven）
@@ -1266,7 +1372,7 @@ function App() {
             { key: "construction", label: "作工建議", done: cDone,
               badge: cDone ? `${vis.length} 部位 · ${Math.round(totalIE)} 秒` : null },
             { key: "measurement", label: "尺寸表", done: mDone,
-              badge: mDone ? `${includedCount} POMs` : null },
+              badge: mDone ? `${displayIncludedCount} POMs` : null },
           ].map(t => {
             const active = activeTab === t.key;
             return (
@@ -1528,7 +1634,7 @@ function App() {
                 <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                   <div style={{ textAlign: "right" }}>
                     <div style={{ fontSize: "10px", color: "#999" }}>Included</div>
-                    <div style={{ fontSize: "18px", color: "#065f46", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{includedCount}/{allCodes.length}</div>
+                    <div style={{ fontSize: "18px", color: "#065f46", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{displayIncludedCount}/{displayPomCount}</div>
                   </div>
                   <button onClick={runMeasurement} style={{
                     padding: "8px 14px", background: "#fff", color: "#999",
@@ -1569,7 +1675,55 @@ function App() {
               </div>
             )}
 
-            {mDone && (
+            {mDone && currentBucket && (() => {
+              const mr = currentBucket.measurement_rules || {};
+              const mv = currentBucket.median_values || {};
+              const gr = currentBucket.grading_rules || {};
+              const tierPoms = tier => Object.keys(mr[tier] || {});
+              const totalPoms = tierPoms("must").length + tierPoms("recommend").length + tierPoms("optional").length;
+              const bucketIncluded = Object.keys(mr.must || {}).concat(Object.keys(mr.recommend || {}), Object.keys(mr.optional || {})).filter(c => !excluded.has(c)).length;
+              return (
+                <div style={{ animation: "slideUp 0.3s ease" }}>
+                  <div style={{ background: "#fff", border: "1px solid #eee", borderRadius: "10px", padding: "14px 18px", marginBottom: "12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div>
+                      <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
+                        <span style={{ fontSize: "20px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{bucketIncluded}</span>
+                        <span style={{ fontSize: "12px", color: "#bbb" }}>/ {totalPoms} POMs</span>
+                      </div>
+                      <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
+                        <span style={{ fontSize: "11px", color: "#888" }}>{tierPoms("must").length} 必備 · {tierPoms("recommend").length} 建議 · {tierPoms("optional").length} 選配</span>
+                      </div>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontSize: "11px", color: "#065f46", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{currentBucket.bucket}</div>
+                      <div style={{ fontSize: "10px", color: "#999" }}>n={currentBucket.n} designs · inches (fractions)</div>
+                    </div>
+                  </div>
+                  <div style={{ background: "#ecfdf5", border: "1.5px solid #a7f3d0", borderRadius: "10px", padding: "8px 14px", marginBottom: "10px", display: "flex", justifyContent: "space-between" }}>
+                    <div style={{ fontSize: "11px", color: "#065f46" }}>
+                      <span style={{ fontWeight: 700 }}>Size Range</span>{" · "}{(currentBucket.size_range || []).join(" / ")}
+                    </div>
+                    <div style={{ fontSize: "10px", color: "#065f46", fontFamily: "'JetBrains Mono',monospace" }}>
+                      {currentBucket.department}_{currentBucket.garment_type}|{currentBucket.gender}
+                    </div>
+                  </div>
+                  {["must", "recommend", "optional"].map(tier => tierPoms(tier).length > 0 && (
+                    <TierSection key={tier} tier={tier} count={tierPoms(tier).length}>
+                      {sortPomCodes(tierPoms(tier), currentBucket.pom_sort_order).map(code => (
+                        <BucketPomRow key={code} code={code} tier={tier}
+                          measurement={mr[tier][code]} median={mv[code]} grading={gr[code]}
+                          pomName={pomNames[code]}
+                          isOpen={openPom === code}
+                          onToggle={() => setOpenPom(openPom === code ? null : code)}
+                          included={!excluded.has(code)}
+                          onToggleInclude={() => setExcluded(prev => { const n = new Set(prev); n.has(code) ? n.delete(code) : n.add(code); return n; })} />
+                      ))}
+                    </TierSection>
+                  ))}
+                </div>
+              );
+            })()}
+            {mDone && !currentBucket && (
               <div style={{ animation: "slideUp 0.3s ease" }}>
                 {/* Summary */}
                 <div style={{
