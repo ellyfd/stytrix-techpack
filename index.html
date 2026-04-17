@@ -230,16 +230,27 @@ const TIER = {
   optional:  { label: "選配", bg: "#0369a115", c: "#0369a1", icon: "○" },
 };
 
-/* GT options — 不含 Knit/Woven，由 Step 1 繼承 */
-const GT_OPTIONS = ["TOP","BOTTOM","DRESS","ROMPER_JUMPSUIT","OUTERWEAR","SET","SWIM"];
-
-/* IT_OPTIONS 以 fabric_GT 為 key，依繼承 fabric 決定子層 */
+/* Filter options — 對應 pom_rules 資料結構 */
+const DEPT_OPTIONS = ["RTW","Swimwear","Sleepwear","Fleece","Maternity"];
+const GENDER_OPTIONS = [
+  { value: "MENS",    label: "Men's" },
+  { value: "WOMENS",  label: "Women's" },
+  { value: "BOYS",    label: "Boy" },
+  { value: "GIRLS",   label: "Girl" },
+  { value: "TODDLER", label: "Toddler" },
+];
+const GT_OPTIONS = ["TOP","PANTS","SHORTS","DRESS","SKIRT","BODYSUIT","ROMPER_JUMPSUIT","SET","OUTERWEAR","SWIM_PIECE"];
 const IT_OPTIONS = {
-  Knit_BOTTOM:  ["LEGGINGS","PANTS","SHORTS","JOGGERS","BIKE SHORTS"],
-  Knit_TOP:     ["TEE","TANK","HOODIE","PULLOVER","CARDIGAN"],
-  Woven_BOTTOM: ["PANTS","SHORTS","SKIRT","WIDE LEG"],
-  Woven_TOP:    ["BLOUSE","SHIRT","JACKET"],
-  /* 沒有子層的 GT 不列 */
+  TOP:              ["TEE","TANK","HOODIE","SHIRT","BLOUSE","PULLOVER","CARDIGAN"],
+  PANTS:            ["LEGGINGS","JEANS","JOGGERS","WIDE LEG","STRAIGHT"],
+  SHORTS:           ["BIKE SHORTS","BOARD SHORTS","BOXER","RUNNING"],
+  DRESS:            ["MINI","MIDI","MAXI"],
+  SKIRT:            ["MINI","MIDI","MAXI"],
+  BODYSUIT:         ["SLEEVELESS","SHORT SLEEVE","LONG SLEEVE"],
+  ROMPER_JUMPSUIT:  ["ROMPER","JUMPSUIT"],
+  SET:              ["2-PIECE","3-PIECE"],
+  OUTERWEAR:        ["JACKET","COAT","VEST","HOODIE"],
+  SWIM_PIECE:       ["ONE-PIECE","TWO-PIECE"],
 };
 
 /* ─── Helpers ─── */
@@ -260,7 +271,7 @@ const frmt = (v) => {
 };
 
 /* ─── Sel（v10 enterprise utility） ─── */
-function Sel({ label, value, onChange, options, disabled, badgeMap }) {
+function Sel({ label, value, onChange, options, disabled, badgeMap, labelMap }) {
   const filled = !!value;
   return (
     <div>
@@ -277,7 +288,8 @@ function Sel({ label, value, onChange, options, disabled, badgeMap }) {
         <option value="">—</option>
         {options.map(o => {
           const badge = badgeMap && badgeMap[o];
-          return <option key={o} value={o}>{o}{badge ? ` (${badge})` : ""}</option>;
+          const display = (labelMap && labelMap[o]) || o;
+          return <option key={o} value={o}>{display}{badge ? ` (${badge})` : ""}</option>;
         })}
       </select>
     </div>
@@ -742,6 +754,7 @@ function App() {
   /* ── 共用 filter state ── */
   const [brand, setBrand] = useState("");
   const [fabric, setFabric] = useState("");
+  const [dept, setDept] = useState("");
   const [gender, setGender] = useState("");
   const [gt, setGt] = useState("");
   const [it, setIt] = useState("");
@@ -757,7 +770,28 @@ function App() {
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(data => { setPomRules(data); window.POM_RULES = data; })
       .catch(err => console.error('載入 pom_rules/_index.json 失敗:', err));
+    fetch('./pom_rules/pom_names.json')
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(data => { setPomNames(data); window.POM_NAMES = data; })
+      .catch(err => console.error('載入 pom_rules/pom_names.json 失敗:', err));
   }, []);
+  const [pomNames, setPomNames] = useState({});
+  const [currentBucket, setCurrentBucket] = useState(null);
+  const [bucketLoading, setBucketLoading] = useState(false);
+  const bucketKey = (dept && gt && gender) ? `${dept}_${gt}|${gender}` : null;
+  const bucketMeta = useMemo(() => {
+    if (!bucketKey || !pomRules) return null;
+    return pomRules.buckets.find(b => b.bucket === bucketKey) || null;
+  }, [bucketKey, pomRules]);
+  useEffect(() => {
+    if (!bucketMeta) { setCurrentBucket(null); return; }
+    setBucketLoading(true);
+    fetch(`./pom_rules/${bucketMeta.file}`)
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(data => { setCurrentBucket(data); window.CURRENT_BUCKET = data; })
+      .catch(err => { console.error('載入 bucket 失敗:', err); setCurrentBucket(null); })
+      .finally(() => setBucketLoading(false));
+  }, [bucketMeta]);
   const handleSketchUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -793,8 +827,8 @@ function App() {
   const [excluded, setExcluded] = useState(new Set());
 
   /* ── Derived ── */
-  const canAnalyze = brand && fabric && gender && gt && it && sketchSrc;
-  const canGenerateSpec = brand && fabric && gender && gt && it; // 尺寸表不需要 sketch
+  const canAnalyze = brand && fabric && dept && gender && gt && it && sketchSrc;
+  const canGenerateSpec = brand && fabric && dept && gender && gt && it; // 尺寸表不需要 sketch
   const cDone = cStep >= 2;
   const mDone = mStep >= 2;
 
@@ -811,20 +845,47 @@ function App() {
   const allCodes = [...curPoms.must, ...curPoms.recommend, ...curPoms.optional].map(p => p.code);
   const includedCount = allCodes.filter(c => !excluded.has(c)).length;
 
-  const gtBadgeMap = useMemo(() => {
+  /* 依 _index.json 統計每個 Department / Gender / GT 有幾個可用 bucket（只算有 must POM 的） */
+  const deptBadgeMap = useMemo(() => {
+    if (!pomRules) return {};
     const map = {};
-    if (!fabric) return map;
-    GT_OPTIONS.forEach(g => {
-      const key = `${fabric}_${g}`;
-      if (IT_OPTIONS[key]) map[g] = IT_OPTIONS[key].length;
+    pomRules.buckets.forEach(b => {
+      if (b.gender === "UNKNOWN" || b.garment_type === "UNKNOWN") return;
+      if (gender && b.gender !== gender) return;
+      if (gt && b.garment_type !== gt) return;
+      map[b.department] = (map[b.department] || 0) + 1;
     });
     return map;
-  }, [fabric]);
+  }, [pomRules, gender, gt]);
+
+  const genderBadgeMap = useMemo(() => {
+    if (!pomRules) return {};
+    const map = {};
+    pomRules.buckets.forEach(b => {
+      if (b.gender === "UNKNOWN" || b.garment_type === "UNKNOWN") return;
+      if (dept && b.department !== dept) return;
+      if (gt && b.garment_type !== gt) return;
+      map[b.gender] = (map[b.gender] || 0) + 1;
+    });
+    return map;
+  }, [pomRules, dept, gt]);
+
+  const gtBadgeMap = useMemo(() => {
+    if (!pomRules) return {};
+    const map = {};
+    pomRules.buckets.forEach(b => {
+      if (b.gender === "UNKNOWN" || b.garment_type === "UNKNOWN") return;
+      if (dept && b.department !== dept) return;
+      if (gender && b.gender !== gender) return;
+      map[b.garment_type] = (map[b.garment_type] || 0) + 1;
+    });
+    return map;
+  }, [pomRules, dept, gender]);
 
   const curItOptions = useMemo(() => {
-    if (!gt || !fabric) return [];
-    return IT_OPTIONS[`${fabric}_${gt}`] || [];
-  }, [fabric, gt]);
+    if (!gt) return [];
+    return IT_OPTIONS[gt] || [];
+  }, [gt]);
 
   const ptCount = useMemo(() => {
     let p = 0, t = 0;
@@ -886,9 +947,15 @@ function App() {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           {pomRules && (
-            <span title={`v${pomRules._meta?.version} · ${Object.keys(pomRules.measurement_rules || {}).length} buckets`}
+            <span title={`v${pomRules._meta?.version} · ${pomRules.buckets?.length} buckets`}
               style={{ fontSize: "10px", color: "#065f46", background: "#ecfdf5", padding: "2px 8px", borderRadius: "4px", fontWeight: 600 }}>
-              📊 POM 規則已載入
+              📊 {pomRules.buckets?.length} buckets 已載入
+            </span>
+          )}
+          {bucketKey && (
+            <span title={bucketKey}
+              style={{ fontSize: "10px", color: currentBucket ? "#065f46" : "#b45309", background: currentBucket ? "#ecfdf5" : "#fef3c7", padding: "2px 8px", borderRadius: "4px", fontWeight: 600 }}>
+              {bucketLoading ? "⏳ 載入中..." : currentBucket ? `✓ ${bucketKey} (n=${currentBucket.n})` : `⚠ ${bucketKey} 無資料`}
             </span>
           )}
         </div>
@@ -896,14 +963,18 @@ function App() {
 
       <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "24px 28px" }}>
         {/* ─── Filter (v10: flush underline selects) ─── */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "24px", marginBottom: "28px", paddingBottom: "24px", borderBottom: "1px solid #eee" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "20px", marginBottom: "28px", paddingBottom: "24px", borderBottom: "1px solid #eee" }}>
           <Sel label="Brand" value={brand} onChange={setBrand}
             options={BRANDS.map(b => b.code)} />
           <Sel label="Fabric" value={fabric}
             onChange={v => { setFabric(v); setIt(""); }}
             options={["Woven", "Knit"]} />
+          <Sel label="Department" value={dept} onChange={setDept}
+            options={DEPT_OPTIONS} badgeMap={deptBadgeMap} />
           <Sel label="Gender" value={gender} onChange={setGender}
-            options={["Men's", "Women's", "Boy", "Girl", "Baby"]} />
+            options={GENDER_OPTIONS.map(g => g.value)}
+            labelMap={Object.fromEntries(GENDER_OPTIONS.map(g => [g.value, g.label]))}
+            badgeMap={genderBadgeMap} />
           <Sel label="Garment Type" value={gt}
             onChange={v => { setGt(v); setIt(""); }}
             options={GT_OPTIONS} badgeMap={gtBadgeMap} />
@@ -1023,7 +1094,7 @@ function App() {
                       </div>}
                     </div>
                     {cDone && <div style={{ padding: "10px 16px", borderTop: "1px solid #f0f0f0", display: "flex", gap: "5px", flexWrap: "wrap" }}>
-                      {[brand, fabric, gender, gt, it].filter(Boolean).map((v, i) => (
+                      {[brand, fabric, dept, gender, gt, it].filter(Boolean).map((v, i) => (
                         <span key={v} style={{ fontSize: "11px", padding: "2px 8px", background: i === 0 ? "#1a1a1a" : "#f5f5f5", borderRadius: "4px", color: i === 0 ? "#fff" : "#777", fontWeight: i === 0 ? 600 : 400 }}>{v}</span>
                       ))}
                     </div>}
