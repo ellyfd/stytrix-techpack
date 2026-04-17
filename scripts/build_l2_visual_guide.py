@@ -100,6 +100,9 @@ for i, m in enumerate(sections):
     }
 
 # Join with l2_l3_ie/*.json row counts (historical frequency proxy)
+# AND backfill missing L2s from xlsx L2 names when the markdown table
+# was narrative-only for that L1 (per user Q1 answer: "(b) 從 l2_l3_ie
+# 的 xlsx L2 名字反向建表、feature 暫留空").
 for l1_code, info in l1_data.items():
     path = f'l2_l3_ie/{l1_code}.json'
     if not os.path.exists(path): continue
@@ -114,10 +117,34 @@ for l1_code, info in l1_data.items():
                 for method in sh.get('methods', []):
                     total += len(method.get('steps', []))
             freq[name] = freq.get(name, 0) + total
-    # Attach freq to L2 entries by matching on name. Many xlsx L2 names
-    # won't literally match the 報告's L2 naming — that's fine, we'll
-    # surface the freq map at L1 level so the UI can still sort.
     info['freq_by_l2_name'] = freq
+
+    # Map existing markdown-derived entries by name for overlap detection.
+    existing_names = {v['name']: k for k, v in info['l2'].items()}
+
+    # Backfill: any xlsx L2 name without a matching report entry becomes
+    # an 'unknown'-tier stub keyed by the xlsx name itself. UI / AI
+    # prompt still see it, just without an explicit visual feature —
+    # user can fill the feature text in later.
+    for xlsx_name, f in sorted(freq.items(), key=lambda kv: -kv[1]):
+        if xlsx_name in existing_names: continue
+        # Use xlsx name as both key and display name; skip ** catch-all buckets.
+        if xlsx_name.startswith('**'): continue
+        info['l2'][xlsx_name] = {
+            "name": xlsx_name,
+            "feature": "",
+            "tier": "unknown",
+            "vs": None,
+            "freq": f,
+            "source": "xlsx_backfill"
+        }
+
+    # Also attach freq to existing markdown-derived entries when we can match
+    # the name (soft match — markdown names often don't match xlsx names literally).
+    for l2_code, entry in info['l2'].items():
+        if 'freq' in entry: continue
+        entry['freq'] = freq.get(entry['name'], 0)
+        entry['source'] = entry.get('source', 'markdown')
 
 # Rebuild SL section's missing 015 note explicitly
 # (The report says SL has 15 L2 but the table skips 015 and includes 016.)
