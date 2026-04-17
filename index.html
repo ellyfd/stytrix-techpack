@@ -2079,12 +2079,27 @@ function App() {
               const canProceed = gradingCodes.length > 0 && invalidOverrides.length === 0;
 
               return (
-                <div style={{ animation: "slideUp 0.3s ease" }}>
-                  {/* Step indicator */}
+                <div style={{ animation: "slideUp 0.3s ease", paddingBottom: "76px" }}>
+                  {/* Step indicator — 可點擊跳步 */}
                   <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px", fontSize: "11px" }}>
-                    <span style={{ padding: "4px 10px", borderRadius: "6px", background: mView === "confirm" ? "#1a1a1a" : "#f5f5f5", color: mView === "confirm" ? "#fff" : "#999", fontWeight: 600 }}>1 · 基碼 / POM 確認</span>
+                    <button onClick={() => setMView("confirm")}
+                      style={{
+                        padding: "4px 10px", borderRadius: "6px", border: "none", cursor: "pointer",
+                        background: mView === "confirm" ? "#1a1a1a" : "#f5f5f5",
+                        color: mView === "confirm" ? "#fff" : "#666",
+                        fontWeight: 600, fontSize: "11px", fontFamily: "inherit",
+                      }}>1 · 基碼 / POM 確認</button>
                     <span style={{ color: "#ccc" }}>→</span>
-                    <span style={{ padding: "4px 10px", borderRadius: "6px", background: mView === "grading" ? "#1a1a1a" : "#f5f5f5", color: mView === "grading" ? "#fff" : "#999", fontWeight: 600 }}>2 · 全碼</span>
+                    <button onClick={() => canProceed && setMView("grading")}
+                      disabled={!canProceed}
+                      title={canProceed ? "" : "請先完成基碼確認"}
+                      style={{
+                        padding: "4px 10px", borderRadius: "6px", border: "none",
+                        cursor: canProceed ? "pointer" : "not-allowed",
+                        background: mView === "grading" ? "#1a1a1a" : "#f5f5f5",
+                        color: mView === "grading" ? "#fff" : (canProceed ? "#666" : "#ccc"),
+                        fontWeight: 600, fontSize: "11px", fontFamily: "inherit",
+                      }}>2 · 全碼</button>
                   </div>
 
                   {/* Summary bar */}
@@ -2192,36 +2207,11 @@ function App() {
                         </tbody>
                       </table>
                     </div>
-
-                    {/* Bottom action bar */}
-                    <div style={{
-                      background: "#fff", border: "1px solid #eee", borderRadius: "10px",
-                      padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", marginBottom: "20px"
-                    }}>
-                      <div style={{ fontSize: "11px", color: invalidOverrides.length ? "#dc2626" : "#888" }}>
-                        {invalidOverrides.length
-                          ? `有 ${invalidOverrides.length} 筆尺寸格式不正確（例：16、16 1/2、1/8）`
-                          : `已勾選 ${bucketIncluded} / ${totalPoms} 個 POM，${Object.keys(baseOverrides).filter(c => baseOverrides[c] !== "").length} 筆尺寸已調整`}
-                      </div>
-                      <button onClick={() => setMView("grading")} disabled={!canProceed} style={{
-                        padding: "10px 22px", border: "none", borderRadius: "8px",
-                        background: canProceed ? "#1a1a1a" : "#eee", color: canProceed ? "#fff" : "#bbb",
-                        fontSize: "13px", fontWeight: 600, cursor: canProceed ? "pointer" : "not-allowed",
-                        fontFamily: "inherit",
-                      }}>下一頁 · 全碼 →</button>
-                    </div>
                   </>)}
 
                   {mView === "grading" && (<>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-                      <div style={{ fontSize: "13px", fontWeight: 700, color: "#1a1a1a" }}>
-                        全碼 <span style={{ fontSize: "11px", color: "#999", fontWeight: 400 }}>各 size 中位數 + 跳碼 · {sizes.length} sizes · {gradingCodes.length} POM</span>
-                      </div>
-                      <button onClick={() => setMView("confirm")} style={{
-                        padding: "7px 14px", border: "1px solid #e8e5e1", borderRadius: "7px",
-                        background: "#fff", color: "#666", fontSize: "11px", fontWeight: 600,
-                        cursor: "pointer", fontFamily: "inherit",
-                      }}>← 回基碼確認</button>
+                    <div style={{ fontSize: "13px", fontWeight: 700, color: "#1a1a1a", marginTop: "4px", marginBottom: "8px" }}>
+                      全碼 <span style={{ fontSize: "11px", color: "#999", fontWeight: 400 }}>各 size 中位數 + 跳碼 · {sizes.length} sizes · {gradingCodes.length} POM</span>
                     </div>
 
                     {gradingCodes.length === 0 ? (
@@ -2274,6 +2264,48 @@ function App() {
                       </div>
                     )}
                   </>)}
+
+                  {/* 共用 sticky 底部動作列 — 左返回 / 右前進，兩頁一致 */}
+                  <div style={{
+                    position: "sticky", bottom: 0, zIndex: 10,
+                    marginTop: "16px",
+                    background: "#fff", border: "1px solid #eee", borderRadius: "10px",
+                    padding: "10px 14px",
+                    display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px",
+                    boxShadow: "0 -2px 12px rgba(0,0,0,0.04)",
+                  }}>
+                    {/* 左側：上一步 / 佔位 */}
+                    <div style={{ minWidth: "120px" }}>
+                      {mView === "grading" ? (
+                        <button onClick={() => setMView("confirm")} style={{
+                          padding: "9px 16px", border: "1px solid #e8e5e1", borderRadius: "8px",
+                          background: "#fff", color: "#666", fontSize: "12px", fontWeight: 600,
+                          cursor: "pointer", fontFamily: "inherit",
+                        }}>← 上一頁 · 基碼調整</button>
+                      ) : <span />}
+                    </div>
+
+                    {/* 中間：狀態訊息 */}
+                    <div style={{ fontSize: "11px", color: invalidOverrides.length ? "#dc2626" : "#888", textAlign: "center", flex: 1 }}>
+                      {mView === "confirm"
+                        ? (invalidOverrides.length
+                            ? `有 ${invalidOverrides.length} 筆尺寸格式不正確（例：16、16 1/2、1/8）`
+                            : `已勾選 ${bucketIncluded} / ${totalPoms} · ${Object.keys(baseOverrides).filter(c => baseOverrides[c] !== "").length} 筆尺寸已調整`)
+                        : `${gradingCodes.length} POM · ${sizes.length} sizes`}
+                    </div>
+
+                    {/* 右側：下一步 / 完成佔位 */}
+                    <div style={{ minWidth: "120px", textAlign: "right" }}>
+                      {mView === "confirm" ? (
+                        <button onClick={() => setMView("grading")} disabled={!canProceed} style={{
+                          padding: "10px 20px", border: "none", borderRadius: "8px",
+                          background: canProceed ? "#1a1a1a" : "#eee", color: canProceed ? "#fff" : "#bbb",
+                          fontSize: "13px", fontWeight: 600, cursor: canProceed ? "pointer" : "not-allowed",
+                          fontFamily: "inherit",
+                        }}>下一頁 · 全碼 →</button>
+                      ) : <span />}
+                    </div>
+                  </div>
                 </div>
               );
             })()}
