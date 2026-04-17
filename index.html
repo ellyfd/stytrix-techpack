@@ -751,6 +751,13 @@ function App() {
 
   /* ── Sketch 上傳 ── */
   const [sketchSrc, setSketchSrc] = useState(null);
+  const [pomRules, setPomRules] = useState(null);
+  useEffect(() => {
+    fetch('./pom_rules.json')
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(data => { setPomRules(data); window.POM_RULES = data; })
+      .catch(err => console.error('載入 pom_rules.json 失敗:', err));
+  }, []);
   const handleSketchUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -880,7 +887,15 @@ function App() {
           <span style={{ width: "1px", height: "14px", background: "#ddd" }} />
           <span style={{ fontSize: "12px", color: "#999", fontWeight: 500 }}>Techpack</span>
         </div>
-        {sketchSrc && <span style={{ fontSize: "11px", color: "#aaa", fontFamily: "'JetBrains Mono',monospace" }}>{designNo}</span>}
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          {pomRules && (
+            <span title={`v${pomRules._meta?.version} · ${Object.keys(pomRules.measurement_rules || {}).length} buckets`}
+              style={{ fontSize: "10px", color: "#065f46", background: "#ecfdf5", padding: "2px 8px", borderRadius: "4px", fontWeight: 600 }}>
+              📊 POM 規則已載入
+            </span>
+          )}
+          {sketchSrc && <span style={{ fontSize: "11px", color: "#aaa", fontFamily: "'JetBrains Mono',monospace" }}>{designNo}</span>}
+        </div>
       </div>
 
       <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "24px 28px" }}>
