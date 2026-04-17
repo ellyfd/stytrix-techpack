@@ -900,6 +900,14 @@ function App() {
   const curPoms = sizeRun === "missy" ? MISSY_POMS : PLUS_POMS;
   const allCodes = [...curPoms.must, ...curPoms.recommend, ...curPoms.optional].map(p => p.code);
   const includedCount = allCodes.filter(c => !excluded.has(c)).length;
+  const bucketCodes = currentBucket ? [
+    ...Object.keys(currentBucket.measurement_rules?.must || {}),
+    ...Object.keys(currentBucket.measurement_rules?.recommend || {}),
+    ...Object.keys(currentBucket.measurement_rules?.optional || {}),
+  ] : [];
+  const bucketIncludedCount = bucketCodes.filter(c => !excluded.has(c)).length;
+  const displayPomCount = currentBucket ? bucketCodes.length : allCodes.length;
+  const displayIncludedCount = currentBucket ? bucketIncludedCount : includedCount;
 
   /* Badge = 選這個選項後，下一層 filter 會有幾個選項
      Brand → Fabric          : 2（Knit, Woven）
@@ -1218,7 +1226,7 @@ function App() {
             { key: "construction", label: "作工建議", done: cDone,
               badge: cDone ? `${vis.length} 部位 · IE ${totalIE.toFixed(3)}` : null },
             { key: "measurement", label: "尺寸表", done: mDone,
-              badge: mDone ? `${includedCount} POMs` : null },
+              badge: mDone ? `${displayIncludedCount} POMs` : null },
           ].map(t => {
             const active = activeTab === t.key;
             return (
@@ -1467,7 +1475,7 @@ function App() {
                 <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                   <div style={{ textAlign: "right" }}>
                     <div style={{ fontSize: "10px", color: "#999" }}>Included</div>
-                    <div style={{ fontSize: "18px", color: "#065f46", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{includedCount}/{allCodes.length}</div>
+                    <div style={{ fontSize: "18px", color: "#065f46", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{displayIncludedCount}/{displayPomCount}</div>
                   </div>
                   <button onClick={runMeasurement} style={{
                     padding: "8px 14px", background: "#fff", color: "#999",
