@@ -1930,32 +1930,67 @@ function App() {
                     展開卡片後點 ⓘ 可改工法
                   </div>
 
-                  {vis.map((c, i) => (
-                    <Card key={c.id} card={c} col={MC[i]} isOpen={openId === c.id}
-                      onToggle={() => toggle(c.id)}
-                      onRemove={id => { setRemoved(p => new Set([...p, id])); if (openId === id) setOpenId(null); }}
-                      onSwitchMethod={(cardId, newIdx) => setCards(cs => cs.map(cc => {
-                        if (cc.id !== cardId) return cc;
-                        const v = cc.methodVariants?.[newIdx];
-                        if (!v) return cc;
-                        const l4Short = v.l4 ? (v.l4.length > 40 ? v.l4.slice(0, 40) + "…" : v.l4) : null;
-                        return {
-                          ...cc,
-                          methodIdx: newIdx,
-                          l3s: v.steps.length ? v.steps : cc.l3s,
-                          ie: v.totalSec,
-                          l2: cc.l2Base ? `${cc.l2Base}${l4Short ? " · " + l4Short : ""}` : cc.l2
-                        };
-                      }))}
-                      onSwitchL2={(cardId, newL2Idx) => {
-                        const cc = cards.find(x => x.id === cardId);
-                        if (cc) rebuildCardFromL2(cc, newL2Idx, null, fabric, setCards);
-                      }}
-                      onSwitchL3={(cardId, newL3Idx) => {
-                        const cc = cards.find(x => x.id === cardId);
-                        if (cc) rebuildCardFromL2(cc, cc.l2Idx ?? 0, newL3Idx, fabric, setCards);
-                      }} />
-                  ))}
+                  {(() => {
+                    const TIER_META = {
+                      essential:  { label: "必備",   hint: "歷史 ≥80%" },
+                      common:     { label: "常見",   hint: "50–79%" },
+                      occasional: { label: "偶見",   hint: "20–49%" },
+                      rare:       { label: "少見",   hint: "<20%" },
+                      other:      { label: "其他",   hint: "AI 偵測無歷史資料" },
+                    };
+                    const TIER_ORDER = ["essential", "common", "occasional", "rare", "other"];
+                    const visWithIdx = vis.map((c, i) => ({ c, i }));
+                    const groups = Object.fromEntries(
+                      TIER_ORDER.map(t => [t, visWithIdx
+                        .filter(x => (x.c.presenceTier || "other") === t)
+                        .sort((a, b) => (b.c.presencePct ?? 0) - (a.c.presencePct ?? 0))])
+                    );
+                    const activeTiers = TIER_ORDER.filter(t => groups[t].length > 0);
+                    const showHeaders = activeTiers.length > 1;
+                    const renderCard = ({ c, i }) => (
+                      <Card key={c.id} card={c} col={MC[i]} isOpen={openId === c.id}
+                        onToggle={() => toggle(c.id)}
+                        onRemove={id => { setRemoved(p => new Set([...p, id])); if (openId === id) setOpenId(null); }}
+                        onSwitchMethod={(cardId, newIdx) => setCards(cs => cs.map(cc => {
+                          if (cc.id !== cardId) return cc;
+                          const v = cc.methodVariants?.[newIdx];
+                          if (!v) return cc;
+                          const l4Short = v.l4 ? (v.l4.length > 40 ? v.l4.slice(0, 40) + "…" : v.l4) : null;
+                          return {
+                            ...cc,
+                            methodIdx: newIdx,
+                            l3s: v.steps.length ? v.steps : cc.l3s,
+                            ie: v.totalSec,
+                            l2: cc.l2Base ? `${cc.l2Base}${l4Short ? " · " + l4Short : ""}` : cc.l2
+                          };
+                        }))}
+                        onSwitchL2={(cardId, newL2Idx) => {
+                          const cc = cards.find(x => x.id === cardId);
+                          if (cc) rebuildCardFromL2(cc, newL2Idx, null, fabric, setCards);
+                        }}
+                        onSwitchL3={(cardId, newL3Idx) => {
+                          const cc = cards.find(x => x.id === cardId);
+                          if (cc) rebuildCardFromL2(cc, cc.l2Idx ?? 0, newL3Idx, fabric, setCards);
+                        }} />
+                    );
+                    if (!showHeaders) return vis.map((c, i) => renderCard({ c, i }));
+                    return activeTiers.map(t => (
+                      <React.Fragment key={t}>
+                        <div style={{
+                          fontSize: "11px", fontWeight: 700, color: "#888",
+                          letterSpacing: "0.05em", textTransform: "uppercase",
+                          marginTop: "14px", marginBottom: "6px",
+                          display: "flex", alignItems: "baseline", gap: "8px",
+                        }}>
+                          <span>{TIER_META[t].label}</span>
+                          <span style={{ fontSize: "10px", color: "#bbb", fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>
+                            {TIER_META[t].hint} · {groups[t].length}
+                          </span>
+                        </div>
+                        {groups[t].map(renderCard)}
+                      </React.Fragment>
+                    ));
+                  })()}
 
                   <div style={{ fontSize: "12px", color: "#888", fontWeight: 600, marginTop: "16px", marginBottom: "6px" }}>{brand} 品牌套組</div>
                   <div style={{
