@@ -2126,7 +2126,7 @@ function App() {
                             <th style={{ padding: isMobile ? "6px 6px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999" }}>Name</th>
                             {!isMobile && <th style={{ padding: "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", width: "60px" }}>Tier</th>}
                             {!isMobile && <th style={{ padding: "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#999", width: "50px" }}>Rate</th>}
-                            {!isMobile && <th style={{ padding: "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#999", width: "80px" }}>Tolerance</th>}
+                            <th style={{ padding: isMobile ? "6px 6px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#7e22ce", width: isMobile ? "56px" : "80px" }}>公差</th>
                             <th style={{ padding: isMobile ? "6px 6px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#065f46", width: isMobile ? "92px" : "110px" }}>Base (M)</th>
                           </tr>
                         </thead>
@@ -2138,8 +2138,8 @@ function App() {
                             const collapsed = collapsedTiers.has(tier);
                             const selectedCount = codes.filter(c => !excluded.has(c)).length;
                             const allOn = selectedCount === codes.length;
-                            // mobile: 3 data cols before the full-selection button cell; desktop: 6
-                            const headerColSpan = isMobile ? 3 : 6;
+                            // mobile: ✓/POM/Name/Tol = 4 data cols before the select-all button cell; desktop: 6
+                            const headerColSpan = isMobile ? 4 : 6;
                             return (
                               <React.Fragment key={tier}>
                                 <tr style={{ background: tc.bg, cursor: "pointer" }}>
@@ -2178,7 +2178,7 @@ function App() {
                                         {isMobile && (
                                           <div style={{ display: "flex", gap: "6px", alignItems: "center", marginTop: "2px" }}>
                                             <span style={{ fontSize: "9px", color: tc.c, background: tc.bg, padding: "1px 5px", borderRadius: "3px", fontWeight: 600 }}>{tc.icon} {tc.label}</span>
-                                            <span style={{ fontSize: "9px", color: "#666", fontFamily: "'JetBrains Mono',monospace" }}>{Math.round((m?.rate || 0) * 100)}% · {tolStr(m)}</span>
+                                            <span style={{ fontSize: "9px", color: "#888", fontFamily: "'JetBrains Mono',monospace" }}>{Math.round((m?.rate || 0) * 100)}%</span>
                                           </div>
                                         )}
                                       </td>
@@ -2188,7 +2188,7 @@ function App() {
                                         </td>
                                       )}
                                       {!isMobile && <td style={{ padding: "6px 10px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", color: "#666" }}>{Math.round((m?.rate || 0) * 100)}%</td>}
-                                      {!isMobile && <td style={{ padding: "6px 10px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", color: "#7e22ce", fontWeight: 600 }}>{tolStr(m)}</td>}
+                                      <td style={{ padding: isMobile ? "5px 6px" : "6px 10px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", color: "#7e22ce", fontWeight: 600, fontSize: isMobile ? "10px" : "inherit" }}>{tolStr(m)}</td>
                                       <td style={{ padding: isMobile ? "4px 6px" : "4px 10px", textAlign: "right", background: "#ecfdf5" }}>
                                         <input type="text" value={displayVal}
                                           onChange={(e) => setBaseOverrides(prev => ({ ...prev, [code]: e.target.value }))}
@@ -2424,6 +2424,12 @@ function App() {
               const gradingCodes = allCodesFlat.filter(c => !excluded.has(c));
               const sizes = currentBucket.size_range || [];
               const tierOf = code => mr.must?.[code] ? "must" : mr.recommend?.[code] ? "recommend" : "optional";
+              const tolStr = m => {
+                const t = m?.tolerance;
+                if (!t) return "—";
+                if (typeof t === "object") return "±" + (t.display || frmt(t.standard)) + '"';
+                return "±" + frmt(t) + '"';
+              };
               const effectiveBaseM = code => {
                 const ov = baseOverrides[code];
                 if (ov != null && ov !== "") {
@@ -2461,7 +2467,7 @@ function App() {
                   </div>
 
                   <div style={{ fontSize: "13px", fontWeight: 700, color: "#1a1a1a", marginTop: "4px", marginBottom: "8px" }}>
-                    全碼 <span style={{ fontSize: "11px", color: "#999", fontWeight: 400 }}>各 size 中位數 + 跳碼（依 Base M 推導）</span>
+                    全碼 <span style={{ fontSize: "11px", color: "#999", fontWeight: 400 }}>各 size 中位數 + 公差 + 跳碼（size 與 size 間的遞增量）</span>
                   </div>
 
                   {gradingCodes.length === 0 ? (
@@ -2475,7 +2481,8 @@ function App() {
                           <tr style={{ background: "#faf9f7", borderBottom: "1.5px solid #e8e5e1" }}>
                             <th style={{ padding: "8px 8px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", position: "sticky", left: 0, background: "#faf9f7", width: isMobile ? "50px" : "60px" }}>POM</th>
                             {!isMobile && <th style={{ padding: "8px 8px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", minWidth: "120px" }}>Name</th>}
-                            <th style={{ padding: "8px 8px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#b45309", width: isMobile ? "56px" : "70px" }}>Grading</th>
+                            <th style={{ padding: "8px 8px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#7e22ce", width: isMobile ? "52px" : "70px" }}>公差</th>
+                            <th style={{ padding: "8px 8px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#b45309", width: isMobile ? "52px" : "70px" }}>跳碼<div style={{ fontSize: "8px", fontWeight: 400, color: "#b45309" }}>Grading</div></th>
                             {sizes.map(s => (
                               <th key={s} style={{ padding: "8px 6px", textAlign: "center", fontWeight: 700, fontSize: "10px", color: s === "M" ? "#065f46" : "#666", fontFamily: "'JetBrains Mono',monospace", background: s === "M" ? "#ecfdf5" : "transparent", minWidth: isMobile ? "42px" : "48px" }}>{s}{s === "M" && <div style={{ fontSize: "7px", color: "#065f46" }}>BASE</div>}</th>
                             ))}
@@ -2486,6 +2493,7 @@ function App() {
                             const tier = tierOf(code);
                             const tc = TIER[tier];
                             const grRow = gr[code];
+                            const m = mr[tier]?.[code];
                             const pn = pomNames[code] || {};
                             const edited = baseOverrides[code] != null && baseOverrides[code] !== "" && parseInch(baseOverrides[code]) != null;
                             return (
@@ -2493,6 +2501,7 @@ function App() {
                                 <td style={{ padding: "5px 8px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: tc.c, position: "sticky", left: 0, background: "#fff" }}>
                                   {code}
                                   {isMobile && pn.en && <div style={{ fontSize: "9px", fontWeight: 500, color: "#888" }}>{pn.en}</div>}
+                                  {isMobile && edited && <div style={{ fontSize: "8px", color: "#7e22ce", fontWeight: 600 }}>已調整</div>}
                                 </td>
                                 {!isMobile && (
                                   <td style={{ padding: "5px 8px", fontSize: "11px", color: "#1a1a1a" }}>
@@ -2500,6 +2509,9 @@ function App() {
                                     {edited && <span style={{ marginLeft: "6px", fontSize: "9px", color: "#7e22ce", background: "#f5f3ff", padding: "1px 5px", borderRadius: "3px", fontWeight: 600 }}>已調整</span>}
                                   </td>
                                 )}
+                                <td style={{ padding: "5px 8px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", color: "#7e22ce", fontWeight: 600 }}>
+                                  {tolStr(m)}
+                                </td>
                                 <td style={{ padding: "5px 8px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", color: "#b45309", fontWeight: 600 }}>
                                   {grRow?.typical_increment != null ? (grRow.typical_increment >= 0 ? "+" : "") + frmt(grRow.typical_increment) + '"' : "—"}
                                 </td>
