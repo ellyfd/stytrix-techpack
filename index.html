@@ -1627,20 +1627,6 @@ function App() {
           <span style={{ width: "1px", height: "14px", background: "#ddd" }} />
           <span style={{ fontSize: "12px", color: "#999", fontWeight: 500 }}>Techpack</span>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          {pomRules && (
-            <span title={`v${pomRules._meta?.version} · ${pomRules.buckets?.length} buckets`}
-              style={{ fontSize: "10px", color: "#065f46", background: "#ecfdf5", padding: "2px 8px", borderRadius: "4px", fontWeight: 600 }}>
-              📊 {pomRules.buckets?.length} buckets 已載入
-            </span>
-          )}
-          {bucketKey && (
-            <span title={bucketKey}
-              style={{ fontSize: "10px", color: currentBucket ? "#065f46" : "#b45309", background: currentBucket ? "#ecfdf5" : "#fef3c7", padding: "2px 8px", borderRadius: "4px", fontWeight: 600 }}>
-              {bucketLoading ? "⏳ 載入中..." : currentBucket ? `✓ ${bucketKey} (n=${currentBucket.n})` : `⚠ ${bucketKey} 無資料`}
-            </span>
-          )}
-        </div>
       </div>
 
       <div style={{ maxWidth: "1280px", margin: "0 auto", padding: isMobile ? "14px 14px" : "24px 28px" }}>
