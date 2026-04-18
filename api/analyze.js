@@ -177,7 +177,8 @@ async function callClaude(apiKey, mediaType, b64, prompt, maxTokens = 2000) {
     headers: {
       "content-type": "application/json",
       "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01"
+      "anthropic-version": "2023-06-01",
+      "anthropic-beta": "prompt-caching-2024-07-31"
     },
     body: JSON.stringify({
       model: "claude-opus-4-7",
@@ -185,7 +186,11 @@ async function callClaude(apiKey, mediaType, b64, prompt, maxTokens = 2000) {
       messages: [{
         role: "user",
         content: [
-          { type: "image", source: { type: "base64", media_type: mediaType, data: b64 } },
+          {
+            type: "image",
+            source: { type: "base64", media_type: mediaType, data: b64 },
+            cache_control: { type: "ephemeral" }
+          },
           { type: "text", text: prompt }
         ]
       }]
