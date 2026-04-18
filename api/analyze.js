@@ -92,15 +92,21 @@ Rules:
   return { list, usage: data.usage };
 }
 
+let _guideCache = null;
+async function loadGuide(request) {
+  if (_guideCache) return _guideCache;
+  const res = await fetch(new URL("/data/l2_visual_guide.json", request.url));
+  if (!res.ok) throw new Error(`L2 guide fetch ${res.status}`);
+  _guideCache = await res.json();
+  return _guideCache;
+}
+
 async function identifyL2(apiKey, mediaType, b64, detectedL1s, request) {
   if (!detectedL1s.length) return { byCode: {}, usage: null };
 
-  // Load the L2 visual guide (bundled under /data/ as a static asset).
   let guide;
   try {
-    const res = await fetch(new URL("/data/l2_visual_guide.json", request.url));
-    if (!res.ok) return { error: `L2 guide fetch ${res.status}` };
-    guide = await res.json();
+    guide = await loadGuide(request);
   } catch (e) {
     return { error: `L2 guide load failed: ${e?.message || e}` };
   }
