@@ -1202,8 +1202,8 @@ function App() {
   }, [currentBucket?.bucket]);
 
   /* ── Derived ── */
-  const canAnalyze = brand && fabric && dept && gender && gt && it && sketchSrc;
-  const canGenerateSpec = brand && fabric && dept && gender && gt && it; // 尺寸表不需要 sketch
+  const canAnalyze = brand && fabric && dept && gender && gt && sketchSrc;
+  const canGenerateSpec = brand && fabric && dept && gender && gt; // 尺寸表不需要 sketch
   const cDone = cStep >= 2;
   const mDone = mStep >= 2;
 
@@ -2137,8 +2137,6 @@ function App() {
                             <th style={{ padding: isMobile ? "6px 6px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", width: "30px" }}>✓</th>
                             <th style={{ padding: isMobile ? "6px 6px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", width: "56px" }}>POM</th>
                             <th style={{ padding: isMobile ? "6px 6px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999" }}>Name</th>
-                            <th style={{ padding: isMobile ? "6px 6px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", width: isMobile ? "54px" : "60px" }}>Tier</th>
-                            <th style={{ padding: isMobile ? "6px 6px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#999", width: isMobile ? "44px" : "50px" }}>Rate</th>
                             <th style={{ padding: isMobile ? "6px 6px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#7e22ce", width: isMobile ? "64px" : "80px" }}>公差</th>
                             <th style={{ padding: isMobile ? "6px 6px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#065f46", width: isMobile ? "96px" : "110px" }}>Base (M)</th>
                           </tr>
@@ -2154,7 +2152,7 @@ function App() {
                             return (
                               <React.Fragment key={tier}>
                                 <tr style={{ background: tc.bg, cursor: "pointer" }}>
-                                  <td colSpan={6} onClick={() => toggleTier(tier)} style={{ padding: isMobile ? "7px 8px" : "8px 10px", fontSize: isMobile ? "10px" : "11px", fontWeight: 700, color: tc.c, letterSpacing: "0.03em" }}>
+                                  <td colSpan={4} onClick={() => toggleTier(tier)} style={{ padding: isMobile ? "7px 8px" : "8px 10px", fontSize: isMobile ? "10px" : "11px", fontWeight: 700, color: tc.c, letterSpacing: "0.03em" }}>
                                     <span style={{ display: "inline-block", width: "14px", transform: collapsed ? "rotate(-90deg)" : "rotate(0)", transition: "transform 0.15s" }}>▾</span>
                                     {" "}{tc.icon} {tc.label} · {codes.length} 項 · 已選 {selectedCount}/{codes.length}
                                   </td>
@@ -2187,10 +2185,6 @@ function App() {
                                         <div style={{ fontWeight: 600, color: "#1a1a1a", fontSize: isMobile ? "11px" : "inherit" }}>{pn.en || code}</div>
                                         {pn.zh && <div style={{ fontSize: isMobile ? "9px" : "10px", color: "#999" }}>{pn.zh}</div>}
                                       </td>
-                                      <td style={{ padding: isMobile ? "5px 6px" : "6px 10px" }}>
-                                        <span style={{ fontSize: "10px", color: tc.c, background: tc.bg, padding: "2px 6px", borderRadius: "4px", fontWeight: 600, whiteSpace: "nowrap" }}>{tc.icon} {tc.label}</span>
-                                      </td>
-                                      <td style={{ padding: isMobile ? "5px 6px" : "6px 10px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", color: "#666" }}>{Math.round((m?.rate || 0) * 100)}%</td>
                                       <td style={{ padding: isMobile ? "5px 6px" : "6px 10px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", color: "#7e22ce", fontWeight: 600, whiteSpace: "nowrap" }}>{tolStr(m)}</td>
                                       <td style={{ padding: isMobile ? "4px 6px" : "4px 10px", textAlign: "right", background: "#ecfdf5" }}>
                                         <input type="text" value={displayVal}
