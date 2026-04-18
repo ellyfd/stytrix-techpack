@@ -1,37 +1,35 @@
 # StyTrix Techpack Creation UI
 
 Techpack Creation + Measurement Spec 合併介面。
+線上版：https://stytrix-techpack.vercel.app
 
-## 本機開發
+## 架構
 
-```bash
-npm install
-npm run dev      # http://localhost:5173
+純靜態 HTML + Vercel Edge Function，無 bundler、無 `package.json`。
+
+```
+index.html              ← 整個 app（React via CDN + 內聯 JS/CSS）
+api/analyze.js          ← Vercel Edge Function，呼叫 Claude Vision
+data/l2_visual_guide.json
+  └─ 由 scripts/build_l2_visual_guide.py 從 xlsx + md 產生
+l1_part_presence_v1.json / l1_iso_recommendations_v1.json
+l2_l3_ie/*.json         ← 38 個 L1 部位的 L2-L3-IE 規則
+pom_rules/*.json        ← POM 規則（依 gender × garment type × item type）
 ```
 
-## 用 Claude Code 改
+## 本機預覽
+
+直接用任何 static server 指到專案根目錄即可，例如：
 
 ```bash
-claude code      # 在專案目錄下啟動
-# 直接說「改 src/App.jsx 的 filter bar 間距」之類的
+python3 -m http.server 5173
+# 或
+npx serve .
 ```
 
-主要檔案只有一個：`src/App.jsx`（全部邏輯和 UI）。
+`/api/analyze` 本機無法執行（需 Vercel runtime）；要測 AI 功能請部署到 Vercel preview。
 
-## 部署到 Cloudflare Pages
+## 部署
 
-### 首次設定（GitHub 連線）
-
-1. Push 到 GitHub repo
-2. 打開 [dash.cloudflare.com](https://dash.cloudflare.com) → Workers & Pages → Create
-3. 選 Pages → Connect to Git → 選你的 repo
-4. Build 設定：
-   - Build command: `npm run build`
-   - Build output directory: `dist`
-5. Deploy
-
-之後每次 push 到 main，Cloudflare 自動重新部署。
-
-### 自訂網域（optional）
-
-Pages 設定 → Custom domains → 加 CNAME 指向 `xxx.pages.dev`
+GitHub push → Vercel 自動建置（preview / production）。
+環境變數：`ANTHROPIC_API_KEY`（在 Vercel Project Settings）。
