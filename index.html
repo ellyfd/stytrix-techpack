@@ -444,13 +444,15 @@ function Sel({ label, value, onChange, options, disabled, badgeMap, labelMap, lo
         <span aria-hidden="true" style={{ fontSize: "10px", color: "#bbb", marginLeft: "6px", transform: open ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.15s" }}>▾</span>
       </button>
 
-      {/* Accordion options：原位向下展開，撐高 grid cell */}
+      {/* 選項清單：附著在觸發按鈕正下方，不擠壓下方內容 */}
       {open && !disabled && (
         <div role="listbox" aria-label={label}
           style={{
+            position: "absolute", top: "100%", left: 0, right: 0, zIndex: 30,
             marginTop: "4px",
             border: "1px solid #e8e5e1", borderRadius: "8px",
             background: "#fff", maxHeight: "260px", overflowY: "auto",
+            boxShadow: "0 4px 14px rgba(0,0,0,0.06)",
             animation: "fadeIn 0.12s ease",
           }}>
           <div role="option" aria-selected={!value}
@@ -1866,18 +1868,6 @@ function App() {
           <span style={{ fontSize: "12px", color: "#999", fontWeight: 500 }}>Techpack</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          {pomRules && (
-            <span title={`v${pomRules._meta?.version} · ${pomRules.buckets?.length} buckets`}
-              style={{ fontSize: "10px", color: "#065f46", background: "#ecfdf5", padding: "2px 8px", borderRadius: "4px", fontWeight: 600 }}>
-              📊 {pomRules.buckets?.length} buckets 已載入
-            </span>
-          )}
-          {bucketKey && (
-            <span title={bucketKey}
-              style={{ fontSize: "10px", color: currentBucket ? "#065f46" : "#b45309", background: currentBucket ? "#ecfdf5" : "#fef3c7", padding: "2px 8px", borderRadius: "4px", fontWeight: 600 }}>
-              {bucketLoading ? "⏳ 載入中..." : currentBucket ? `✓ ${bucketKey} (n=${currentBucket.n})` : `⚠ ${bucketKey} 無資料`}
-            </span>
-          )}
           <button onClick={() => setAdminOpen(true)}
             aria-label={pomNamesOverride ? "開啟管理面板（已有覆蓋）" : "開啟管理面板"}
             title={pomNamesOverride ? `已覆蓋 POM 翻譯表：${pomNamesOverride.filename}` : "管理：餵入更新的尺寸翻譯表 / L2 判別"}
