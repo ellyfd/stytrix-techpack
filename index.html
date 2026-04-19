@@ -342,38 +342,37 @@ const parseInch = (s) => {
 };
 
 /* ─── POM 排序：身體部位從上到下、從前到後 ───
-   優先用 bucket.pom_sort_order（若資料有）；否則 fallback 用 code 前綴字母。
+   以 prefix 為主序（依解剖順序：腰→臀→浪→襠→腿→…），bucket.pom_sort_order
+   只做「同 prefix 內」的二次排序。這樣歷史資料若把某類放錯位（例 K 前後浪
+   被塞到最後）也會被正規化。
    前綴對應部位：
    A 帽 → B 領 → C 肩 → D 袖籠/肩帶 → E 袖 → F 胸 → G 育克
-   → H 腰 → I 下擺/側縫 → J 身長 → K 前後浪 → L 臀
-   → M 襠 → N 大腿/膝/小腿/腿口 → O 內長/裙長
+   → H 腰 → I 下擺/側縫 → J 身長 → L 臀 → K 前後浪 → M 襠
+   → N 大腿/膝/小腿/腿口 → O 內長/裙長
    → Q 繩帶 → R 省/褶 → S 鈕扣 → T 下擺/貼邊 → Z 裝飾
    → P 口袋（放最後，通常量完其他再標口袋）
 */
 const POM_PREFIX_ORDER = {
   A: 1, B: 2, C: 3, D: 4, E: 5, F: 6, G: 7,
-  H: 8, I: 9, J: 10, K: 11, L: 12, M: 13, N: 14, O: 15,
+  H: 8, I: 9, J: 10, L: 11, K: 12, M: 13, N: 14, O: 15,
   Q: 16, R: 17, S: 18, T: 19, Z: 20, P: 21,
   U: 22, V: 23, W: 24, X: 25, Y: 26,
 };
 const sortPomCodes = (codes, bucketSortOrder) => {
-  if (bucketSortOrder && bucketSortOrder.length) {
-    const idx = {};
-    bucketSortOrder.forEach((c, i) => { idx[c] = i; });
-    return [...codes].sort((a, b) => {
-      const ia = idx[a] !== undefined ? idx[a] : 9999;
-      const ib = idx[b] !== undefined ? idx[b] : 9999;
-      if (ia !== ib) return ia - ib;
-      return a.localeCompare(b);
-    });
-  }
+  const bucketIdx = {};
+  (bucketSortOrder || []).forEach((c, i) => { bucketIdx[c] = i; });
   return [...codes].sort((a, b) => {
     const pa = POM_PREFIX_ORDER[a[0]] || 99;
     const pb = POM_PREFIX_ORDER[b[0]] || 99;
     if (pa !== pb) return pa - pb;
+    // 同 prefix：優先用 bucket 歷史順序，否則數字 + 字典序
+    const ba = bucketIdx[a] !== undefined ? bucketIdx[a] : 9999;
+    const bb = bucketIdx[b] !== undefined ? bucketIdx[b] : 9999;
+    if (ba !== bb) return ba - bb;
     const na = parseInt(a.slice(1), 10) || 0;
     const nb = parseInt(b.slice(1), 10) || 0;
-    return na - nb;
+    if (na !== nb) return na - nb;
+    return a.localeCompare(b);
   });
 };
 
@@ -2397,24 +2396,51 @@ function App() {
                             const allOn = selectedCount === codes.length;
                             return (
                               <React.Fragment key={tier}>
-                                <tr style={{ background: tc.bg, cursor: "pointer" }}>
+                                <tr style={{ background: tc.bg, borderTop: `1px solid ${tc.c}20`, borderBottom: `1px solid ${tc.c}20` }}>
+                                  {/* 主勾選欄位置 = master checkbox（全選／半選／取消）*/}
+                                  <td style={{ padding: isMobile ? "8px 6px" : "10px 10px", verticalAlign: "middle" }}>
+                                    <input type="checkbox"
+                                      checked={allOn}
+                                      ref={el => { if (el) el.indeterminate = selectedCount > 0 && !allOn; }}
+                                      onChange={() => setTierSelection(tier, !allOn)}
+                                      aria-label={`${tc.label}區 ${allOn ? "全部取消" : "全選"}（目前 ${selectedCount}/${codes.length}）`}
+                                      style={{ width: "16px", height: "16px", accentColor: tc.c, cursor: "pointer", display: "block" }}
+                                    />
+                                  </td>
+                                  {/* 整個區塊 label + chevron：點這裡折疊 */}
                                   <td colSpan={4}
                                     role="button"
                                     tabIndex={0}
                                     aria-expanded={!collapsed}
-                                    aria-label={`${tc.label} 區，共 ${codes.length} 項，${collapsed ? "已折疊" : "已展開"}`}
+                                    aria-label={`${tc.label} 區，共 ${codes.length} 項，${collapsed ? "點擊展開" : "點擊折疊"}`}
                                     onClick={() => toggleTier(tier)}
                                     onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleTier(tier); } }}
-                                    style={{ padding: isMobile ? "7px 8px" : "8px 10px", fontSize: isMobile ? "10px" : "11px", fontWeight: 700, color: tc.c, letterSpacing: "0.03em" }}>
-                                    <span style={{ display: "inline-block", width: "14px", transform: collapsed ? "rotate(-90deg)" : "rotate(0)", transition: "transform 0.15s" }} aria-hidden="true">▾</span>
-                                    {" "}{tc.icon} {tc.label} · {codes.length} 項 · 已選 {selectedCount}/{codes.length}
-                                  </td>
-                                  <td style={{ padding: isMobile ? "5px 6px" : "6px 10px", textAlign: "right" }}>
-                                    <button onClick={(e) => { e.stopPropagation(); setTierSelection(tier, !allOn); }} style={{
-                                      padding: isMobile ? "3px 8px" : "3px 10px", fontSize: "10px", fontWeight: 600, fontFamily: "inherit",
-                                      border: `1px solid ${tc.c}`, borderRadius: "5px", cursor: "pointer",
-                                      background: allOn ? "#fff" : tc.c, color: allOn ? tc.c : "#fff", whiteSpace: "nowrap",
-                                    }}>{allOn ? "全部取消" : "全選"}</button>
+                                    style={{
+                                      padding: isMobile ? "8px 8px 8px 0" : "10px 12px 10px 0",
+                                      fontSize: isMobile ? "12px" : "13px",
+                                      fontWeight: 700, color: tc.c, letterSpacing: "0.02em",
+                                      cursor: "pointer", userSelect: "none",
+                                    }}>
+                                    <span aria-hidden="true" style={{
+                                      display: "inline-flex", alignItems: "center", justifyContent: "center",
+                                      width: "22px", height: "22px", marginRight: "8px",
+                                      borderRadius: "5px", background: `${tc.c}15`, color: tc.c,
+                                      fontSize: "10px", fontWeight: 800,
+                                      transform: collapsed ? "rotate(-90deg)" : "rotate(0)",
+                                      transition: "transform 0.15s, background 0.15s",
+                                      verticalAlign: "middle",
+                                    }}>▼</span>
+                                    <span style={{ verticalAlign: "middle" }}>
+                                      {tc.icon} {tc.label}
+                                      <span style={{ marginLeft: "10px", fontSize: isMobile ? "11px" : "12px", fontWeight: 500, opacity: 0.75 }}>
+                                        {selectedCount}/{codes.length}
+                                      </span>
+                                      {collapsed && (
+                                        <span style={{ marginLeft: "8px", fontSize: "10px", fontWeight: 500, color: tc.c, opacity: 0.6 }}>
+                                          （點此展開）
+                                        </span>
+                                      )}
+                                    </span>
                                   </td>
                                 </tr>
                                 {!collapsed && codes.map(code => {
