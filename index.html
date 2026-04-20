@@ -639,7 +639,7 @@ function L3Line({ l3, editId, setEditId, idx, col }) {
 }
 
 /* ─── Card ─── */
-function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL2, onSwitchL3 }) {
+function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL2, onSwitchL3, appMode }) {
   const [editId, setEditId] = useState(null);
   const [showTip, setShowTip] = useState(false);
   const [showMethods, setShowMethods] = useState(false);
@@ -734,7 +734,18 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
       </div>
       <div style={{ maxHeight: isOpen ? "1800px" : "0", overflow: "hidden", transition: "max-height 0.35s ease" }}>
         <div style={{ padding: "0 14px 14px" }}>
-          {card.l2Variants && card.l2Variants.length > 1 && (
+          {appMode === "universal" && (
+            <div style={{
+              marginTop: "10px", padding: "8px 12px",
+              background: "#eff6ff", border: "1px dashed #93c5fd",
+              borderRadius: "8px", fontSize: "11px", color: "#1e40af",
+              display: "flex", alignItems: "center", gap: "6px",
+            }}>
+              <span style={{ fontWeight: 700 }}>通用模型</span>
+              <span style={{ color: "#1e3a8a" }}>· AI 視覺判讀 → 建議 ISO，略過五階層細節</span>
+            </div>
+          )}
+          {appMode !== "universal" && card.l2Variants && card.l2Variants.length > 1 && (
             <div style={{ marginTop: "10px", border: "1px solid #eee", borderRadius: "8px", background: "#f8fafc", padding: "8px 10px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
                 <div style={{ fontSize: "11px", color: "#666", fontWeight: 600 }}>
@@ -799,7 +810,7 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
               )}
             </div>
           )}
-          {card.l3Variants && card.l3Variants.length > 1 && (
+          {appMode !== "universal" && card.l3Variants && card.l3Variants.length > 1 && (
             <div style={{ marginTop: "10px", border: "1px solid #eee", borderRadius: "8px", background: "#fafaf9", padding: "8px 10px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
                 <div style={{ fontSize: "11px", color: "#666", fontWeight: 600 }}>
@@ -840,7 +851,7 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
               )}
             </div>
           )}
-          {card.methodVariants && card.methodVariants.length > 1 && (
+          {appMode !== "universal" && card.methodVariants && card.methodVariants.length > 1 && (
             <div style={{ marginTop: "10px", border: "1px solid #eee", borderRadius: "8px", background: "#fafafa", padding: "8px 10px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
                 <div style={{ fontSize: "11px", color: "#666", fontWeight: 600 }}>
@@ -1729,6 +1740,43 @@ function App() {
   // shape: { index: {filename, uploadedAt, count} | null, buckets: { [bucketKey]: {filename, uploadedAt, count} } }
   const [pomRulesOverride, setPomRulesOverride] = useState({ index: null, buckets: {} });
   const [adminOpen, setAdminOpen] = useState(false);
+  // 模式切換：makalot=聚陽模型（作工五階層 + POM tier + 全碼）/ universal=通用模型（AI→ISO + 基礎大尺寸）
+  const [appMode, setAppMode] = useState(() => {
+    try {
+      const v = localStorage.getItem('stytrix.appMode');
+      return v === 'universal' ? 'universal' : 'makalot';
+    } catch { return 'makalot'; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('stytrix.appMode', appMode); } catch {}
+  }, [appMode]);
+  useEffect(() => {
+    if (appMode === "universal" && activeTab === "grading") setActiveTab("measurement");
+  }, [appMode]);
+  // 通用模型 — 基礎大尺寸欄位 + 使用者填入值
+  // 上衣: 肩寬 / 胸圍 / 下擺 / 袖長 / 身長
+  // 下身: 腰圍 / 臀圍 / 前後檔 / 內長 / 褲口
+  const UNIVERSAL_TOP_FIELDS = [
+    { key: "SH", zh: "肩寬",  en: "Shoulder Width" },
+    { key: "CH", zh: "胸圍",  en: "Chest" },
+    { key: "HM", zh: "下擺",  en: "Hem" },
+    { key: "SL", zh: "袖長",  en: "Sleeve Length" },
+    { key: "BL", zh: "身長",  en: "Body Length" },
+  ];
+  const UNIVERSAL_BOTTOM_FIELDS = [
+    { key: "WS", zh: "腰圍",     en: "Waist" },
+    { key: "HP", zh: "臀圍",     en: "Hip" },
+    { key: "RS", zh: "前後檔",    en: "Front + Back Rise" },
+    { key: "IS", zh: "內長",     en: "Inseam" },
+    { key: "LO", zh: "褲口",     en: "Leg Opening" },
+  ];
+  const universalGarmentFamily = (() => {
+    const bottoms = new Set(["PANTS", "SHORTS", "SKIRT", "LEGGINGS"]);
+    return bottoms.has(gt) ? "bottom" : "top";
+  })();
+  const universalFields = universalGarmentFamily === "bottom" ? UNIVERSAL_BOTTOM_FIELDS : UNIVERSAL_TOP_FIELDS;
+  const [universalBase, setUniversalBase] = useState({});
+  useEffect(() => { setUniversalBase({}); }, [gt, appMode]);
   useEffect(() => {
     fetch('./pom_rules/_index.json')
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
@@ -2716,6 +2764,33 @@ function App() {
           <span style={{ fontSize: "12px", color: "#999", fontWeight: 500 }}>Techpack</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          {/* ─── 模式切換（聚陽 / 通用） ─── */}
+          <div role="group" aria-label="模式切換"
+            title="切換模式 — 聚陽模型：作工五階層+POM tier+全碼；通用模型：AI→ISO+基礎大尺寸"
+            style={{
+              display: "inline-flex", alignItems: "center",
+              background: "#f5f4f0", borderRadius: "999px",
+              padding: "2px", border: "1px solid #e8e5e1",
+            }}>
+            {[
+              { v: "makalot",   l: "聚陽模型" },
+              { v: "universal", l: "通用模型" },
+            ].map(o => {
+              const on = appMode === o.v;
+              return (
+                <button key={o.v} onClick={() => setAppMode(o.v)}
+                  aria-pressed={on}
+                  style={{
+                    background: on ? "#1a1a1a" : "transparent",
+                    color:      on ? "#fff"    : "#767676",
+                    border: "none", borderRadius: "999px",
+                    padding: "4px 12px", fontSize: "11px", fontWeight: 600,
+                    cursor: "pointer", fontFamily: "inherit",
+                    transition: "all 0.15s",
+                  }}>{o.l}</button>
+              );
+            })}
+          </div>
           {(() => {
             const rulesBucketCount = Object.keys(pomRulesOverride?.buckets || {}).length;
             const hasAnyOverride = !!(pomNamesOverride || partPresenceOverride || pomRulesOverride?.index || rulesBucketCount > 0);
@@ -2869,11 +2944,13 @@ function App() {
         {/* ─── Tabs：線性步驟樣式 ① ▸ ② ▸ ③ ─── */}
         {(() => {
           const tabs = [
-            { key: "construction", label: "作工建議", done: cDone, disabled: false },
-            { key: "measurement", label: "基碼確認", done: mDone, disabled: false },
-            { key: "grading", label: "全碼",
+            { key: "construction", label: appMode === "universal" ? "作工建議 · ISO" : "作工建議", done: cDone, disabled: false },
+            { key: "measurement",  label: appMode === "universal" ? "基礎大尺寸" : "基碼確認",     done: mDone, disabled: false },
+            ...(appMode === "universal" ? [] : [{
+              key: "grading", label: "全碼",
               done: mDone && displayIncludedCount > 0,
-              disabled: !(mDone && currentBucket && displayIncludedCount > 0) },
+              disabled: !(mDone && currentBucket && displayIncludedCount > 0),
+            }]),
           ];
           const onTabKey = (e, idx) => {
             if (e.key !== "ArrowLeft" && e.key !== "ArrowRight" && e.key !== "Home" && e.key !== "End") return;
@@ -2969,8 +3046,21 @@ function App() {
               gap: isMobile ? "10px" : "16px"
             }}>
               <div>
-                <div style={{ fontSize: "15px", fontWeight: 700, marginBottom: "3px", color: "#1a1a1a" }}>作工建議</div>
-                <div style={{ fontSize: "12px", color: "#999" }}>Sketch → 部位偵測 → 零件匹配 → 工段推薦 → IE</div>
+                <div style={{ fontSize: "15px", fontWeight: 700, marginBottom: "3px", color: "#1a1a1a" }}>
+                  作工建議
+                  {appMode === "universal" && (
+                    <span style={{
+                      marginLeft: "8px", fontSize: "10px", padding: "2px 8px",
+                      background: "#eff6ff", color: "#1e40af", borderRadius: "999px", fontWeight: 700,
+                      letterSpacing: "0.05em",
+                    }}>通用模型</span>
+                  )}
+                </div>
+                <div style={{ fontSize: "12px", color: "#999" }}>
+                  {appMode === "universal"
+                    ? "Sketch → AI 視覺判讀 → 建議 ISO"
+                    : "Sketch → 部位偵測 → 零件匹配 → 工段推薦 → IE"}
+                </div>
               </div>
               {!cDone && (
                 <button onClick={runConstruction} disabled={!canAnalyze || cAnalyzing} style={{
@@ -3261,6 +3351,7 @@ function App() {
                     const showHeaders = activeTiers.length > 1;
                     const renderCard = ({ c, i }) => (
                       <Card key={c.id} card={c} col={MC[i]} isOpen={openId === c.id}
+                        appMode={appMode}
                         onToggle={() => toggle(c.id)}
                         onRemove={id => { setRemoved(p => new Set([...p, id])); if (openId === id) setOpenId(null); }}
                         onSwitchMethod={(cardId, newIdx) => setCards(cs => cs.map(cc => {
@@ -3328,7 +3419,93 @@ function App() {
         )}
 
         {/* ═══ Measurement Tab Panel ═══ */}
-        {activeTab === "measurement" && (
+        {activeTab === "measurement" && appMode === "universal" && (
+          <div style={{ animation: "fadeIn 0.2s ease" }}>
+            {/* ─── 通用模型 · 基礎大尺寸 ─── */}
+            <div style={{
+              background: "#fff", border: "1px solid #eee", borderRadius: "10px",
+              padding: isMobile ? "14px 16px" : "18px 22px",
+              marginBottom: isMobile ? "12px" : "16px",
+              display: "flex",
+              flexDirection: isMobile ? "column" : "row",
+              justifyContent: "space-between",
+              alignItems: isMobile ? "stretch" : "center",
+              gap: isMobile ? "10px" : "16px",
+            }}>
+              <div>
+                <div style={{ fontSize: isMobile ? "16px" : "18px", fontWeight: 700, marginBottom: "4px", color: "#1a1a1a" }}>
+                  基礎大尺寸
+                  <span style={{
+                    marginLeft: "8px", fontSize: "10px", padding: "2px 8px",
+                    background: "#eff6ff", color: "#1e40af", borderRadius: "999px", fontWeight: 700,
+                    letterSpacing: "0.05em",
+                  }}>通用模型</span>
+                </div>
+                <div style={{ fontSize: isMobile ? "12px" : "13px", color: "#888" }}>
+                  {universalGarmentFamily === "bottom"
+                    ? "下身 · 腰圍 / 臀圍 / 前後檔 / 內長 / 褲口"
+                    : "上衣 · 肩寬 / 胸圍 / 下擺 / 袖長 / 身長"}
+                </div>
+              </div>
+              <div style={{ textAlign: isMobile ? "left" : "right" }}>
+                <div style={{ fontSize: "11px", color: "#999" }}>品類</div>
+                <div style={{ fontSize: "14px", fontWeight: 700, color: "#065f46", fontFamily: "'JetBrains Mono',monospace" }}>
+                  {gt || "—"}{it ? " · " + it : ""}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ background: "#fff", border: "1px solid #e8e5e1", borderRadius: "10px", overflow: "auto" }}>
+              <table style={{ width: "100%", minWidth: isMobile ? "520px" : "auto", borderCollapse: "collapse", fontSize: "14px" }}>
+                <thead>
+                  <tr style={{ background: "#faf9f7", borderBottom: "1.5px solid #e8e5e1" }}>
+                    <th style={{ padding: isMobile ? "8px 10px" : "10px 14px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", width: "72px" }}>CODE</th>
+                    <th style={{ padding: isMobile ? "8px 10px" : "10px 14px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999" }}>部位</th>
+                    <th style={{ padding: isMobile ? "8px 10px" : "10px 14px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999" }}>EN</th>
+                    <th style={{ padding: isMobile ? "8px 10px" : "10px 14px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#065f46", width: isMobile ? "120px" : "150px" }}>Base (M)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {universalFields.map(f => (
+                    <tr key={f.key} style={{ borderBottom: "1px solid #f0eeeb" }}>
+                      <td style={{ padding: isMobile ? "10px 10px" : "12px 14px", fontFamily: "'JetBrains Mono',monospace", fontWeight: 700, fontSize: "13px", color: "#0369a1" }}>{f.key}</td>
+                      <td style={{ padding: isMobile ? "10px 10px" : "12px 14px", fontWeight: 600, color: "#1a1a1a", fontSize: "14px" }}>{f.zh}</td>
+                      <td style={{ padding: isMobile ? "10px 10px" : "12px 14px", color: "#888", fontSize: "13px" }}>{f.en}</td>
+                      <td style={{ padding: isMobile ? "6px 8px" : "8px 14px", textAlign: "right", background: "#ecfdf5" }}>
+                        <input type="text"
+                          value={universalBase[f.key] ?? ""}
+                          onChange={(e) => setUniversalBase(prev => ({ ...prev, [f.key]: e.target.value }))}
+                          placeholder="—"
+                          inputMode="decimal"
+                          aria-label={`${f.zh} 基礎尺寸 (inch)`}
+                          style={{
+                            width: isMobile ? "104px" : "120px", textAlign: "right", padding: "7px 9px",
+                            fontFamily: "'JetBrains Mono',monospace", fontSize: "14px", fontWeight: 700,
+                            color: "#065f46",
+                            border: "1px solid #a7f3d0", borderRadius: "6px",
+                            background: "#fff",
+                          }} />
+                        <span style={{ fontSize: "13px", color: "#065f46", marginLeft: "3px" }}>"</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div style={{
+              marginTop: "14px", padding: "10px 14px",
+              background: "#eff6ff", border: "1px dashed #93c5fd",
+              borderRadius: "8px", fontSize: "12px", color: "#1e3a8a", lineHeight: 1.5,
+            }}>
+              <span style={{ fontWeight: 700 }}>通用模型</span>
+              {" · "}
+              只需填 5 個基礎大尺寸；不跳碼、不出全碼。若要切換至 POM tier / 全碼，請於右上改用「聚陽模型」。
+            </div>
+          </div>
+        )}
+
+        {activeTab === "measurement" && appMode !== "universal" && (
           <div style={{ animation: "fadeIn 0.2s ease" }}>
             {/* Action bar — 僅在未完成 / 生成前顯示,完成後改在下方合併成一個 header */}
             {!mDone && (
@@ -3779,7 +3956,7 @@ function App() {
         )}
 
         {/* ═══ Grading (全碼) Tab Panel ═══ */}
-        {activeTab === "grading" && (
+        {activeTab === "grading" && appMode !== "universal" && (
           <div style={{ animation: "fadeIn 0.2s ease" }}>
             {!(mDone && currentBucket) && (
               <div style={{
