@@ -3,8 +3,8 @@
 > **路線**：AI 判視 → 直接推 ISO 給工廠，不走五階層
 > **模型定位**：通用版（不分品牌），適用所有客人
 > **建立日期**：2026-04-20
-> **資料來源**：ONY Knit 370 款 Centric 8 + Woven 36 款 PPTX
-> **查表版本**：v4.0（2026-04-20，GT/IT 對齊 pom_rules v5.5）
+> **資料來源**：ONY 1,328 款 Centric 8（5 種來源合併：PPTX 中文 / PDF 英文 / JSONL iso_codes / Raw PDF pdfplumber / OCR callout）
+> **查表版本**：v4.3（2026-04-20，fine GT 對齊 App UI 下拉選單，Department × Gender × GT × L1 四維）
 
 ---
 
@@ -24,8 +24,8 @@
                           ↓
             ┌─────────────────────────────┐
             │  ISO 查表（Stage ②）          │
-            │  查詢：Fabric × Dept × GT × L1  │
-            │  來源：iso_lookup_factory_v4    │
+            │  查詢：Dept × Gender × GT × L1   │
+            │  來源：iso_lookup_factory_v4.3  │
             │  輸出：每個 L1 的 ISO + 機種     │
             └──────────────┬──────────────┘
                           ↓
@@ -79,12 +79,12 @@ L1 部位定義如下：
 
 ### Stage ② ISO 查表
 
-**輸入檔案**：`iso_lookup_factory_v3.json`
+**輸入檔案**：`iso_lookup_factory_v4.3.json`
 
 **已知 context**（Step 1 帶入，不需 VLM 判）：
-- `fabric`：Knit 或 Woven（來自 Centric 8 Fabric 欄位或使用者選擇）
-- `gt`：Garment Type（TOP / DRESS / PANT / SHORTS 等）
-- `it`：Item Type（TOPS / DRESSES / LEGGINGS / PANTS 等）
+- `department`：General / Swimwear（來自 Centric 8 Department 欄位或使用者選擇）
+- `gender`：WOMENS / MENS / KIDS（來自 Brand/Division 欄位）
+- `gt`：Garment Type — **fine GT**，直接對齊 App UI 下拉選單值（PANTS / LEGGINGS / SHORTS / TOP / DRESS…），**不做 canonical collapse**
 
 **查表邏輯**（pseudo code）：
 
@@ -92,45 +92,55 @@ L1 部位定義如下：
 import json
 
 # 載入查表
-with open("iso_lookup_factory_v3.json") as f:
+with open("iso_lookup_factory_v4.3.json") as f:
     table = json.load(f)
 
-# 建立索引：(fabric, gt, it, l1_code) → entry
+# 建立索引：(department, gender, gt, l1) → entry
 index = {}
 for entry in table["entries"]:
-    key = (entry["fabric"], entry["gt"], entry["it"], entry["l1_code"])
+    key = (entry["department"], entry["gender"], entry["gt"], entry["l1"])
     index[key] = entry
 
 # Stage ①  VLM 輸出
 detected = ["NK", "SH", "AH", "SL", "BM", "SS"]
 
-# Step 1 已知
-fabric = "Woven"
-gt = "TOP"
-it = "TOPS"
+# Step 1 已知（fine GT，不 collapse）
+department = "General"
+gender = "WOMENS"
+gt = "TOP"    # App UI 原始值
+
+# L1 code → 中文名稱 mapping（用 l1_code_to_v3_mapping.json）
+l1_code_to_name = {"NK": "領", "SH": "肩", "AH": "袖襱", "SL": "袖口", "BM": "下襬", "SS": "脇邊"}
 
 # 查每個部位
 results = []
 for l1_code in detected:
-    key = (fabric, gt, it, l1_code)
+    l1_name = l1_code_to_name.get(l1_code, l1_code)
+    key = (department, gender, gt, l1_name)
     entry = index.get(key)
 
-    if entry:
+    if entry and entry["confidence"] in ("strong", "likely"):
         results.append({
             "l1_code": l1_code,
             "l1_name": entry["l1"],
             "iso": entry["iso"],
-            "machine": entry["machine"],
             "confidence": entry["confidence"],
-            "action": entry["action"],         # recommend / select / manual
-            "alternatives": entry.get("alternatives", []),
+            "action": "recommend",
+            "iso_distribution": entry.get("iso_distribution", {}),
+        })
+    elif entry and entry["confidence"] == "mixed":
+        results.append({
+            "l1_code": l1_code,
+            "l1_name": entry["l1"],
+            "action": "select",
+            "iso_distribution": entry.get("iso_distribution", {}),
         })
     else:
-        # 該組合查表無資料 → 退回讓使用者手選
+        # 該組合查表無資料或 no_data → 退回讓使用者手選
         results.append({
             "l1_code": l1_code,
             "action": "manual",
-            "reason": "此 Fabric×GT×IT×L1 組合尚無歷史資料",
+            "reason": "此 Department×Gender×GT×L1 組合尚無歷史資料",
         })
 ```
 
@@ -242,63 +252,103 @@ ISO 406（替代）← 「口袋 反折一次压1/8'' 406，袋口套结」(D206
 | 檔案 | 用途 | Stage |
 |------|------|-------|
 | `L1_部位定義_Sketch視覺指引.md` | VLM 的 system prompt，38 個 L1 視覺定義 | ① |
-| `iso_lookup_factory_v3.json` | 四維查表：Fabric × GT × IT × L1 → ISO | ② |
-| `l1_code_to_v3_mapping.json` | L1 code ↔ 中文部位名對照（除錯用） | ①→② 橋接 |
-| `construction_recipes/` | GT×IT 做工配方（含 zone 出現率、ISO 分佈詳情） | 參考 |
-| `woven_construction_extracts.json` | 38 款 Woven 做工原始提取 | 資料來源 |
-| `woven_iso_inferred.json` | Woven 中文→ISO 推論詳情 | 資料來源 |
-| `knit_2026_5_construction_extracts.json` | 47 款 Knit 下裝 PPTX 做工提取（2026/5 翻譯檔） | 資料來源 |
-| `pptx_vs_v3_analysis.json` | PPTX vs v3 交叉驗證分析（21 組比對、7 組安全更新） | 驗證 |
-| `knit_pptx_construction_context.json` | 完整做工上下文：每句話→哪個 ISO、跨設計比對、做工配方 | ②③ 上下文 |
+| `iso_lookup_factory_v4.3.json` | 四維查表：Department × Gender × GT(fine) × L1 → ISO（130 entries, 292 designs） | ② |
+| `l1_code_to_v3_mapping.json` | L1 code ↔ 中文部位名對照（VLM code→查表名稱橋接） | ①→② 橋接 |
+| `construction_recipes/` | v4.1 做工配方：71 recipes, 505 designs（Gender × Dept × GT(fine) × IT） | 參考 |
+| `_parsed/construction_extracts/pptx/` | 6,998 txt 檔，792 unique designs PPTX 中文做工提取 | 資料來源 ① |
+| `_parsed/construction_extracts/pdf/` | 2,686 txt 檔，502 unique designs PDF 英文做工提取 | 資料來源 ② |
+| `_parsed/all_years.jsonl` | 18,183 records，547 有 iso_codes 欄位（127 unique designs） | 資料來源 ③ |
+| `iso_lookup_factory_v4.2_backup.json` | v4.2 備份（coarse GT 版，已棄用） | 歷史 |
 
 ---
 
-## 四、查表 v3 資料規格
+## 四、查表 v4.3 資料規格
 
 ### 結構
 
 ```json
 {
-  "version": "v3",
+  "version": "v4.3",
+  "key_schema": "Department × Gender × GT(fine) × L1",
+  "sources": ["PPTX Chinese construction", "PDF extracted txt", "PDF JSONL iso_codes", "Raw PDF pdfplumber", "OCR callout"],
+  "gt_values": ["DRESS", "LEGGINGS", "OUTERWEAR", "PANTS", "ROMPER_JUMPSUIT", "SET", "SHORTS", "SKIRT", "TOP"],
+  "confidence_rules": {
+    "strong": "Top ISO ≥60% & N≥5",
+    "likely": "Top ISO ≥40% & N≥3",
+    "mixed": "Top ISO <40% or diverse distribution",
+    "no_data": "N<3"
+  },
   "entries": [
     {
-      "fabric": "Knit",          // Knit 或 Woven
-      "gt": "TOP",               // Garment Type
-      "it": "TOPS",              // Item Type
-      "l1": "領",                // 中文部位名
-      "l1_code": "NK",           // L1 code（VLM 輸出用這個查）
-      "iso": "406",              // 推薦 ISO
-      "machine": "三本車 Coverstitch",
-      "confidence": "mixed",     // strong/likely/mixed/no_dominant/no_data
-      "action": "select",        // recommend/select/manual
-      "alternatives": [          // 替代方案（action=select 時顯示）
-        {"iso": "514", "pct": 30, "machine": "拷克車 overlock"}
-      ]
+      "department": "General",     // General 或 Swimwear
+      "gender": "WOMENS",          // WOMENS / MENS / KIDS / UNKNOWN
+      "gt": "PANTS",               // fine GT — 對齊 App UI 下拉選單
+      "l1": "褲口",                // 中文部位名
+      "iso": "406",                // 推薦 ISO（最高佔比）
+      "iso_pct": 55.0,             // 最高佔比 %
+      "confidence": "likely",      // strong/likely/mixed/no_data
+      "n_designs": 12,             // 支持設計數
+      "iso_distribution": {        // 完整 ISO 分佈
+        "406": 7, "514": 3, "605": 2
+      }
     }
   ]
 }
 ```
 
+### ⚠️ GT 使用規則
+
+**v4.3 使用 fine GT（對齊 App UI 下拉選單）**：PANTS / LEGGINGS / SHORTS / TOP / DRESS / SET / SKIRT / OUTERWEAR / ROMPER_JUMPSUIT。
+
+**不做 canonical collapse**（例如不把 PANTS+LEGGINGS+SHORTS 合併成 BOTTOM）。原因：fine GT 揭露重要 ISO 差異，例如：
+- PANTS 褲口 → ISO 406 (55%)，LEGGINGS 褲口 → ISO 605 (64%)，SHORTS 褲口 → ISO 605 (50%)
+- 合併成 BOTTOM 會掩蓋這些差異
+
+**GT Alias（最小化清洗）**：只處理真正的同義詞 — 3RD_PIECE→OUTERWEAR, BODYSUIT_ONESIE→BODYSUIT, JOGGER→JOGGERS, TOPS→TOP。
+
 ### confidence 定義
 
 | confidence | 條件 | 含義 |
 |-----------|------|------|
-| strong | 第一名 ISO ≥ 60% | 歷史資料高度一致，可自動推薦 |
-| likely | 第一名 ISO 40-59% | 多數設計用這個，但有替代方案 |
-| mixed | 第一名 ISO 25-39% | 沒有明確主流，需要使用者選 |
-| no_dominant | 第一名 ISO < 25% | 分散，必須手動 |
-| no_data | 該 zone 在此 GT×IT 極少出現 | 罕見部位，無統計基礎 |
+| strong | Top ISO ≥ 60% 且 N ≥ 5 | 歷史資料高度一致，可自動推薦 |
+| likely | Top ISO ≥ 40% 且 N ≥ 3 | 多數設計用這個，但有替代方案 |
+| mixed | Top ISO < 40% 或分佈分散 | 沒有明確主流，需要使用者選 |
+| no_data | N < 3 | 樣本不足，無統計基礎 |
 
-### 覆蓋範圍
+### 覆蓋範圍（v4.3）
 
-| Fabric | GT×IT 組合 | Zone 數 | 資料來源 |
-|--------|-----------|---------|---------|
-| Knit | 13 組 | 264 | Centric 8 PDF（~370 款設計，含 2026/5 新增 53 份） |
-| Woven | 3 組 | 16 | Source-Data PPTX（38 款設計，含 FA25/HO25 新增 2 款） |
+| 指標 | 數值 |
+|------|------|
+| Total entries | 130 |
+| Total designs | 292 |
+| Strong entries | 13 |
+| Likely entries | 44 |
+| Mixed entries | 10 |
+| No_data entries | 63 |
+| GT values | 9（PANTS, LEGGINGS, SHORTS, TOP, DRESS, SET, SKIRT, OUTERWEAR, ROMPER_JUMPSUIT） |
+| Departments | General, Swimwear |
+| Genders | WOMENS, MENS, KIDS, UNKNOWN |
 
-**Knit 13 組**：TOP\|TOPS, PANT\|PANTS, PANT\|LEGGINGS, SHORTS\|SHORTS, SHORTS\|LEGGINGS, DRESS\|DRESSES, SWIM\|SWIM, SWIM\|SWIM_RASHGUARD, SLEEPWEAR\|SLEEPWEAR, SET\|SET, SET\|SLEEPWEAR, OUTERWEAR\|OUTERWEAR, ONE_PIECE\|ONE PIECE
+### 五種資料來源
 
-**Woven 3 組**：TOP\|TOPS, DRESS\|DRESSES, BOTTOM\|SHORTS
+| # | 來源 | 檔案位置 | Unique Designs with ISO |
+|---|------|---------|------------------------|
+| ① | PPTX 中文做工 | `_parsed/construction_extracts/pptx/` | 792 |
+| ② | PDF 英文做工 | `_parsed/construction_extracts/pdf/` | 502 |
+| ③ | JSONL iso_codes | `_parsed/all_years.jsonl` | 127 |
+| ④ | Raw PDF pdfplumber | 原始 PDF re-extraction | 468 |
+| ⑤ | OCR callout | pytesseract on callout images | 27 |
+
+合併後 716 unique designs 有 ISO（54% of 1,328），292 designs 進入 zone-specific lookup。
+
+### 做工配方（Recipes v4.1）
+
+| 指標 | 數值 |
+|------|------|
+| Total recipes | 71 |
+| Total designs | 505 |
+| Key schema | Gender × Department × GT(fine) × IT |
+| GT values | 同 v4.3（9 個 fine GT） |
 
 ---
 
@@ -320,23 +370,25 @@ Fabric 不需要 VLM 判，從系統已知資訊帶入：
 
 ### 已知限制
 
-1. **一個部位 ≠ 一個 ISO**（v3.2 新發現）：從 47 款 PPTX 中文做工分析確認，腰頭（WB）平均涉及 2-4 個 ISO（514 接合 + 406 壓線 + 401 隧道 + 301 面線），口袋（PK）也常見 301 壓線 + 514 拷克收邊的組合。目前查表只推薦「主要 ISO」，完整工序需查 `construction_context` 欄位。
+1. **一個部位 ≠ 一個 ISO**：從 792 款 PPTX + 502 款 PDF 做工分析確認，腰頭（WB）平均涉及 2-4 個 ISO（514 接合 + 406 壓線 + 401 隧道 + 301 面線），口袋（PK）也常見 301 壓線 + 514 拷克收邊的組合。目前查表只推薦「主要 ISO」，完整工序需查 `iso_distribution` 和配方。
 
-2. **Woven 資料量少**：僅 38 款 / 3 個 GT×IT 組合。Knit 有 370+ 款 / 13 組。Woven 側 confidence 看起來都 strong，但底層樣本數只有 2-4 款，統計穩健性有限。（2026-04-20 從 FA25/HO25 新增 D63716、D68142 兩款）
+2. **46% 設計無任何 ISO 來源**：1,328 designs 中 612 款（46%）在五種來源都沒有 ISO。其中 391 款 PDF 完全沒有 callout 頁（只有 sketch+measurement+BOM），~229 款 callout 以圖片嵌入（需 VLM 才能進一步提取）。
 
-3. **Woven ISO 是推論的**：38 款中只有 1 款（D68210）直接寫 ISO 碼，其餘從中文做工描述推論。推論規則：「壓單針/明線/SP車線 → 301」「拷克 → 514」等。準確率高但非 100%。
+3. **Zone-specific vs Document-level**：只有 PPTX 中文和部分 PDF 英文能做到 zone-specific（每行指定 L1 zone 的 ISO）。JSONL iso_codes 和 raw pdfplumber 只能做 document-level（所有 ISO broadcast 到每個 zone），會稀釋 confidence。
 
-4. **通用版不分品牌**：同一個 GT×IT×L1，不同品牌可能有不同偏好（例如 GAP 腰頭固定用某種 ISO，Athleta 偏好另一種）。品牌版需要加 Brand 維度，本查表不含。
+4. **通用版不分品牌**：同一個 GT×L1，不同品牌可能有不同偏好。品牌版需要加 Brand 維度，本查表不含。
 
 5. **L1 偵測依賴 VLM 品質**：VLM 漏判或誤判 L1 會連帶影響 ISO 推薦。多標籤偵測（一張 sketch 同時 6-15 個 L1）是 VLM 端的主要挑戰。
+
+6. **no_data entries 佔比高**：130 entries 中 63 條（48%）為 no_data（N<3）。需要更多 PPTX 翻譯或 PDF 英文提取來提升覆蓋。
 
 ### 擴展方向
 
 | 方向 | 做法 | 效果 |
 |------|------|------|
-| 擴展 Woven 品類 | 補更多 Woven PPTX 提取 + 直接請 IE 標注 ISO | Woven 覆蓋從 3 組 → 目標 8+ 組 |
-| 加 Brand 維度 | Brand × Fabric × GT × IT × L1 五維查表 | 品牌偏好差異化推薦 |
-| 加 Department 維度 | Swimwear / Sleepwear 獨立 ISO 分佈 | Swim 只用 514+605，Sleepwear 以 406 為主 |
+| VLM 提取 callout 圖片 | 對 ~229 款圖片式 callout 做 VLM extraction | 覆蓋率從 54%→預估 70%+ |
+| 加 Brand 維度 | Brand × Department × Gender × GT × L1 五維查表 | 品牌偏好差異化推薦 |
+| 提升 no_data entries | 補更多 PPTX 翻譯 + 向 IE 確認 | 63 條 no_data 降至 <30 |
 | VLM 訓練迭代 | 用 ONY sketch 做 few-shot / fine-tune | L1 偵測準確率提升 |
 | 回饋閉環 | 工廠實際採用的 ISO 回寫更新查表 | 持續提升 confidence |
 | 多道工序推薦 | 查表從「推一個 ISO」升級為「推一組工序」（如腰頭 = 514+406+401） | 更貼近工廠實際需求 |
@@ -358,31 +410,35 @@ Fabric 不需要 VLM 判，從系統已知資訊帶入：
 
 ## 八、全量分析摘要（2026-04-20）
 
-**數據規模**：14,225 JSONL + 928 PPTX（2025 四季 FA/HO/SP/SU）
+**數據規模**：12,038 PDFs / 4,069 PPTX → 1,328 unique designs → 716 有 ISO（54%）→ 292 進入 zone-specific lookup → 505 進入 recipes
 
-**JSONL GT 分佈**：903 unique designs — TOP 298 / UNKNOWN 151 / DRESS 105 / OUTERWEAR 98 / PANT 92 / LEGGING 88 / SHORTS 73 / SWIM 65 / SKORT 42 / JOGGER 36 / SKIRT 21 / ROMPER_JUMPSUIT 16 / SLEEPWEAR 13 / SET 7 / BODYSUIT 5
+**v4.3 Data Funnel**：
+```
+1,328 unique designs（all_designs_gt_it_classification.json）
+  └─ 716 有 ISO（from 5 sources merged）── 54% 覆蓋率
+       └─ 292 進入 zone-specific lookup（iso_lookup_factory_v4.3.json）
+            └─ 13 strong / 44 likely / 10 mixed / 63 no_data
+  └─ 505 進入 recipes（construction_recipes/ v4.1, 71 recipes）
+  └─ 612 無任何 ISO 來源 ── 46% 未覆蓋
+       └─ 391 PDF 無 callout 頁
+       └─ ~229 callout 為圖片嵌入（需 VLM）
+```
 
-**PPTX 做工發現**：
-- 928 份中 456 份有 zone 提取，532 份有做工得分
-- 2025 seasonal 幾乎全是 **Woven**（WWT 407 / WWD 299 / WWS 153 / Chambray 8）
-- 最常出現的 zone：SV(袖) 298 / 肩 218 / SC(袖口) 203 / PK(口袋) 159 / WB(腰頭) 155
-
-**交叉驗證**：4 corroborated（BD→514, WB→514, BM→301, NK→514）、1 contradicted（PK）、2 new zones（HM, SV）
+**Fine GT 揭露的關鍵差異**（v4.2 coarse GT 看不到）：
+- 褲口：PANTS→406(55%) vs LEGGINGS→605(64%) vs SHORTS→605(50%)
+- 側縫：PANTS→514(54%) vs LEGGINGS→514(45%)
+- 合併成 BOTTOM 會掩蓋這些重要分流
 
 **Woven vs Knit 關鍵差異**：
 - BM(下襬)：Woven→301 lockstitch vs Knit→406 coverstitch
 - PK(口袋)：Woven→514 only vs Knit→301+406 mixed
 - BD(大身)：Woven→514+301 vs Knit→607/514 overlock family
-- **Fabric 必須是 Filter Chain 第一維度**
-
-**v3 覆蓋缺口**：Woven 僅 16 條 vs Knit 266 條，2025 seasonal PPTX 是最佳 Woven 擴展來源
-
-詳細數據 → `full_analysis_20260420.json`
 
 ---
 
 *最後更新：2026-04-20*
-*資料版本：iso_lookup_factory_v4.0（282 entries，GT/IT 對齊 pom_rules v5.5）*
-*v3→v4 變更：LEGGINGS 升為 GT / IT 移除查表維度 / 新增 Department 維度（Active/RTW/Swimwear/Sleepwear）*
-*底層資料集：all_years.jsonl 14,225 records + seasonal_2025_pptx_extracts.json 928 PPTX*
-*全量分析報告：full_analysis_20260420.json*
+*查表版本：iso_lookup_factory_v4.3（130 entries / 292 designs / 13 strong / 44 likely）*
+*配方版本：construction_recipes v4.1（71 recipes / 505 designs）*
+*v4.2→v4.3 變更：fine GT 取代 canonical collapse（PANTS/LEGGINGS/SHORTS 不再合併為 BOTTOM）、5 sources 合併（PPTX+PDF txt+JSONL+pdfplumber+OCR）、classification join 取得 fine GT*
+*v3→v4 變更：LEGGINGS 升為 GT / IT 移除查表維度 / 新增 Department+Gender 維度*
+*底層資料集：1,328 unique designs from 12,038 PDFs + 4,069 PPTX*
