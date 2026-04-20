@@ -292,20 +292,24 @@ const IT_OPTIONS = {
 };
 
 /* ─── Helpers ─── */
+/* 英吋顯示:slash 分數格式(與公差欄一致),例 "3/4"、"16 1/2"、"1/8"。
+   四捨五入到 1/8",與原本的 unicode frmt 同等精度,避免語意改變。 */
 const frmt = (v) => {
   if (v === 0) return "—";
   const neg = v < 0;
   const abs = Math.abs(v);
   const whole = Math.floor(abs);
   const frac = abs - whole;
+  const sign = neg ? "-" : "";
   let f = "";
-  if (frac >= 0.875) return (neg ? "-" : "") + (whole + 1);
-  else if (frac >= 0.625) f = "¾";
-  else if (frac >= 0.375) f = "½";
-  else if (frac >= 0.125) f = "¼";
-  else if (frac > 0.05) f = "⅛";
-  if (f) return (neg ? "-" : "") + (whole > 0 ? whole : "") + f;
-  return (neg ? "-" : "") + String(whole);
+  if (frac >= 0.875) return sign + (whole + 1);
+  else if (frac >= 0.625) f = "3/4";
+  else if (frac >= 0.375) f = "1/2";
+  else if (frac >= 0.125) f = "1/4";
+  else if (frac > 0.05) f = "1/8";
+  if (f && whole > 0) return `${sign}${whole} ${f}`;
+  if (f) return `${sign}${f}`;
+  return `${sign}${whole}`;
 };
 
 /* 解析使用者輸入的英吋字串：支援 "16", "16 1/2", "1/8", "16½", "16¾" 等 */
@@ -395,24 +399,8 @@ function Sel({ label, value, onChange, options, disabled, badgeMap, labelMap, lo
 
   return (
     <div ref={ref} style={{ position: "relative" }}>
-      <div style={{ fontSize: "11px", color: "#888", marginBottom: "6px", fontWeight: 500, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span>{label}</span>
-        {onToggleLock && (
-          <button onClick={onToggleLock}
-            title={locked ? "已鎖 — refresh 不會重設" : "按一下鎖住，refresh 不會重設"}
-            aria-label={`${label} ${locked ? "解鎖" : "鎖住"}`}
-            aria-pressed={locked}
-            style={{
-              background: "none", border: "none", cursor: "pointer",
-              fontSize: "11px", padding: "0 2px", lineHeight: 1,
-              color: locked ? "#065f46" : "#ccc", fontWeight: locked ? 700 : 400,
-              opacity: locked ? 1 : 0.6, transition: "opacity 0.15s"
-            }}
-            onMouseEnter={e => e.currentTarget.style.opacity = "1"}
-            onMouseLeave={e => e.currentTarget.style.opacity = locked ? "1" : "0.6"}>
-            {locked ? "🔒" : "🔓"}
-          </button>
-        )}
+      <div style={{ fontSize: "11px", color: "#888", marginBottom: "6px", fontWeight: 500 }}>
+        {label}
       </div>
 
       {/* Trigger：看起來跟原本 underline select 幾乎一樣 */}
@@ -434,6 +422,29 @@ function Sel({ label, value, onChange, options, disabled, badgeMap, labelMap, lo
         </span>
         <span aria-hidden="true" style={{ fontSize: "10px", color: "#bbb", marginLeft: "6px", transform: open ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.15s" }}>▾</span>
       </button>
+
+      {onToggleLock && (
+        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "4px", minHeight: "14px" }}>
+          <button onClick={onToggleLock}
+            title={locked ? "已鎖 — refresh 不會重設" : "按一下鎖住，refresh 不會重設"}
+            aria-label={`${label} ${locked ? "解鎖" : "鎖住"}`}
+            aria-pressed={locked}
+            style={{
+              background: "none", border: "none", cursor: "pointer",
+              padding: "0 2px", lineHeight: 0,
+              color: locked ? "#065f46" : "#d4d4d4",
+              opacity: locked ? 1 : 0.55, transition: "opacity 0.15s, color 0.15s",
+              display: "inline-flex", alignItems: "center",
+            }}
+            onMouseEnter={e => e.currentTarget.style.opacity = "1"}
+            onMouseLeave={e => e.currentTarget.style.opacity = locked ? "1" : "0.55"}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              {locked ? <path d="M7 11V7a5 5 0 0 1 10 0v4"/> : <path d="M7 11V7a5 5 0 0 1 9.9-1"/>}
+            </svg>
+          </button>
+        </div>
+      )}
 
       {/* 選項清單：附著在觸發按鈕正下方，不擠壓下方內容 */}
       {open && !disabled && (
@@ -600,8 +611,9 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
         <div style={{ display: "flex", alignItems: "flex-start", gap: "10px", flex: 1, minWidth: 0 }}>
           <div style={{
             width: "30px", height: "30px", borderRadius: "9px",
-            background: isOpen ? col : "#fff", color: isOpen ? "#fff" : col,
-            border: isOpen ? "none" : `2.5px solid ${col}`,
+            background: isOpen ? col : "#fff",
+            color: isOpen ? "#fff" : "#767676",
+            border: isOpen ? "none" : "1.5px solid #e5e5e5",
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: "14px", fontWeight: 800, flexShrink: 0,
             marginTop: "1px", transition: "all 0.15s"
@@ -611,7 +623,7 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
             <div style={{ fontSize: "15px", color: "#1a1a1a", fontWeight: 700, lineHeight: 1.3, display: "flex", alignItems: "baseline", gap: "6px", flexWrap: "wrap" }}>
               <span>{card.l1}</span>
               <span style={{ color: "#ccc", fontWeight: 400, fontSize: "13px" }}>›</span>
-              <span style={{ color: col }}>{card.l2}</span>
+              <span style={{ color: isOpen ? col : "#525252" }}>{card.l2}</span>
             </div>
             {/* Line 2: source badge only — per-level confidence moves into the
                 L2/L3/L4 switcher panels and is driven by historical freq, not
@@ -1114,7 +1126,7 @@ function BucketPomRow({ code, tier, measurement, median, grading, pomName, isOpe
         <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
           <span style={{ fontSize: "10px", color: tc.c, background: tc.bg, padding: "2px 7px", borderRadius: "5px", fontWeight: 600 }}>{tc.icon} {tc.label}</span>
           <span title={`${measurement?.count || 0} designs`} style={{ fontSize: "10px", color: "#666", fontFamily: "'JetBrains Mono',monospace" }}>{Math.round((measurement?.rate || 0) * 100)}%</span>
-          {tolDisplay && <span style={{ fontSize: "10px", color: "#7e22ce", background: "#f5f3ff", padding: "2px 6px", borderRadius: "4px", fontWeight: 600, fontFamily: "'JetBrains Mono',monospace" }}>±{tolDisplay}"</span>}
+          {tolDisplay && <span style={{ fontSize: "10px", color: "#525252", background: "#f3f4f6", padding: "2px 6px", borderRadius: "4px", fontWeight: 600, fontFamily: "'JetBrains Mono',monospace" }}>±{tolDisplay}"</span>}
           <span style={{ fontSize: "15px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: "#1a1a1a" }}>{medianM != null ? frmt(medianM) + '"' : "—"}</span>
           <div style={{ fontSize: "13px", color: "#ccc", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.25s" }}>▾</div>
         </div>
@@ -1224,6 +1236,26 @@ function AdminModal({
       setError('部位出現率表：' + (typeof e === 'string' ? e : (e?.message || String(e))));
     } finally {
       setUploading(null);
+    }
+  };
+
+  const handleRulesFiles = async (files) => {
+    if (!files || !files.length) return;
+    setRulesError(null); setRulesSuccess(null); setRulesUploading(true);
+    try {
+      const result = await onUploadPomRules(files);
+      const parts = [];
+      if (result.indexCount) parts.push(`${result.indexCount} 個 _index`);
+      if (result.bucketCount) parts.push(`${result.bucketCount} 個 bucket`);
+      if (result.namesCount) parts.push(`1 個 pom_names (已路由到 POM 翻譯表)`);
+      let msg = `已套用 ${parts.join(' + ')}`;
+      if (result.invalidCount) msg += `(跳過 ${result.invalidCount} 個格式錯誤)`;
+      if (result.skippedNonJson) msg += `(跳過 ${result.skippedNonJson} 個非 .json)`;
+      setRulesSuccess(msg);
+    } catch (e) {
+      setRulesError(typeof e === 'string' ? e : (e?.message || String(e)));
+    } finally {
+      setRulesUploading(false);
     }
   };
 
@@ -1349,6 +1381,65 @@ function AdminModal({
   );
 }
 
+function OnboardingModal({ open, onDismiss }) {
+  if (!open) return null;
+  const steps = [
+    { n: 1, title: "選 Filter", body: "從 Brand / Fabric / Gender / Dept / Garment Type 篩選歷史資料。Item Type 是選填。" },
+    { n: 2, title: "上傳草圖並 Analyze", body: "拖放或點擊上傳草圖 → 按 Analyze，AI 辨識工法部位並自動推薦 ISO 縫法。" },
+    { n: 3, title: "三步驟流程", body: "① 作工建議 → ② 基碼確認 → ③ 全碼。tab 會依完成度亮起綠色 ✓。" },
+  ];
+  return (
+    <div onClick={onDismiss} role="dialog" aria-modal="true" aria-labelledby="onboarding-title" style={{
+      position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      zIndex: 150, padding: "20px", animation: "fadeIn 0.15s ease",
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background: "#fff", borderRadius: "14px", padding: "26px 28px",
+        maxWidth: "440px", width: "100%",
+        boxShadow: "0 12px 36px rgba(0,0,0,0.2)",
+      }}>
+        <div style={{ fontSize: "11px", color: "#065f46", fontWeight: 700, letterSpacing: "0.1em", marginBottom: "4px" }}>
+          STYTRIX · TECHPACK
+        </div>
+        <h2 id="onboarding-title" style={{ margin: "0 0 18px 0", fontSize: "19px", fontWeight: 700, color: "#1a1a1a" }}>
+          歡迎！3 步驟完成一份 techpack
+        </h2>
+        <div style={{ display: "flex", flexDirection: "column", gap: "14px", marginBottom: "22px" }}>
+          {steps.map(s => (
+            <div key={s.n} style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
+              <span aria-hidden="true" style={{
+                flexShrink: 0, width: "26px", height: "26px", borderRadius: "50%",
+                background: "#065f46", color: "#fff",
+                display: "inline-flex", alignItems: "center", justifyContent: "center",
+                fontSize: "12px", fontWeight: 700,
+              }}>{s.n}</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: "13px", fontWeight: 700, color: "#1a1a1a", marginBottom: "2px" }}>
+                  {s.title}
+                </div>
+                <div style={{ fontSize: "12px", color: "#555", lineHeight: 1.55 }}>
+                  {s.body}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{ fontSize: "11px", color: "#767676", marginBottom: "16px", lineHeight: 1.55 }}>
+          右上角 <span style={{ display: "inline-flex", alignItems: "center", padding: "0 4px" }}>⚙</span> 管理可以餵入更新的翻譯表；每個 filter 旁的 🔒 讓 refresh 保留選擇。
+        </div>
+        <button onClick={onDismiss} style={{
+          width: "100%", padding: "11px",
+          background: "#1a1a1a", color: "#fff",
+          border: "none", borderRadius: "8px",
+          fontSize: "13px", fontWeight: 600, cursor: "pointer",
+          fontFamily: "inherit",
+        }}>開始使用</button>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   /* ── 共用 filter state + 鎖 + localStorage persistence ── */
   const loadSaved = () => {
@@ -1368,7 +1459,13 @@ function App() {
   const [gt, setGt] = useState(_saved.values.gt || "");
   const [it, setIt] = useState(_saved.values.it || "");
   const [locks, setLocks] = useState(_saved.locks);
+  const [filterExpanded, setFilterExpanded] = useState(false); // 手機版：選完 ≥2 filter 後收合成 pill
   const toggleLock = (key) => setLocks(prev => ({ ...prev, [key]: !prev[key] }));
+  const toggleAllLocks = () => {
+    const keys = ["brand", "fabric", "gender", "dept", "gt", "it"];
+    const anyLocked = keys.some(k => locks[k]);
+    setLocks(anyLocked ? {} : Object.fromEntries(keys.map(k => [k, true])));
+  };
   useEffect(() => {
     localStorage.setItem("stytrix_locks", JSON.stringify(locks));
     const vals = { brand, fabric, dept, gender, gt, it };
@@ -1387,10 +1484,42 @@ function App() {
   const [partPresenceOverride, setPartPresenceOverride] = useState(null); // {filename, uploadedAt, bucketsCount, partsCount} | null
   const [adminOpen, setAdminOpen] = useState(false);
   useEffect(() => {
-    fetch('./pom_rules/_index.json')
-      .then(r => r.ok ? r.json() : Promise.reject(r.status))
-      .then(data => { setPomRules(data); window.POM_RULES = data; })
-      .catch(err => console.error('載入 pom_rules/_index.json 失敗:', err));
+    // _index.json:先看覆蓋,沒有才抓內建
+    let usedRulesIndex = false;
+    try {
+      const stored = localStorage.getItem('stytrix.override.pomRules');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        // 新格式 { index: {meta, data?}, buckets: { [bucketKey]: {meta, data} } }
+        if (parsed && (parsed.index || parsed.buckets)) {
+          const meta = {
+            index: parsed.index ? { filename: parsed.index.filename, uploadedAt: parsed.index.uploadedAt, count: parsed.index.count } : null,
+            buckets: Object.fromEntries(Object.entries(parsed.buckets || {}).map(([k, v]) => [k, { filename: v.filename, uploadedAt: v.uploadedAt, count: v.count }])),
+          };
+          setPomRulesOverride(meta);
+          if (parsed.index?.data && Array.isArray(parsed.index.data.buckets)) {
+            setPomRules(parsed.index.data); window.POM_RULES = parsed.index.data;
+            usedRulesIndex = true;
+          }
+        }
+      }
+    } catch (e) { console.warn('讀取 pomRules 覆蓋失敗:', e); }
+    if (!usedRulesIndex) {
+      fetch('./pom_rules/_index.json')
+        .then(r => r.ok ? r.json() : Promise.reject(r.status))
+        .then(data => {
+          const merged = mergeBucketOverridesIntoIndex(data);
+          setPomRules(merged); window.POM_RULES = merged;
+        })
+        .catch(err => console.error('載入 pom_rules/_index.json 失敗:', err));
+    } else {
+      // 用了 index override,也要把 bucket overrides 裡的新 category 合進來
+      setPomRules(prev => {
+        const merged = mergeBucketOverridesIntoIndex(prev);
+        window.POM_RULES = merged;
+        return merged;
+      });
+    }
     // POM 翻譯表：先看 localStorage 覆蓋，沒有才抓內建
     let usedOverride = false;
     try {
@@ -1500,6 +1629,19 @@ function App() {
     return pomRules.buckets.find(b => b.bucket === bucketKey) || null;
   }, [bucketKey, pomRules]);
   useEffect(() => {
+    // 先看 localStorage 是否有針對此 bucketKey 的覆蓋 —
+    // 這樣即使使用者上傳的 bucket 不在內建 _index.json 裡,也能直接套用。
+    try {
+      const stored = localStorage.getItem('stytrix.override.pomRules');
+      if (stored && bucketKey) {
+        const parsed = JSON.parse(stored);
+        const bucketEntry = parsed?.buckets?.[bucketKey];
+        if (bucketEntry?.data) {
+          setCurrentBucket(bucketEntry.data); window.CURRENT_BUCKET = bucketEntry.data;
+          return;
+        }
+      }
+    } catch (e) { console.warn('讀取 bucket 覆蓋失敗:', e); }
     if (!bucketMeta) { setCurrentBucket(null); return; }
     setBucketLoading(true);
     fetch(`./pom_rules/${bucketMeta.file}`)
@@ -1507,7 +1649,7 @@ function App() {
       .then(data => { setCurrentBucket(data); window.CURRENT_BUCKET = data; })
       .catch(err => { console.error('載入 bucket 失敗:', err); setCurrentBucket(null); })
       .finally(() => setBucketLoading(false));
-  }, [bucketMeta]);
+  }, [bucketMeta, bucketKey]);
   const handleSketchUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -1531,6 +1673,29 @@ function App() {
   const [removed, setRemoved] = useState(new Set());
   const [openId, setOpenId] = useState(null);
   const [addonOn, setAddonOn] = useState(true);
+  const [hintDismissed, setHintDismissed] = useState(() => {
+    try { return localStorage.getItem("stytrix.hint.card.dismissed") === "1"; } catch { return false; }
+  });
+  const [onboardingOpen, setOnboardingOpen] = useState(() => {
+    try { return localStorage.getItem("stytrix.onboarding.done") !== "1"; } catch { return false; }
+  });
+  const dismissOnboarding = () => {
+    try { localStorage.setItem("stytrix.onboarding.done", "1"); } catch {}
+    setOnboardingOpen(false);
+  };
+  const [undoToast, setUndoToast] = useState(null); // { message, onUndo, expires }
+  const undoTimerRef = useRef(null);
+  const showUndo = (message, onUndo) => {
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    setUndoToast({ message, onUndo, at: Date.now() });
+    undoTimerRef.current = setTimeout(() => setUndoToast(null), 5000);
+  };
+  const runUndo = () => {
+    if (!undoToast) return;
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    undoToast.onUndo();
+    setUndoToast(null);
+  };
   const [cards, setCards] = useState([]);
   const [isoRec, setIsoRec] = useState(null);
   const [partPresence, setPartPresence] = useState(null);
@@ -1732,6 +1897,91 @@ function App() {
     "⑤ Tolerance 眾數推薦...",
     "✓ 尺寸建議表生成完成"
   ];
+
+  const exportTechpack = () => {
+    const snapshot = {
+      version: "1.0",
+      exportedAt: new Date().toISOString(),
+      filters: { brand, fabric, gender, dept, garment_type: gt, item_type: it || null },
+      construction: cDone ? {
+        total_ie_seconds: Math.round(totalIE),
+        ai_count: aiCount,
+        struct_count: structCount,
+        addon: addonOn ? { brand, name: ADDON.name, ie_seconds: ADDON.ie, steps: ADDON.steps.length } : null,
+        removed_ids: Array.from(removed),
+        cards: vis.map(c => ({
+          id: c.id,
+          l1_code: c.code,
+          l1_name: c.l1,
+          l2: c.l2 || null,
+          l2_code: c.l2Code || null,
+          source: c.source,
+          ie_seconds: Math.round(c.ie),
+          method: c.methodName || null,
+          l3_steps: (c.l3s || []).map(l3 => ({
+            name: l3.pick != null && l3.opts ? (l3.opts[l3.pick]?.n ?? null) : null,
+            ie_seconds: Math.round(l3.ie || 0),
+          })),
+        })),
+      } : null,
+      measurement: (mDone && currentBucket) ? {
+        bucket: currentBucket.bucket,
+        n_designs: currentBucket.n,
+        sizes: currentBucket.size_range || [],
+        poms: (() => {
+          const mr = currentBucket.measurement_rules || {};
+          const mv = currentBucket.median_values || {};
+          const gr = currentBucket.grading_rules || {};
+          const sizes = currentBucket.size_range || [];
+          const out = [];
+          ["must", "recommend", "optional"].forEach(tier => {
+            Object.keys(mr[tier] || {}).forEach(code => {
+              if (excluded.has(code)) return;
+              const pn = pomNames[code] || {};
+              const m = mr[tier][code];
+              const mvRow = mv[code] || {};
+              const baseM = mvRow.size_medians?.M;
+              const ov = baseOverrides[code];
+              const ovParsed = ov != null && ov !== "" ? parseInch(ov) : null;
+              const effBase = ovParsed != null ? ovParsed : baseM;
+              const sizeVals = {};
+              sizes.forEach(s => {
+                const origM = mvRow.size_medians?.M;
+                const origS = mvRow.size_medians?.[s];
+                if (origS == null) return;
+                if (effBase == null || origM == null) { sizeVals[s] = origS; return; }
+                sizeVals[s] = origS + (effBase - origM);
+              });
+              out.push({
+                code,
+                name_en: pn.en || code,
+                name_zh: pn.zh || null,
+                tier,
+                tolerance: tolStr(m),
+                base_m: effBase != null ? Number(effBase.toFixed(4)) : null,
+                overridden: ovParsed != null && baseM != null && Math.abs(ovParsed - baseM) > 1e-9,
+                grading_increment: gr[code]?.typical_increment ?? null,
+                size_values: sizeVals,
+              });
+            });
+          });
+          return out;
+        })(),
+      } : null,
+    };
+    const json = JSON.stringify(snapshot, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const stamp = new Date().toISOString().slice(0, 10);
+    const slug = [brand, gt, it].filter(Boolean).join("_") || "techpack";
+    a.href = url;
+    a.download = `techpack_${slug}_${stamp}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   const runConstruction = async () => {
     setCStep(1); setCAnalyzing(true); setCStage(0);
@@ -2020,7 +2270,8 @@ function App() {
               padding: "4px 10px", fontSize: "11px", fontWeight: 600,
               color: (pomNamesOverride || partPresenceOverride) ? "#b45309" : "#767676",
               cursor: "pointer", fontFamily: "inherit",
-              display: "inline-flex", alignItems: "center", gap: "5px",
+              display: "inline-flex", alignItems: "center", justifyContent: "center",
+              position: "relative", transition: "border-color 0.15s",
             }}>
             {(pomNamesOverride || partPresenceOverride) && <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#f59e0b", display: "inline-block" }} />}
             管理
@@ -2030,76 +2281,206 @@ function App() {
 
       <div style={{ maxWidth: "1280px", margin: "0 auto", padding: isMobile ? "14px 14px" : "24px 28px" }}>
         {/* ─── Filter (v10: flush underline selects) ─── */}
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(6, 1fr)",
-          gap: isMobile ? "12px 14px" : "20px",
-          alignItems: "start",
-          marginBottom: isMobile ? "18px" : "28px",
-          paddingBottom: isMobile ? "14px" : "24px",
-          borderBottom: "1px solid #eee"
-        }}>
-          <Sel label="Brand" value={brand} onChange={setBrand}
-            options={BRANDS.map(b => b.code)} badgeMap={brandBadgeMap}
-            locked={!!locks.brand} onToggleLock={() => toggleLock("brand")} />
-          <Sel label="Fabric" value={fabric}
-            onChange={v => { setFabric(v); setIt(""); }}
-            options={["Woven", "Knit"]} badgeMap={fabricBadgeMap}
-            locked={!!locks.fabric} onToggleLock={() => toggleLock("fabric")} />
-          <Sel label="Gender" value={gender} onChange={setGender}
-            options={pomRules ? Object.keys(genderBadgeMap).filter(v => genderBadgeMap[v] > 0).sort((a,b) => GENDER_OPTIONS.findIndex(g => g.value === a) - GENDER_OPTIONS.findIndex(g => g.value === b)) : GENDER_OPTIONS.map(g => g.value)}
-            labelMap={Object.fromEntries(GENDER_OPTIONS.map(g => [g.value, g.label]))}
-            badgeMap={genderBadgeMap}
-            locked={!!locks.gender} onToggleLock={() => toggleLock("gender")} />
-          <Sel label="Department" value={dept} onChange={setDept}
-            options={pomRules ? Object.keys(deptBadgeMap).filter(d => deptBadgeMap[d] > 0).sort() : DEPT_OPTIONS}
-            badgeMap={deptBadgeMap}
-            locked={!!locks.dept} onToggleLock={() => toggleLock("dept")} />
-          <Sel label="Garment Type" value={gt}
-            onChange={v => { setGt(v); setIt(""); }}
-            options={pomRules ? Object.keys(gtBadgeMap).filter(g => gtBadgeMap[g] > 0).sort() : GT_OPTIONS}
-            badgeMap={gtBadgeMap}
-            locked={!!locks.gt} onToggleLock={() => toggleLock("gt")} />
-          <Sel label="Item Type" value={it} onChange={setIt}
-            options={curItOptions}
-            disabled={curItOptions.length === 0}
-            locked={!!locks.it} onToggleLock={() => toggleLock("it")} />
-        </div>
+        {(() => {
+          const selectedFilters = [
+            brand && { label: "Brand", v: brand },
+            fabric && { label: "Fabric", v: fabric },
+            gender && { label: "Gender", v: (GENDER_OPTIONS.find(g => g.value === gender)?.label) || gender },
+            dept && { label: "Dept", v: dept },
+            gt && { label: "GT", v: gt },
+            it && { label: "IT", v: it },
+          ].filter(Boolean);
+          const collapsed = isMobile && selectedFilters.length >= 2 && !filterExpanded;
+          if (collapsed) {
+            return (
+              <div style={{
+                display: "flex", alignItems: "center", gap: "8px",
+                flexWrap: "wrap",
+                marginBottom: "14px", paddingBottom: "12px",
+                borderBottom: "1px solid #eee",
+              }}>
+                {selectedFilters.map((f, i) => (
+                  <span key={i} style={{
+                    fontSize: "12px", padding: "4px 10px",
+                    background: i === 0 ? "#1a1a1a" : "#f5f5f5",
+                    color: i === 0 ? "#fff" : "#555",
+                    borderRadius: "999px", fontWeight: 600,
+                    whiteSpace: "nowrap",
+                  }}>{f.v}</span>
+                ))}
+                <button onClick={() => setFilterExpanded(true)} aria-label="編輯 filter" style={{
+                  marginLeft: "auto",
+                  fontSize: "11px", padding: "4px 10px",
+                  background: "#fff", color: "#767676",
+                  border: "1px solid #e8e5e1", borderRadius: "6px",
+                  cursor: "pointer", fontWeight: 600, fontFamily: "inherit",
+                  display: "inline-flex", alignItems: "center", gap: "4px",
+                }}>✎ 編輯</button>
+              </div>
+            );
+          }
+          const keys = ["brand", "fabric", "gender", "dept", "gt", "it"];
+          const anyLocked = keys.some(k => locks[k]);
+          return (
+            <div style={{
+              marginBottom: isMobile ? "18px" : "28px",
+              paddingBottom: isMobile ? "14px" : "24px",
+              borderBottom: "1px solid #eee",
+            }}>
+              <div style={{
+                display: "flex", justifyContent: "flex-end",
+                gap: "6px", marginBottom: isMobile ? "10px" : "12px",
+              }}>
+                <button onClick={toggleAllLocks}
+                  aria-label={anyLocked ? "全部解鎖" : "全部鎖住"}
+                  title={anyLocked ? "全部解鎖" : "鎖住全部（refresh 不重設）"}
+                  style={{
+                    fontSize: "11px", padding: "3px 10px",
+                    background: "#fff",
+                    color: anyLocked ? "#065f46" : "#767676",
+                    border: `1px solid ${anyLocked ? "#a7f3d0" : "#e8e5e1"}`,
+                    borderRadius: "6px",
+                    cursor: "pointer", fontWeight: 600, fontFamily: "inherit",
+                    display: "inline-flex", alignItems: "center", gap: "5px",
+                  }}>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                    {anyLocked ? <path d="M7 11V7a5 5 0 0 1 10 0v4"/> : <path d="M7 11V7a5 5 0 0 1 9.9-1"/>}
+                  </svg>
+                  {anyLocked ? "全部解鎖" : "全部鎖住"}
+                </button>
+                {isMobile && selectedFilters.length >= 2 && (
+                  <button onClick={() => setFilterExpanded(false)} aria-label="收合 filter" style={{
+                    fontSize: "11px", padding: "3px 10px",
+                    background: "#fff", color: "#767676",
+                    border: "1px solid #e8e5e1", borderRadius: "6px",
+                    cursor: "pointer", fontWeight: 600, fontFamily: "inherit",
+                  }}>收合</button>
+                )}
+              </div>
+              <div style={{
+                display: "grid",
+                gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(6, 1fr)",
+                gap: isMobile ? "12px 14px" : "20px",
+                alignItems: "start",
+              }}>
+              <Sel label="Brand" value={brand} onChange={setBrand}
+                options={BRANDS.map(b => b.code)} badgeMap={brandBadgeMap}
+                locked={!!locks.brand} onToggleLock={() => toggleLock("brand")} />
+              <Sel label="Fabric" value={fabric}
+                onChange={v => { setFabric(v); setIt(""); }}
+                options={["Woven", "Knit"]} badgeMap={fabricBadgeMap}
+                locked={!!locks.fabric} onToggleLock={() => toggleLock("fabric")} />
+              <Sel label="Gender" value={gender} onChange={setGender}
+                options={pomRules ? Object.keys(genderBadgeMap).filter(v => genderBadgeMap[v] > 0).sort((a,b) => GENDER_OPTIONS.findIndex(g => g.value === a) - GENDER_OPTIONS.findIndex(g => g.value === b)) : GENDER_OPTIONS.map(g => g.value)}
+                labelMap={Object.fromEntries(GENDER_OPTIONS.map(g => [g.value, g.label]))}
+                badgeMap={genderBadgeMap}
+                locked={!!locks.gender} onToggleLock={() => toggleLock("gender")} />
+              <Sel label="Department" value={dept} onChange={setDept}
+                options={pomRules ? Object.keys(deptBadgeMap).filter(d => deptBadgeMap[d] > 0).sort() : DEPT_OPTIONS}
+                badgeMap={deptBadgeMap}
+                locked={!!locks.dept} onToggleLock={() => toggleLock("dept")} />
+              <Sel label="Garment Type" value={gt}
+                onChange={v => { setGt(v); setIt(""); }}
+                options={pomRules ? Object.keys(gtBadgeMap).filter(g => gtBadgeMap[g] > 0).sort() : GT_OPTIONS}
+                badgeMap={gtBadgeMap}
+                locked={!!locks.gt} onToggleLock={() => toggleLock("gt")} />
+              <Sel label="Item Type" value={it} onChange={setIt}
+                options={curItOptions}
+                disabled={curItOptions.length === 0}
+                locked={!!locks.it} onToggleLock={() => toggleLock("it")} />
+              </div>
+            </div>
+          );
+        })()}
 
-        {/* ─── Tabs (v10: underline only) ─── */}
-        <div style={{
-          display: "flex", borderBottom: "1px solid #eee",
-          marginBottom: isMobile ? "16px" : "24px",
-          gap: isMobile ? "0" : "0",
-          overflowX: "auto",
-          WebkitOverflowScrolling: "touch",
-        }}>
-          {[
+        {/* ─── Tabs：線性步驟樣式 ① ▸ ② ▸ ③ ─── */}
+        {(() => {
+          const tabs = [
             { key: "construction", label: "作工建議", done: cDone, disabled: false },
-            { key: "measurement", label: "基碼 / POM 確認", done: mDone, disabled: false },
+            { key: "measurement", label: "基碼確認", done: mDone, disabled: false },
             { key: "grading", label: "全碼",
               done: mDone && displayIncludedCount > 0,
               disabled: !(mDone && currentBucket && displayIncludedCount > 0) },
-          ].map(t => {
-            const active = activeTab === t.key;
-            const dis = !!t.disabled;
-            return (
-              <button key={t.key} onClick={() => !dis && setActiveTab(t.key)}
-                disabled={dis}
-                title={dis ? "請先於基碼 / POM 確認勾選至少一項" : ""}
-                style={{
-                  padding: "12px 0", marginRight: "32px", background: "none", border: "none",
-                  borderBottom: active ? "2px solid #065f46" : "2px solid transparent",
-                  cursor: dis ? "not-allowed" : "pointer",
-                  color: active ? "#1a1a1a" : (dis ? "#ddd" : "#aaa"),
-                  fontSize: "14px", fontWeight: active ? 700 : 500,
-                  marginBottom: "-1px", transition: "all 0.15s", fontFamily: "inherit",
-                }}>
-                {t.label}
-              </button>
-            );
-          })}
-        </div>
+          ];
+          const onTabKey = (e, idx) => {
+            if (e.key !== "ArrowLeft" && e.key !== "ArrowRight" && e.key !== "Home" && e.key !== "End") return;
+            e.preventDefault();
+            const enabledIdx = tabs.map((t, i) => t.disabled ? null : i).filter(i => i !== null);
+            let nextIdx;
+            if (e.key === "Home") nextIdx = enabledIdx[0];
+            else if (e.key === "End") nextIdx = enabledIdx[enabledIdx.length - 1];
+            else {
+              const cur = enabledIdx.indexOf(idx);
+              const dir = e.key === "ArrowRight" ? 1 : -1;
+              nextIdx = enabledIdx[(cur + dir + enabledIdx.length) % enabledIdx.length];
+            }
+            if (nextIdx == null) return;
+            setActiveTab(tabs[nextIdx].key);
+            const el = document.querySelector(`[data-tab-key="${tabs[nextIdx].key}"]`);
+            if (el) el.focus();
+          };
+          return (
+            <div role="tablist" aria-label="步驟" style={{
+              display: "flex", alignItems: "center", borderBottom: "1px solid #eee",
+              marginBottom: isMobile ? "16px" : "24px",
+              overflowX: "auto",
+              WebkitOverflowScrolling: "touch",
+            }}>
+              {tabs.map((t, idx, arr) => {
+                const active = activeTab === t.key;
+                const dis = !!t.disabled;
+                const stepColor = active ? "#065f46" : (t.done ? "#065f46" : (dis ? "#e5e5e5" : "#bbb"));
+                const stepBg = active ? "#065f46" : (t.done ? "#ecfdf5" : "transparent");
+                const stepTextColor = active ? "#fff" : (t.done ? "#065f46" : (dis ? "#ccc" : "#999"));
+                return (
+                  <React.Fragment key={t.key}>
+                    <button role="tab"
+                      data-tab-key={t.key}
+                      id={`tab-${t.key}`}
+                      aria-selected={active}
+                      aria-controls={`tabpanel-${t.key}`}
+                      aria-disabled={dis}
+                      tabIndex={active ? 0 : -1}
+                      onClick={() => !dis && setActiveTab(t.key)}
+                      onKeyDown={(e) => onTabKey(e, idx)}
+                      disabled={dis}
+                      title={dis ? "請先於基碼確認勾選至少一項" : ""}
+                      style={{
+                        padding: "12px 0", background: "none", border: "none",
+                        borderBottom: active ? "2px solid #065f46" : "2px solid transparent",
+                        cursor: dis ? "not-allowed" : "pointer",
+                        color: active ? "#1a1a1a" : (dis ? "#ddd" : "#555"),
+                        fontSize: isMobile ? "13px" : "14px",
+                        fontWeight: active ? 700 : 500,
+                        marginBottom: "-1px", transition: "all 0.15s", fontFamily: "inherit",
+                        display: "inline-flex", alignItems: "center", gap: "8px",
+                        whiteSpace: "nowrap",
+                      }}>
+                      <span aria-hidden="true" style={{
+                        display: "inline-flex", alignItems: "center", justifyContent: "center",
+                        width: "20px", height: "20px", borderRadius: "50%",
+                        border: `1.5px solid ${stepColor}`,
+                        background: stepBg, color: stepTextColor,
+                        fontSize: "11px", fontWeight: 700, lineHeight: 1,
+                        transition: "all 0.15s",
+                      }}>
+                        {t.done && !active ? "✓" : (idx + 1)}
+                      </span>
+                      <span>{t.label}</span>
+                    </button>
+                    {idx < arr.length - 1 && (
+                      <span aria-hidden="true" style={{
+                        margin: "0 14px",
+                        fontSize: "12px", color: "#d4d4d4", userSelect: "none",
+                      }}>▸</span>
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </div>
+          );
+        })()}
 
         {/* ═══ Construction Tab Panel ═══ */}
         {activeTab === "construction" && (
@@ -2128,7 +2509,6 @@ function App() {
                   fontFamily: "inherit",
                 }}>{cAnalyzing ? "分析中…" : "Analyze"}</button>
               )}
-              {analyzeErr && <span style={{ fontSize: "11px", color: "#dc2626" }}>分析失敗: {analyzeErr}</span>}
               {cDone && (
                 <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                   <div style={{ textAlign: "right" }}>
@@ -2182,7 +2562,17 @@ function App() {
                           更換
                         </label>
                         <button
-                          onClick={() => { setSketchSrc(null); setCStep(0); setRemoved(new Set()); setOpenId(null); }}
+                          onClick={() => {
+                            const snap = { sketchSrc, cStep, removed, openId, cards };
+                            setSketchSrc(null); setCStep(0); setRemoved(new Set()); setOpenId(null);
+                            showUndo("草圖已刪除", () => {
+                              setSketchSrc(snap.sketchSrc);
+                              setCStep(snap.cStep);
+                              setRemoved(snap.removed);
+                              setOpenId(snap.openId);
+                              setCards(snap.cards);
+                            });
+                          }}
                           style={{ fontSize: "11px", color: "#dc2626", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline", textUnderlineOffset: "2px", fontFamily: "inherit" }}
                         >刪除</button>
                       </div>
@@ -2207,21 +2597,96 @@ function App() {
                         <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
                           <span style={{ fontSize: "18px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{vis.length}</span>
                           <span style={{ fontSize: "11px", color: "#999" }}>/ {cards.length} 部位</span>
-                          {addonOn && <span style={{ fontSize: "10px", color: "#767676" }}>+ 套組</span>}
                         </div>
                         <div style={{ fontSize: "10px", color: "#767676", marginTop: "2px" }}>
                           {aiCount} AI 偵測 · {structCount} 結構推斷
                         </div>
                       </div>
-                      <span style={{ fontSize: "10px", color: "#065f46", fontWeight: 600, background: "#ecfdf5", padding: "4px 10px", borderRadius: "4px", whiteSpace: "nowrap" }}>已自動選好</span>
+                      <span
+                        title="根據 AI 偵測與歷史資料自動勾選 · 可手動刪除或新增部位"
+                        style={{ fontSize: "10px", color: "#065f46", fontWeight: 600, background: "#ecfdf5", padding: "4px 10px", borderRadius: "4px", whiteSpace: "nowrap", cursor: "help" }}>
+                        已自動選好
+                      </span>
                     </div>}
+                    {cDone && (
+                      <label style={{
+                        padding: "10px 16px", borderTop: "1px solid #f0f0f0",
+                        display: "flex", alignItems: "center", gap: "10px",
+                        cursor: "pointer",
+                      }}
+                        title={`${brand} 品牌套組 · ${ADDON.steps.length} 工段`}>
+                        <input type="checkbox" checked={addonOn}
+                          onChange={() => setAddonOn(!addonOn)}
+                          style={{ width: "15px", height: "15px", accentColor: "#1a1a1a", cursor: "pointer" }} />
+                        <span style={{ fontSize: "12px", fontWeight: 600, color: addonOn ? "#1a1a1a" : "#999" }}>
+                          {brand} 品牌套組
+                        </span>
+                        <span style={{ fontSize: "10px", color: "#999" }}>
+                          {ADDON.steps.length} 工段
+                        </span>
+                        <span style={{
+                          marginLeft: "auto",
+                          fontSize: "13px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace",
+                          color: addonOn ? "#065f46" : "#ccc",
+                        }}>
+                          {addonOn ? "+" : ""}{ADDON.ie}<span style={{ fontSize: "10px", color: "#aaa", marginLeft: "3px", fontWeight: 500 }}>秒</span>
+                        </span>
+                      </label>
+                    )}
                   </>
                 )}
               </div>
 
               {/* Cards area */}
               <div style={{ alignSelf: "start" }}>
-                {!cDone && !cAnalyzing && <div style={{
+                {analyzeErr && !cAnalyzing && (
+                  <div role="alert" style={{
+                    minHeight: "200px",
+                    padding: "22px 24px",
+                    border: "1px solid #fecaca", background: "#fef2f2", borderRadius: "10px",
+                    display: "flex", flexDirection: "column", gap: "14px",
+                    marginBottom: "10px", animation: "fadeIn 0.2s ease",
+                  }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
+                      <div aria-hidden="true" style={{
+                        flexShrink: 0, width: "28px", height: "28px",
+                        borderRadius: "50%", background: "#fee2e2",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: "15px", color: "#b91c1c",
+                      }}>⚠</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: "14px", fontWeight: 700, color: "#b91c1c", marginBottom: "4px" }}>
+                          Analyze 失敗
+                        </div>
+                        <div style={{ fontSize: "12px", color: "#7f1d1d", lineHeight: 1.5, wordBreak: "break-word" }}>
+                          {analyzeErr}
+                        </div>
+                        <div style={{ fontSize: "11px", color: "#991b1b", marginTop: "8px", lineHeight: 1.5 }}>
+                          可能原因：Claude API 配額用盡、網路中斷、或圖檔格式不支援。檢查環境變數 <code style={{ background: "#fee2e2", padding: "0 4px", borderRadius: "3px" }}>ANTHROPIC_API_KEY</code>
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <button onClick={runConstruction}
+                        disabled={!canAnalyze}
+                        style={{
+                          padding: "8px 16px",
+                          background: canAnalyze ? "#b91c1c" : "#fca5a5",
+                          color: "#fff", border: "none", borderRadius: "6px",
+                          fontSize: "12px", fontWeight: 600,
+                          cursor: canAnalyze ? "pointer" : "not-allowed", fontFamily: "inherit",
+                        }}>重試</button>
+                      <button onClick={() => setAnalyzeErr(null)} style={{
+                        padding: "8px 14px",
+                        background: "#fff", color: "#991b1b",
+                        border: "1px solid #fecaca", borderRadius: "6px",
+                        fontSize: "12px", fontWeight: 600,
+                        cursor: "pointer", fontFamily: "inherit",
+                      }}>關閉</button>
+                    </div>
+                  </div>
+                )}
+                {!cDone && !cAnalyzing && !analyzeErr && <div style={{
                   minHeight: "300px", display: "flex", alignItems: "center", justifyContent: "center",
                   flexDirection: "column", gap: "8px", color: "#bbb",
                   border: "1px solid #eee", borderRadius: "10px", background: "#fff"
@@ -2262,9 +2727,25 @@ function App() {
                     }}>復原</button>
                   </div>}
 
-                  <div style={{ fontSize: "11px", color: "#bbb", marginBottom: "10px" }}>
-                    展開卡片後點 ⓘ 可改工法
-                  </div>
+                  {!hintDismissed && (
+                    <div style={{
+                      fontSize: "11px", color: "#767676", marginBottom: "10px",
+                      padding: "6px 10px", background: "#faf9f7", borderRadius: "6px",
+                      display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px",
+                    }}>
+                      <span>展開卡片後點 ⓘ 可改工法</span>
+                      <button onClick={() => {
+                        setHintDismissed(true);
+                        try { localStorage.setItem("stytrix.hint.card.dismissed", "1"); } catch {}
+                      }}
+                        aria-label="關閉提示"
+                        style={{
+                          background: "none", border: "none", cursor: "pointer",
+                          fontSize: "14px", color: "#999", padding: "0 4px", lineHeight: 1,
+                          fontFamily: "inherit",
+                        }}>×</button>
+                    </div>
+                  )}
 
                   {(() => {
                     const TIER_META = {
@@ -2272,7 +2753,7 @@ function App() {
                       common:     { label: "常見",   hint: "50–79%" },
                       occasional: { label: "偶見",   hint: "20–49%" },
                       rare:       { label: "少見",   hint: "<20%" },
-                      other:      { label: "其他",   hint: "AI 偵測無歷史資料" },
+                      other:      { label: "AI 新偵測", hint: "歷史資料未涵蓋，AI 視覺辨識加入" },
                     };
                     const TIER_ORDER = ["essential", "common", "occasional", "rare", "other"];
                     const visWithIdx = vis.map((c, i) => ({ c, i }));
@@ -2328,29 +2809,22 @@ function App() {
                     ));
                   })()}
 
-                  <div style={{ fontSize: "12px", color: "#888", fontWeight: 600, marginTop: "16px", marginBottom: "6px" }}>{brand} 品牌套組</div>
-                  <div style={{
-                    background: "#fff", border: `1px solid ${addonOn ? "#ddd" : "#eee"}`,
-                    borderRadius: "10px", padding: "14px 16px",
-                    display: "flex", justifyContent: "space-between", alignItems: "center",
-                  }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                      <input type="checkbox" checked={addonOn} onChange={() => setAddonOn(!addonOn)}
-                        style={{ width: "16px", height: "16px", accentColor: "#1a1a1a", cursor: "pointer" }} />
-                      <div>
-                        <div style={{ fontSize: "14px", fontWeight: 600 }}>{ADDON.name}</div>
-                        <div style={{ fontSize: "11px", color: "#999" }}>{ADDON.steps.length} 工段</div>
-                      </div>
-                    </div>
-                    <span style={{ fontSize: "16px", color: addonOn ? "#1a1a1a" : "#ccc", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{ADDON.ie}<span style={{ fontSize: "11px", color: "#aaa", marginLeft: "3px", fontWeight: 500 }}>秒</span></span>
-                  </div>
-
                   <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "20px" }}>
-                    <button style={{
-                      padding: "10px 20px", background: "#fff", color: "#767676",
-                      border: "1px solid #e8e5e1", borderRadius: "8px",
-                      fontSize: "12px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit"
-                    }}>Export</button>
+                    <button onClick={exportTechpack}
+                      title="下載目前 techpack 狀態為 JSON 檔"
+                      style={{
+                        padding: "10px 20px", background: "#fff", color: "#1a1a1a",
+                        border: "1px solid #e8e5e1", borderRadius: "8px",
+                        fontSize: "12px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+                        display: "inline-flex", alignItems: "center", gap: "6px",
+                      }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                      </svg>
+                      Export JSON
+                    </button>
                   </div>
                 </div>}
               </div>
@@ -2457,12 +2931,24 @@ function App() {
                 return parseInch(ov) != null;
               };
               // 全碼 size 值：按使用者 M 覆寫整條曲線位移
+              // 全碼 size 值:missy (XXS/XS/S/M/L/XL/XXL) 用 M + 步進 × 跳碼
+              // 推導 — M 改,整條跟著走,且能濾掉 size_medians 的噪音 (歷史中位數
+              // 在小樣本 size 上常有壞值)。Plus (1X/2X/3X/4X) 有自己的 anchor,
+              // 沒有對應的 tiny-to-plus 線性關係,維持原本 "origS + ΔM" 位移。
+              const isPlus = s => /^\d+X$/.test(s);
+              const missySeq = sizes.filter(x => !isPlus(x));
+              const mIdxMissy = missySeq.indexOf("M");
               const sizeValueFor = (code, s) => {
                 const origM = mv[code]?.size_medians?.M;
                 const origS = mv[code]?.size_medians?.[s];
-                if (origS == null) return null;
                 const newM = effectiveBaseM(code);
-                if (newM == null || origM == null) return origS;
+                if (newM == null) return origS ?? null;
+                if (!isPlus(s) && mIdxMissy >= 0) {
+                  const sIdx = missySeq.indexOf(s);
+                  const inc = gr[code]?.typical_increment;
+                  if (sIdx >= 0 && inc != null) return newM + (sIdx - mIdxMissy) * inc;
+                }
+                if (origS == null || origM == null) return origS ?? null;
                 return origS + (newM - origM);
               };
               const toggleTier = tier => setCollapsedTiers(prev => {
@@ -2519,14 +3005,14 @@ function App() {
                       基碼 <span style={{ fontSize: isMobile ? "12px" : "13px", color: "#888", fontWeight: 400 }}>M size 基本尺寸 · 勾選要納入的 POM，並可手動調整尺寸</span>
                     </div>
                     <div style={{ background: "#fff", border: "1px solid #e8e5e1", borderRadius: "10px", overflow: "auto", marginBottom: "12px" }}>
-                      <table style={{ width: "100%", minWidth: isMobile ? "680px" : "auto", borderCollapse: "collapse", fontSize: isMobile ? "13px" : "14px" }}>
+                      <table style={{ width: "100%", minWidth: isMobile ? "680px" : "auto", borderCollapse: "collapse", fontSize: "14px" }}>
                         <thead>
                           <tr style={{ background: "#faf9f7", borderBottom: "1.5px solid #e8e5e1" }}>
-                            <th style={{ padding: isMobile ? "8px 8px" : "10px 12px", textAlign: "left", fontWeight: 600, fontSize: "12px", color: "#888", width: "30px" }}>✓</th>
-                            <th style={{ padding: isMobile ? "8px 8px" : "10px 12px", textAlign: "left", fontWeight: 600, fontSize: "12px", color: "#888", width: "60px" }}>POM</th>
-                            <th style={{ padding: isMobile ? "8px 8px" : "10px 12px", textAlign: "left", fontWeight: 600, fontSize: "12px", color: "#888" }}>Name</th>
-                            <th style={{ padding: isMobile ? "8px 8px" : "10px 12px", textAlign: "right", fontWeight: 600, fontSize: "12px", color: "#7e22ce", width: isMobile ? "72px" : "90px" }}>公差</th>
-                            <th style={{ padding: isMobile ? "8px 8px" : "10px 12px", textAlign: "right", fontWeight: 600, fontSize: "12px", color: "#065f46", width: isMobile ? "108px" : "120px" }}>Base (M)</th>
+                            <th style={{ padding: isMobile ? "6px 6px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", width: "30px" }}>✓</th>
+                            <th style={{ padding: isMobile ? "6px 6px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", width: "56px" }}>POM</th>
+                            <th style={{ padding: isMobile ? "6px 6px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999" }}>Name</th>
+                            <th style={{ padding: isMobile ? "6px 6px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#999", width: isMobile ? "64px" : "80px" }}>公差</th>
+                            <th style={{ padding: isMobile ? "6px 6px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#065f46", width: isMobile ? "96px" : "110px" }}>Base (M)</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -2539,35 +3025,28 @@ function App() {
                             const allOn = selectedCount === codes.length;
                             return (
                               <React.Fragment key={tier}>
-                                <tr style={{ background: tc.bg, borderTop: `1px solid ${tc.c}20`, borderBottom: `1px solid ${tc.c}20` }}>
-                                  {/* 主勾選欄位置 = master checkbox（全選／半選／取消）*/}
-                                  <td style={{ padding: isMobile ? "8px 6px" : "10px 10px", verticalAlign: "middle" }}>
-                                    <input type="checkbox"
+                                <tr style={{ background: tc.bg, cursor: "pointer" }}>
+                                  <td style={{ padding: isMobile ? "9px 10px" : "10px 12px" }}>
+                                    <input
+                                      type="checkbox"
                                       checked={allOn}
                                       ref={el => { if (el) el.indeterminate = selectedCount > 0 && !allOn; }}
+                                      onClick={(e) => e.stopPropagation()}
                                       onChange={() => setTierSelection(tier, !allOn)}
-                                      aria-label={`${tc.label}區 ${allOn ? "全部取消" : "全選"}（目前 ${selectedCount}/${codes.length}）`}
-                                      style={{ width: "16px", height: "16px", accentColor: tc.c, cursor: "pointer", display: "block" }}
+                                      aria-label={`${tc.label} 全選/全部取消`}
+                                      style={{ width: "16px", height: "16px", accentColor: tc.c, cursor: "pointer" }}
                                     />
                                   </td>
-                                  {/* 整個區塊 label + chevron：點這裡折疊 */}
                                   <td colSpan={4}
                                     role="button"
                                     tabIndex={0}
                                     aria-expanded={!collapsed}
-                                    aria-label={`${tc.label} 區，共 ${codes.length} 項，${collapsed ? "點擊展開" : "點擊折疊"}`}
+                                    aria-label={`${tc.label} 區,共 ${codes.length} 項,${collapsed ? "已折疊" : "已展開"}`}
                                     onClick={() => toggleTier(tier)}
                                     onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleTier(tier); } }}
                                     style={{ padding: isMobile ? "9px 10px" : "10px 12px", fontSize: isMobile ? "12px" : "13px", fontWeight: 700, color: tc.c, letterSpacing: "0.03em" }}>
                                     <span style={{ display: "inline-block", width: "14px", transform: collapsed ? "rotate(-90deg)" : "rotate(0)", transition: "transform 0.15s" }} aria-hidden="true">▾</span>
                                     {" "}{tc.icon} {tc.label} · {codes.length} 項 · 已選 {selectedCount}/{codes.length}
-                                  </td>
-                                  <td style={{ padding: isMobile ? "6px 8px" : "8px 12px", textAlign: "right" }}>
-                                    <button onClick={(e) => { e.stopPropagation(); setTierSelection(tier, !allOn); }} style={{
-                                      padding: isMobile ? "4px 10px" : "5px 12px", fontSize: "12px", fontWeight: 600, fontFamily: "inherit",
-                                      border: `1px solid ${tc.c}`, borderRadius: "5px", cursor: "pointer",
-                                      background: allOn ? "#fff" : tc.c, color: allOn ? tc.c : "#fff", whiteSpace: "nowrap",
-                                    }}>{allOn ? "全部取消" : "全選"}</button>
                                   </td>
                                 </tr>
                                 {!collapsed && codes.map(code => {
@@ -2579,6 +3058,13 @@ function App() {
                                   const ov = baseOverrides[code] ?? "";
                                   const invalid = ov !== "" && parseInch(ov) == null;
                                   const displayVal = ov !== "" ? ov : (baseM != null ? frmt(baseM) : "");
+                                  // 已修改：用戶輸入過且合法、且與中位數不同
+                                  const ovParsed = ov !== "" && !invalid ? parseInch(ov) : null;
+                                  const isChanged = ovParsed != null && baseM != null && Math.abs(ovParsed - baseM) > 1e-9;
+                                  const originalTip = isChanged ? `原值 ${frmt(baseM)}"` : undefined;
+                                  const inputBorder = invalid ? "#dc2626" : (isChanged ? "#f59e0b" : "#a7f3d0");
+                                  const inputColor  = invalid ? "#dc2626" : (isChanged ? "#b45309" : "#065f46");
+                                  const cellBg      = isChanged ? "#fffbeb" : "#ecfdf5";
                                   return (
                                     <tr key={code} style={{ borderBottom: "1px solid #f0eeeb", opacity: included ? 1 : 0.35, transition: "opacity 0.15s" }}>
                                       <td style={{ padding: isMobile ? "7px 8px" : "9px 12px" }}>
@@ -2586,26 +3072,40 @@ function App() {
                                           onChange={() => setExcluded(prev => { const n = new Set(prev); n.has(code) ? n.delete(code) : n.add(code); return n; })}
                                           style={{ width: "16px", height: "16px", accentColor: tc.c, cursor: "pointer" }} />
                                       </td>
-                                      <td style={{ padding: isMobile ? "7px 8px" : "9px 12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "13px" : "14px", color: tc.c }}>{code}</td>
-                                      <td style={{ padding: isMobile ? "7px 8px" : "9px 12px" }}>
-                                        <div style={{ fontWeight: 600, color: "#1a1a1a", fontSize: isMobile ? "13px" : "14px" }}>{pn.en || code}</div>
-                                        {pn.zh && <div style={{ fontSize: isMobile ? "11px" : "12px", color: "#888", marginTop: "1px" }}>{pn.zh}</div>}
+                                      <td style={{ padding: isMobile ? "8px 10px" : "9px 12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", fontSize: "14px", color: tc.c }}>{code}</td>
+                                      <td style={{ padding: isMobile ? "8px 10px" : "9px 12px" }}>
+                                        <div style={{ fontWeight: 600, color: "#1a1a1a", fontSize: "14px" }}>{pn.en || code}</div>
+                                        {pn.zh && <div style={{ fontSize: "12px", color: "#888", marginTop: "2px" }}>{pn.zh}</div>}
                                       </td>
-                                      <td style={{ padding: isMobile ? "7px 8px" : "9px 12px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "13px" : "14px", color: "#7e22ce", fontWeight: 600, whiteSpace: "nowrap" }}>{tolStr(m)}</td>
+                                      <td style={{ padding: isMobile ? "8px 10px" : "9px 12px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", fontSize: "14px", color: "#7e22ce", fontWeight: 600, whiteSpace: "nowrap" }}>{tolStr(m)}</td>
                                       <td style={{ padding: isMobile ? "6px 8px" : "6px 12px", textAlign: "right", background: "#ecfdf5" }}>
                                         <input type="text" value={displayVal}
                                           onChange={(e) => setBaseOverrides(prev => ({ ...prev, [code]: e.target.value }))}
+                                          onBlur={() => {
+                                            const raw = baseOverrides[code];
+                                            if (raw == null || raw === "") return;
+                                            const parsed = parseInch(raw);
+                                            if (parsed == null) return;
+                                            const normalized = frmt(parsed);
+                                            if (normalized !== "—" && normalized !== raw) {
+                                              setBaseOverrides(prev => ({ ...prev, [code]: normalized }));
+                                            }
+                                          }}
+                                          onKeyDown={(e) => {
+                                            if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); }
+                                          }}
                                           disabled={!included}
                                           placeholder={baseM != null ? frmt(baseM) : "—"}
                                           inputMode="text"
+                                          title={isChanged ? `${originalTip} · 雙擊還原` : undefined}
                                           style={{
-                                            width: isMobile ? "84px" : "100px", textAlign: "right", padding: "6px 8px",
-                                            fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "13px" : "14px", fontWeight: 700,
+                                            width: isMobile ? "92px" : "104px", textAlign: "right", padding: "7px 9px",
+                                            fontFamily: "'JetBrains Mono',monospace", fontSize: "14px", fontWeight: 700,
                                             color: invalid ? "#dc2626" : "#065f46",
                                             border: `1px solid ${invalid ? "#dc2626" : "#a7f3d0"}`, borderRadius: "5px",
                                             background: "#fff",
                                           }} />
-                                        <span style={{ fontSize: "12px", color: "#065f46", marginLeft: "3px" }}>"</span>
+                                        <span style={{ fontSize: "13px", color: "#065f46", marginLeft: "3px" }}>"</span>
                                       </td>
                                     </tr>
                                   );
@@ -2781,16 +3281,11 @@ function App() {
                 )}
 
                 <div style={{ display: "flex", gap: "8px", marginTop: "20px" }}>
-                  <button style={{
+                  <button onClick={exportTechpack} style={{
                     flex: 1, padding: "12px", background: "#1a1a1a", color: "#fff",
                     border: "none", borderRadius: "8px", fontSize: "13px", fontWeight: 600,
                     cursor: "pointer", fontFamily: "inherit",
-                  }}>Export Techpack</button>
-                  <button style={{
-                    padding: "12px 18px", background: "#fff", color: "#999",
-                    border: "1px solid #eee", borderRadius: "8px",
-                    fontSize: "12px", cursor: "pointer", fontFamily: "inherit"
-                  }}>Export CSV</button>
+                  }}>Export JSON</button>
                 </div>
               </div>
             )}
@@ -2841,12 +3336,24 @@ function App() {
                 }
                 return mv[code]?.size_medians?.M;
               };
+              // 全碼 size 值:missy (XXS/XS/S/M/L/XL/XXL) 用 M + 步進 × 跳碼
+              // 推導 — M 改,整條跟著走,且能濾掉 size_medians 的噪音 (歷史中位數
+              // 在小樣本 size 上常有壞值)。Plus (1X/2X/3X/4X) 有自己的 anchor,
+              // 沒有對應的 tiny-to-plus 線性關係,維持原本 "origS + ΔM" 位移。
+              const isPlus = s => /^\d+X$/.test(s);
+              const missySeq = sizes.filter(x => !isPlus(x));
+              const mIdxMissy = missySeq.indexOf("M");
               const sizeValueFor = (code, s) => {
                 const origM = mv[code]?.size_medians?.M;
                 const origS = mv[code]?.size_medians?.[s];
-                if (origS == null) return null;
                 const newM = effectiveBaseM(code);
-                if (newM == null || origM == null) return origS;
+                if (newM == null) return origS ?? null;
+                if (!isPlus(s) && mIdxMissy >= 0) {
+                  const sIdx = missySeq.indexOf(s);
+                  const inc = gr[code]?.typical_increment;
+                  if (sIdx >= 0 && inc != null) return newM + (sIdx - mIdxMissy) * inc;
+                }
+                if (origS == null || origM == null) return origS ?? null;
                 return origS + (newM - origM);
               };
 
@@ -2875,19 +3382,72 @@ function App() {
 
                   {gradingCodes.length === 0 ? (
                     <div style={{ background: "#fff", border: "1px dashed #e8e5e1", borderRadius: "10px", padding: "20px", textAlign: "center", fontSize: "12px", color: "#999" }}>
-                      尚未勾選任何 POM — 回「基碼 / POM 確認」勾選
+                      尚未勾選任何 POM — 回「基碼確認」勾選
+                    </div>
+                  ) : isMobile ? (
+                    /* 手機版：每個 POM 一張卡片，size 值用 4 欄 grid 呈現（避免水平捲動） */
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                      {gradingCodes.map(code => {
+                        const tier = tierOf(code);
+                        const tc = TIER[tier];
+                        const grRow = gr[code];
+                        const m = mr[tier]?.[code];
+                        const pn = pomNames[code] || {};
+                        const edited = baseOverrides[code] != null && baseOverrides[code] !== "" && parseInch(baseOverrides[code]) != null;
+                        const incText = grRow?.typical_increment != null ? (grRow.typical_increment >= 0 ? "+" : "") + frmt(grRow.typical_increment) + '"' : "—";
+                        return (
+                          <div key={code} style={{
+                            background: "#fff", border: "1px solid #e8e5e1", borderRadius: "10px",
+                            padding: "10px 12px",
+                          }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "8px", marginBottom: "6px" }}>
+                              <div style={{ display: "flex", alignItems: "baseline", gap: "8px", flex: 1, minWidth: 0 }}>
+                                <span style={{ fontFamily: "'JetBrains Mono',monospace", fontWeight: 700, color: tc.c, fontSize: "13px" }}>{code}</span>
+                                <span style={{ fontSize: "12px", color: "#1a1a1a", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis" }}>{pn.en || code}</span>
+                              </div>
+                              {edited && <span style={{ fontSize: "9px", color: "#7e22ce", background: "#f5f3ff", padding: "2px 6px", borderRadius: "3px", fontWeight: 600, whiteSpace: "nowrap" }}>已調整</span>}
+                            </div>
+                            <div style={{ display: "flex", gap: "14px", fontSize: "10px", color: "#888", marginBottom: "8px", paddingBottom: "8px", borderBottom: "1px solid #f5f5f5" }}>
+                              <span>公差 <span style={{ fontFamily: "'JetBrains Mono',monospace", color: "#525252", fontWeight: 600 }}>{tolStr(m)}</span></span>
+                              <span>跳碼 <span style={{ fontFamily: "'JetBrains Mono',monospace", color: "#b45309", fontWeight: 600 }}>{incText}</span></span>
+                            </div>
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "5px" }}>
+                              {sizes.map(s => {
+                                const val = sizeValueFor(code, s);
+                                const isM = s === "M";
+                                return (
+                                  <div key={s} style={{
+                                    padding: "5px 4px",
+                                    background: isM ? "#ecfdf5" : "#fafafa",
+                                    border: isM ? "1px solid #a7f3d0" : "1px solid transparent",
+                                    borderRadius: "5px", textAlign: "center",
+                                  }}>
+                                    <div style={{ fontSize: "9px", color: isM ? "#065f46" : "#888", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", letterSpacing: "0.02em" }}>
+                                      {s}{isM && " · BASE"}
+                                    </div>
+                                    <div style={{ fontSize: "12px", color: isM ? "#065f46" : "#1a1a1a", fontWeight: isM ? 700 : 600, fontFamily: "'JetBrains Mono',monospace", marginTop: "1px" }}>
+                                      {val != null ? frmt(val) + '"' : "—"}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   ) : (
+                    /* 桌機：保留寬表格 */
                     <div style={{ background: "#fff", border: "1px solid #e8e5e1", borderRadius: "10px", overflow: "auto" }}>
-                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: isMobile ? "10.5px" : "11px" }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px" }}>
                         <thead>
                           <tr style={{ background: "#faf9f7", borderBottom: "1.5px solid #e8e5e1" }}>
-                            <th style={{ padding: "8px 8px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", position: "sticky", left: 0, background: "#faf9f7", width: isMobile ? "50px" : "60px" }}>POM</th>
-                            <th style={{ padding: "8px 8px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", minWidth: isMobile ? "100px" : "120px" }}>Name</th>
-                            <th style={{ padding: "8px 8px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#7e22ce", width: isMobile ? "56px" : "70px" }}>公差</th>
-                            <th style={{ padding: "8px 8px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#b45309", width: isMobile ? "56px" : "70px" }}>跳碼<div style={{ fontSize: "8px", fontWeight: 400, color: "#b45309" }}>Grading</div></th>
+                            <th style={{ padding: "8px 8px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", position: "sticky", left: 0, background: "#faf9f7", width: "60px" }}>POM</th>
+                            <th style={{ padding: "8px 8px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", minWidth: "120px" }}>Name</th>
+                            <th style={{ padding: "8px 8px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#999", width: "70px" }}>公差</th>
+                            <th style={{ padding: "8px 8px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#b45309", width: "70px" }}>跳碼<div style={{ fontSize: "8px", fontWeight: 400, color: "#b45309" }}>Grading</div></th>
                             {sizes.map(s => (
-                              <th key={s} style={{ padding: "8px 6px", textAlign: "center", fontWeight: 700, fontSize: "10px", color: s === "M" ? "#065f46" : "#666", fontFamily: "'JetBrains Mono',monospace", background: s === "M" ? "#ecfdf5" : "transparent", minWidth: isMobile ? "42px" : "48px" }}>{s}{s === "M" && <div style={{ fontSize: "7px", color: "#065f46" }}>BASE</div>}</th>
+                              <th key={s} style={{ padding: "8px 6px", textAlign: "center", fontWeight: 700, fontSize: "10px", color: s === "M" ? "#065f46" : "#666", fontFamily: "'JetBrains Mono',monospace", background: s === "M" ? "#ecfdf5" : "transparent", minWidth: s === "M" ? (isMobile ? "84px" : "96px") : (isMobile ? "42px" : "48px") }}>{s}{s === "M" && <div style={{ fontSize: "7px", color: "#065f46" }}>BASE · 可編輯</div>}</th>
                             ))}
                           </tr>
                         </thead>
@@ -2902,11 +3462,11 @@ function App() {
                             return (
                               <tr key={code} style={{ borderBottom: "1px solid #f0eeeb" }}>
                                 <td style={{ padding: "5px 8px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: tc.c, position: "sticky", left: 0, background: "#fff" }}>{code}</td>
-                                <td style={{ padding: "5px 8px", fontSize: isMobile ? "10.5px" : "11px", color: "#1a1a1a" }}>
+                                <td style={{ padding: "5px 8px", fontSize: "11px", color: "#1a1a1a" }}>
                                   {pn.en || code}
                                   {edited && <span style={{ marginLeft: "6px", fontSize: "9px", color: "#7e22ce", background: "#f5f3ff", padding: "1px 5px", borderRadius: "3px", fontWeight: 600, whiteSpace: "nowrap" }}>已調整</span>}
                                 </td>
-                                <td style={{ padding: "5px 8px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", color: "#7e22ce", fontWeight: 600, whiteSpace: "nowrap" }}>
+                                <td style={{ padding: "5px 8px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", color: "#525252", fontWeight: 600, whiteSpace: "nowrap" }}>
                                   {tolStr(m)}
                                 </td>
                                 <td style={{ padding: "5px 8px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", color: "#b45309", fontWeight: 600, whiteSpace: "nowrap" }}>
@@ -2914,8 +3474,41 @@ function App() {
                                 </td>
                                 {sizes.map(s => {
                                   const val = sizeValueFor(code, s);
+                                  if (s === "M") {
+                                    const baseMRaw = mv[code]?.size_medians?.M;
+                                    const ov = baseOverrides[code] ?? "";
+                                    const invalid = ov !== "" && parseInch(ov) == null;
+                                    const displayVal = ov !== "" ? ov : (baseMRaw != null ? frmt(baseMRaw) : "");
+                                    return (
+                                      <td key={s} style={{ padding: "4px 6px", textAlign: "center", background: "#ecfdf5" }}>
+                                        <input type="text" value={displayVal}
+                                          onChange={(e) => setBaseOverrides(prev => ({ ...prev, [code]: e.target.value }))}
+                                          onBlur={() => {
+                                            const raw = baseOverrides[code];
+                                            if (raw == null || raw === "") return;
+                                            const parsed = parseInch(raw);
+                                            if (parsed == null) return;
+                                            const normalized = frmt(parsed);
+                                            if (normalized !== "—" && normalized !== raw) {
+                                              setBaseOverrides(prev => ({ ...prev, [code]: normalized }));
+                                            }
+                                          }}
+                                          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); } }}
+                                          placeholder={baseMRaw != null ? frmt(baseMRaw) : "—"}
+                                          inputMode="text"
+                                          aria-label={`${code} Base M`}
+                                          style={{
+                                            width: isMobile ? "72px" : "84px", textAlign: "center", padding: "5px 6px",
+                                            fontFamily: "'JetBrains Mono',monospace", fontSize: "13px", fontWeight: 700,
+                                            color: invalid ? "#dc2626" : "#065f46",
+                                            border: `1px solid ${invalid ? "#dc2626" : "#a7f3d0"}`, borderRadius: "5px",
+                                            background: "#fff",
+                                          }} />
+                                      </td>
+                                    );
+                                  }
                                   return (
-                                    <td key={s} style={{ padding: "5px 6px", textAlign: "center", fontFamily: "'JetBrains Mono',monospace", color: s === "M" ? "#065f46" : "#1a1a1a", fontWeight: s === "M" ? 700 : 500, background: s === "M" ? "#ecfdf5" : "transparent" }}>
+                                    <td key={s} style={{ padding: "5px 6px", textAlign: "center", fontFamily: "'JetBrains Mono',monospace", color: "#1a1a1a", fontWeight: 500 }}>
                                       {val != null ? frmt(val) + '"' : "—"}
                                     </td>
                                   );
@@ -2963,6 +3556,34 @@ function App() {
         onUploadPartPresence={applyPartPresenceOverride}
         onClearPartPresence={clearPartPresenceOverride}
       />
+      <OnboardingModal open={onboardingOpen} onDismiss={dismissOnboarding} />
+
+      {undoToast && (
+        <div role="status" aria-live="polite" style={{
+          position: "fixed", left: "50%", bottom: "24px",
+          transform: "translateX(-50%)",
+          background: "#1a1a1a", color: "#fff",
+          padding: "10px 14px 10px 16px", borderRadius: "10px",
+          fontSize: "13px", fontWeight: 500,
+          display: "flex", alignItems: "center", gap: "14px",
+          boxShadow: "0 8px 24px rgba(0,0,0,0.22)",
+          zIndex: 200, animation: "slideUp 0.2s ease",
+        }}>
+          <span>{undoToast.message}</span>
+          <button onClick={runUndo} style={{
+            background: "none", border: "none", color: "#86efac",
+            fontSize: "13px", fontWeight: 700, cursor: "pointer",
+            fontFamily: "inherit", padding: "2px 4px",
+          }}>復原</button>
+          <button onClick={() => { if (undoTimerRef.current) clearTimeout(undoTimerRef.current); setUndoToast(null); }}
+            aria-label="關閉"
+            style={{
+              background: "none", border: "none", color: "#999",
+              fontSize: "18px", cursor: "pointer", padding: "0 2px", lineHeight: 1,
+              fontFamily: "inherit",
+            }}>×</button>
+        </div>
+      )}
     </div>
   );
 }
