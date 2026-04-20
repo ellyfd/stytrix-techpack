@@ -2556,11 +2556,23 @@ function App() {
         })
       });
       const data = await resp.json();
-      if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+      if (!resp.ok) {
+        const err = new Error(data.error || `HTTP ${resp.status}`);
+        err.detail = data.detail || null;
+        throw err;
+      }
       // Capture Claude usage stats for display; shape per-pass:
       //   { input_tokens, output_tokens, cache_creation_input_tokens, cache_read_input_tokens }
-      // Sonnet 4.6 rough pricing (USD/M tokens): input $3, output $15, cache_read $0.30, cache_write $3.75
-      const PRICE = { input: 3, output: 15, cache_read: 0.30, cache_write: 3.75 };
+      // Pricing table by model (USD / M tokens).
+      //   Opus 4.7:   input $15 / output $75 / cache_read $1.50 / cache_write $18.75
+      //   Sonnet 4.6: input $3  / output $15 / cache_read $0.30 / cache_write $3.75
+      //   Haiku 4.5:  input $1  / output $5  / cache_read $0.10 / cache_write $1.25
+      const PRICING = {
+        "claude-opus-4-7":   { input: 15,  output: 75, cache_read: 1.50, cache_write: 18.75 },
+        "claude-sonnet-4-6": { input: 3,   output: 15, cache_read: 0.30, cache_write: 3.75 },
+        "claude-haiku-4-5-20251001": { input: 1, output: 5, cache_read: 0.10, cache_write: 1.25 },
+      };
+      const PRICE = PRICING[data.model] || PRICING["claude-opus-4-7"];
       const centsFor = (u) => {
         if (!u) return 0;
         const i = u.input_tokens || 0;
@@ -2875,7 +2887,7 @@ function App() {
       setCStep(2);
     } catch (e) {
       clearInterval(si);
-      setAnalyzeErr(String(e?.message || e));
+      setAnalyzeErr({ message: String(e?.message || e), detail: e?.detail || null });
       setCAnalyzing(false);
       setCStep(0);
     }
@@ -3399,11 +3411,35 @@ function App() {
                           Analyze 失敗
                         </div>
                         <div style={{ fontSize: "12px", color: "#7f1d1d", lineHeight: 1.5, wordBreak: "break-word" }}>
-                          {analyzeErr}
+                          {analyzeErr.message}
                         </div>
-                        <div style={{ fontSize: "11px", color: "#991b1b", marginTop: "8px", lineHeight: 1.5 }}>
-                          可能原因：Claude API 配額用盡、網路中斷、或圖檔格式不支援。檢查環境變數 <code style={{ background: "#fee2e2", padding: "0 4px", borderRadius: "4px" }}>ANTHROPIC_API_KEY</code>
-                        </div>
+                        {(() => {
+                          const msg = analyzeErr.message || "";
+                          let hint = "";
+                          if (/403/.test(msg)) hint = "403 = 權限被拒。此 API key 的 workspace 沒開該模型的存取權（不是 credit 用盡）。到 Anthropic Console 的 workspace settings 確認模型存取清單，或換成已啟用的模型。";
+                          else if (/401/.test(msg)) hint = "401 = API key 無效或未設定。檢查 ANTHROPIC_API_KEY 環境變數。";
+                          else if (/429/.test(msg)) hint = "429 = 超過 rate limit 或 credit 用盡。等幾分鐘再試，或到 Anthropic Console 確認餘額。";
+                          else if (/5\d\d/.test(msg)) hint = "5xx = Anthropic 伺服器端或網路問題，稍後重試。";
+                          else hint = "檢查環境變數 ANTHROPIC_API_KEY 與 workspace 模型存取權。";
+                          return (
+                            <div style={{ fontSize: "11px", color: "#991b1b", marginTop: "8px", lineHeight: 1.5 }}>
+                              {hint}
+                            </div>
+                          );
+                        })()}
+                        {analyzeErr.detail && (
+                          <details style={{ marginTop: "8px" }}>
+                            <summary style={{ fontSize: "11px", color: "#7f1d1d", cursor: "pointer", userSelect: "none" }}>
+                              詳細錯誤訊息（Anthropic 回應）
+                            </summary>
+                            <pre style={{
+                              marginTop: "6px", padding: "8px 10px",
+                              background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "6px",
+                              fontSize: "10px", color: "#7f1d1d", fontFamily: "'JetBrains Mono',monospace",
+                              whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: "140px", overflowY: "auto",
+                            }}>{typeof analyzeErr.detail === "string" ? analyzeErr.detail : JSON.stringify(analyzeErr.detail, null, 2)}</pre>
+                          </details>
+                        )}
                       </div>
                     </div>
                     <div style={{ display: "flex", gap: "8px" }}>

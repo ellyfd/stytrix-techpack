@@ -225,9 +225,11 @@ Rules:
   return { byCode, usage: data.usage };
 }
 
-// Production-tunable knob: claude-opus-4-7 (~76% L2) vs claude-sonnet-4-6 (~5× cheaper).
-// Sonnet is good enough once the decision-tree prompt infrastructure guides reasoning.
-const CLAUDE_MODEL = "claude-sonnet-4-6";
+// Production-tunable knob.
+//   claude-opus-4-7   — ~76% L2 accuracy, 預設可用（所有 workspace key 都能跑）
+//   claude-sonnet-4-6 — ~5× 便宜，但需要 workspace 啟用 Sonnet 4.6 access；
+//                       未開通會回 403 (permission denied，不是 credit 用盡)。
+const CLAUDE_MODEL = "claude-opus-4-7";
 
 // system + image + user text: system holds the stable, cache-hittable prompt block;
 // user holds image + per-call varying context. Image gets ephemeral cache too so
