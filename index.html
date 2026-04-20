@@ -13,12 +13,6 @@
       outline: 2px solid #065f46;
       outline-offset: 2px;
     }
-    /* Design tokens（文件用；inline style 若要使用可寫 color: "var(--text-muted)"）
-       Text: #1a1a1a 主要 / #525252 強調次要 / #767676 次要 / #999 弱 / #bbb 微弱
-       Border: #e8e5e1 主 / #eee 次 / #ddd 分隔線
-       Bg hover: #faf9f7 溫灰
-       Radius: 4px 小 chip / 6px input / 8px button / 10px card / 999px pill
-       Accent: #065f46 綠（完成、locked） */
   </style>
 </head>
 <body>
@@ -627,7 +621,7 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
             width: "30px", height: "30px", borderRadius: "8px",
             background: isOpen ? col : "#fff",
             color: isOpen ? "#fff" : "#767676",
-            border: isOpen ? "none" : "1.5px solid #e5e5e5",
+            border: isOpen ? "none" : "1.5px solid #eee",
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: "14px", fontWeight: 800, flexShrink: 0,
             marginTop: "1px", transition: "all 0.15s"
@@ -1222,10 +1216,7 @@ function AdminModal({
 }) {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-  const [uploading, setUploading] = useState(null); // null | 'pom' | 'presence'
-  const [rulesError, setRulesError] = useState(null);
-  const [rulesSuccess, setRulesSuccess] = useState(null);
-  const [rulesUploading, setRulesUploading] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const handleFile = async (file) => {
     if (!file) return;
@@ -1328,17 +1319,13 @@ function AdminModal({
                 onChange={e => { handleFile(e.target.files?.[0]); e.target.value = ''; }} />
             </label>
             {pomNamesOverride && (
-              <button onClick={confirmingClear ? doClear : armClear}
-                aria-label={confirmingClear ? "再點一次確認清除覆蓋" : "清除覆蓋並還原內建翻譯表"}
+              <button onClick={() => { onClearPomNames(); setSuccess(null); setError(null); }}
                 style={{
                   padding: '8px 16px',
-                  background: confirmingClear ? '#dc2626' : '#fff',
-                  border: `1px solid ${confirmingClear ? '#dc2626' : '#e8e5e1'}`,
-                  borderRadius: '6px',
-                  cursor: 'pointer', fontSize: '12px', fontWeight: 600,
-                  color: confirmingClear ? '#fff' : '#dc2626',
-                  fontFamily: 'inherit', transition: 'background 0.15s, color 0.15s, border-color 0.15s',
-                }}>{confirmingClear ? '再點一次確認清除' : '清除覆蓋 · 還原內建'}</button>
+                  background: '#fff', border: '1px solid #e8e5e1', borderRadius: '6px',
+                  cursor: 'pointer', fontSize: '12px', fontWeight: 600, color: '#dc2626',
+                  fontFamily: 'inherit',
+                }}>清除覆蓋 · 還原內建</button>
             )}
           </div>
         </div>
@@ -1615,29 +1602,9 @@ function App() {
     try {
       const locks = JSON.parse(localStorage.getItem("stytrix_locks") || "{}");
       const values = JSON.parse(localStorage.getItem("stytrix_values") || "{}");
-      // 用可同步判斷的選項驗證 stale value；it 之後等 pomRules 載入再驗
-      const validators = {
-        brand: v => BRANDS.some(b => b.code === v),
-        fabric: v => v === "Woven" || v === "Knit",
-        gender: v => GENDER_OPTIONS.some(g => g.value === v),
-        dept: v => DEPT_OPTIONS.includes(v),
-        gt: v => GT_OPTIONS.includes(v),
-      };
       const restored = {};
-      const validLocks = { ...locks };
-      Object.keys(locks).forEach(k => {
-        if (!locks[k]) return;
-        const v = values[k];
-        if (!v) return;
-        const check = validators[k];
-        if (check && !check(v)) {
-          // stale 值：清掉 lock 與 value
-          delete validLocks[k];
-          return;
-        }
-        restored[k] = v;
-      });
-      return { locks: validLocks, values: restored };
+      Object.keys(locks).forEach(k => { if (locks[k] && values[k]) restored[k] = values[k]; });
+      return { locks, values: restored };
     } catch { return { locks: {}, values: {} }; }
   };
   const _saved = loadSaved();
@@ -1675,37 +1642,11 @@ function App() {
   // shape: { index: {filename, uploadedAt, count} | null, buckets: { [bucketKey]: {filename, uploadedAt, count} } }
   const [pomRulesOverride, setPomRulesOverride] = useState({ index: null, buckets: {} });
   const [adminOpen, setAdminOpen] = useState(false);
-  const [fetchErrors, setFetchErrors] = useState([]); // [{key, label, retry}]
-  const addFetchError = (key, label, retry) => {
-    setFetchErrors(prev => prev.some(e => e.key === key) ? prev : [...prev, { key, label, retry }]);
-  };
-  const clearFetchError = (key) => {
-    setFetchErrors(prev => prev.filter(e => e.key !== key));
-  };
-
-  const loadPomIndex = () => {
-    clearFetchError('pom_rules');
+  useEffect(() => {
     fetch('./pom_rules/_index.json')
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(data => { setPomRules(data); window.POM_RULES = data; })
-      .catch(err => {
-        console.error('載入 pom_rules/_index.json 失敗:', err);
-        addFetchError('pom_rules', '基礎 POM 規則表', loadPomIndex);
-      });
-  };
-  const loadPomNames = () => {
-    clearFetchError('pom_names');
-    fetch('./pom_rules/pom_names.json')
-      .then(r => r.ok ? r.json() : Promise.reject(r.status))
-      .then(data => { setPomNames(data); window.POM_NAMES = data; })
-      .catch(err => {
-        console.error('載入 pom_rules/pom_names.json 失敗:', err);
-        addFetchError('pom_names', 'POM 名稱翻譯表', loadPomNames);
-      });
-  };
-
-  useEffect(() => {
-    loadPomIndex();
+      .catch(err => console.error('載入 pom_rules/_index.json 失敗:', err));
     // POM 翻譯表：先看 localStorage 覆蓋，沒有才抓內建
     let usedOverride = false;
     try {
@@ -1724,7 +1665,12 @@ function App() {
         }
       }
     } catch (e) { console.warn('讀取 pomNames 覆蓋失敗:', e); }
-    if (!usedOverride) loadPomNames();
+    if (!usedOverride) {
+      fetch('./pom_rules/pom_names.json')
+        .then(r => r.ok ? r.json() : Promise.reject(r.status))
+        .then(data => { setPomNames(data); window.POM_NAMES = data; })
+        .catch(err => console.error('載入 pom_rules/pom_names.json 失敗:', err));
+    }
   }, []);
 
   /* ── Admin override handlers ── */
@@ -2037,20 +1983,12 @@ function App() {
       }
     } catch (e) { console.warn('讀取 bucket 覆蓋失敗:', e); }
     if (!bucketMeta) { setCurrentBucket(null); return; }
-    const load = () => {
-      clearFetchError('bucket');
-      setBucketLoading(true);
-      fetch(`./pom_rules/${bucketMeta.file}`)
-        .then(r => r.ok ? r.json() : Promise.reject(r.status))
-        .then(data => { setCurrentBucket(data); window.CURRENT_BUCKET = data; })
-        .catch(err => {
-          console.error('載入 bucket 失敗:', err);
-          setCurrentBucket(null);
-          addFetchError('bucket', `${bucketMeta.file}（基碼表）`, load);
-        })
-        .finally(() => setBucketLoading(false));
-    };
-    load();
+    setBucketLoading(true);
+    fetch(`./pom_rules/${bucketMeta.file}`)
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(data => { setCurrentBucket(data); window.CURRENT_BUCKET = data; })
+      .catch(err => { console.error('載入 bucket 失敗:', err); setCurrentBucket(null); })
+      .finally(() => setBucketLoading(false));
   }, [bucketMeta]);
   const handleSketchUpload = (e) => {
     const file = e.target.files?.[0];
@@ -2106,32 +2044,26 @@ function App() {
 
   // 大 JSON 懶載：只在用戶上傳 sketch 後才抓。首屏省 ~900KB，
   // 純用尺寸表的流程完全不下載這三個檔。
-  const loadIsoRec = () => {
-    clearFetchError('iso_rec');
-    fetch('./l1_iso_recommendations_v1.json')
-      .then(r => r.ok ? r.json() : Promise.reject(r.status))
-      .then(setIsoRec)
-      .catch(err => { console.error('載入 l1_iso_recommendations 失敗:', err); addFetchError('iso_rec', 'ISO 推薦表', loadIsoRec); });
-  };
-  const loadPartPresence = () => {
-    clearFetchError('part_presence');
-    fetch('./l1_part_presence_v1.json')
-      .then(r => r.ok ? r.json() : Promise.reject(r.status))
-      .then(setPartPresence)
-      .catch(err => { console.error('載入 l1_part_presence 失敗:', err); addFetchError('part_presence', '部位存在檢查表', loadPartPresence); });
-  };
-  const loadVisualGuide = () => {
-    clearFetchError('visual_guide');
-    fetch('./data/l2_visual_guide.json')
-      .then(r => r.ok ? r.json() : Promise.reject(r.status))
-      .then(setVisualGuide)
-      .catch(err => { console.error('載入 l2_visual_guide 失敗:', err); addFetchError('visual_guide', 'L2 視覺指引', loadVisualGuide); });
-  };
   useEffect(() => {
     if (!sketchSrc) return;
-    if (!isoRec) loadIsoRec();
-    if (!partPresence) loadPartPresence();
-    if (!visualGuide) loadVisualGuide();
+    if (!isoRec) {
+      fetch('./l1_iso_recommendations_v1.json')
+        .then(r => r.ok ? r.json() : Promise.reject(r.status))
+        .then(setIsoRec)
+        .catch(err => console.error('載入 l1_iso_recommendations 失敗:', err));
+    }
+    if (!partPresence) {
+      fetch('./l1_part_presence_v1.json')
+        .then(r => r.ok ? r.json() : Promise.reject(r.status))
+        .then(setPartPresence)
+        .catch(err => console.error('載入 l1_part_presence 失敗:', err));
+    }
+    if (!visualGuide) {
+      fetch('./data/l2_visual_guide.json')
+        .then(r => r.ok ? r.json() : Promise.reject(r.status))
+        .then(setVisualGuide)
+        .catch(err => console.error('載入 l2_visual_guide 失敗:', err));
+    }
   }, [sketchSrc]);
 
   /* ── 尺寸表 tab state ── */
@@ -2258,14 +2190,6 @@ function App() {
     if (!gt) return [];
     return IT_OPTIONS[gt] || [];
   }, [gt]);
-
-  // 清掉 stale 的 Item Type（例如 gt 改了、IT_OPTIONS 變動，之前鎖的 it 已不存在）
-  useEffect(() => {
-    if (it && gt && !curItOptions.includes(it)) {
-      setIt("");
-      setLocks(prev => prev.it ? { ...prev, it: false } : prev);
-    }
-  }, [it, gt, curItOptions]);
 
   const ptCount = useMemo(() => {
     let p = 0, t = 0;
@@ -2685,27 +2609,6 @@ function App() {
           })()}
         </div>
       </div>
-
-      {fetchErrors.length > 0 && (
-        <div role="alert" aria-live="polite" style={{
-          position: "sticky", top: 0, zIndex: 80,
-          background: "#fef2f2", borderBottom: "1px solid #fecaca",
-          padding: isMobile ? "8px 14px" : "10px 28px",
-          display: "flex", flexDirection: isMobile ? "column" : "row",
-          alignItems: isMobile ? "stretch" : "center", gap: "8px",
-          fontSize: "12px", color: "#991b1b", fontFamily: "inherit",
-        }}>
-          <span style={{ fontWeight: 600 }}>⚠ 資料載入失敗：</span>
-          <span style={{ flex: 1 }}>{fetchErrors.map(e => e.label).join("、")}。部分功能可能不可用。</span>
-          <button onClick={() => fetchErrors.forEach(e => e.retry && e.retry())}
-            style={{
-              padding: "4px 12px", background: "#fff", color: "#b91c1c",
-              border: "1px solid #fca5a5", borderRadius: "6px",
-              fontSize: "11px", fontWeight: 600, cursor: "pointer",
-              fontFamily: "inherit", whiteSpace: "nowrap",
-            }}>重試</button>
-        </div>
-      )}
 
       <div style={{ maxWidth: "1280px", margin: "0 auto", padding: isMobile ? "14px 14px" : "24px 28px" }}>
         {/* ─── Filter (v10: flush underline selects) ─── */}
@@ -3432,8 +3335,7 @@ function App() {
                     <div style={{ fontSize: isMobile ? "14px" : "15px", fontWeight: 700, color: "#1a1a1a", marginTop: "4px", marginBottom: "8px" }}>
                       基碼 <span style={{ fontSize: isMobile ? "12px" : "13px", color: "#888", fontWeight: 400 }}>M size 基本尺寸 · 勾選要納入的 POM，並可手動調整尺寸</span>
                     </div>
-                    <div style={{ position: "relative", marginBottom: "12px" }}>
-                    <div className="stytrix-scroll-x" style={{ background: "#fff", border: "1px solid #e8e5e1", borderRadius: "10px", overflowX: "auto", overflowY: "visible", WebkitOverflowScrolling: "touch" }}>
+                    <div style={{ background: "#fff", border: "1px solid #e8e5e1", borderRadius: "10px", overflow: "auto", marginBottom: "12px" }}>
                       <table style={{ width: "100%", minWidth: isMobile ? "680px" : "auto", borderCollapse: "collapse", fontSize: "14px" }}>
                         <thead>
                           <tr style={{ background: "#faf9f7", borderBottom: "1.5px solid #e8e5e1" }}>
@@ -3544,15 +3446,6 @@ function App() {
                           })}
                         </tbody>
                       </table>
-                    </div>
-                    {isMobile && (
-                      <div aria-hidden="true" style={{
-                        position: "absolute", top: 0, right: 0, bottom: 0,
-                        width: "28px", pointerEvents: "none",
-                        background: "linear-gradient(to left, rgba(255,255,255,0.95), rgba(255,255,255,0))",
-                        borderTopRightRadius: "10px", borderBottomRightRadius: "10px",
-                      }} />
-                    )}
                     </div>
 
                   {/* Sticky 底部動作列 — 基碼確認頁：右下「下一頁 · 全碼 →」 */}
