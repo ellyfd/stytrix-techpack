@@ -48,7 +48,7 @@ const BRANDS = [
    + l2_l3_ie/<code>.json (L2 shape / L5 step IE). Shape per card:
    { id, l1, l1_code, l2, ie, source, conf, matchCode, action,
      px, py, side, l3s: [{name, ie, auto, pick, opts:[{n,p}]}] }
-   source: ai = AI vision 偵測, struct = 結構推斷
+   source: ai = AI vision 偵測, struct = 結構推斷（l1_part_presence 歷史補位）
    action: auto_recommend | recommend_with_alternatives | user_select */
 
 /* L1 code → Chinese name, for mapping xlsx-side codes (what /api/analyze
@@ -75,16 +75,8 @@ const TAGS = [
   { l: "口袋", c: "#b45309" }, { l: "High Rise", c: "#065f46" }, { l: "褶", c: "#a21caf" }
 ];
 const SRC = {
-  ai:       { label: "AI 偵測", bg: "#e0f2fe", c: "#0369a1", icon: "👁" },
-  struct:   { label: "結構推斷", bg: "#d1fae5", c: "#065f46", icon: "⚙" },
-  presence: { label: "歷史資料", bg: "#fef3c7", c: "#92400e", icon: "📊" }
-};
-
-const TIER_BADGE = {
-  essential:  { label: "必備",  bg: "#dcfce7", c: "#15803d" },
-  common:     { label: "常見",  bg: "#dbeafe", c: "#1d4ed8" },
-  occasional: { label: "偶爾",  bg: "#f1f5f9", c: "#475569" },
-  rare:       { label: "少見",  bg: "#fee2e2", c: "#b91c1c" }
+  ai:     { label: "AI 偵測",   bg: "#e0f2fe", c: "#0369a1", icon: "👁" },
+  struct: { label: "結構推斷",   bg: "#d1fae5", c: "#065f46", icon: "⚙" }
 };
 
 /* ─── 長度相關 POM codes（PETITE / TALL 跟 MISSY 有差的） ─── */
@@ -1674,7 +1666,7 @@ function App() {
       // Normalize xlsx Chinese names to ISO-JSON Chinese names (different character choices).
       const ISO_NAME_ALIAS = {
         "帽子":"帽", "下襬":"下擺", "商標":"標",
-        "脅邊":"脇縫", "行縫(固定棉)":"行縫固定棉",
+        "脅邊":"脇縫",
         "袖孔":"袖襱", "袖圍":"袖襱"
       };
       const findIso = (name) => isoByName[name]
@@ -1826,7 +1818,7 @@ function App() {
             ? `${l2Base}${l4Short ? " · " + l4Short : ""}`
             : (rec ? `${rec.recommended_iso} ${isoRec?.iso_reference?.[rec.recommended_iso]?.zh || ""}` : "—"),
           l2Base,
-          source: d._fromPresence ? "presence" : "ai",
+          source: d._fromPresence ? "struct" : "ai",
           conf: Number.isFinite(d.confidence) ? d.confidence : null,
           matchCode: null,
           px: Number.isFinite(d.x) ? d.x : 50,
