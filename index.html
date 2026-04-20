@@ -2679,7 +2679,7 @@ function App() {
         "claude-sonnet-4-6": { input: 3,   output: 15, cache_read: 0.30, cache_write: 3.75 },
         "claude-haiku-4-5-20251001": { input: 1, output: 5, cache_read: 0.10, cache_write: 1.25 },
       };
-      const PRICE = PRICING[data.model] || PRICING["claude-opus-4-7"];
+      const PRICE = PRICING[data.model] || PRICING["claude-sonnet-4-6"];
       const centsFor = (u) => {
         if (!u) return 0;
         const i = u.input_tokens || 0;
