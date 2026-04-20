@@ -46,7 +46,7 @@ export default async function handler(request) {
 
   // Path 2 通用模型只需要 L1 偵測結果即可；省掉 Pass 2 的 decision-tree 推論。
   if (skipPass2) {
-    return json({ detected: detected.list, usage_l1: detected.usage, model: CLAUDE_MODEL, mode: "universal" });
+    return json({ detected: detected.list, usage_l1: detected.usage, model: detected.model, mode: "universal" });
   }
 
   // ── Pass 2: for each detected L1, walk the decision tree to identify L2.
@@ -76,7 +76,7 @@ export default async function handler(request) {
     detected: merged,
     usage_l1: detected.usage,
     usage_l2: l2Map.usage,
-    model: CLAUDE_MODEL,
+    model: l2Map.model || detected.model,
   });
 }
 
@@ -124,7 +124,7 @@ Rules:
   const parsed = parseJson(data.text);
   if (!parsed) return { error: "non-JSON response from Claude (L1)", raw: data.text };
   const list = (parsed.detected || []).filter(d => d && L1_CODES[d.code]);
-  return { list, usage: data.usage };
+  return { list, usage: data.usage, model: data.model };
 }
 
 let _guideCache = null;
@@ -222,22 +222,23 @@ Rules:
       alternatives: [], // legacy field kept empty; merged_candidates supersedes it
     };
   }
-  return { byCode, usage: data.usage };
+  return { byCode, usage: data.usage, model: data.model };
 }
 
-// Production-tunable knob.
-//   claude-opus-4-7             — ~76% L2 accuracy（最準，成本最高）
-//   claude-sonnet-4-6           — ~5× 便宜，Workbench 可選；此 key 若 403 會在 UI
-//                                  顯示 Anthropic 原始錯誤訊息，可據以排查
-//   claude-haiku-4-5-20251001   — ~15× 便宜，最寬鬆（準確率較低）
-const CLAUDE_MODEL = "claude-opus-4-7";
+// Model fallback chain — 第一個 403/404（workspace 無存取權或 model id 不認得）
+// 就自動試下一個，避免每次 Anthropic key 的存取權變動都要手動改 code。
+// 順序由準到寬鬆：opus-4-7 > sonnet-4-6 > haiku-4-5。
+const CLAUDE_MODELS = [
+  "claude-opus-4-7",
+  "claude-sonnet-4-6",
+  "claude-haiku-4-5-20251001"
+];
 
 // system + image + user text: system holds the stable, cache-hittable prompt block;
 // user holds image + per-call varying context. Image gets ephemeral cache too so
 // Pass 1 and Pass 2 on the same sketch share the image tokenization.
 async function callClaude(apiKey, mediaType, b64, { system, userText }, maxTokens = 2000) {
-  const body = {
-    model: CLAUDE_MODEL,
+  const baseBody = {
     max_tokens: maxTokens,
     messages: [{
       role: "user",
@@ -254,24 +255,32 @@ async function callClaude(apiKey, mediaType, b64, { system, userText }, maxToken
   if (system) {
     // Array form lets us attach cache_control to the stable block so repeated
     // analyses across different sketches share the system-prompt cache.
-    body.system = [{ type: "text", text: system, cache_control: { type: "ephemeral" } }];
+    baseBody.system = [{ type: "text", text: system, cache_control: { type: "ephemeral" } }];
   }
-  const resp = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-      "anthropic-beta": "prompt-caching-2024-07-31"
-    },
-    body: JSON.stringify(body)
-  });
-  if (!resp.ok) {
-    const detail = await resp.text();
-    return { error: `Claude API ${resp.status}`, detail };
+
+  let lastStatus = null, lastDetail = null, lastModel = null;
+  for (const model of CLAUDE_MODELS) {
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-beta": "prompt-caching-2024-07-31"
+      },
+      body: JSON.stringify({ model, ...baseBody })
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      return { text: data.content?.[0]?.text || "", usage: data.usage || null, model };
+    }
+    lastStatus = resp.status;
+    lastDetail = await resp.text();
+    lastModel = model;
+    // 只針對「此 key 對此 model 無存取權」才換下一個；其它（400/429/5xx）直接回報。
+    if (resp.status !== 403 && resp.status !== 404) break;
   }
-  const data = await resp.json();
-  return { text: data.content?.[0]?.text || "", usage: data.usage || null, model: CLAUDE_MODEL };
+  return { error: `Claude API ${lastStatus} (model=${lastModel})`, detail: lastDetail };
 }
 
 function parseJson(text) {
