@@ -2144,9 +2144,10 @@ function App() {
   // Plus sizes 有自己的 2X 基碼(獨立於 Missy M),預設不顯示 Plus
   const [plusBaseOverrides, setPlusBaseOverrides] = useState({});
   const [showPlus, setShowPlus] = useState(false);
-  // Size run:regular / petite / tall。非 regular 會在 sizeValueFor 加上
-  // bucket.size_run_offsets[sizeRun][code] 的 offset(目前大多 bucket 還沒這層資料)
-  const [sizeRun, setSizeRun] = useState('regular');
+  // Size run variant:regular / petite / tall。非 regular 會在 sizeValueFor 加上
+  // bucket.size_run_offsets[sizeRunVariant][code] 的 offset。
+  // 命名上不用 `sizeRun` 以免跟上面 missy/plus 那個舊 sizeRun 衝突。
+  const [sizeRunVariant, setSizeRunVariant] = useState('regular');
   // 手機版斷點（< 720px）：表格切換為卡片 / 精簡欄位
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== "undefined" && window.matchMedia && window.matchMedia("(max-width: 720px)").matches
@@ -2166,7 +2167,7 @@ function App() {
     setBaseOverrides({});
     setPlusBaseOverrides({});
     setShowPlus(false);
-    setSizeRun('regular');
+    setSizeRunVariant('regular');
   }, [currentBucket?.bucket]);
 
   /* ── Derived ── */
@@ -3851,7 +3852,7 @@ function App() {
               // Size run offset:非 regular 時,每個 POM 加上 bucket 提供的 offset
               // (schema: size_run_offsets = { petite: {code: delta}, tall: {code: delta} })
               const runOffsets = currentBucket.size_run_offsets || {};
-              const activeOffsets = sizeRun === 'regular' ? null : (runOffsets[sizeRun] || null);
+              const activeOffsets = sizeRunVariant === 'regular' ? null : (runOffsets[sizeRunVariant] || null);
               const hasRunData = !!activeOffsets && Object.keys(activeOffsets).length > 0;
               const applyRunOffset = (code, v) => {
                 if (v == null || !activeOffsets) return v;
@@ -3893,9 +3894,9 @@ function App() {
                         <span style={{ fontSize: "11px", color: "#888", fontWeight: 500 }}>Run</span>
                         <div style={{ display: "inline-flex", border: "1px solid #e8e5e1", borderRadius: "6px", overflow: "hidden" }}>
                           {['regular','petite','tall'].map(run => {
-                            const active = sizeRun === run;
+                            const active = sizeRunVariant === run;
                             return (
-                              <button key={run} onClick={() => setSizeRun(run)}
+                              <button key={run} onClick={() => setSizeRunVariant(run)}
                                 style={{
                                   padding: "5px 11px", fontSize: "12px", fontWeight: active ? 700 : 500,
                                   background: active ? "#1a1a1a" : "#fff",
@@ -3908,8 +3909,8 @@ function App() {
                             );
                           })}
                         </div>
-                        {sizeRun !== 'regular' && !hasRunData && (
-                          <span style={{ fontSize: "10px", color: "#b45309" }}>(此 bucket 無 {sizeRun === 'petite' ? 'Petite' : 'Tall'} 資料,顯示與 Regular 相同)</span>
+                        {sizeRunVariant !== 'regular' && !hasRunData && (
+                          <span style={{ fontSize: "10px", color: "#b45309" }}>(此 bucket 無 {sizeRunVariant === 'petite' ? 'Petite' : 'Tall'} 資料,顯示與 Regular 相同)</span>
                         )}
                       </div>
                       {hasPlus && (
