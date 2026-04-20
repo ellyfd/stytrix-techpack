@@ -297,6 +297,36 @@ const IT_OPTIONS = {
   SWIM_PIECE:       ["ONE-PIECE","TWO-PIECE","BIKINI","TANKINI"],
 };
 
+/* Item Type 長度提示:下拉會標註「(長度)」讓使用者一眼看出差異。
+   只標有明確長度的 GT(LEGGINGS / SHORTS / DRESS / SKIRT)。 */
+const IT_LENGTH_HINTS = {
+  LEGGINGS: {
+    "FULL LENGTH": '~28"',
+    "7/8":         '~24"',
+    "ANKLE":       '~26"',
+    "CAPRI":       '~20"',
+    "BIKER":       '~5"',
+  },
+  SHORTS: {
+    "BIKE SHORTS":  '~3"',
+    "BOARD SHORTS": '~9"',
+    "BOXER":        '~5"',
+    "RUNNING":      '~4"',
+    "LOUNGE":       '~7"',
+    "DENIM":        '~5"',
+  },
+  DRESS: {
+    "MINI": '膝上',
+    "MIDI": '小腿',
+    "MAXI": '及地',
+  },
+  SKIRT: {
+    "MINI": '膝上',
+    "MIDI": '小腿',
+    "MAXI": '及地',
+  },
+};
+
 /* ─── Helpers ─── */
 /* 英吋顯示:slash 分數格式(與公差欄一致),例 "3/4"、"16 1/2"、"1/8"。
    四捨五入到 1/8",與原本的 unicode frmt 同等精度,避免語意改變。 */
@@ -2150,6 +2180,9 @@ function App() {
   // Plus sizes 有自己的 2X 基碼(獨立於 Missy M),預設不顯示 Plus
   const [plusBaseOverrides, setPlusBaseOverrides] = useState({});
   const [showPlus, setShowPlus] = useState(false);
+  // Size run:regular / petite / tall。非 regular 會在 sizeValueFor 加上
+  // bucket.size_run_offsets[sizeRun][code] 的 offset(目前大多 bucket 還沒這層資料)
+  const [sizeRun, setSizeRun] = useState('regular');
   // 手機版斷點（< 720px）：表格切換為卡片 / 精簡欄位
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== "undefined" && window.matchMedia && window.matchMedia("(max-width: 720px)").matches
@@ -2169,6 +2202,7 @@ function App() {
     setBaseOverrides({});
     setPlusBaseOverrides({});
     setShowPlus(false);
+    setSizeRun('regular');
   }, [currentBucket?.bucket]);
 
   /* ── Derived ── */
@@ -2262,6 +2296,17 @@ function App() {
   const curItOptions = useMemo(() => {
     if (!gt) return [];
     return IT_OPTIONS[gt] || [];
+  }, [gt]);
+  // Item Type 下拉 label:附上長度提示,例如 "FULL LENGTH (~28")"
+  const itLabelMap = useMemo(() => {
+    if (!gt) return {};
+    const hints = IT_LENGTH_HINTS[gt];
+    if (!hints) return {};
+    const map = {};
+    for (const itOpt of (IT_OPTIONS[gt] || [])) {
+      if (hints[itOpt]) map[itOpt] = `${itOpt} (${hints[itOpt]})`;
+    }
+    return map;
   }, [gt]);
 
   // 清掉 stale 的 Item Type（例如 gt 改了、IT_OPTIONS 變動，之前鎖的 it 已不存在）
@@ -2820,6 +2865,7 @@ function App() {
                 locked={!!locks.gt} onToggleLock={() => toggleLock("gt")} />
               <Sel label="Item Type" value={it} onChange={setIt}
                 options={curItOptions}
+                labelMap={itLabelMap}
                 disabled={curItOptions.length === 0}
                 locked={!!locks.it} onToggleLock={() => toggleLock("it")} />
               </div>
@@ -3790,32 +3836,49 @@ function App() {
               };
               const sizeValueFor = (code, s) => {
                 const origS = mv[code]?.size_medians?.[s];
+                let v;
                 if (isPlus(s)) {
                   // Plus 不吃 Missy M,獨立以 plusAnchor 當 base
                   const newBase = effectivePlusBase(code);
                   const origBase = mv[code]?.size_medians?.[plusAnchor];
-                  if (newBase == null) return origS ?? null;
-                  const sIdx = plusSeq.indexOf(s);
-                  const baseIdx = plusSeq.indexOf(plusAnchor);
-                  const inc = gr[code]?.typical_increment;
-                  if (sIdx >= 0 && baseIdx >= 0 && inc != null) return newBase + (sIdx - baseIdx) * inc;
-                  if (origS == null || origBase == null) return origS ?? null;
-                  return origS + (newBase - origBase);
+                  if (newBase == null) v = origS ?? null;
+                  else {
+                    const sIdx = plusSeq.indexOf(s);
+                    const baseIdx = plusSeq.indexOf(plusAnchor);
+                    const inc = gr[code]?.typical_increment;
+                    if (sIdx >= 0 && baseIdx >= 0 && inc != null) v = newBase + (sIdx - baseIdx) * inc;
+                    else if (origS == null || origBase == null) v = origS ?? null;
+                    else v = origS + (newBase - origBase);
+                  }
+                } else {
+                  const origM = mv[code]?.size_medians?.M;
+                  const newM = effectiveBaseM(code);
+                  if (newM == null) v = origS ?? null;
+                  else if (mIdxMissy >= 0) {
+                    const sIdx = missySeq.indexOf(s);
+                    const inc = gr[code]?.typical_increment;
+                    if (sIdx >= 0 && inc != null) v = newM + (sIdx - mIdxMissy) * inc;
+                    else if (origS == null || origM == null) v = origS ?? null;
+                    else v = origS + (newM - origM);
+                  } else {
+                    if (origS == null || origM == null) v = origS ?? null;
+                    else v = origS + (newM - origM);
+                  }
                 }
-                // Missy
-                const origM = mv[code]?.size_medians?.M;
-                const newM = effectiveBaseM(code);
-                if (newM == null) return origS ?? null;
-                if (mIdxMissy >= 0) {
-                  const sIdx = missySeq.indexOf(s);
-                  const inc = gr[code]?.typical_increment;
-                  if (sIdx >= 0 && inc != null) return newM + (sIdx - mIdxMissy) * inc;
-                }
-                if (origS == null || origM == null) return origS ?? null;
-                return origS + (newM - origM);
+                return applyRunOffset(code, v);
               };
               // 顯示哪些 sizes:預設只 missy;showPlus=true 才 append plus
               const visibleSizes = showPlus ? [...missySeq, ...plusSeq] : missySeq;
+              // Size run offset:非 regular 時,每個 POM 加上 bucket 提供的 offset
+              // (schema: size_run_offsets = { petite: {code: delta}, tall: {code: delta} })
+              const runOffsets = currentBucket.size_run_offsets || {};
+              const activeOffsets = sizeRun === 'regular' ? null : (runOffsets[sizeRun] || null);
+              const hasRunData = !!activeOffsets && Object.keys(activeOffsets).length > 0;
+              const applyRunOffset = (code, v) => {
+                if (v == null || !activeOffsets) return v;
+                const d = activeOffsets[code];
+                return d != null ? v + d : v;
+              };
 
               return (
                 <div style={{ animation: "slideUp 0.3s ease", paddingBottom: "72px" }}>
@@ -3845,13 +3908,39 @@ function App() {
                     <div style={{ fontSize: "13px", fontWeight: 700, color: "#1a1a1a" }}>
                       全碼 <span style={{ fontSize: "11px", color: "#999", fontWeight: 400 }}>各 size 中位數 + 公差 + 跳碼(size 與 size 間的遞增量)</span>
                     </div>
-                    {hasPlus && (
-                      <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "#555", cursor: "pointer", userSelect: "none" }}>
-                        <input type="checkbox" checked={showPlus} onChange={e => setShowPlus(e.target.checked)}
-                          style={{ width: "14px", height: "14px", cursor: "pointer" }} />
-                        顯示 Plus sizes <span style={{ fontSize: "10px", color: "#888" }}>({plusSeq.join("/")} · 自有基碼 {plusAnchor})</span>
-                      </label>
-                    )}
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+                      {/* Size Run 切換(Regular / Petite / Tall) */}
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        <span style={{ fontSize: "11px", color: "#888", fontWeight: 500 }}>Run</span>
+                        <div style={{ display: "inline-flex", border: "1px solid #e8e5e1", borderRadius: "6px", overflow: "hidden" }}>
+                          {['regular','petite','tall'].map(run => {
+                            const active = sizeRun === run;
+                            return (
+                              <button key={run} onClick={() => setSizeRun(run)}
+                                style={{
+                                  padding: "5px 11px", fontSize: "12px", fontWeight: active ? 700 : 500,
+                                  background: active ? "#1a1a1a" : "#fff",
+                                  color: active ? "#fff" : "#555",
+                                  border: "none", cursor: "pointer", fontFamily: "inherit",
+                                  borderRight: run !== 'tall' ? "1px solid #e8e5e1" : "none",
+                                }}>
+                                {run === 'regular' ? 'Regular' : run === 'petite' ? 'Petite' : 'Tall'}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {sizeRun !== 'regular' && !hasRunData && (
+                          <span style={{ fontSize: "10px", color: "#b45309" }}>(此 bucket 無 {sizeRun === 'petite' ? 'Petite' : 'Tall'} 資料,顯示與 Regular 相同)</span>
+                        )}
+                      </div>
+                      {hasPlus && (
+                        <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "#555", cursor: "pointer", userSelect: "none" }}>
+                          <input type="checkbox" checked={showPlus} onChange={e => setShowPlus(e.target.checked)}
+                            style={{ width: "14px", height: "14px", cursor: "pointer" }} />
+                          顯示 Plus sizes <span style={{ fontSize: "10px", color: "#888" }}>({plusSeq.join("/")} · 自有基碼 {plusAnchor})</span>
+                        </label>
+                      )}
+                    </div>
                   </div>
 
                   {gradingCodes.length === 0 ? (
