@@ -2074,6 +2074,10 @@ function App() {
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(data => { setPomRules(data); window.POM_RULES = data; })
       .catch(err => console.error('載入 pom_rules/_index.json 失敗:', err));
+    fetch('./data/grading_patterns.json')
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(setGradingPatterns)
+      .catch(err => console.error('載入 grading_patterns 失敗:', err));
     // POM 翻譯表：先看 localStorage 覆蓋，沒有才抓內建
     let usedOverride = false;
     try {
@@ -2524,6 +2528,11 @@ function App() {
   // 範圍比 v4 entry 的 pptx_2025_votes 廣(跨 2024/2025/2026 三年 1,328 designs),
   // 拿來當「替代 ISO」和「常見工法」的資料源。
   const [bridgeV6, setBridgeV6] = useState(null);
+  // v6 grading_patterns(data/grading_patterns.json):
+  // {category|gender: {POM: {m_median, pairs:{S→M,M→L,...}, inflection, delta_sm, delta_ml}}}
+  // 33 combos × 1,016 POM families,20.6% POM 有 inflection(S→M 和 M→L 的 delta 不同)。
+  // 拿來取代基碼頁目前用 pom_rules.grading_rules.typical_increment(固定遞增)的線性推導。
+  const [gradingPatterns, setGradingPatterns] = useState(null);
   const [analyzeErr, setAnalyzeErr] = useState(null);
   // { model, pass1: {input, output, cache_read, cache_write}, pass2: {...}, cost_est } | null
   const [analyzeUsage, setAnalyzeUsage] = useState(null);
@@ -5047,11 +5056,58 @@ function App() {
               // 未選 Item Type 且 POM 屬於「會因長度而變」的 → 整列留空
               const isLengthPending = code =>
                 !it && IT_LENGTH_HINTS[gt] && IT_LENGTH_DEP_POMS[gt]?.has(code);
+              // grading_patterns category key: {CATEGORY|GENDER}
+              // CATEGORY 由 (GT, Fabric) 推:
+              //   TOP/BODYSUIT → KNIT_TOP / WOVEN_TOP
+              //   PANTS/LEGGINGS/SHORTS/SKIRT → KNIT_BOTTOM / WOVEN_BOTTOM
+              //   DRESS/OUTERWEAR/ROMPER_JUMPSUIT/SET → 同名
+              //   SWIM_PIECE → SWIM
+              //   其他 → UNKNOWN
+              const gradingCategory = (() => {
+                const isWoven = (fabric || "").toLowerCase() === "woven";
+                const prefix = isWoven ? "WOVEN" : "KNIT";
+                if (gt === "TOP" || gt === "BODYSUIT") return `${prefix}_TOP`;
+                if (["PANTS", "LEGGINGS", "SHORTS", "SKIRT"].includes(gt)) return `${prefix}_BOTTOM`;
+                if (["DRESS", "OUTERWEAR", "ROMPER_JUMPSUIT", "SET"].includes(gt)) return gt;
+                if (gt === "SWIM_PIECE") return "SWIM";
+                return "UNKNOWN";
+              })();
+              // Gender 對齊 grading_patterns(MATERNITY → WOMENS,BABY/TODDLER → UNKNOWN)
+              const gradingGender = (() => {
+                if (gender === "MATERNITY") return "WOMENS";
+                if (gender === "BABY/TODDLER") return "UNKNOWN";
+                return gender || "UNKNOWN";
+              })();
+              const gradingKey = `${gradingCategory}|${gradingGender}`;
+              const gradingCombo = gradingPatterns?.[gradingKey] || null;
+              // 取某 POM 的 pairs(S→M / M→L / …),沒有回 null
+              const pairsFor = (code) => gradingCombo?.[code]?.pairs || null;
+              const hasInflection = (code) => !!gradingCombo?.[code]?.inflection;
+              // 從 fromIdx 走到 toIdx,每步用對應 pair 的 median;遇到缺值回 null 讓 caller fallback
+              const walkPairs = (pairs, order, fromIdx, toIdx, fromValue) => {
+                if (fromIdx === toIdx) return fromValue;
+                let v = fromValue;
+                if (toIdx > fromIdx) {
+                  for (let i = fromIdx; i < toIdx; i++) {
+                    const pair = pairs[`${order[i]}→${order[i + 1]}`];
+                    if (!pair || pair.median == null) return null;
+                    v += pair.median;
+                  }
+                } else {
+                  for (let i = fromIdx - 1; i >= toIdx; i--) {
+                    const pair = pairs[`${order[i]}→${order[i + 1]}`];
+                    if (!pair || pair.median == null) return null;
+                    v -= pair.median;
+                  }
+                }
+                return v;
+              };
               const sizeValueFor = (code, s) => {
                 if (isLengthPending(code) && !(baseOverrides[code] && parseInch(baseOverrides[code]) != null)) {
                   return null;
                 }
                 const origS = mv[code]?.size_medians?.[s];
+                const pairs = pairsFor(code);
                 let v;
                 if (isPlus(s)) {
                   // Plus 不吃 Missy M,獨立以 plusAnchor 當 base
@@ -5061,10 +5117,17 @@ function App() {
                   else {
                     const sIdx = plusSeq.indexOf(s);
                     const baseIdx = plusSeq.indexOf(plusAnchor);
-                    const inc = gr[code]?.typical_increment;
-                    if (sIdx >= 0 && baseIdx >= 0 && inc != null) v = newBase + (sIdx - baseIdx) * inc;
-                    else if (origS == null || origBase == null) v = origS ?? null;
-                    else v = origS + (newBase - origBase);
+                    // 優先 grading_patterns pairs(非線性,respects inflection)
+                    if (sIdx >= 0 && baseIdx >= 0 && pairs) {
+                      v = walkPairs(pairs, plusSeq, baseIdx, sIdx, newBase);
+                    }
+                    // Fallback:pom_rules.grading_rules.typical_increment 線性
+                    if (v == null) {
+                      const inc = gr[code]?.typical_increment;
+                      if (sIdx >= 0 && baseIdx >= 0 && inc != null) v = newBase + (sIdx - baseIdx) * inc;
+                      else if (origS == null || origBase == null) v = origS ?? null;
+                      else v = origS + (newBase - origBase);
+                    }
                   }
                 } else {
                   const origM = mv[code]?.size_medians?.M;
@@ -5072,10 +5135,16 @@ function App() {
                   if (newM == null) v = origS ?? null;
                   else if (mIdxMissy >= 0) {
                     const sIdx = missySeq.indexOf(s);
-                    const inc = gr[code]?.typical_increment;
-                    if (sIdx >= 0 && inc != null) v = newM + (sIdx - mIdxMissy) * inc;
-                    else if (origS == null || origM == null) v = origS ?? null;
-                    else v = origS + (newM - origM);
+                    // 優先 grading_patterns pairs
+                    if (sIdx >= 0 && pairs) {
+                      v = walkPairs(pairs, missySeq, mIdxMissy, sIdx, newM);
+                    }
+                    if (v == null) {
+                      const inc = gr[code]?.typical_increment;
+                      if (sIdx >= 0 && inc != null) v = newM + (sIdx - mIdxMissy) * inc;
+                      else if (origS == null || origM == null) v = origS ?? null;
+                      else v = origS + (newM - origM);
+                    }
                   } else {
                     if (origS == null || origM == null) v = origS ?? null;
                     else v = origS + (newM - origM);
@@ -5197,9 +5266,12 @@ function App() {
                               </div>
                               {edited && <span style={{ fontSize: "9px", color: "#7e22ce", background: "#f5f3ff", padding: "2px 6px", borderRadius: "4px", fontWeight: 600, whiteSpace: "nowrap" }}>已調整</span>}
                             </div>
-                            <div style={{ display: "flex", gap: "14px", fontSize: "10px", color: "#888", marginBottom: "8px", paddingBottom: "8px", borderBottom: "1px solid #f5f5f5" }}>
+                            <div style={{ display: "flex", gap: "14px", fontSize: "10px", color: "#888", marginBottom: "8px", paddingBottom: "8px", borderBottom: "1px solid #f5f5f5", alignItems: "center", flexWrap: "wrap" }}>
                               <span>公差 <span style={{ fontFamily: "'JetBrains Mono',monospace", color: "#525252", fontWeight: 600 }}>{tolStr(m)}</span></span>
                               <span>跳碼 <span style={{ fontFamily: "'JetBrains Mono',monospace", color: "#b45309", fontWeight: 600 }}>{incText}</span></span>
+                              {hasInflection(code) && (
+                                <span title="grading_patterns: S→M 與 M→L 的跳碼不同" style={{ fontSize: "9px", color: "#7e22ce", background: "#f5f3ff", padding: "2px 6px", borderRadius: "4px", fontWeight: 700, cursor: "help" }}>⟿ 非線性</span>
+                              )}
                             </div>
                             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "5px" }}>
                               {visibleSizes.map(s => {
@@ -5285,6 +5357,9 @@ function App() {
                                 </td>
                                 <td style={{ padding: "9px 12px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", fontSize: "14px", color: "#b45309", fontWeight: 600, whiteSpace: "nowrap" }}>
                                   {grRow?.typical_increment != null ? (grRow.typical_increment >= 0 ? "+" : "") + frmt(grRow.typical_increment) + '"' : "—"}
+                                  {hasInflection(code) && (
+                                    <span title="grading_patterns: S→M 與 M→L 的跳碼不同,已改用非線性推導" style={{ marginLeft: "5px", fontSize: "9px", color: "#7e22ce", background: "#f5f3ff", padding: "1px 5px", borderRadius: "3px", fontWeight: 700, cursor: "help" }}>⟿</span>
+                                  )}
                                 </td>
                                 {visibleSizes.map(s => {
                                   const val = sizeValueFor(code, s);
