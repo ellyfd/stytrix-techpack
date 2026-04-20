@@ -1275,7 +1275,35 @@ function AdminModal({
 }) {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-  const [uploading, setUploading] = useState(false);
+  const [uploading, setUploading] = useState(null); // null | 'pom' | 'presence'
+  // POM Rules 區塊獨立狀態(訊息格式不同,不共用 error/success)
+  const [rulesError, setRulesError] = useState(null);
+  const [rulesSuccess, setRulesSuccess] = useState(null);
+  const [rulesUploading, setRulesUploading] = useState(false);
+  // Push to GitHub 區塊
+  const [adminToken, setAdminToken] = useState(() => {
+    try { return localStorage.getItem('stytrix.admin.token') || ''; } catch { return ''; }
+  });
+  const [showToken, setShowToken] = useState(false);
+  const [pushMessage, setPushMessage] = useState('');
+  const [pushing, setPushing] = useState(false);
+  const [pushError, setPushError] = useState(null);
+  const [pushResult, setPushResult] = useState(null);
+  const saveToken = (t) => {
+    setAdminToken(t);
+    try { t ? localStorage.setItem('stytrix.admin.token', t) : localStorage.removeItem('stytrix.admin.token'); } catch {}
+  };
+  const handlePush = async () => {
+    if (!onPushToGithub) { setPushError('尚未設定推送 handler'); return; }
+    setPushError(null); setPushResult(null); setPushing(true);
+    try {
+      const data = await onPushToGithub({ token: adminToken, message: pushMessage });
+      setPushResult(data.commit);
+      setPushMessage('');
+    } catch (e) {
+      setPushError(typeof e === 'string' ? e : (e?.message || String(e)));
+    } finally { setPushing(false); }
+  };
 
   const handleFile = async (file) => {
     if (!file) return;
@@ -2279,8 +2307,7 @@ function App() {
       setIt("");
       setLocks(prev => prev.it ? { ...prev, it: false } : prev);
     }
-    return map;
-  }, [gt]);
+  }, [it, gt, curItOptions]);
 
   const ptCount = useMemo(() => {
     let p = 0, t = 0;
@@ -4100,6 +4127,7 @@ function App() {
         partPresenceOverride={partPresenceOverride}
         onUploadPartPresence={applyPartPresenceOverride}
         onClearPartPresence={clearPartPresenceOverride}
+        onPushToGithub={pushOverridesToGithub}
       />
       <OnboardingModal open={onboardingOpen} onDismiss={dismissOnboarding} />
 
