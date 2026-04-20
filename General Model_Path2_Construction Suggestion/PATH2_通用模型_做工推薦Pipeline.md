@@ -1,0 +1,309 @@
+# Path 2 通用模型：AI 做工推薦 Pipeline
+
+> **路線**：AI 判視 → 直接推 ISO 給工廠，不走五階層
+> **模型定位**：通用版（不分品牌），適用所有客人
+> **建立日期**：2026-04-20
+> **資料來源**：ONY Knit 370 款 Centric 8 + Woven 36 款 PPTX
+
+---
+
+## 一、Pipeline 總覽
+
+```
+使用者在 Step 1 選定 → Fabric / GT / IT
+                          ↓
+                    上傳或生成 Sketch 圖
+                          ↓
+            ┌─────────────────────────────┐
+            │  VLM 部位偵測（Stage ①）      │
+            │  輸入：Sketch 圖 + L1 視覺指引  │
+            │  輸出：L1 code 清單            │
+            │  例如：[NK, SH, AH, SL, BM, SS] │
+            └──────────────┬──────────────┘
+                          ↓
+            ┌─────────────────────────────┐
+            │  ISO 查表（Stage ②）          │
+            │  查詢：Fabric × GT × IT × L1   │
+            │  來源：iso_lookup_factory_v3    │
+            │  輸出：每個 L1 的 ISO + 機種     │
+            └──────────────┬──────────────┘
+                          ↓
+            ┌─────────────────────────────┐
+            │  工廠輸出（Stage ③）           │
+            │  每個部位一張卡片：             │
+            │  「領 → ISO 301 → 平車」       │
+            │  含 confidence + alternatives   │
+            └─────────────────────────────┘
+```
+
+---
+
+## 二、每個 Stage 怎麼串
+
+### Stage ① VLM 部位偵測
+
+**輸入檔案**：`L1_部位定義_Sketch視覺指引.md`
+
+**做法**：把視覺指引餵給 VLM（Qwen-VL / GPT-4o）當 system prompt，再丟 sketch 圖。
+
+**VLM Prompt 範本**：
+
+```
+你是成衣做工專家。請看這張 sketch，列出圖上可見的所有 L1 部位。
+
+規則：
+1. 只列「看得到」的部位，不要猜測不可見的做工（BN 貼合、NT 領貼條、LI 裡布除非有剖面圖）
+2. 用 L1 code 回答（NK, WB, BM, SL, PK...）
+3. 每個 L1 只列一次，不重複
+
+L1 部位定義如下：
+{貼入 L1_部位定義_Sketch視覺指引.md 的表格內容}
+
+請輸出 JSON：
+{
+  "detected_l1": ["NK", "SH", "AH", "SL", "BM", "SS", "PK"],
+  "garment_description": "長袖圓領上衣，兩側口袋"
+}
+```
+
+**VLM 輸出範例**：
+```json
+{
+  "detected_l1": ["NK", "SH", "AH", "SL", "BM", "SS"],
+  "garment_description": "短袖V領梭織上衣"
+}
+```
+
+---
+
+### Stage ② ISO 查表
+
+**輸入檔案**：`iso_lookup_factory_v3.json`
+
+**已知 context**（Step 1 帶入，不需 VLM 判）：
+- `fabric`：Knit 或 Woven（來自 Centric 8 Fabric 欄位或使用者選擇）
+- `gt`：Garment Type（TOP / DRESS / PANT / SHORTS 等）
+- `it`：Item Type（TOPS / DRESSES / LEGGINGS / PANTS 等）
+
+**查表邏輯**（pseudo code）：
+
+```python
+import json
+
+# 載入查表
+with open("iso_lookup_factory_v3.json") as f:
+    table = json.load(f)
+
+# 建立索引：(fabric, gt, it, l1_code) → entry
+index = {}
+for entry in table["entries"]:
+    key = (entry["fabric"], entry["gt"], entry["it"], entry["l1_code"])
+    index[key] = entry
+
+# Stage ①  VLM 輸出
+detected = ["NK", "SH", "AH", "SL", "BM", "SS"]
+
+# Step 1 已知
+fabric = "Woven"
+gt = "TOP"
+it = "TOPS"
+
+# 查每個部位
+results = []
+for l1_code in detected:
+    key = (fabric, gt, it, l1_code)
+    entry = index.get(key)
+
+    if entry:
+        results.append({
+            "l1_code": l1_code,
+            "l1_name": entry["l1"],
+            "iso": entry["iso"],
+            "machine": entry["machine"],
+            "confidence": entry["confidence"],
+            "action": entry["action"],         # recommend / select / manual
+            "alternatives": entry.get("alternatives", []),
+        })
+    else:
+        # 該組合查表無資料 → 退回讓使用者手選
+        results.append({
+            "l1_code": l1_code,
+            "action": "manual",
+            "reason": "此 Fabric×GT×IT×L1 組合尚無歷史資料",
+        })
+```
+
+**查表結果範例**（Woven TOP/TOPS）：
+
+| L1 code | 部位 | ISO | 機種 | confidence | action |
+|---------|------|-----|------|------------|--------|
+| NK | 領 | 301 | 平車 lockstitch | strong | recommend |
+| SH | 肩 | 301 | 平車 lockstitch | strong | recommend |
+| AH | 袖襱 | 301 | 平車 lockstitch | strong | recommend |
+| SL | 袖口 | 301 | 平車 lockstitch | strong | recommend |
+| BM | 下襬 | 301 | 平車 lockstitch | strong | recommend |
+| SS | 脇邊 | 301 | 平車 lockstitch | strong | recommend |
+
+同樣部位如果是 **Knit** TOP/TOPS：
+
+| L1 code | 部位 | ISO | 機種 | confidence | action |
+|---------|------|-----|------|------------|--------|
+| NK | 領 | 406 | 三本車 coverstitch | mixed | select |
+| SH | 肩 | 406 | 三本車 coverstitch | likely | recommend |
+| AH | 袖襱 | 406 | 三本車 coverstitch | likely | recommend |
+| SL | 袖口 | 406 | 三本車 coverstitch | likely | recommend |
+| BM | 下襬 | 406 | 三本車 coverstitch | strong | recommend |
+| SS | 脇邊 | 514 | 拷克車 overlock | strong | recommend |
+
+→ **Fabric 是第一級分流器**：同一個部位，Knit 走 406/514，Woven 走 301，完全不同。
+
+---
+
+### Stage ③ 工廠輸出
+
+**三種 action 的 UI 行為**：
+
+| action | 條件 | UI 行為 |
+|--------|------|---------|
+| `recommend` | confidence = strong 或 likely | 自動填入 ISO + 機種，使用者可覆寫 |
+| `select` | confidence = mixed | 顯示 ISO 選項清單（含 alternatives），使用者選一個 |
+| `manual` | confidence = no_dominant 或查無資料 | 空白，使用者自行輸入 |
+
+**工廠輸出格式（每個部位一張卡片）**：
+
+```
+┌─────────────────────────────┐
+│ 領 (NK)                      │
+│ ✅ 推薦：ISO 301 → 平車       │
+│    confidence: strong (100%)  │
+│    替代方案：無                │
+└─────────────────────────────┘
+
+┌─────────────────────────────┐
+│ 脇邊 (SS)                    │
+│ 🔶 請選擇：                   │
+│   ○ ISO 514 拷克車 (45%)      │
+│   ○ ISO 607 併縫車 (30%)      │
+│   ○ ISO 406 三本車 (25%)      │
+└─────────────────────────────┘
+```
+
+---
+
+## 三、檔案清單
+
+所有檔案都在 `ONY/` 資料夾：
+
+| 檔案 | 用途 | Stage |
+|------|------|-------|
+| `L1_部位定義_Sketch視覺指引.md` | VLM 的 system prompt，38 個 L1 視覺定義 | ① |
+| `iso_lookup_factory_v3.json` | 四維查表：Fabric × GT × IT × L1 → ISO | ② |
+| `l1_code_to_v3_mapping.json` | L1 code ↔ 中文部位名對照（除錯用） | ①→② 橋接 |
+| `construction_recipes/` | GT×IT 做工配方（含 zone 出現率、ISO 分佈詳情） | 參考 |
+| `woven_construction_extracts.json` | 36 款 Woven 做工原始提取 | 資料來源 |
+| `woven_iso_inferred.json` | Woven 中文→ISO 推論詳情 | 資料來源 |
+
+---
+
+## 四、查表 v3 資料規格
+
+### 結構
+
+```json
+{
+  "version": "v3",
+  "entries": [
+    {
+      "fabric": "Knit",          // Knit 或 Woven
+      "gt": "TOP",               // Garment Type
+      "it": "TOPS",              // Item Type
+      "l1": "領",                // 中文部位名
+      "l1_code": "NK",           // L1 code（VLM 輸出用這個查）
+      "iso": "406",              // 推薦 ISO
+      "machine": "三本車 Coverstitch",
+      "confidence": "mixed",     // strong/likely/mixed/no_dominant/no_data
+      "action": "select",        // recommend/select/manual
+      "alternatives": [          // 替代方案（action=select 時顯示）
+        {"iso": "514", "pct": 30, "machine": "拷克車 overlock"}
+      ]
+    }
+  ]
+}
+```
+
+### confidence 定義
+
+| confidence | 條件 | 含義 |
+|-----------|------|------|
+| strong | 第一名 ISO ≥ 60% | 歷史資料高度一致，可自動推薦 |
+| likely | 第一名 ISO 40-59% | 多數設計用這個，但有替代方案 |
+| mixed | 第一名 ISO 25-39% | 沒有明確主流，需要使用者選 |
+| no_dominant | 第一名 ISO < 25% | 分散，必須手動 |
+| no_data | 該 zone 在此 GT×IT 極少出現 | 罕見部位，無統計基礎 |
+
+### 覆蓋範圍
+
+| Fabric | GT×IT 組合 | Zone 數 | 資料來源 |
+|--------|-----------|---------|---------|
+| Knit | 13 組 | 264 | Centric 8 PDF（~370 款設計） |
+| Woven | 3 組 | 16 | Source-Data PPTX（36 款設計） |
+
+**Knit 13 組**：TOP\|TOPS, PANT\|PANTS, PANT\|LEGGINGS, SHORTS\|SHORTS, SHORTS\|LEGGINGS, DRESS\|DRESSES, SWIM\|SWIM, SWIM\|SWIM_RASHGUARD, SLEEPWEAR\|SLEEPWEAR, SET\|SET, SET\|SLEEPWEAR, OUTERWEAR\|OUTERWEAR, ONE_PIECE\|ONE PIECE
+
+**Woven 3 組**：TOP\|TOPS, DRESS\|DRESSES, BOTTOM\|SHORTS
+
+---
+
+## 五、Fabric 判斷邏輯
+
+Fabric 不需要 VLM 判，從系統已知資訊帶入：
+
+**優先順序**：
+1. **使用者在 UI 直接選**（最準）
+2. **Centric 8 欄位自動帶入**：Design Type / Collection / Department 推導
+3. **推導規則**（fallback）：
+   - Collection 含 Chambray / MWD / VDD / WWD / WWS → Woven
+   - Department 含 Active / Swim / Fleece / Performance → Knit
+   - 其餘預設 Knit（ONY 資料 Knit 佔 98%）
+
+---
+
+## 六、目前限制與擴展方向
+
+### 已知限制
+
+1. **Woven 資料量少**：僅 36 款 / 3 個 GT×IT 組合。Knit 有 370 款 / 13 組。Woven 側 confidence 看起來都 strong，但底層樣本數只有 2-4 款，統計穩健性有限。
+
+2. **Woven ISO 是推論的**：36 款中只有 1 款（D68210）直接寫 ISO 碼，其餘 35 款從中文做工描述推論。推論規則：「壓單針/明線/SP車線 → 301」「拷克 → 514」等。準確率高但非 100%。
+
+3. **通用版不分品牌**：同一個 GT×IT×L1，不同品牌可能有不同偏好（例如 GAP 腰頭固定用某種 ISO，Athleta 偏好另一種）。品牌版需要加 Brand 維度，本查表不含。
+
+4. **L1 偵測依賴 VLM 品質**：VLM 漏判或誤判 L1 會連帶影響 ISO 推薦。多標籤偵測（一張 sketch 同時 6-15 個 L1）是 VLM 端的主要挑戰。
+
+### 擴展方向
+
+| 方向 | 做法 | 效果 |
+|------|------|------|
+| 擴展 Woven 品類 | 補更多 Woven PPTX 提取 + 直接請 IE 標注 ISO | Woven 覆蓋從 3 組 → 目標 8+ 組 |
+| 加 Brand 維度 | Brand × Fabric × GT × IT × L1 五維查表 | 品牌偏好差異化推薦 |
+| 加 Department 維度 | Swimwear / Sleepwear 獨立 ISO 分佈 | Swim 只用 514+605，Sleepwear 以 406 為主 |
+| VLM 訓練迭代 | 用 ONY sketch 做 few-shot / fine-tune | L1 偵測準確率提升 |
+| 回饋閉環 | 工廠實際採用的 ISO 回寫更新查表 | 持續提升 confidence |
+
+---
+
+## 七、ISO ↔ 機種速查
+
+| ISO | 中文 | English | 常見用途 |
+|-----|------|---------|---------|
+| 301 | 平車 | Lockstitch | **Woven 主力**。topstitch、明線、門襟、袖口反折 |
+| 401 | 鏈縫 | Chainstitch | 腰頭底部、可拆縫合 |
+| 406 | 三本車 | Coverstitch | **Knit 主力**。領、袖口、下襬壓線、彈性收邊 |
+| 514 | 拷克車 | Overlock | 布邊鎖邊、Knit 大身接合、Woven 內縫份收邊 |
+| 605 | 爬網車 | Covering stitch | Knit 高彈力部位（Swim、Active） |
+| 607 | 併縫車 | Flatseam | Knit 大身接合（無感縫合、運動服） |
+
+---
+
+*最後更新：2026-04-20*
+*資料版本：iso_lookup_factory_v3（280 entries = Knit 264 + Woven 16）*
