@@ -3507,18 +3507,17 @@ function App() {
                     }}>
                       <div>
                         <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
-                          <span style={{ fontSize: "18px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{vis.length}</span>
-                          <span style={{ fontSize: "11px", color: "#999" }}>/ {cards.length} 部位</span>
+                          <span style={{ fontSize: "18px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>
+                            {vis.length === cards.length ? cards.length : `${vis.length}/${cards.length}`}
+                          </span>
+                          <span style={{ fontSize: "11px", color: "#999" }}>
+                            {vis.length === cards.length ? "部位" : `部位 · 已刪除 ${cards.length - vis.length}`}
+                          </span>
                         </div>
                         <div style={{ fontSize: "10px", color: "#767676", marginTop: "2px" }}>
                           {aiCount} AI 偵測 · {structCount} 結構推斷
                         </div>
                       </div>
-                      <span
-                        title="根據 AI 偵測與歷史資料自動勾選 · 可手動刪除或新增部位"
-                        style={{ fontSize: "10px", color: "#065f46", fontWeight: 600, background: "#ecfdf5", padding: "4px 10px", borderRadius: "4px", whiteSpace: "nowrap", cursor: "help" }}>
-                        已自動選好
-                      </span>
                     </div>}
                     {cDone && appMode !== "universal" && (() => {
                       const allSelected = addonSteps.size === ADDON.steps.length;
