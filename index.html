@@ -1116,13 +1116,36 @@ function fmtTime(iso) {
   } catch { return iso; }
 }
 
-function AdminModal({ open, onClose, pomNamesOverride, onUploadPomNames, onClearPomNames, pomRulesOverride, onUploadPomRules, onClearPomRules, currentBucketKey }) {
+function AdminModal({ open, onClose, pomNamesOverride, onUploadPomNames, onClearPomNames, pomRulesOverride, onUploadPomRules, onClearPomRules, onPushToGithub, currentBucketKey }) {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [rulesError, setRulesError] = useState(null);
   const [rulesSuccess, setRulesSuccess] = useState(null);
   const [rulesUploading, setRulesUploading] = useState(false);
+  // Push-to-GitHub state
+  const [adminToken, setAdminToken] = useState(() => {
+    try { return localStorage.getItem('stytrix.admin.token') || ''; } catch { return ''; }
+  });
+  const [showToken, setShowToken] = useState(false);
+  const [pushMessage, setPushMessage] = useState('');
+  const [pushing, setPushing] = useState(false);
+  const [pushError, setPushError] = useState(null);
+  const [pushResult, setPushResult] = useState(null);
+  const saveToken = (t) => {
+    setAdminToken(t);
+    try { t ? localStorage.setItem('stytrix.admin.token', t) : localStorage.removeItem('stytrix.admin.token'); } catch {}
+  };
+  const handlePush = async () => {
+    setPushError(null); setPushResult(null); setPushing(true);
+    try {
+      const data = await onPushToGithub({ token: adminToken, message: pushMessage });
+      setPushResult(data.commit);
+      setPushMessage('');
+    } catch (e) {
+      setPushError(typeof e === 'string' ? e : (e?.message || String(e)));
+    } finally { setPushing(false); }
+  };
 
   const handleFile = async (file) => {
     if (!file) return;
@@ -1302,6 +1325,80 @@ function AdminModal({ open, onClose, pomNamesOverride, onUploadPomNames, onClear
           {rulesError && <div style={{ marginTop: '10px', padding: '8px 10px', background: '#fef2f2', color: '#b91c1c', fontSize: '11px', borderRadius: '6px' }}>⚠ {rulesError}</div>}
           {rulesSuccess && <div style={{ marginTop: '10px', padding: '8px 10px', background: '#ecfdf5', color: '#065f46', fontSize: '11px', borderRadius: '6px' }}>✓ {rulesSuccess}</div>}
         </div>
+
+        {/* Push to GitHub 區塊 */}
+        {(() => {
+          const bucketCount = Object.keys(pomRulesOverride?.buckets || {}).length;
+          const hasIndex = !!pomRulesOverride?.index;
+          const hasNames = !!pomNamesOverride;
+          const totalFiles = (hasIndex ? 1 : 0) + bucketCount + (hasNames ? 1 : 0);
+          return (
+            <div style={{ marginTop: '12px', border: '1px solid #b45309', borderRadius: '10px', padding: '14px', background: '#fff7ed' }}>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#9a3412', marginBottom: '4px' }}>推送到 GitHub · Deploy 給所有人</div>
+              <div style={{ fontSize: '11px', color: '#9a3412', marginBottom: '12px', lineHeight: 1.5 }}>
+                把你目前的覆蓋直接 commit 到 <code>main</code> 分支,會觸發 Vercel 重新 deploy,**所有使用者**都會看到新資料。
+                推送成功後本機覆蓋會清空(main 已是新真相)。
+              </div>
+
+              <div style={{ marginBottom: '10px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: '#555', marginBottom: '4px' }}>Admin Token</div>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <input
+                    type={showToken ? 'text' : 'password'}
+                    value={adminToken}
+                    onChange={e => saveToken(e.target.value)}
+                    placeholder="Vercel env 裡設的 ADMIN_TOKEN"
+                    style={{ flex: 1, padding: '7px 9px', fontSize: '12px', fontFamily: 'monospace', border: '1px solid #e8e5e1', borderRadius: '5px' }}
+                  />
+                  <button onClick={() => setShowToken(v => !v)} style={{ padding: '7px 10px', fontSize: '11px', background: '#fff', border: '1px solid #e8e5e1', borderRadius: '5px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                    {showToken ? '隱藏' : '顯示'}
+                  </button>
+                </div>
+                <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '3px' }}>存在這台瀏覽器的 localStorage,不會傳到 GitHub。</div>
+              </div>
+
+              <div style={{ marginBottom: '10px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: '#555', marginBottom: '4px' }}>Commit message(可空)</div>
+                <input
+                  type="text" value={pushMessage} onChange={e => setPushMessage(e.target.value)}
+                  placeholder={`admin: 更新 pom_rules (${totalFiles} files)`}
+                  style={{ width: '100%', padding: '7px 9px', fontSize: '12px', border: '1px solid #e8e5e1', borderRadius: '5px' }}
+                />
+              </div>
+
+              <div style={{ padding: '8px 10px', borderRadius: '6px', background: '#fff', border: '1px solid #fed7aa', fontSize: '11px', color: '#555', marginBottom: '10px' }}>
+                將推送 <strong>{totalFiles}</strong> 個檔案:
+                {hasIndex && <> · 1 × <code>_index.json</code></>}
+                {bucketCount > 0 && <> · {bucketCount} × bucket</>}
+                {hasNames && <> · 1 × <code>pom_names.json</code></>}
+                {totalFiles === 0 && <span style={{ color: '#dc2626' }}>(沒有本機覆蓋,先在上方上傳檔案)</span>}
+              </div>
+
+              <button
+                onClick={handlePush}
+                disabled={pushing || totalFiles === 0 || !adminToken}
+                style={{
+                  width: '100%', padding: '10px 14px',
+                  background: (pushing || totalFiles === 0 || !adminToken) ? '#d1d5db' : '#9a3412',
+                  color: '#fff', border: 'none', borderRadius: '6px',
+                  cursor: (pushing || totalFiles === 0 || !adminToken) ? 'not-allowed' : 'pointer',
+                  fontSize: '13px', fontWeight: 700, fontFamily: 'inherit',
+                }}
+              >
+                {pushing ? '推送中…(可能需 10~30 秒)' : '⚠ 推送到 GitHub main'}
+              </button>
+
+              {pushError && <div style={{ marginTop: '10px', padding: '8px 10px', background: '#fef2f2', color: '#b91c1c', fontSize: '11px', borderRadius: '6px' }}>⚠ {pushError}</div>}
+              {pushResult && (
+                <div style={{ marginTop: '10px', padding: '8px 10px', background: '#ecfdf5', color: '#065f46', fontSize: '11px', borderRadius: '6px', lineHeight: 1.5 }}>
+                  ✓ 已推送 {pushResult.fileCount} 個檔案 · commit <code>{pushResult.sha?.slice(0, 7)}</code>
+                  {pushResult.url && <> · <a href={pushResult.url} target="_blank" rel="noopener" style={{ color: '#065f46', textDecoration: 'underline' }}>看 commit</a></>}
+                  <br />Vercel 通常 30 秒內 deploy 完,重新整理即可看到新資料。
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         <div style={{ marginTop: '12px', border: '1px dashed #e8e5e1', borderRadius: '10px', padding: '14px', background: '#fafafa' }}>
           <div style={{ fontSize: '13px', fontWeight: 700, color: '#767676' }}>L2 判別表</div>
@@ -1585,6 +1682,88 @@ function App() {
         .then(data => { setCurrentBucket(data); window.CURRENT_BUCKET = data; })
         .catch(err => console.error('重新載入 bucket 失敗:', err));
     }
+  };
+
+  /* 把目前所有 localStorage 覆蓋(POM Rules + POM 翻譯表)打包推到
+     GitHub main,觸發 Vercel 重新 deploy。成功後本機 overrides 會
+     被清空,因為 main 已是新真相,不再需要 preview 層覆蓋。 */
+  const pushOverridesToGithub = async ({ token, message }) => {
+    if (!token) throw new Error('請先填 Admin Token');
+    const files = [];
+
+    // POM Rules index + buckets
+    let rulesStored = null;
+    try {
+      const raw = localStorage.getItem('stytrix.override.pomRules');
+      if (raw) rulesStored = JSON.parse(raw);
+    } catch (e) { throw new Error('讀 pomRules 覆蓋失敗:' + e.message); }
+
+    if (rulesStored?.index?.data) {
+      files.push({ path: 'pom_rules/_index.json', content: JSON.stringify(rulesStored.index.data, null, 2) });
+    }
+    // canonical filename resolution:內建 _index.buckets 有 file 欄位 → 用它;
+    // 否則用使用者上傳的檔名(若 .json 結尾)作為 fallback。
+    const canonicalByBucket = {};
+    if (rulesStored?.index?.data?.buckets) {
+      for (const b of rulesStored.index.data.buckets) {
+        if (b.bucket && b.file) canonicalByBucket[b.bucket] = b.file;
+      }
+    }
+    if (!Object.keys(canonicalByBucket).length && pomRules?.buckets) {
+      for (const b of pomRules.buckets) {
+        if (b.bucket && b.file) canonicalByBucket[b.bucket] = b.file;
+      }
+    }
+    for (const [bkey, entry] of Object.entries(rulesStored?.buckets || {})) {
+      if (!entry?.data) continue;
+      let fname = canonicalByBucket[bkey] || entry.filename;
+      if (!fname || !/\.json$/i.test(fname)) {
+        // derive:RTW_TOP|WOMENS → womens_rtw_top.json
+        const [left, gender] = bkey.split('|');
+        const parts = left?.split('_') || [];
+        fname = `${(gender || 'unknown').toLowerCase()}_${parts.join('_').toLowerCase()}.json`;
+      }
+      files.push({ path: `pom_rules/${fname}`, content: JSON.stringify(entry.data, null, 2) });
+    }
+
+    // POM 翻譯表
+    try {
+      const raw = localStorage.getItem('stytrix.override.pomNames');
+      if (raw) {
+        const p = JSON.parse(raw);
+        if (p?.data) {
+          files.push({ path: 'pom_rules/pom_names.json', content: JSON.stringify(p.data, null, 2) });
+        }
+      }
+    } catch {}
+
+    if (!files.length) throw new Error('目前沒有任何本機覆蓋可推送');
+
+    const res = await fetch('/api/push-pom-rules', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-admin-token': token },
+      body: JSON.stringify({ files, message: message || null }),
+    });
+    let data;
+    try { data = await res.json(); } catch { data = {}; }
+    if (!res.ok) throw new Error(data.error || `API 錯誤 ${res.status}`);
+
+    // 成功:清空本機覆蓋(main 已是新真相),重抓 built-in
+    try { localStorage.removeItem('stytrix.override.pomRules'); } catch {}
+    try { localStorage.removeItem('stytrix.override.pomNames'); } catch {}
+    setPomRulesOverride({ index: null, buckets: {} });
+    setPomNamesOverride(null);
+    // 稍微等一下讓 Vercel 的 deploy 能跑到,不然馬上 fetch 還會拿到舊版
+    // 這裡先重抓,使用者若看到舊資料過 30s 再重新整理即可
+    fetch('./pom_rules/_index.json?t=' + Date.now())
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(d => { setPomRules(d); window.POM_RULES = d; })
+      .catch(() => {});
+    fetch('./pom_rules/pom_names.json?t=' + Date.now())
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(d => { setPomNames(d); window.POM_NAMES = d; })
+      .catch(() => {});
+    return data;
   };
 
   const [pomNames, setPomNames] = useState({});
@@ -3197,6 +3376,7 @@ function App() {
         pomRulesOverride={pomRulesOverride}
         onUploadPomRules={applyPomRulesOverride}
         onClearPomRules={clearPomRulesOverride}
+        onPushToGithub={pushOverridesToGithub}
         currentBucketKey={bucketKey}
       />
     </div>
