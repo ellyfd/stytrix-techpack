@@ -29,20 +29,23 @@ export default async function handler(request) {
   const mediaType = m ? `image/${m[1]}` : "image/png";
   const b64 = m ? m[2] : image;
 
-  // Load visual guide once — both passes use it (Pass 1 for L1 sketch_def,
-  // Pass 2 for L2 features).
-  let guide = null;
+  // Load visual guide + decision trees once — both passes use them.
+  // guide: L1 sketch_def (Pass 1) + L2 metadata (l2_name lookup).
+  // trees: §0 common prompt + per-L1 decision tree (Pass 2).
+  let guide = null, trees = null;
   try { guide = await loadGuide(request); }
-  catch (e) { /* non-fatal: Pass 1 falls back to bare code=name list */ }
+  catch (e) { /* Pass 1 falls back to bare code=name list */ }
+  try { trees = await loadTrees(request); }
+  catch (e) { /* Pass 2 will hard-fail below if trees missing */ }
 
   // ── Pass 1: identify which of the 38 L1 parts are in the sketch ──
   const detected = await identifyL1(apiKey, mediaType, b64, { brand, fabric, gender, garment_type, item_type }, guide);
   if (detected.error) return json(detected, 502);
 
-  // ── Pass 2: for each detected L1, identify the most likely L2
-  //    using its subset from data/l2_visual_guide.json (dynamic
-  //    subset keeps the prompt cost bounded). ──
-  const l2Map = await identifyL2(apiKey, mediaType, b64, detected.list, guide);
+  // ── Pass 2: for each detected L1, walk the decision tree to identify L2.
+  //    Output may mark needs_text=true with merged_candidates for L2s that
+  //    the VLM cannot distinguish from the sketch alone (hard-negative pairs). ──
+  const l2Map = await identifyL2(apiKey, mediaType, b64, detected.list, guide, trees);
   if (l2Map.error) {
     // Soft-fail: L2 couldn't be identified but L1 detection is still useful.
     return json({ detected: detected.list, l2_error: l2Map.error, usage: detected.usage });
@@ -57,6 +60,8 @@ export default async function handler(request) {
       l2_name: l2info.l2_name || null,
       l2_confidence: l2info.confidence ?? null,
       l2_explanation: l2info.explanation || null,
+      l2_needs_text: !!l2info.needs_text,
+      l2_merged_candidates: l2info.merged_candidates || [],
       l2_alternatives: l2info.alternatives || []
     };
   });
@@ -117,82 +122,62 @@ async function loadGuide(request) {
   return _guideCache;
 }
 
-async function identifyL2(apiKey, mediaType, b64, detectedL1s, guide) {
+let _treesCache = null;
+async function loadTrees(request) {
+  if (_treesCache) return _treesCache;
+  const res = await fetch(new URL("/data/l2_decision_trees.json", request.url));
+  if (!res.ok) throw new Error(`L2 decision trees fetch ${res.status}`);
+  _treesCache = await res.json();
+  return _treesCache;
+}
+
+// Accept 0-100 integer OR 0.0-1.0 float; normalize to 0-100 clamped integer.
+function clampConfidence(raw) {
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return 0;
+  const scaled = n <= 1 ? n * 100 : n;
+  return Math.max(0, Math.min(100, Math.round(scaled)));
+}
+
+async function identifyL2(apiKey, mediaType, b64, detectedL1s, guide, trees) {
   if (!detectedL1s.length) return { byCode: {}, usage: null };
-  if (!guide) return { error: "L2 guide not loaded (Pass 1 fallback path)" };
-
-  // Build a compact subset: only the detected L1s' L2 options (+ features).
-  const NO_SKETCH_RE = /非\s*sketch\s*可見|無圖片可參考/i;
-  const capForEntry = (v) => {
-    const noSketch = NO_SKETCH_RE.test(v.feature || "");
-    let cap = null;
-    if (v.tier === "red") cap = 40;
-    else if (v.tier === "yellow") cap = 60;
-    else if (v.tier === "unknown") cap = 30;
-    if (noSketch) cap = Math.min(cap ?? 30, 30);
-    return cap;
-  };
-  // L2 subset rule: keep prompt bounded but never drop visually distinctive L2s.
-  //   1. Top 20 by historical freq.
-  //   2. Union: any tier="green" L2 (AI-rankable cue).
-  //   3. Union: any L2 whose feature starts with "Sketch 上" (visual cue written).
-  // Rationale: a low-freq L2 (e.g. appeared 2 times) with a clear sketch
-  // signature should still be pickable — the old hard slice(0,25) dropped them.
-  const SKETCH_CUE_RE = /^\s*(?:\*+\s*)?Sketch\s*上/i;
-  const pickL2Subset = (l2Map) => {
-    const all = Object.entries(l2Map)
-      .sort((a, b) => (b[1].freq || 0) - (a[1].freq || 0));
-    const keep = new Map();
-    all.slice(0, 20).forEach(([k, v]) => keep.set(k, v));
-    for (const [k, v] of all) {
-      if (keep.has(k)) continue;
-      if (v.tier === "green" || SKETCH_CUE_RE.test(v.feature || "")) {
-        keep.set(k, v);
-      }
-    }
-    return Array.from(keep.entries());
-  };
-  const subsetLines = [];
-  for (const d of detectedL1s) {
-    const section = guide.l1?.[d.code];
-    if (!section || !section.l2) continue;
-    const opts = pickL2Subset(section.l2);
-    if (!opts.length) continue;
-    subsetLines.push(`${d.code} (${L1_CODES[d.code]}):`);
-    for (const [key, v] of opts) {
-      const cap = capForEntry(v);
-      const tag = cap != null ? `[信心 ≤${cap}]` : "";
-      const feat = v.feature || "(無視覺描述,非 sketch 可見)";
-      subsetLines.push(`  ${key}: ${v.name} — ${feat} ${tag}`.trim());
-    }
-    subsetLines.push("");
+  if (!trees || !trees.common || !trees.l1) {
+    return { error: "L2 decision trees not loaded (data/l2_decision_trees.json)" };
   }
-  const subsetText = subsetLines.join("\n");
 
-  const prompt = `I previously identified these L1 construction parts in this sketch: ${detectedL1s.map(d => d.code).join(", ")}.
+  // Concat only the decision-tree blocks for L1s actually detected in Pass 1.
+  // Keeps prompt bounded on small sketches; full tree set is 38 blocks.
+  const blocks = [];
+  for (const d of detectedL1s) {
+    const entry = trees.l1[d.code];
+    if (!entry || !entry.tree) continue;
+    blocks.push(`## §${d.code} — ${L1_CODES[d.code] || ""}\n\n${entry.tree}`);
+  }
+  if (!blocks.length) return { error: "no decision tree matched any detected L1" };
 
-For EACH of those L1s, pick the ONE most likely L2 (sub-type) using the visual features below.
+  const detectedCodes = detectedL1s.map(d => d.code).join(", ");
+  const prompt = `${trees.common}
 
-Visual judgment rules:
-- Features starting with "Sketch 上" describe cues the artist drew — match them against the actual drawing (edge shape, presence/absence of binding or stitching, pleats, layers, etc.). Prefer shape/position/structure over stitching detail.
-- Features tagged "非 sketch 可見" or "無圖片可參考" cannot be confirmed from the sketch alone. Prefer a sibling L2 whose Sketch 上 cue is actually visible. Only pick these if no sibling fits, and keep confidence within the [信心 ≤N] cap.
-- Cross-references like "比 002 更密" or "弧度比 001 大" refer to sibling L2 codes inside the same L1. Use the comparative phrasing to disambiguate between visually similar siblings (e.g. 001 vs 002 vs 003).
-- The [信心 ≤N] tag after a feature is a hard upper bound on confidence for that L2 — never exceed it, even if the cue looks unambiguous.
-- If no option has a cue you can actually see in the sketch, pick the most plausible one and set confidence ≤30.
+---
 
-L2 options:
-${subsetText}
+以下是本次 sketch 偵測到的 ${detectedL1s.length} 個 L1 部位（${detectedCodes}）的判定邏輯樹。針對 **每個** L1 套用其 decision tree 找出最可能的 L2 零件。
 
-Return ONLY valid JSON (no markdown fences, no prose) in this shape:
-{"l2_by_l1":{"NK":{"l2_code":"NK_006","confidence":80,"explanation":"matched: 領圈有一條窄羅紋條","alternatives":[{"l2_code":"NK_007","confidence":10}]}, ...}}
+${blocks.join("\n\n---\n\n")}
+
+---
+
+Return ONLY valid JSON (no markdown fences, no prose) in this exact shape:
+{"l2_by_l1":{"AE":{"l2_code":"AE_004","confidence":85,"reasoning":"袖孔處見大U型剪接線","needs_text":false,"merged_candidates":[]}, ...}}
 
 Rules:
-- l2_code: must be an exact key from the options list for that L1.
-- confidence: 0-100, your certainty. Respect any [信心 ≤N] cap.
-- explanation: short string (<80 chars) citing the specific Sketch 上 cue you matched, e.g. "matched: 袖孔邊緣波浪狀荷葉邊". If you are guessing because no cue was visible, say so: "guess: sibling cues inconclusive".
-- alternatives: up to 3 runner-ups with their confidence. Omit if none.`;
+- 每個偵測到的 L1 都要回一筆，l2_code 必須是該 L1 下的有效 code（格式：XX_NNN）。
+- confidence：0-100 整數。decision tree 文字若用 0.0-1.0，請自行乘 100 回報整數。
+- reasoning：<80 字繁中，引述命中的 decision tree 節點（例如「袖孔處見大U型剪接線」）。
+- needs_text=true 代表這一 L1 的 L2 在 sketch 上無法獨斷，需靠 callout 文字定案；此時 l2_code 填「merged_candidates 裡最可能的那個」，merged_candidates 陣列列出所有無法區分的 L2 code。
+- needs_text=false 時 merged_candidates 可為空陣列。
+- 只回 JSON，不要 markdown code fence、不要任何其他文字。`;
 
-  const data = await callClaude(apiKey, mediaType, b64, prompt, 3000);
+  const data = await callClaude(apiKey, mediaType, b64, prompt, 4000);
   if (data.error) return { error: data.error, detail: data.detail };
 
   const parsed = parseJson(data.text);
@@ -202,18 +187,24 @@ Rules:
   const map = parsed.l2_by_l1 || {};
   for (const [l1Code, v] of Object.entries(map)) {
     if (!v || !v.l2_code) continue;
-    const section = guide.l1?.[l1Code];
+    const section = guide?.l1?.[l1Code];
     const entry = section?.l2?.[v.l2_code];
+    const mergedCandidates = Array.isArray(v.merged_candidates)
+      ? v.merged_candidates
+          .filter(c => typeof c === "string" && /^[A-Z]{2}_\d{3}$/.test(c))
+          .slice(0, 5)
+      : [];
     byCode[l1Code] = {
       l2_code: v.l2_code,
       l2_name: entry?.name || v.l2_code,
-      confidence: Number(v.confidence) || 0,
-      explanation: typeof v.explanation === "string" ? v.explanation.slice(0, 80) : null,
-      alternatives: Array.isArray(v.alternatives) ? v.alternatives.slice(0, 3).map(a => ({
-        l2_code: a.l2_code,
-        l2_name: section?.l2?.[a.l2_code]?.name || a.l2_code,
-        confidence: Number(a.confidence) || 0
-      })) : []
+      confidence: clampConfidence(v.confidence),
+      // Accept either "reasoning" (new) or "explanation" (legacy prompt); prefer reasoning.
+      explanation: typeof v.reasoning === "string"
+        ? v.reasoning.slice(0, 80)
+        : (typeof v.explanation === "string" ? v.explanation.slice(0, 80) : null),
+      needs_text: !!v.needs_text,
+      merged_candidates: mergedCandidates,
+      alternatives: [], // legacy field kept empty; merged_candidates supersedes it
     };
   }
   return { byCode, usage: data.usage };

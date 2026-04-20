@@ -704,15 +704,26 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
                 <div style={{ marginTop: "8px", maxHeight: "280px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "4px" }}>
                   {card.l2Variants.map((v, idx) => {
                     const active = idx === (card.l2Idx ?? 0);
-                    const isAiPick = card.ai_l2_code && v.code === card.ai_l2_code && !!card.ai_l2_explanation;
+                    const isAiPick = card.ai_l2_code && v.code === card.ai_l2_code;
                     let aiCue = null;
                     if (isAiPick) {
-                      const raw = card.ai_l2_explanation.trim();
-                      if (/^guess:/i.test(raw)) {
-                        aiCue = { icon: "⚠", text: "AI 未鎖定線索", color: "#b45309" };
-                      } else {
-                        const body = raw.replace(/^matched:\s*/i, "");
-                        aiCue = { icon: "★", text: `AI 命中：${body}`, color: "#15803d" };
+                      // needs_text takes priority: AI explicitly admits it can't decide from sketch.
+                      if (card.ai_l2_needs_text && card.ai_l2_merged_candidates?.length > 0) {
+                        const cands = card.ai_l2_merged_candidates
+                          .map(c => {
+                            const mv = card.l2Variants?.find(x => x.code === c);
+                            return mv ? `${c} ${mv.display_name}` : c;
+                          })
+                          .join("、");
+                        aiCue = { icon: "⚠", text: `需 callout 文字判定 · 候選：${cands}`, color: "#b45309" };
+                      } else if (card.ai_l2_explanation) {
+                        const raw = card.ai_l2_explanation.trim();
+                        if (/^guess:/i.test(raw)) {
+                          aiCue = { icon: "⚠", text: "AI 未鎖定線索", color: "#b45309" };
+                        } else {
+                          const body = raw.replace(/^matched:\s*/i, "");
+                          aiCue = { icon: "★", text: `AI 命中：${body}`, color: "#15803d" };
+                        }
                       }
                     }
                     return (
@@ -2012,7 +2023,8 @@ function App() {
   const [cStage, setCStage] = useState(0);
   const [removed, setRemoved] = useState(new Set());
   const [openId, setOpenId] = useState(null);
-  const [addonOn, setAddonOn] = useState(true);
+  // 品牌套組（商標 Labels）AI 無法從 sketch 判定是否需要，預設不勾，由使用者自行加上
+  const [addonOn, setAddonOn] = useState(false);
   const [hintDismissed, setHintDismissed] = useState(() => {
     try { return localStorage.getItem("stytrix.hint.card.dismissed") === "1"; } catch { return false; }
   });
@@ -2534,6 +2546,8 @@ function App() {
           ai_l2_code: d.l2_code || null,
           ai_l2_confidence: Number.isFinite(d.l2_confidence) ? d.l2_confidence : null,
           ai_l2_explanation: typeof d.l2_explanation === "string" ? d.l2_explanation : null,
+          ai_l2_needs_text: !!d.l2_needs_text,
+          ai_l2_merged_candidates: Array.isArray(d.l2_merged_candidates) ? d.l2_merged_candidates : [],
           l3s: stepList
         };
       });
