@@ -1,0 +1,961 @@
+{
+  "version": "v1.0",
+  "created": "2026-04-20",
+  "garment_type": "DRESS",
+  "item_type": "DRESSES",
+  "gt_it_key": "DRESS|DRESSES",
+  "n_designs": 12,
+  "n_with_iso": 4,
+  "data_source": "ONY 2026 6 seasons, expanded_bridge_v6",
+  "usage": "Techpack Creation UI: 選定 GT×IT 後，自動帶入做工配方",
+  "tier_rules": {
+    "required": "≥80% 設計都有此部位 → UI 預設展開",
+    "recommended": "50-79% → UI 推薦勾選",
+    "optional": "25-49% → UI 列出但不預選",
+    "rare": "<25% → UI 隱藏，進階模式才看到"
+  },
+  "iso_confidence_rules": {
+    "high": "Top ISO ≥60% & N≥5 → 自動選定（綠色）",
+    "medium": "Top ISO ≥40% & N≥5 → 推薦（黃色）",
+    "low": "Top ISO <40% 或 N<5 → 手動選（灰色）"
+  },
+  "zones": [
+    {
+      "l1_zh": "大身",
+      "l1_code": "BD",
+      "tier": "required",
+      "presence_rate": 100.0,
+      "presence_count": 12,
+      "iso_breakdown": [
+        {
+          "iso": "406",
+          "iso_name_en": "Coverstitch",
+          "iso_name_zh": "三本雙針/壓三本",
+          "pct": 34.3,
+          "count": 35,
+          "confidence": "low"
+        },
+        {
+          "iso": "605",
+          "iso_name_en": "Flatseam Binding",
+          "iso_name_zh": "三針五線爬網",
+          "pct": 19.6,
+          "count": 20,
+          "confidence": "low"
+        },
+        {
+          "iso": "401",
+          "iso_name_en": "Chainstitch",
+          "iso_name_zh": "鎖鍊",
+          "pct": 16.7,
+          "count": 17,
+          "confidence": "low"
+        },
+        {
+          "iso": "602",
+          "iso_name_en": "Flatseam 2-needle",
+          "iso_name_zh": "併縫",
+          "pct": 13.7,
+          "count": 14,
+          "confidence": "low"
+        },
+        {
+          "iso": "514",
+          "iso_name_en": "4-thread Overlock",
+          "iso_name_zh": "四線拷克",
+          "pct": 8.8,
+          "count": 9,
+          "confidence": "low"
+        },
+        {
+          "iso": "301",
+          "iso_name_en": "Lockstitch",
+          "iso_name_zh": "平車",
+          "pct": 6.9,
+          "count": 7,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "領",
+      "l1_code": "NK",
+      "tier": "required",
+      "presence_rate": 100.0,
+      "presence_count": 12,
+      "iso_breakdown": [
+        {
+          "iso": "406",
+          "iso_name_en": "Coverstitch",
+          "iso_name_zh": "三本雙針/壓三本",
+          "pct": 29.1,
+          "count": 43,
+          "confidence": "low"
+        },
+        {
+          "iso": "401",
+          "iso_name_en": "Chainstitch",
+          "iso_name_zh": "鎖鍊",
+          "pct": 20.9,
+          "count": 31,
+          "confidence": "low"
+        },
+        {
+          "iso": "514",
+          "iso_name_en": "4-thread Overlock",
+          "iso_name_zh": "四線拷克",
+          "pct": 16.2,
+          "count": 24,
+          "confidence": "low"
+        },
+        {
+          "iso": "605",
+          "iso_name_en": "Flatseam Binding",
+          "iso_name_zh": "三針五線爬網",
+          "pct": 12.2,
+          "count": 18,
+          "confidence": "low"
+        },
+        {
+          "iso": "301",
+          "iso_name_en": "Lockstitch",
+          "iso_name_zh": "平車",
+          "pct": 12.2,
+          "count": 18,
+          "confidence": "low"
+        },
+        {
+          "iso": "602",
+          "iso_name_en": "Flatseam 2-needle",
+          "iso_name_zh": "併縫",
+          "pct": 9.5,
+          "count": 14,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "袖",
+      "l1_code": "SL",
+      "tier": "required",
+      "presence_rate": 100.0,
+      "presence_count": 12,
+      "iso_breakdown": [
+        {
+          "iso": "406",
+          "iso_name_en": "Coverstitch",
+          "iso_name_zh": "三本雙針/壓三本",
+          "pct": 30.0,
+          "count": 18,
+          "confidence": "low"
+        },
+        {
+          "iso": "401",
+          "iso_name_en": "Chainstitch",
+          "iso_name_zh": "鎖鍊",
+          "pct": 21.7,
+          "count": 13,
+          "confidence": "low"
+        },
+        {
+          "iso": "514",
+          "iso_name_en": "4-thread Overlock",
+          "iso_name_zh": "四線拷克",
+          "pct": 15.0,
+          "count": 9,
+          "confidence": "low"
+        },
+        {
+          "iso": "605",
+          "iso_name_en": "Flatseam Binding",
+          "iso_name_zh": "三針五線爬網",
+          "pct": 11.7,
+          "count": 7,
+          "confidence": "low"
+        },
+        {
+          "iso": "301",
+          "iso_name_en": "Lockstitch",
+          "iso_name_zh": "平車",
+          "pct": 11.7,
+          "count": 7,
+          "confidence": "low"
+        },
+        {
+          "iso": "602",
+          "iso_name_en": "Flatseam 2-needle",
+          "iso_name_zh": "併縫",
+          "pct": 10.0,
+          "count": 6,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "肩",
+      "l1_code": "SH",
+      "tier": "required",
+      "presence_rate": 100.0,
+      "presence_count": 12,
+      "iso_breakdown": [
+        {
+          "iso": "406",
+          "iso_name_en": "Coverstitch",
+          "iso_name_zh": "三本雙針/壓三本",
+          "pct": 30.0,
+          "count": 18,
+          "confidence": "low"
+        },
+        {
+          "iso": "401",
+          "iso_name_en": "Chainstitch",
+          "iso_name_zh": "鎖鍊",
+          "pct": 21.7,
+          "count": 13,
+          "confidence": "low"
+        },
+        {
+          "iso": "514",
+          "iso_name_en": "4-thread Overlock",
+          "iso_name_zh": "四線拷克",
+          "pct": 15.0,
+          "count": 9,
+          "confidence": "low"
+        },
+        {
+          "iso": "605",
+          "iso_name_en": "Flatseam Binding",
+          "iso_name_zh": "三針五線爬網",
+          "pct": 11.7,
+          "count": 7,
+          "confidence": "low"
+        },
+        {
+          "iso": "301",
+          "iso_name_en": "Lockstitch",
+          "iso_name_zh": "平車",
+          "pct": 11.7,
+          "count": 7,
+          "confidence": "low"
+        },
+        {
+          "iso": "602",
+          "iso_name_en": "Flatseam 2-needle",
+          "iso_name_zh": "併縫",
+          "pct": 10.0,
+          "count": 6,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "口袋",
+      "l1_code": "PK",
+      "tier": "required",
+      "presence_rate": 91.7,
+      "presence_count": 11,
+      "iso_breakdown": [
+        {
+          "iso": "406",
+          "iso_name_en": "Coverstitch",
+          "iso_name_zh": "三本雙針/壓三本",
+          "pct": 29.7,
+          "count": 22,
+          "confidence": "low"
+        },
+        {
+          "iso": "401",
+          "iso_name_en": "Chainstitch",
+          "iso_name_zh": "鎖鍊",
+          "pct": 20.3,
+          "count": 15,
+          "confidence": "low"
+        },
+        {
+          "iso": "514",
+          "iso_name_en": "4-thread Overlock",
+          "iso_name_zh": "四線拷克",
+          "pct": 16.2,
+          "count": 12,
+          "confidence": "low"
+        },
+        {
+          "iso": "301",
+          "iso_name_en": "Lockstitch",
+          "iso_name_zh": "平車",
+          "pct": 13.5,
+          "count": 10,
+          "confidence": "low"
+        },
+        {
+          "iso": "605",
+          "iso_name_en": "Flatseam Binding",
+          "iso_name_zh": "三針五線爬網",
+          "pct": 12.2,
+          "count": 9,
+          "confidence": "low"
+        },
+        {
+          "iso": "602",
+          "iso_name_en": "Flatseam 2-needle",
+          "iso_name_zh": "併縫",
+          "pct": 8.1,
+          "count": 6,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "袖襱",
+      "l1_code": "AH",
+      "tier": "required",
+      "presence_rate": 91.7,
+      "presence_count": 11,
+      "iso_breakdown": [
+        {
+          "iso": "406",
+          "iso_name_en": "Coverstitch",
+          "iso_name_zh": "三本雙針/壓三本",
+          "pct": 29.3,
+          "count": 17,
+          "confidence": "low"
+        },
+        {
+          "iso": "401",
+          "iso_name_en": "Chainstitch",
+          "iso_name_zh": "鎖鍊",
+          "pct": 22.4,
+          "count": 13,
+          "confidence": "low"
+        },
+        {
+          "iso": "514",
+          "iso_name_en": "4-thread Overlock",
+          "iso_name_zh": "四線拷克",
+          "pct": 15.5,
+          "count": 9,
+          "confidence": "low"
+        },
+        {
+          "iso": "301",
+          "iso_name_en": "Lockstitch",
+          "iso_name_zh": "平車",
+          "pct": 12.1,
+          "count": 7,
+          "confidence": "low"
+        },
+        {
+          "iso": "605",
+          "iso_name_en": "Flatseam Binding",
+          "iso_name_zh": "三針五線爬網",
+          "pct": 10.3,
+          "count": 6,
+          "confidence": "low"
+        },
+        {
+          "iso": "602",
+          "iso_name_en": "Flatseam 2-needle",
+          "iso_name_zh": "併縫",
+          "pct": 10.3,
+          "count": 6,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "前立",
+      "l1_code": "FP",
+      "tier": "required",
+      "presence_rate": 91.7,
+      "presence_count": 11,
+      "iso_breakdown": [
+        {
+          "iso": "406",
+          "iso_name_en": "Coverstitch",
+          "iso_name_zh": "三本雙針/壓三本",
+          "pct": 30.0,
+          "count": 18,
+          "confidence": "low"
+        },
+        {
+          "iso": "401",
+          "iso_name_en": "Chainstitch",
+          "iso_name_zh": "鎖鍊",
+          "pct": 21.7,
+          "count": 13,
+          "confidence": "low"
+        },
+        {
+          "iso": "514",
+          "iso_name_en": "4-thread Overlock",
+          "iso_name_zh": "四線拷克",
+          "pct": 15.0,
+          "count": 9,
+          "confidence": "low"
+        },
+        {
+          "iso": "605",
+          "iso_name_en": "Flatseam Binding",
+          "iso_name_zh": "三針五線爬網",
+          "pct": 11.7,
+          "count": 7,
+          "confidence": "low"
+        },
+        {
+          "iso": "301",
+          "iso_name_en": "Lockstitch",
+          "iso_name_zh": "平車",
+          "pct": 11.7,
+          "count": 7,
+          "confidence": "low"
+        },
+        {
+          "iso": "602",
+          "iso_name_en": "Flatseam 2-needle",
+          "iso_name_zh": "併縫",
+          "pct": 10.0,
+          "count": 6,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "鬆緊帶",
+      "l1_code": "EL",
+      "tier": "required",
+      "presence_rate": 83.3,
+      "presence_count": 10,
+      "iso_breakdown": [
+        {
+          "iso": "406",
+          "iso_name_en": "Coverstitch",
+          "iso_name_zh": "三本雙針/壓三本",
+          "pct": 39.3,
+          "count": 11,
+          "confidence": "low"
+        },
+        {
+          "iso": "605",
+          "iso_name_en": "Flatseam Binding",
+          "iso_name_zh": "三針五線爬網",
+          "pct": 25.0,
+          "count": 7,
+          "confidence": "low"
+        },
+        {
+          "iso": "602",
+          "iso_name_en": "Flatseam 2-needle",
+          "iso_name_zh": "併縫",
+          "pct": 21.4,
+          "count": 6,
+          "confidence": "low"
+        },
+        {
+          "iso": "401",
+          "iso_name_en": "Chainstitch",
+          "iso_name_zh": "鎖鍊",
+          "pct": 14.3,
+          "count": 4,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "褲口",
+      "l1_code": "LO",
+      "tier": "recommended",
+      "presence_rate": 66.7,
+      "presence_count": 8,
+      "iso_breakdown": [
+        {
+          "iso": "406",
+          "iso_name_en": "Coverstitch",
+          "iso_name_zh": "三本雙針/壓三本",
+          "pct": 37.5,
+          "count": 9,
+          "confidence": "low"
+        },
+        {
+          "iso": "602",
+          "iso_name_en": "Flatseam 2-needle",
+          "iso_name_zh": "併縫",
+          "pct": 25.0,
+          "count": 6,
+          "confidence": "low"
+        },
+        {
+          "iso": "605",
+          "iso_name_en": "Flatseam Binding",
+          "iso_name_zh": "三針五線爬網",
+          "pct": 20.8,
+          "count": 5,
+          "confidence": "low"
+        },
+        {
+          "iso": "401",
+          "iso_name_en": "Chainstitch",
+          "iso_name_zh": "鎖鍊",
+          "pct": 16.7,
+          "count": 4,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "下擺",
+      "l1_code": "HM",
+      "tier": "recommended",
+      "presence_rate": 66.7,
+      "presence_count": 8,
+      "iso_breakdown": [
+        {
+          "iso": "401",
+          "iso_name_en": "Chainstitch",
+          "iso_name_zh": "鎖鍊",
+          "pct": 29.4,
+          "count": 10,
+          "confidence": "low"
+        },
+        {
+          "iso": "406",
+          "iso_name_en": "Coverstitch",
+          "iso_name_zh": "三本雙針/壓三本",
+          "pct": 26.5,
+          "count": 9,
+          "confidence": "low"
+        },
+        {
+          "iso": "514",
+          "iso_name_en": "4-thread Overlock",
+          "iso_name_zh": "四線拷克",
+          "pct": 17.6,
+          "count": 6,
+          "confidence": "low"
+        },
+        {
+          "iso": "602",
+          "iso_name_en": "Flatseam 2-needle",
+          "iso_name_zh": "併縫",
+          "pct": 11.8,
+          "count": 4,
+          "confidence": "low"
+        },
+        {
+          "iso": "301",
+          "iso_name_en": "Lockstitch",
+          "iso_name_zh": "平車",
+          "pct": 11.8,
+          "count": 4,
+          "confidence": "low"
+        },
+        {
+          "iso": "605",
+          "iso_name_en": "Flatseam Binding",
+          "iso_name_zh": "三針五線爬網",
+          "pct": 2.9,
+          "count": 1,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "標",
+      "l1_code": "LB",
+      "tier": "recommended",
+      "presence_rate": 66.7,
+      "presence_count": 8,
+      "iso_breakdown": []
+    },
+    {
+      "l1_zh": "褲合身",
+      "l1_code": "PS",
+      "tier": "recommended",
+      "presence_rate": 66.7,
+      "presence_count": 8,
+      "iso_breakdown": []
+    },
+    {
+      "l1_zh": "腰頭",
+      "l1_code": "WB",
+      "tier": "recommended",
+      "presence_rate": 50.0,
+      "presence_count": 6,
+      "iso_breakdown": []
+    },
+    {
+      "l1_zh": "肩帶",
+      "l1_code": "ST",
+      "tier": "recommended",
+      "presence_rate": 50.0,
+      "presence_count": 6,
+      "iso_breakdown": [
+        {
+          "iso": "406",
+          "iso_name_en": "Coverstitch",
+          "iso_name_zh": "三本雙針/壓三本",
+          "pct": 35.7,
+          "count": 5,
+          "confidence": "low"
+        },
+        {
+          "iso": "401",
+          "iso_name_en": "Chainstitch",
+          "iso_name_zh": "鎖鍊",
+          "pct": 28.6,
+          "count": 4,
+          "confidence": "low"
+        },
+        {
+          "iso": "602",
+          "iso_name_en": "Flatseam 2-needle",
+          "iso_name_zh": "併縫",
+          "pct": 28.6,
+          "count": 4,
+          "confidence": "low"
+        },
+        {
+          "iso": "605",
+          "iso_name_en": "Flatseam Binding",
+          "iso_name_zh": "三針五線爬網",
+          "pct": 7.1,
+          "count": 1,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "脇縫",
+      "l1_code": "SS",
+      "tier": "optional",
+      "presence_rate": 41.7,
+      "presence_count": 5,
+      "iso_breakdown": [
+        {
+          "iso": "406",
+          "iso_name_en": "Coverstitch",
+          "iso_name_zh": "三本雙針/壓三本",
+          "pct": 50.0,
+          "count": 1,
+          "confidence": "low"
+        },
+        {
+          "iso": "401",
+          "iso_name_en": "Chainstitch",
+          "iso_name_zh": "鎖鍊",
+          "pct": 50.0,
+          "count": 1,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "褲底檔",
+      "l1_code": "GS",
+      "tier": "optional",
+      "presence_rate": 41.7,
+      "presence_count": 5,
+      "iso_breakdown": []
+    },
+    {
+      "l1_zh": "裡布",
+      "l1_code": "LN",
+      "tier": "optional",
+      "presence_rate": 41.7,
+      "presence_count": 5,
+      "iso_breakdown": [
+        {
+          "iso": "605",
+          "iso_name_en": "Flatseam Binding",
+          "iso_name_zh": "三針五線爬網",
+          "pct": 50.0,
+          "count": 2,
+          "confidence": "low"
+        },
+        {
+          "iso": "406",
+          "iso_name_en": "Coverstitch",
+          "iso_name_zh": "三本雙針/壓三本",
+          "pct": 50.0,
+          "count": 2,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "行縫固定棉",
+      "l1_code": "IL",
+      "tier": "optional",
+      "presence_rate": 33.3,
+      "presence_count": 4,
+      "iso_breakdown": [
+        {
+          "iso": "406",
+          "iso_name_en": "Coverstitch",
+          "iso_name_zh": "三本雙針/壓三本",
+          "pct": 50.0,
+          "count": 5,
+          "confidence": "medium"
+        },
+        {
+          "iso": "605",
+          "iso_name_en": "Flatseam Binding",
+          "iso_name_zh": "三針五線爬網",
+          "pct": 40.0,
+          "count": 4,
+          "confidence": "medium"
+        },
+        {
+          "iso": "401",
+          "iso_name_en": "Chainstitch",
+          "iso_name_zh": "鎖鍊",
+          "pct": 10.0,
+          "count": 1,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "後褲身",
+      "l1_code": "BR",
+      "tier": "optional",
+      "presence_rate": 33.3,
+      "presence_count": 4,
+      "iso_breakdown": []
+    },
+    {
+      "l1_zh": "前褲身",
+      "l1_code": "FR",
+      "tier": "optional",
+      "presence_rate": 33.3,
+      "presence_count": 4,
+      "iso_breakdown": []
+    },
+    {
+      "l1_zh": "袖口",
+      "l1_code": "CF",
+      "tier": "optional",
+      "presence_rate": 25.0,
+      "presence_count": 3,
+      "iso_breakdown": [
+        {
+          "iso": "514",
+          "iso_name_en": "4-thread Overlock",
+          "iso_name_zh": "四線拷克",
+          "pct": 28.1,
+          "count": 9,
+          "confidence": "low"
+        },
+        {
+          "iso": "401",
+          "iso_name_en": "Chainstitch",
+          "iso_name_zh": "鎖鍊",
+          "pct": 28.1,
+          "count": 9,
+          "confidence": "low"
+        },
+        {
+          "iso": "301",
+          "iso_name_en": "Lockstitch",
+          "iso_name_zh": "平車",
+          "pct": 21.9,
+          "count": 7,
+          "confidence": "low"
+        },
+        {
+          "iso": "406",
+          "iso_name_en": "Coverstitch",
+          "iso_name_zh": "三本雙針/壓三本",
+          "pct": 21.9,
+          "count": 7,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "拉鍊",
+      "l1_code": "ZP",
+      "tier": "rare",
+      "presence_rate": 16.7,
+      "presence_count": 2,
+      "iso_breakdown": []
+    },
+    {
+      "l1_zh": "門襟",
+      "l1_code": "PL",
+      "tier": "rare",
+      "presence_rate": 16.7,
+      "presence_count": 2,
+      "iso_breakdown": [
+        {
+          "iso": "514",
+          "iso_name_en": "4-thread Overlock",
+          "iso_name_zh": "四線拷克",
+          "pct": 28.1,
+          "count": 9,
+          "confidence": "low"
+        },
+        {
+          "iso": "401",
+          "iso_name_en": "Chainstitch",
+          "iso_name_zh": "鎖鍊",
+          "pct": 28.1,
+          "count": 9,
+          "confidence": "low"
+        },
+        {
+          "iso": "301",
+          "iso_name_en": "Lockstitch",
+          "iso_name_zh": "平車",
+          "pct": 21.9,
+          "count": 7,
+          "confidence": "low"
+        },
+        {
+          "iso": "406",
+          "iso_name_en": "Coverstitch",
+          "iso_name_zh": "三本雙針/壓三本",
+          "pct": 21.9,
+          "count": 7,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "褶",
+      "l1_code": "PD",
+      "tier": "rare",
+      "presence_rate": 16.7,
+      "presence_count": 2,
+      "iso_breakdown": []
+    },
+    {
+      "l1_zh": "貼合",
+      "l1_code": "FU",
+      "tier": "rare",
+      "presence_rate": 8.3,
+      "presence_count": 1,
+      "iso_breakdown": []
+    },
+    {
+      "l1_zh": "繩類",
+      "l1_code": "DC",
+      "tier": "rare",
+      "presence_rate": 8.3,
+      "presence_count": 1,
+      "iso_breakdown": []
+    },
+    {
+      "l1_zh": "滾條",
+      "l1_code": "BN",
+      "tier": "rare",
+      "presence_rate": 8.3,
+      "presence_count": 1,
+      "iso_breakdown": []
+    }
+  ],
+  "iso_distribution": [
+    {
+      "iso": "406",
+      "iso_name_en": "Coverstitch",
+      "iso_name_zh": "三本雙針/壓三本",
+      "pct": 30.8,
+      "count": 4
+    },
+    {
+      "iso": "605",
+      "iso_name_en": "Flatseam Binding",
+      "iso_name_zh": "三針五線爬網",
+      "pct": 23.1,
+      "count": 3
+    },
+    {
+      "iso": "602",
+      "iso_name_en": "Flatseam 2-needle",
+      "iso_name_zh": "併縫",
+      "pct": 15.4,
+      "count": 2
+    },
+    {
+      "iso": "401",
+      "iso_name_en": "Chainstitch",
+      "iso_name_zh": "鎖鍊",
+      "pct": 15.4,
+      "count": 2
+    },
+    {
+      "iso": "514",
+      "iso_name_en": "4-thread Overlock",
+      "iso_name_zh": "四線拷克",
+      "pct": 7.7,
+      "count": 1
+    },
+    {
+      "iso": "301",
+      "iso_name_en": "Lockstitch",
+      "iso_name_zh": "平車",
+      "pct": 7.7,
+      "count": 1
+    }
+  ],
+  "top_zh_methods": [
+    {
+      "method": "鎖鍊(401)",
+      "count": 23
+    },
+    {
+      "method": "四線拷克(514)",
+      "count": 17
+    },
+    {
+      "method": "三本雙針(406)",
+      "count": 15
+    },
+    {
+      "method": "所有大身縫四線拷克(514)",
+      "count": 6
+    },
+    {
+      "method": "平車(301)",
+      "count": 6
+    }
+  ],
+  "summary": {
+    "required_zones": [
+      "大身",
+      "領",
+      "袖",
+      "肩",
+      "口袋",
+      "袖襱",
+      "前立",
+      "鬆緊帶"
+    ],
+    "recommended_zones": [
+      "褲口",
+      "下擺",
+      "標",
+      "褲合身",
+      "腰頭",
+      "肩帶"
+    ],
+    "optional_zones": [
+      "脇縫",
+      "褲底檔",
+      "裡布",
+      "行縫固定棉",
+      "後褲身",
+      "前褲身",
+      "袖口"
+    ],
+    "rare_zones": [
+      "拉鍊",
+      "門襟",
+      "褶",
+      "貼合",
+      "繩類",
+      "滾條"
+    ],
+    "dominant_iso": "406",
+    "dominant_iso_pct": 30.8
+  }
+}

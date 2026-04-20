@@ -1,0 +1,710 @@
+{
+  "version": "v1.0",
+  "created": "2026-04-20",
+  "garment_type": "SET",
+  "item_type": "SET",
+  "gt_it_key": "SET|SET",
+  "n_designs": 9,
+  "n_with_iso": 4,
+  "data_source": "ONY 2026 6 seasons, expanded_bridge_v6",
+  "usage": "Techpack Creation UI: 選定 GT×IT 後，自動帶入做工配方",
+  "tier_rules": {
+    "required": "≥80% 設計都有此部位 → UI 預設展開",
+    "recommended": "50-79% → UI 推薦勾選",
+    "optional": "25-49% → UI 列出但不預選",
+    "rare": "<25% → UI 隱藏，進階模式才看到"
+  },
+  "iso_confidence_rules": {
+    "high": "Top ISO ≥60% & N≥5 → 自動選定（綠色）",
+    "medium": "Top ISO ≥40% & N≥5 → 推薦（黃色）",
+    "low": "Top ISO <40% 或 N<5 → 手動選（灰色）"
+  },
+  "zones": [
+    {
+      "l1_zh": "領",
+      "l1_code": "NK",
+      "tier": "required",
+      "presence_rate": 100.0,
+      "presence_count": 9,
+      "iso_breakdown": [
+        {
+          "iso": "406",
+          "iso_name_en": "Coverstitch",
+          "iso_name_zh": "三本雙針/壓三本",
+          "pct": 50.0,
+          "count": 21,
+          "confidence": "medium"
+        },
+        {
+          "iso": "301",
+          "iso_name_en": "Lockstitch",
+          "iso_name_zh": "平車",
+          "pct": 35.7,
+          "count": 15,
+          "confidence": "low"
+        },
+        {
+          "iso": "607",
+          "iso_name_en": "Flatlock",
+          "iso_name_zh": "併逢車",
+          "pct": 14.3,
+          "count": 6,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "腰頭",
+      "l1_code": "WB",
+      "tier": "required",
+      "presence_rate": 100.0,
+      "presence_count": 9,
+      "iso_breakdown": [
+        {
+          "iso": "406",
+          "iso_name_en": "Coverstitch",
+          "iso_name_zh": "三本雙針/壓三本",
+          "pct": 45.7,
+          "count": 16,
+          "confidence": "medium"
+        },
+        {
+          "iso": "301",
+          "iso_name_en": "Lockstitch",
+          "iso_name_zh": "平車",
+          "pct": 28.6,
+          "count": 10,
+          "confidence": "low"
+        },
+        {
+          "iso": "607",
+          "iso_name_en": "Flatlock",
+          "iso_name_zh": "併逢車",
+          "pct": 25.7,
+          "count": 9,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "大身",
+      "l1_code": "BD",
+      "tier": "required",
+      "presence_rate": 100.0,
+      "presence_count": 9,
+      "iso_breakdown": [
+        {
+          "iso": "406",
+          "iso_name_en": "Coverstitch",
+          "iso_name_zh": "三本雙針/壓三本",
+          "pct": 46.7,
+          "count": 7,
+          "confidence": "medium"
+        },
+        {
+          "iso": "301",
+          "iso_name_en": "Lockstitch",
+          "iso_name_zh": "平車",
+          "pct": 33.3,
+          "count": 5,
+          "confidence": "low"
+        },
+        {
+          "iso": "607",
+          "iso_name_en": "Flatlock",
+          "iso_name_zh": "併逢車",
+          "pct": 20.0,
+          "count": 3,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "鬆緊帶",
+      "l1_code": "EL",
+      "tier": "required",
+      "presence_rate": 100.0,
+      "presence_count": 9,
+      "iso_breakdown": [
+        {
+          "iso": "406",
+          "iso_name_en": "Coverstitch",
+          "iso_name_zh": "三本雙針/壓三本",
+          "pct": 50.0,
+          "count": 8,
+          "confidence": "medium"
+        },
+        {
+          "iso": "301",
+          "iso_name_en": "Lockstitch",
+          "iso_name_zh": "平車",
+          "pct": 31.2,
+          "count": 5,
+          "confidence": "low"
+        },
+        {
+          "iso": "607",
+          "iso_name_en": "Flatlock",
+          "iso_name_zh": "併逢車",
+          "pct": 18.8,
+          "count": 3,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "袖",
+      "l1_code": "SL",
+      "tier": "required",
+      "presence_rate": 100.0,
+      "presence_count": 9,
+      "iso_breakdown": [
+        {
+          "iso": "406",
+          "iso_name_en": "Coverstitch",
+          "iso_name_zh": "三本雙針/壓三本",
+          "pct": 50.0,
+          "count": 8,
+          "confidence": "medium"
+        },
+        {
+          "iso": "301",
+          "iso_name_en": "Lockstitch",
+          "iso_name_zh": "平車",
+          "pct": 31.2,
+          "count": 5,
+          "confidence": "low"
+        },
+        {
+          "iso": "607",
+          "iso_name_en": "Flatlock",
+          "iso_name_zh": "併逢車",
+          "pct": 18.8,
+          "count": 3,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "褲合身",
+      "l1_code": "PS",
+      "tier": "required",
+      "presence_rate": 100.0,
+      "presence_count": 9,
+      "iso_breakdown": [
+        {
+          "iso": "607",
+          "iso_name_en": "Flatlock",
+          "iso_name_zh": "併逢車",
+          "pct": 100.0,
+          "count": 6,
+          "confidence": "high"
+        }
+      ]
+    },
+    {
+      "l1_zh": "標",
+      "l1_code": "LB",
+      "tier": "required",
+      "presence_rate": 100.0,
+      "presence_count": 9,
+      "iso_breakdown": [
+        {
+          "iso": "607",
+          "iso_name_en": "Flatlock",
+          "iso_name_zh": "併逢車",
+          "pct": 100.0,
+          "count": 3,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "下擺",
+      "l1_code": "HM",
+      "tier": "required",
+      "presence_rate": 88.9,
+      "presence_count": 8,
+      "iso_breakdown": [
+        {
+          "iso": "406",
+          "iso_name_en": "Coverstitch",
+          "iso_name_zh": "三本雙針/壓三本",
+          "pct": 50.0,
+          "count": 8,
+          "confidence": "medium"
+        },
+        {
+          "iso": "301",
+          "iso_name_en": "Lockstitch",
+          "iso_name_zh": "平車",
+          "pct": 31.2,
+          "count": 5,
+          "confidence": "low"
+        },
+        {
+          "iso": "607",
+          "iso_name_en": "Flatlock",
+          "iso_name_zh": "併逢車",
+          "pct": 18.8,
+          "count": 3,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "褲口",
+      "l1_code": "LO",
+      "tier": "required",
+      "presence_rate": 88.9,
+      "presence_count": 8,
+      "iso_breakdown": [
+        {
+          "iso": "406",
+          "iso_name_en": "Coverstitch",
+          "iso_name_zh": "三本雙針/壓三本",
+          "pct": 42.1,
+          "count": 8,
+          "confidence": "medium"
+        },
+        {
+          "iso": "607",
+          "iso_name_en": "Flatlock",
+          "iso_name_zh": "併逢車",
+          "pct": 31.6,
+          "count": 6,
+          "confidence": "low"
+        },
+        {
+          "iso": "301",
+          "iso_name_en": "Lockstitch",
+          "iso_name_zh": "平車",
+          "pct": 26.3,
+          "count": 5,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "袖襱",
+      "l1_code": "AH",
+      "tier": "required",
+      "presence_rate": 88.9,
+      "presence_count": 8,
+      "iso_breakdown": [
+        {
+          "iso": "406",
+          "iso_name_en": "Coverstitch",
+          "iso_name_zh": "三本雙針/壓三本",
+          "pct": 50.0,
+          "count": 8,
+          "confidence": "medium"
+        },
+        {
+          "iso": "301",
+          "iso_name_en": "Lockstitch",
+          "iso_name_zh": "平車",
+          "pct": 31.2,
+          "count": 5,
+          "confidence": "low"
+        },
+        {
+          "iso": "607",
+          "iso_name_en": "Flatlock",
+          "iso_name_zh": "併逢車",
+          "pct": 18.8,
+          "count": 3,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "肩",
+      "l1_code": "SH",
+      "tier": "required",
+      "presence_rate": 88.9,
+      "presence_count": 8,
+      "iso_breakdown": [
+        {
+          "iso": "406",
+          "iso_name_en": "Coverstitch",
+          "iso_name_zh": "三本雙針/壓三本",
+          "pct": 61.5,
+          "count": 8,
+          "confidence": "high"
+        },
+        {
+          "iso": "301",
+          "iso_name_en": "Lockstitch",
+          "iso_name_zh": "平車",
+          "pct": 38.5,
+          "count": 5,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "前立",
+      "l1_code": "FP",
+      "tier": "required",
+      "presence_rate": 88.9,
+      "presence_count": 8,
+      "iso_breakdown": [
+        {
+          "iso": "406",
+          "iso_name_en": "Coverstitch",
+          "iso_name_zh": "三本雙針/壓三本",
+          "pct": 66.7,
+          "count": 10,
+          "confidence": "high"
+        },
+        {
+          "iso": "301",
+          "iso_name_en": "Lockstitch",
+          "iso_name_zh": "平車",
+          "pct": 33.3,
+          "count": 5,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "鈕扣",
+      "l1_code": "BT",
+      "tier": "recommended",
+      "presence_rate": 77.8,
+      "presence_count": 7,
+      "iso_breakdown": [
+        {
+          "iso": "406",
+          "iso_name_en": "Coverstitch",
+          "iso_name_zh": "三本雙針/壓三本",
+          "pct": 46.7,
+          "count": 7,
+          "confidence": "medium"
+        },
+        {
+          "iso": "301",
+          "iso_name_en": "Lockstitch",
+          "iso_name_zh": "平車",
+          "pct": 33.3,
+          "count": 5,
+          "confidence": "low"
+        },
+        {
+          "iso": "607",
+          "iso_name_en": "Flatlock",
+          "iso_name_zh": "併逢車",
+          "pct": 20.0,
+          "count": 3,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "袖口",
+      "l1_code": "CF",
+      "tier": "recommended",
+      "presence_rate": 77.8,
+      "presence_count": 7,
+      "iso_breakdown": [
+        {
+          "iso": "301",
+          "iso_name_en": "Lockstitch",
+          "iso_name_zh": "平車",
+          "pct": 50.0,
+          "count": 5,
+          "confidence": "medium"
+        },
+        {
+          "iso": "406",
+          "iso_name_en": "Coverstitch",
+          "iso_name_zh": "三本雙針/壓三本",
+          "pct": 50.0,
+          "count": 5,
+          "confidence": "medium"
+        }
+      ]
+    },
+    {
+      "l1_zh": "後褲身",
+      "l1_code": "BR",
+      "tier": "recommended",
+      "presence_rate": 77.8,
+      "presence_count": 7,
+      "iso_breakdown": [
+        {
+          "iso": "607",
+          "iso_name_en": "Flatlock",
+          "iso_name_zh": "併逢車",
+          "pct": 100.0,
+          "count": 3,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "前褲身",
+      "l1_code": "FR",
+      "tier": "recommended",
+      "presence_rate": 77.8,
+      "presence_count": 7,
+      "iso_breakdown": [
+        {
+          "iso": "607",
+          "iso_name_en": "Flatlock",
+          "iso_name_zh": "併逢車",
+          "pct": 100.0,
+          "count": 3,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "繩類",
+      "l1_code": "DC",
+      "tier": "recommended",
+      "presence_rate": 66.7,
+      "presence_count": 6,
+      "iso_breakdown": [
+        {
+          "iso": "607",
+          "iso_name_en": "Flatlock",
+          "iso_name_zh": "併逢車",
+          "pct": 100.0,
+          "count": 3,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "口袋",
+      "l1_code": "PK",
+      "tier": "recommended",
+      "presence_rate": 55.6,
+      "presence_count": 5,
+      "iso_breakdown": [
+        {
+          "iso": "406",
+          "iso_name_en": "Coverstitch",
+          "iso_name_zh": "三本雙針/壓三本",
+          "pct": 54.5,
+          "count": 12,
+          "confidence": "medium"
+        },
+        {
+          "iso": "301",
+          "iso_name_en": "Lockstitch",
+          "iso_name_zh": "平車",
+          "pct": 45.5,
+          "count": 10,
+          "confidence": "medium"
+        }
+      ]
+    },
+    {
+      "l1_zh": "滾條",
+      "l1_code": "BN",
+      "tier": "recommended",
+      "presence_rate": 55.6,
+      "presence_count": 5,
+      "iso_breakdown": [
+        {
+          "iso": "607",
+          "iso_name_en": "Flatlock",
+          "iso_name_zh": "併逢車",
+          "pct": 100.0,
+          "count": 3,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "門襟",
+      "l1_code": "PL",
+      "tier": "optional",
+      "presence_rate": 44.4,
+      "presence_count": 4,
+      "iso_breakdown": [
+        {
+          "iso": "301",
+          "iso_name_en": "Lockstitch",
+          "iso_name_zh": "平車",
+          "pct": 50.0,
+          "count": 5,
+          "confidence": "medium"
+        },
+        {
+          "iso": "406",
+          "iso_name_en": "Coverstitch",
+          "iso_name_zh": "三本雙針/壓三本",
+          "pct": 50.0,
+          "count": 5,
+          "confidence": "medium"
+        }
+      ]
+    },
+    {
+      "l1_zh": "貼合",
+      "l1_code": "FU",
+      "tier": "optional",
+      "presence_rate": 33.3,
+      "presence_count": 3,
+      "iso_breakdown": []
+    },
+    {
+      "l1_zh": "裡布",
+      "l1_code": "LN",
+      "tier": "optional",
+      "presence_rate": 33.3,
+      "presence_count": 3,
+      "iso_breakdown": []
+    },
+    {
+      "l1_zh": "行縫固定棉",
+      "l1_code": "IL",
+      "tier": "optional",
+      "presence_rate": 33.3,
+      "presence_count": 3,
+      "iso_breakdown": []
+    },
+    {
+      "l1_zh": "肩帶",
+      "l1_code": "ST",
+      "tier": "optional",
+      "presence_rate": 33.3,
+      "presence_count": 3,
+      "iso_breakdown": [
+        {
+          "iso": "607",
+          "iso_name_en": "Flatlock",
+          "iso_name_zh": "併逢車",
+          "pct": 50.0,
+          "count": 3,
+          "confidence": "medium"
+        },
+        {
+          "iso": "406",
+          "iso_name_en": "Coverstitch",
+          "iso_name_zh": "三本雙針/壓三本",
+          "pct": 50.0,
+          "count": 3,
+          "confidence": "medium"
+        }
+      ]
+    },
+    {
+      "l1_zh": "脇縫",
+      "l1_code": "SS",
+      "tier": "optional",
+      "presence_rate": 33.3,
+      "presence_count": 3,
+      "iso_breakdown": [
+        {
+          "iso": "607",
+          "iso_name_en": "Flatlock",
+          "iso_name_zh": "併逢車",
+          "pct": 100.0,
+          "count": 3,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "褶",
+      "l1_code": "PD",
+      "tier": "rare",
+      "presence_rate": 22.2,
+      "presence_count": 2,
+      "iso_breakdown": []
+    },
+    {
+      "l1_zh": "貼邊",
+      "l1_code": "FC",
+      "tier": "rare",
+      "presence_rate": 11.1,
+      "presence_count": 1,
+      "iso_breakdown": []
+    }
+  ],
+  "iso_distribution": [
+    {
+      "iso": "406",
+      "iso_name_en": "Coverstitch",
+      "iso_name_zh": "三本雙針/壓三本",
+      "pct": 50.0,
+      "count": 3
+    },
+    {
+      "iso": "301",
+      "iso_name_en": "Lockstitch",
+      "iso_name_zh": "平車",
+      "pct": 33.3,
+      "count": 2
+    },
+    {
+      "iso": "607",
+      "iso_name_en": "Flatlock",
+      "iso_name_zh": "併逢車",
+      "pct": 16.7,
+      "count": 1
+    }
+  ],
+  "top_zh_methods": [
+    {
+      "method": "平車(301)",
+      "count": 30
+    },
+    {
+      "method": "/16\"平車(301)",
+      "count": 10
+    },
+    {
+      "method": "三本雙針(406)",
+      "count": 6
+    },
+    {
+      "method": "單反摺壓單針平車(301)",
+      "count": 5
+    }
+  ],
+  "summary": {
+    "required_zones": [
+      "領",
+      "腰頭",
+      "大身",
+      "鬆緊帶",
+      "袖",
+      "褲合身",
+      "標",
+      "下擺",
+      "褲口",
+      "袖襱",
+      "肩",
+      "前立"
+    ],
+    "recommended_zones": [
+      "鈕扣",
+      "袖口",
+      "後褲身",
+      "前褲身",
+      "繩類",
+      "口袋",
+      "滾條"
+    ],
+    "optional_zones": [
+      "門襟",
+      "貼合",
+      "裡布",
+      "行縫固定棉",
+      "肩帶",
+      "脇縫"
+    ],
+    "rare_zones": [
+      "褶",
+      "貼邊"
+    ],
+    "dominant_iso": "406",
+    "dominant_iso_pct": 50.0
+  }
+}

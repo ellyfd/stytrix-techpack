@@ -1,0 +1,562 @@
+{
+  "version": "v1.0",
+  "created": "2026-04-20",
+  "garment_type": "SET",
+  "item_type": "SLEEPWEAR",
+  "gt_it_key": "SET|SLEEPWEAR",
+  "n_designs": 7,
+  "n_with_iso": 3,
+  "data_source": "ONY 2026 6 seasons, expanded_bridge_v6",
+  "usage": "Techpack Creation UI: 選定 GT×IT 後，自動帶入做工配方",
+  "tier_rules": {
+    "required": "≥80% 設計都有此部位 → UI 預設展開",
+    "recommended": "50-79% → UI 推薦勾選",
+    "optional": "25-49% → UI 列出但不預選",
+    "rare": "<25% → UI 隱藏，進階模式才看到"
+  },
+  "iso_confidence_rules": {
+    "high": "Top ISO ≥60% & N≥5 → 自動選定（綠色）",
+    "medium": "Top ISO ≥40% & N≥5 → 推薦（黃色）",
+    "low": "Top ISO <40% 或 N<5 → 手動選（灰色）"
+  },
+  "zones": [
+    {
+      "l1_zh": "鬆緊帶",
+      "l1_code": "EL",
+      "tier": "required",
+      "presence_rate": 100.0,
+      "presence_count": 7,
+      "iso_breakdown": [
+        {
+          "iso": "514",
+          "iso_name_en": "4-thread Overlock",
+          "iso_name_zh": "四線拷克",
+          "pct": 66.7,
+          "count": 2,
+          "confidence": "low"
+        },
+        {
+          "iso": "407",
+          "iso_name_en": "Coverstitch 3-needle",
+          "iso_name_zh": "三本三針",
+          "pct": 33.3,
+          "count": 1,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "袖",
+      "l1_code": "SL",
+      "tier": "required",
+      "presence_rate": 100.0,
+      "presence_count": 7,
+      "iso_breakdown": [
+        {
+          "iso": "514",
+          "iso_name_en": "4-thread Overlock",
+          "iso_name_zh": "四線拷克",
+          "pct": 50.0,
+          "count": 2,
+          "confidence": "low"
+        },
+        {
+          "iso": "407",
+          "iso_name_en": "Coverstitch 3-needle",
+          "iso_name_zh": "三本三針",
+          "pct": 25.0,
+          "count": 1,
+          "confidence": "low"
+        },
+        {
+          "iso": "406",
+          "iso_name_en": "Coverstitch",
+          "iso_name_zh": "三本雙針/壓三本",
+          "pct": 25.0,
+          "count": 1,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "腰頭",
+      "l1_code": "WB",
+      "tier": "required",
+      "presence_rate": 100.0,
+      "presence_count": 7,
+      "iso_breakdown": [
+        {
+          "iso": "514",
+          "iso_name_en": "4-thread Overlock",
+          "iso_name_zh": "四線拷克",
+          "pct": 44.4,
+          "count": 4,
+          "confidence": "medium"
+        },
+        {
+          "iso": "406",
+          "iso_name_en": "Coverstitch",
+          "iso_name_zh": "三本雙針/壓三本",
+          "pct": 44.4,
+          "count": 4,
+          "confidence": "medium"
+        },
+        {
+          "iso": "407",
+          "iso_name_en": "Coverstitch 3-needle",
+          "iso_name_zh": "三本三針",
+          "pct": 11.1,
+          "count": 1,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "大身",
+      "l1_code": "BD",
+      "tier": "required",
+      "presence_rate": 100.0,
+      "presence_count": 7,
+      "iso_breakdown": [
+        {
+          "iso": "514",
+          "iso_name_en": "4-thread Overlock",
+          "iso_name_zh": "四線拷克",
+          "pct": 57.1,
+          "count": 4,
+          "confidence": "medium"
+        },
+        {
+          "iso": "406",
+          "iso_name_en": "Coverstitch",
+          "iso_name_zh": "三本雙針/壓三本",
+          "pct": 28.6,
+          "count": 2,
+          "confidence": "low"
+        },
+        {
+          "iso": "407",
+          "iso_name_en": "Coverstitch 3-needle",
+          "iso_name_zh": "三本三針",
+          "pct": 14.3,
+          "count": 1,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "褲口",
+      "l1_code": "LO",
+      "tier": "required",
+      "presence_rate": 100.0,
+      "presence_count": 7,
+      "iso_breakdown": [
+        {
+          "iso": "514",
+          "iso_name_en": "4-thread Overlock",
+          "iso_name_zh": "四線拷克",
+          "pct": 57.1,
+          "count": 4,
+          "confidence": "medium"
+        },
+        {
+          "iso": "406",
+          "iso_name_en": "Coverstitch",
+          "iso_name_zh": "三本雙針/壓三本",
+          "pct": 28.6,
+          "count": 2,
+          "confidence": "low"
+        },
+        {
+          "iso": "407",
+          "iso_name_en": "Coverstitch 3-needle",
+          "iso_name_zh": "三本三針",
+          "pct": 14.3,
+          "count": 1,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "標",
+      "l1_code": "LB",
+      "tier": "required",
+      "presence_rate": 100.0,
+      "presence_count": 7,
+      "iso_breakdown": [
+        {
+          "iso": "514",
+          "iso_name_en": "4-thread Overlock",
+          "iso_name_zh": "四線拷克",
+          "pct": 50.0,
+          "count": 2,
+          "confidence": "low"
+        },
+        {
+          "iso": "406",
+          "iso_name_en": "Coverstitch",
+          "iso_name_zh": "三本雙針/壓三本",
+          "pct": 50.0,
+          "count": 2,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "領",
+      "l1_code": "NK",
+      "tier": "required",
+      "presence_rate": 85.7,
+      "presence_count": 6,
+      "iso_breakdown": [
+        {
+          "iso": "514",
+          "iso_name_en": "4-thread Overlock",
+          "iso_name_zh": "四線拷克",
+          "pct": 80.0,
+          "count": 4,
+          "confidence": "high"
+        },
+        {
+          "iso": "407",
+          "iso_name_en": "Coverstitch 3-needle",
+          "iso_name_zh": "三本三針",
+          "pct": 20.0,
+          "count": 1,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "袖襱",
+      "l1_code": "AH",
+      "tier": "required",
+      "presence_rate": 85.7,
+      "presence_count": 6,
+      "iso_breakdown": [
+        {
+          "iso": "514",
+          "iso_name_en": "4-thread Overlock",
+          "iso_name_zh": "四線拷克",
+          "pct": 66.7,
+          "count": 2,
+          "confidence": "low"
+        },
+        {
+          "iso": "407",
+          "iso_name_en": "Coverstitch 3-needle",
+          "iso_name_zh": "三本三針",
+          "pct": 33.3,
+          "count": 1,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "肩",
+      "l1_code": "SH",
+      "tier": "required",
+      "presence_rate": 85.7,
+      "presence_count": 6,
+      "iso_breakdown": [
+        {
+          "iso": "514",
+          "iso_name_en": "4-thread Overlock",
+          "iso_name_zh": "四線拷克",
+          "pct": 66.7,
+          "count": 2,
+          "confidence": "low"
+        },
+        {
+          "iso": "407",
+          "iso_name_en": "Coverstitch 3-needle",
+          "iso_name_zh": "三本三針",
+          "pct": 33.3,
+          "count": 1,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "繩類",
+      "l1_code": "DC",
+      "tier": "required",
+      "presence_rate": 85.7,
+      "presence_count": 6,
+      "iso_breakdown": [
+        {
+          "iso": "514",
+          "iso_name_en": "4-thread Overlock",
+          "iso_name_zh": "四線拷克",
+          "pct": 100.0,
+          "count": 2,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "下擺",
+      "l1_code": "HM",
+      "tier": "required",
+      "presence_rate": 85.7,
+      "presence_count": 6,
+      "iso_breakdown": [
+        {
+          "iso": "514",
+          "iso_name_en": "4-thread Overlock",
+          "iso_name_zh": "四線拷克",
+          "pct": 100.0,
+          "count": 2,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "褲合身",
+      "l1_code": "PS",
+      "tier": "required",
+      "presence_rate": 85.7,
+      "presence_count": 6,
+      "iso_breakdown": [
+        {
+          "iso": "514",
+          "iso_name_en": "4-thread Overlock",
+          "iso_name_zh": "四線拷克",
+          "pct": 66.7,
+          "count": 4,
+          "confidence": "high"
+        },
+        {
+          "iso": "406",
+          "iso_name_en": "Coverstitch",
+          "iso_name_zh": "三本雙針/壓三本",
+          "pct": 33.3,
+          "count": 2,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "後褲身",
+      "l1_code": "BR",
+      "tier": "required",
+      "presence_rate": 85.7,
+      "presence_count": 6,
+      "iso_breakdown": [
+        {
+          "iso": "514",
+          "iso_name_en": "4-thread Overlock",
+          "iso_name_zh": "四線拷克",
+          "pct": 66.7,
+          "count": 2,
+          "confidence": "low"
+        },
+        {
+          "iso": "406",
+          "iso_name_en": "Coverstitch",
+          "iso_name_zh": "三本雙針/壓三本",
+          "pct": 33.3,
+          "count": 1,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "前褲身",
+      "l1_code": "FR",
+      "tier": "required",
+      "presence_rate": 85.7,
+      "presence_count": 6,
+      "iso_breakdown": [
+        {
+          "iso": "514",
+          "iso_name_en": "4-thread Overlock",
+          "iso_name_zh": "四線拷克",
+          "pct": 66.7,
+          "count": 2,
+          "confidence": "low"
+        },
+        {
+          "iso": "406",
+          "iso_name_en": "Coverstitch",
+          "iso_name_zh": "三本雙針/壓三本",
+          "pct": 33.3,
+          "count": 1,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "袖口",
+      "l1_code": "CF",
+      "tier": "recommended",
+      "presence_rate": 71.4,
+      "presence_count": 5,
+      "iso_breakdown": []
+    },
+    {
+      "l1_zh": "前立",
+      "l1_code": "FP",
+      "tier": "recommended",
+      "presence_rate": 71.4,
+      "presence_count": 5,
+      "iso_breakdown": [
+        {
+          "iso": "407",
+          "iso_name_en": "Coverstitch 3-needle",
+          "iso_name_zh": "三本三針",
+          "pct": 100.0,
+          "count": 2,
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "l1_zh": "褶",
+      "l1_code": "PD",
+      "tier": "recommended",
+      "presence_rate": 71.4,
+      "presence_count": 5,
+      "iso_breakdown": []
+    },
+    {
+      "l1_zh": "脇縫",
+      "l1_code": "SS",
+      "tier": "recommended",
+      "presence_rate": 57.1,
+      "presence_count": 4,
+      "iso_breakdown": []
+    },
+    {
+      "l1_zh": "貼合",
+      "l1_code": "FU",
+      "tier": "optional",
+      "presence_rate": 42.9,
+      "presence_count": 3,
+      "iso_breakdown": []
+    },
+    {
+      "l1_zh": "滾條",
+      "l1_code": "BN",
+      "tier": "optional",
+      "presence_rate": 42.9,
+      "presence_count": 3,
+      "iso_breakdown": []
+    },
+    {
+      "l1_zh": "鈕扣",
+      "l1_code": "BT",
+      "tier": "optional",
+      "presence_rate": 28.6,
+      "presence_count": 2,
+      "iso_breakdown": []
+    },
+    {
+      "l1_zh": "門襟",
+      "l1_code": "PL",
+      "tier": "optional",
+      "presence_rate": 28.6,
+      "presence_count": 2,
+      "iso_breakdown": []
+    },
+    {
+      "l1_zh": "貼邊",
+      "l1_code": "FC",
+      "tier": "optional",
+      "presence_rate": 28.6,
+      "presence_count": 2,
+      "iso_breakdown": []
+    },
+    {
+      "l1_zh": "拉鍊",
+      "l1_code": "ZP",
+      "tier": "rare",
+      "presence_rate": 14.3,
+      "presence_count": 1,
+      "iso_breakdown": []
+    },
+    {
+      "l1_zh": "口袋",
+      "l1_code": "PK",
+      "tier": "rare",
+      "presence_rate": 14.3,
+      "presence_count": 1,
+      "iso_breakdown": []
+    },
+    {
+      "l1_zh": "肩帶",
+      "l1_code": "ST",
+      "tier": "rare",
+      "presence_rate": 14.3,
+      "presence_count": 1,
+      "iso_breakdown": []
+    }
+  ],
+  "iso_distribution": [
+    {
+      "iso": "407",
+      "iso_name_en": "Coverstitch 3-needle",
+      "iso_name_zh": "三本三針",
+      "pct": 33.3,
+      "count": 1
+    },
+    {
+      "iso": "514",
+      "iso_name_en": "4-thread Overlock",
+      "iso_name_zh": "四線拷克",
+      "pct": 33.3,
+      "count": 1
+    },
+    {
+      "iso": "406",
+      "iso_name_en": "Coverstitch",
+      "iso_name_zh": "三本雙針/壓三本",
+      "pct": 33.3,
+      "count": 1
+    }
+  ],
+  "top_zh_methods": [
+    {
+      "method": "三本三針(407)",
+      "count": 1
+    }
+  ],
+  "summary": {
+    "required_zones": [
+      "鬆緊帶",
+      "袖",
+      "腰頭",
+      "大身",
+      "褲口",
+      "標",
+      "領",
+      "袖襱",
+      "肩",
+      "繩類",
+      "下擺",
+      "褲合身",
+      "後褲身",
+      "前褲身"
+    ],
+    "recommended_zones": [
+      "袖口",
+      "前立",
+      "褶",
+      "脇縫"
+    ],
+    "optional_zones": [
+      "貼合",
+      "滾條",
+      "鈕扣",
+      "門襟",
+      "貼邊"
+    ],
+    "rare_zones": [
+      "拉鍊",
+      "口袋",
+      "肩帶"
+    ],
+    "dominant_iso": "407",
+    "dominant_iso_pct": 33.3
+  }
+}
