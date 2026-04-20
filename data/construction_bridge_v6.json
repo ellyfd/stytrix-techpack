@@ -1,0 +1,1601 @@
+{
+  "version": "v6.0",
+  "created": "2026-04-20",
+  "method": "zone_construction_analysis + all_designs_gt_it_classification + l1_code_mapping",
+  "description": "Construction bridge for ALL garment types. Zone(L1) → ISO + method distribution.",
+  "stats": {
+    "total_gts": 10,
+    "total_designs_classified": 1328,
+    "gts_with_construction": [
+      "PANTS",
+      "OUTERWEAR",
+      "TOP",
+      "LEGGINGS",
+      "SET",
+      "DRESS",
+      "ROMPER_JUMPSUIT",
+      "SKIRT",
+      "SHORTS",
+      "UNKNOWN"
+    ]
+  },
+  "bridges": {
+    "DRESS": {
+      "n_designs": 108,
+      "n_zones": 12,
+      "item_types": {
+        "BASIC_DRESS": 25,
+        "FITTED_DRESS": 21,
+        "MINI_DRESS": 7,
+        "NIGHTGOWN": 1
+      },
+      "source_categories": [
+        "girls_dress",
+        "girls_dress_set",
+        "girls_perf_dress",
+        "newborn_dress",
+        "toddler_sleep",
+        "womens_dress",
+        "womens_perf_dress"
+      ],
+      "zones": {
+        "下襬": {
+          "l1_code": "BM",
+          "l1_name": "下襬",
+          "iso_distribution": {
+            "406": 12
+          },
+          "method_distribution": {
+            "TURN_BACK": 10,
+            "SINGLE_TURN": 8,
+            "TOPSTITCH": 6,
+            "CLEAN_FINISH": 5,
+            "SN_TS": 4,
+            "BINDING": 3,
+            "BARTACK": 1,
+            "OVERLOCK": 1,
+            "UNDERSTITCH": 1
+          },
+          "n_designs": 6
+        },
+        "滾邊": {
+          "l1_code": "—",
+          "l1_name": "滾邊",
+          "iso_distribution": {},
+          "method_distribution": {
+            "BINDING": 20,
+            "TOPSTITCH": 10,
+            "CLEAN_FINISH": 2,
+            "UNDERSTITCH": 1
+          },
+          "n_designs": 3
+        },
+        "肩": {
+          "l1_code": "SH",
+          "l1_name": "肩",
+          "iso_distribution": {},
+          "method_distribution": {
+            "SN_TS": 4,
+            "BARTACK": 1,
+            "BINDING": 1,
+            "CLEAN_FINISH": 1
+          },
+          "n_designs": 2
+        },
+        "脇邊": {
+          "l1_code": "SS",
+          "l1_name": "脇邊",
+          "iso_distribution": {
+            "406": 2
+          },
+          "method_distribution": {
+            "CLEAN_FINISH": 2,
+            "BINDING": 1,
+            "TURN_BACK": 1
+          },
+          "n_designs": 2
+        },
+        "腰線": {
+          "l1_code": "—",
+          "l1_name": "腰線",
+          "iso_distribution": {
+            "406": 1
+          },
+          "method_distribution": {
+            "CLEAN_FINISH": 7,
+            "BINDING": 2,
+            "TURN_BACK": 1,
+            "BARTACK": 1
+          },
+          "n_designs": 3
+        },
+        "腰頭": {
+          "l1_code": "WB",
+          "l1_name": "腰頭",
+          "iso_distribution": {},
+          "method_distribution": {
+            "TOPSTITCH": 1,
+            "CLEAN_FINISH": 1
+          },
+          "n_designs": 3
+        },
+        "袖口": {
+          "l1_code": "SL",
+          "l1_name": "袖口",
+          "iso_distribution": {},
+          "method_distribution": {},
+          "n_designs": 1
+        },
+        "袖孔": {
+          "l1_code": "AE",
+          "l1_name": "袖孔",
+          "iso_distribution": {
+            "406": 6
+          },
+          "method_distribution": {
+            "BINDING": 11,
+            "TOPSTITCH": 6,
+            "SN_TS": 5,
+            "UNDERSTITCH": 3,
+            "SINGLE_TURN": 2,
+            "CLEAN_FINISH": 1
+          },
+          "n_designs": 6
+        },
+        "褲口": {
+          "l1_code": "LO",
+          "l1_name": "褲口",
+          "iso_distribution": {},
+          "method_distribution": {
+            "TOPSTITCH": 4,
+            "TURN_BACK": 3,
+            "CLEAN_FINISH": 1,
+            "SN_TS": 1
+          },
+          "n_designs": 3
+        },
+        "褲合身": {
+          "l1_code": "PS",
+          "l1_name": "褲合身",
+          "iso_distribution": {},
+          "method_distribution": {},
+          "n_designs": 1
+        },
+        "車縫(通則)": {
+          "l1_code": "—",
+          "l1_name": "車縫(通則)",
+          "iso_distribution": {
+            "514": 2
+          },
+          "method_distribution": {},
+          "n_designs": 2
+        },
+        "領": {
+          "l1_code": "NK",
+          "l1_name": "領",
+          "iso_distribution": {
+            "406": 7
+          },
+          "method_distribution": {
+            "BINDING": 11,
+            "SN_TS": 11,
+            "CLEAN_FINISH": 7,
+            "UNDERSTITCH": 5,
+            "TURN_BACK": 2,
+            "SINGLE_TURN": 2,
+            "BARTACK": 1,
+            "TOPSTITCH": 1
+          },
+          "n_designs": 5
+        }
+      }
+    },
+    "LEGGINGS": {
+      "n_designs": 77,
+      "n_zones": 6,
+      "item_types": {
+        "BASIC_LEGGING": 14,
+        "ENCASED_LEGGING": 10,
+        "POCKETED_LEGGING": 10
+      },
+      "source_categories": [
+        "boys_perf_bottoms",
+        "girls_perf_bottoms",
+        "maternity_bottoms",
+        "other_swim_bottoms",
+        "womens_perf_bottoms"
+      ],
+      "zones": {
+        "剪接線": {
+          "l1_code": "—",
+          "l1_name": "剪接線",
+          "iso_distribution": {
+            "514": 2,
+            "401": 1,
+            "406": 1
+          },
+          "method_distribution": {
+            "COVERSTITCH": 2,
+            "CLEAN_FINISH": 1,
+            "BINDING": 1,
+            "SINGLE_TURN": 1,
+            "BARTACK": 1
+          },
+          "n_designs": 1
+        },
+        "口袋": {
+          "l1_code": "PK",
+          "l1_name": "口袋",
+          "iso_distribution": {
+            "605": 12,
+            "406": 10,
+            "514": 4,
+            "301": 1,
+            "401": 1
+          },
+          "method_distribution": {
+            "TURN_BACK": 17,
+            "SN_TS": 13,
+            "SINGLE_TURN": 10,
+            "BARTACK": 7,
+            "ENCASED": 4,
+            "CLEAN_FINISH": 2,
+            "UNDERSTITCH": 1,
+            "FOLDED_EDGE": 1,
+            "OVERLOCK": 1
+          },
+          "n_designs": 20
+        },
+        "腰頭": {
+          "l1_code": "WB",
+          "l1_name": "腰頭",
+          "iso_distribution": {
+            "605": 37,
+            "514": 33,
+            "607": 14,
+            "406": 13,
+            "301": 1,
+            "401": 1
+          },
+          "method_distribution": {
+            "FOLDED_EDGE": 40,
+            "CLEAN_FINISH": 28,
+            "COVERSTITCH": 15,
+            "ENCASED": 14,
+            "TURN_BACK": 14,
+            "UNDERSTITCH": 9,
+            "SINGLE_TURN": 7,
+            "SN_TS": 5,
+            "ZIGZAG": 1,
+            "BINDING": 1,
+            "OVERLOCK": 1,
+            "BARTACK": 1
+          },
+          "n_designs": 26
+        },
+        "褲口": {
+          "l1_code": "LO",
+          "l1_name": "褲口",
+          "iso_distribution": {
+            "605": 53,
+            "406": 36,
+            "514": 16,
+            "401": 6,
+            "607": 4,
+            "301": 1
+          },
+          "method_distribution": {
+            "SINGLE_TURN": 46,
+            "TURN_BACK": 31,
+            "CLEAN_FINISH": 15,
+            "SN_TS": 10,
+            "BINDING": 4,
+            "BARTACK": 3,
+            "FOLDED_EDGE": 3,
+            "UNDERSTITCH": 2,
+            "TOPSTITCH": 2,
+            "COVERSTITCH": 1,
+            "OVERLOCK": 1,
+            "ENCASED": 1
+          },
+          "n_designs": 24
+        },
+        "褲合身": {
+          "l1_code": "PS",
+          "l1_name": "褲合身",
+          "iso_distribution": {
+            "605": 13,
+            "406": 10,
+            "514": 10,
+            "607": 9
+          },
+          "method_distribution": {
+            "TURN_BACK": 18,
+            "CLEAN_FINISH": 15,
+            "SINGLE_TURN": 8,
+            "FOLDED_EDGE": 6,
+            "FLATLOCK": 5,
+            "UNDERSTITCH": 3,
+            "BARTACK": 2,
+            "COVERSTITCH": 2,
+            "ZIGZAG": 1,
+            "BINDING": 1
+          },
+          "n_designs": 16
+        },
+        "車縫(通則)": {
+          "l1_code": "—",
+          "l1_name": "車縫(通則)",
+          "iso_distribution": {
+            "607": 14,
+            "514": 3
+          },
+          "method_distribution": {},
+          "n_designs": 10
+        }
+      }
+    },
+    "OUTERWEAR": {
+      "n_designs": 27,
+      "n_zones": 11,
+      "item_types": {
+        "ZIP_HOODIE": 61,
+        "HOODIE": 38,
+        "VEST": 3
+      },
+      "source_categories": [
+        "boys_fleece_outer",
+        "boys_fleece_tops",
+        "boys_perf_outer",
+        "girls_perf_outer",
+        "girls_perf_tops",
+        "maternity_outer",
+        "maternity_tops",
+        "mens_fleece_tops",
+        "mens_perf_outer",
+        "mens_perf_tops",
+        "toddler_knit_tops",
+        "womens_fleece_outer",
+        "womens_fleece_tops",
+        "womens_perf_outer",
+        "womens_perf_tops"
+      ],
+      "zones": {
+        "下襬": {
+          "l1_code": "BM",
+          "l1_name": "下襬",
+          "iso_distribution": {},
+          "method_distribution": {
+            "BINDING": 12,
+            "TURN_BACK": 11,
+            "SN_TS": 10,
+            "BARTACK": 8,
+            "CLEAN_FINISH": 5,
+            "COVERSTITCH": 5,
+            "TOPSTITCH": 4,
+            "SINGLE_TURN": 3,
+            "UNDERSTITCH": 2,
+            "ENCASED": 2
+          },
+          "n_designs": 5
+        },
+        "前拉鍊": {
+          "l1_code": "—",
+          "l1_name": "前拉鍊",
+          "iso_distribution": {},
+          "method_distribution": {
+            "BINDING": 1
+          },
+          "n_designs": 2
+        },
+        "口袋": {
+          "l1_code": "PK",
+          "l1_name": "口袋",
+          "iso_distribution": {},
+          "method_distribution": {
+            "BARTACK": 20,
+            "SN_TS": 11,
+            "TURN_BACK": 8,
+            "COVERSTITCH": 8,
+            "BINDING": 7,
+            "SINGLE_TURN": 6,
+            "TOPSTITCH": 5,
+            "ENCASED": 1
+          },
+          "n_designs": 6
+        },
+        "帽子": {
+          "l1_code": "HD",
+          "l1_name": "帽子",
+          "iso_distribution": {
+            "514": 2,
+            "401": 2,
+            "406": 1
+          },
+          "method_distribution": {
+            "BINDING": 7,
+            "TURN_BACK": 6,
+            "SINGLE_TURN": 4,
+            "COVERSTITCH": 3,
+            "SN_TS": 3,
+            "TOPSTITCH": 2,
+            "UNDERSTITCH": 2,
+            "ENCASED": 1,
+            "CLEAN_FINISH": 1
+          },
+          "n_designs": 5
+        },
+        "滾邊": {
+          "l1_code": "—",
+          "l1_name": "滾邊",
+          "iso_distribution": {
+            "406": 1
+          },
+          "method_distribution": {
+            "BINDING": 27,
+            "SN_TS": 10,
+            "CLEAN_FINISH": 4,
+            "TOPSTITCH": 4,
+            "TURN_BACK": 3,
+            "COVERSTITCH": 2,
+            "DN_TS": 2,
+            "BARTACK": 1,
+            "UNDERSTITCH": 1
+          },
+          "n_designs": 5
+        },
+        "肩": {
+          "l1_code": "SH",
+          "l1_name": "肩",
+          "iso_distribution": {
+            "514": 2,
+            "301": 1
+          },
+          "method_distribution": {
+            "TURN_BACK": 2,
+            "TOPSTITCH": 2,
+            "COVERSTITCH": 1,
+            "BARTACK": 1,
+            "SN_TS": 1
+          },
+          "n_designs": 3
+        },
+        "脇邊": {
+          "l1_code": "SS",
+          "l1_name": "脇邊",
+          "iso_distribution": {},
+          "method_distribution": {
+            "UNDERSTITCH": 1,
+            "TURN_BACK": 1
+          },
+          "n_designs": 1
+        },
+        "袖口": {
+          "l1_code": "SL",
+          "l1_name": "袖口",
+          "iso_distribution": {},
+          "method_distribution": {
+            "BINDING": 6,
+            "TURN_BACK": 4,
+            "ENCASED": 3,
+            "CLEAN_FINISH": 2,
+            "TOPSTITCH": 1,
+            "BARTACK": 1
+          },
+          "n_designs": 4
+        },
+        "袖孔": {
+          "l1_code": "AE",
+          "l1_name": "袖孔",
+          "iso_distribution": {},
+          "method_distribution": {
+            "COVERSTITCH": 3,
+            "SN_TS": 3,
+            "TURN_BACK": 3,
+            "BINDING": 2,
+            "CLEAN_FINISH": 1,
+            "TOPSTITCH": 1
+          },
+          "n_designs": 2
+        },
+        "車縫(通則)": {
+          "l1_code": "—",
+          "l1_name": "車縫(通則)",
+          "iso_distribution": {
+            "514": 2,
+            "401": 1
+          },
+          "method_distribution": {},
+          "n_designs": 1
+        },
+        "領": {
+          "l1_code": "NK",
+          "l1_name": "領",
+          "iso_distribution": {
+            "301": 4,
+            "401": 2,
+            "514": 1,
+            "406": 1
+          },
+          "method_distribution": {
+            "SN_TS": 12,
+            "CLEAN_FINISH": 5,
+            "BINDING": 5,
+            "SINGLE_TURN": 3,
+            "COVERSTITCH": 2,
+            "TURN_BACK": 2,
+            "BARTACK": 1,
+            "TOPSTITCH": 1,
+            "UNDERSTITCH": 1
+          },
+          "n_designs": 4
+        }
+      }
+    },
+    "PANTS": {
+      "n_designs": 146,
+      "n_zones": 8,
+      "item_types": {
+        "ENCASED_PANTS": 29,
+        "PULL_ON_JOGGER": 17,
+        "FLY_FRONT_PANTS": 16,
+        "STANDARD_PANTS": 7,
+        "WIDE_LEG_PANTS": 5
+      },
+      "source_categories": [
+        "boys_fleece_bottoms",
+        "boys_perf_bottoms",
+        "girls_perf_bottoms",
+        "maternity_bottoms",
+        "mens_fleece_bottoms",
+        "mens_perf_bottoms",
+        "mens_woven_bottoms",
+        "womens_fleece_bottoms",
+        "womens_perf_bottoms"
+      ],
+      "zones": {
+        "前襟": {
+          "l1_code": "—",
+          "l1_name": "前襟",
+          "iso_distribution": {},
+          "method_distribution": {
+            "BARTACK": 10,
+            "SN_TS": 4,
+            "TURN_BACK": 3,
+            "CLEAN_FINISH": 3,
+            "UNDERSTITCH": 2,
+            "TOPSTITCH": 2
+          },
+          "n_designs": 5
+        },
+        "剪接線": {
+          "l1_code": "—",
+          "l1_name": "剪接線",
+          "iso_distribution": {},
+          "method_distribution": {
+            "ENCASED": 2,
+            "COVERSTITCH": 2,
+            "OVERLOCK": 1,
+            "TURN_BACK": 1,
+            "SN_TS": 1,
+            "BARTACK": 1
+          },
+          "n_designs": 2
+        },
+        "口袋": {
+          "l1_code": "PK",
+          "l1_name": "口袋",
+          "iso_distribution": {
+            "406": 8,
+            "514": 7,
+            "401": 6,
+            "301": 6,
+            "605": 1
+          },
+          "method_distribution": {
+            "BARTACK": 50,
+            "CLEAN_FINISH": 30,
+            "TURN_BACK": 15,
+            "SN_TS": 14,
+            "ENCASED": 9,
+            "FRENCH_SEAM": 6,
+            "TOPSTITCH": 6,
+            "SINGLE_TURN": 4,
+            "UNDERSTITCH": 2,
+            "OVERLOCK": 1,
+            "FOLDED_EDGE": 1
+          },
+          "n_designs": 10
+        },
+        "繩類": {
+          "l1_code": "DC",
+          "l1_name": "繩類",
+          "iso_distribution": {},
+          "method_distribution": {
+            "BARTACK": 4,
+            "ENCASED": 4,
+            "COVERSTITCH": 2,
+            "SN_TS": 1
+          },
+          "n_designs": 3
+        },
+        "腰頭": {
+          "l1_code": "WB",
+          "l1_name": "腰頭",
+          "iso_distribution": {
+            "514": 14,
+            "605": 11,
+            "401": 5,
+            "406": 5,
+            "607": 1
+          },
+          "method_distribution": {
+            "ENCASED": 28,
+            "CLEAN_FINISH": 22,
+            "BARTACK": 15,
+            "CHAINSTITCH": 9,
+            "TURN_BACK": 6,
+            "TOPSTITCH": 6,
+            "SN_TS": 5,
+            "FOLDED_EDGE": 5,
+            "OVERLOCK": 5,
+            "COVERSTITCH": 3,
+            "UNDERSTITCH": 1
+          },
+          "n_designs": 11
+        },
+        "褲口": {
+          "l1_code": "LO",
+          "l1_name": "褲口",
+          "iso_distribution": {
+            "406": 13,
+            "514": 8,
+            "401": 5,
+            "301": 4,
+            "605": 2,
+            "607": 1
+          },
+          "method_distribution": {
+            "TURN_BACK": 23,
+            "BARTACK": 12,
+            "CLEAN_FINISH": 12,
+            "ENCASED": 11,
+            "SINGLE_TURN": 10,
+            "TOPSTITCH": 7,
+            "COVERSTITCH": 5,
+            "FOLDED_EDGE": 4,
+            "SN_TS": 2,
+            "DN_TS": 1
+          },
+          "n_designs": 13
+        },
+        "褲合身": {
+          "l1_code": "PS",
+          "l1_name": "褲合身",
+          "iso_distribution": {
+            "514": 4,
+            "401": 4,
+            "605": 3,
+            "607": 1,
+            "406": 1
+          },
+          "method_distribution": {
+            "BARTACK": 18,
+            "CLEAN_FINISH": 10,
+            "TURN_BACK": 9,
+            "ENCASED": 5,
+            "SN_TS": 5,
+            "TOPSTITCH": 3,
+            "OVERLOCK": 3,
+            "COVERSTITCH": 2,
+            "FOLDED_EDGE": 1
+          },
+          "n_designs": 9
+        },
+        "車縫(通則)": {
+          "l1_code": "—",
+          "l1_name": "車縫(通則)",
+          "iso_distribution": {
+            "514": 6
+          },
+          "method_distribution": {},
+          "n_designs": 4
+        }
+      }
+    },
+    "ROMPER_JUMPSUIT": {
+      "n_designs": 32,
+      "n_zones": 10,
+      "item_types": {
+        "ROMPER_JUMPSUIT": 11,
+        "ROMPER": 8,
+        "ONE_PIECE_SWIM": 5,
+        "JUMPSUIT": 4
+      },
+      "source_categories": [
+        "girls_dress",
+        "maternity_set",
+        "newborn_set",
+        "other_swim",
+        "womens_dress",
+        "womens_perf_set"
+      ],
+      "zones": {
+        "下襬": {
+          "l1_code": "BM",
+          "l1_name": "下襬",
+          "iso_distribution": {
+            "406": 2
+          },
+          "method_distribution": {
+            "TURN_BACK": 5,
+            "BINDING": 5,
+            "DN_TS": 5,
+            "SN_TS": 3,
+            "CLEAN_FINISH": 3,
+            "COVERSTITCH": 2,
+            "BARTACK": 2,
+            "OVERLOCK": 1,
+            "TOPSTITCH": 1,
+            "ENCASED": 1
+          },
+          "n_designs": 7
+        },
+        "滾邊": {
+          "l1_code": "—",
+          "l1_name": "滾邊",
+          "iso_distribution": {},
+          "method_distribution": {
+            "BINDING": 29,
+            "CLEAN_FINISH": 8,
+            "TOPSTITCH": 7,
+            "ENCASED": 5
+          },
+          "n_designs": 6
+        },
+        "肩": {
+          "l1_code": "SH",
+          "l1_name": "肩",
+          "iso_distribution": {},
+          "method_distribution": {
+            "CLEAN_FINISH": 1,
+            "BINDING": 1
+          },
+          "n_designs": 1
+        },
+        "脇邊": {
+          "l1_code": "SS",
+          "l1_name": "脇邊",
+          "iso_distribution": {},
+          "method_distribution": {
+            "CLEAN_FINISH": 2,
+            "TOPSTITCH": 1,
+            "BINDING": 1,
+            "TURN_BACK": 1
+          },
+          "n_designs": 3
+        },
+        "腰線": {
+          "l1_code": "—",
+          "l1_name": "腰線",
+          "iso_distribution": {},
+          "method_distribution": {
+            "BINDING": 3,
+            "CLEAN_FINISH": 2
+          },
+          "n_designs": 4
+        },
+        "腰頭": {
+          "l1_code": "WB",
+          "l1_name": "腰頭",
+          "iso_distribution": {},
+          "method_distribution": {},
+          "n_designs": 1
+        },
+        "袖口": {
+          "l1_code": "SL",
+          "l1_name": "袖口",
+          "iso_distribution": {
+            "406": 1
+          },
+          "method_distribution": {
+            "DN_TS": 4,
+            "OVERLOCK": 2,
+            "TOPSTITCH": 1,
+            "ENCASED": 1,
+            "TURN_BACK": 1
+          },
+          "n_designs": 3
+        },
+        "袖孔": {
+          "l1_code": "AE",
+          "l1_name": "袖孔",
+          "iso_distribution": {},
+          "method_distribution": {
+            "BINDING": 8,
+            "CLEAN_FINISH": 8,
+            "ENCASED": 1
+          },
+          "n_designs": 4
+        },
+        "褲口": {
+          "l1_code": "LO",
+          "l1_name": "褲口",
+          "iso_distribution": {
+            "406": 3
+          },
+          "method_distribution": {
+            "DN_TS": 7,
+            "TURN_BACK": 2
+          },
+          "n_designs": 4
+        },
+        "領": {
+          "l1_code": "NK",
+          "l1_name": "領",
+          "iso_distribution": {},
+          "method_distribution": {
+            "BINDING": 15,
+            "CLEAN_FINISH": 12,
+            "COVERSTITCH": 3,
+            "SN_TS": 2,
+            "TURN_BACK": 2,
+            "TOPSTITCH": 1
+          },
+          "n_designs": 9
+        }
+      }
+    },
+    "SET": {
+      "n_designs": 62,
+      "n_zones": 8,
+      "item_types": {
+        "SLEEP_BASIC": 29,
+        "PJ_SET": 14,
+        "SET": 11
+      },
+      "source_categories": [
+        "boys_sleep",
+        "girls_set",
+        "girls_sleep",
+        "girls_sleep_sleep",
+        "mens_knit_sleep",
+        "newborn_set",
+        "toddler_sleep",
+        "womens_knit_set",
+        "womens_sleep",
+        "womens_woven_sleep"
+      ],
+      "zones": {
+        "下襬": {
+          "l1_code": "BM",
+          "l1_name": "下襬",
+          "iso_distribution": {
+            "406": 3,
+            "401": 2,
+            "301": 1
+          },
+          "method_distribution": {
+            "BARTACK": 15,
+            "SN_TS": 13,
+            "TURN_BACK": 12,
+            "ENCASED": 8,
+            "CLEAN_FINISH": 7,
+            "BINDING": 5,
+            "DN_TS": 2,
+            "SINGLE_TURN": 2
+          },
+          "n_designs": 10
+        },
+        "口袋": {
+          "l1_code": "PK",
+          "l1_name": "口袋",
+          "iso_distribution": {},
+          "method_distribution": {
+            "BARTACK": 10,
+            "SN_TS": 10,
+            "ENCASED": 3,
+            "CLEAN_FINISH": 3,
+            "TURN_BACK": 2,
+            "SINGLE_TURN": 1,
+            "BINDING": 1,
+            "OVERLOCK": 1
+          },
+          "n_designs": 3
+        },
+        "滾邊": {
+          "l1_code": "—",
+          "l1_name": "滾邊",
+          "iso_distribution": {
+            "301": 1,
+            "401": 1
+          },
+          "method_distribution": {
+            "BINDING": 43,
+            "TURN_BACK": 5,
+            "SN_TS": 4,
+            "ENCASED": 3,
+            "CLEAN_FINISH": 3,
+            "DN_TS": 2
+          },
+          "n_designs": 16
+        },
+        "肩": {
+          "l1_code": "SH",
+          "l1_name": "肩",
+          "iso_distribution": {
+            "406": 1
+          },
+          "method_distribution": {
+            "ENCASED": 3,
+            "BINDING": 3,
+            "TURN_BACK": 2,
+            "SN_TS": 1,
+            "CLEAN_FINISH": 1
+          },
+          "n_designs": 2
+        },
+        "脇邊": {
+          "l1_code": "SS",
+          "l1_name": "脇邊",
+          "iso_distribution": {},
+          "method_distribution": {
+            "TOPSTITCH": 1
+          },
+          "n_designs": 2
+        },
+        "袖口": {
+          "l1_code": "SL",
+          "l1_name": "袖口",
+          "iso_distribution": {},
+          "method_distribution": {
+            "TURN_BACK": 5,
+            "BINDING": 2,
+            "DN_TS": 2,
+            "OVERLOCK": 2,
+            "SINGLE_TURN": 2,
+            "ENCASED": 2
+          },
+          "n_designs": 5
+        },
+        "袖孔": {
+          "l1_code": "AE",
+          "l1_name": "袖孔",
+          "iso_distribution": {},
+          "method_distribution": {
+            "BINDING": 5,
+            "TURN_BACK": 3,
+            "SN_TS": 2,
+            "ENCASED": 1
+          },
+          "n_designs": 2
+        },
+        "領": {
+          "l1_code": "NK",
+          "l1_name": "領",
+          "iso_distribution": {
+            "301": 1,
+            "401": 1
+          },
+          "method_distribution": {
+            "BINDING": 33,
+            "SN_TS": 9,
+            "TURN_BACK": 9,
+            "ENCASED": 7,
+            "DN_TS": 4,
+            "CLEAN_FINISH": 3,
+            "TOPSTITCH": 1,
+            "SINGLE_TURN": 1,
+            "OVERLOCK": 1
+          },
+          "n_designs": 13
+        }
+      }
+    },
+    "SHORTS": {
+      "n_designs": 70,
+      "n_zones": 9,
+      "item_types": {
+        "POCKETED_SHORTS": 12,
+        "BASIC_SHORTS": 6
+      },
+      "source_categories": [
+        "girls_dress_bottoms",
+        "mens_perf_bottoms",
+        "mens_woven_bottoms",
+        "womens_dress_bottoms",
+        "womens_perf_bottoms"
+      ],
+      "zones": {
+        "下襬": {
+          "l1_code": "BM",
+          "l1_name": "下襬",
+          "iso_distribution": {},
+          "method_distribution": {
+            "SN_TS": 2
+          },
+          "n_designs": 1
+        },
+        "剪接線": {
+          "l1_code": "—",
+          "l1_name": "剪接線",
+          "iso_distribution": {},
+          "method_distribution": {
+            "BARTACK": 1,
+            "TURN_BACK": 1,
+            "SN_TS": 1
+          },
+          "n_designs": 1
+        },
+        "口袋": {
+          "l1_code": "PK",
+          "l1_name": "口袋",
+          "iso_distribution": {},
+          "method_distribution": {
+            "BARTACK": 8,
+            "SN_TS": 6,
+            "TURN_BACK": 3,
+            "COVERSTITCH": 3,
+            "CLEAN_FINISH": 2,
+            "FRENCH_SEAM": 1
+          },
+          "n_designs": 6
+        },
+        "繩類": {
+          "l1_code": "DC",
+          "l1_name": "繩類",
+          "iso_distribution": {},
+          "method_distribution": {
+            "SN_TS": 2,
+            "BARTACK": 1,
+            "TURN_BACK": 1
+          },
+          "n_designs": 2
+        },
+        "肩": {
+          "l1_code": "SH",
+          "l1_name": "肩",
+          "iso_distribution": {},
+          "method_distribution": {
+            "SN_TS": 1
+          },
+          "n_designs": 2
+        },
+        "腰頭": {
+          "l1_code": "WB",
+          "l1_name": "腰頭",
+          "iso_distribution": {},
+          "method_distribution": {
+            "BARTACK": 3,
+            "SN_TS": 3,
+            "CLEAN_FINISH": 2,
+            "TURN_BACK": 2,
+            "UNDERSTITCH": 1,
+            "COVERSTITCH": 1
+          },
+          "n_designs": 6
+        },
+        "褲口": {
+          "l1_code": "LO",
+          "l1_name": "褲口",
+          "iso_distribution": {},
+          "method_distribution": {
+            "TURN_BACK": 5,
+            "BARTACK": 3,
+            "CLEAN_FINISH": 2,
+            "COVERSTITCH": 1
+          },
+          "n_designs": 5
+        },
+        "褲合身": {
+          "l1_code": "PS",
+          "l1_name": "褲合身",
+          "iso_distribution": {},
+          "method_distribution": {
+            "CLEAN_FINISH": 4,
+            "SN_TS": 4
+          },
+          "n_designs": 3
+        },
+        "領": {
+          "l1_code": "NK",
+          "l1_name": "領",
+          "iso_distribution": {},
+          "method_distribution": {
+            "SN_TS": 2
+          },
+          "n_designs": 2
+        }
+      }
+    },
+    "SKIRT": {
+      "n_designs": 24,
+      "n_zones": 10,
+      "item_types": {
+        "SKIRT_SKORT": 29
+      },
+      "source_categories": [
+        "girls_dress_bottoms",
+        "girls_perf_bottoms",
+        "maternity_bottoms",
+        "mens_perf_bottoms",
+        "womens_dress_bottoms",
+        "womens_fleece_bottoms",
+        "womens_perf_bottoms"
+      ],
+      "zones": {
+        "下襬": {
+          "l1_code": "BM",
+          "l1_name": "下襬",
+          "iso_distribution": {},
+          "method_distribution": {
+            "CLEAN_FINISH": 2,
+            "TOPSTITCH": 2
+          },
+          "n_designs": 1
+        },
+        "前襟": {
+          "l1_code": "—",
+          "l1_name": "前襟",
+          "iso_distribution": {},
+          "method_distribution": {
+            "CLEAN_FINISH": 1,
+            "COVERSTITCH": 1
+          },
+          "n_designs": 1
+        },
+        "剪接線": {
+          "l1_code": "—",
+          "l1_name": "剪接線",
+          "iso_distribution": {
+            "401": 2,
+            "406": 1
+          },
+          "method_distribution": {
+            "BARTACK": 2,
+            "ENCASED": 1,
+            "BINDING": 1,
+            "COVERSTITCH": 1
+          },
+          "n_designs": 2
+        },
+        "口袋": {
+          "l1_code": "PK",
+          "l1_name": "口袋",
+          "iso_distribution": {
+            "401": 5,
+            "301": 4,
+            "605": 3,
+            "607": 2,
+            "514": 1
+          },
+          "method_distribution": {
+            "BARTACK": 11,
+            "TURN_BACK": 6,
+            "SN_TS": 6,
+            "SINGLE_TURN": 4,
+            "UNDERSTITCH": 3,
+            "CLEAN_FINISH": 2,
+            "ENCASED": 1,
+            "COVERSTITCH": 1,
+            "OVERLOCK": 1
+          },
+          "n_designs": 8
+        },
+        "繩類": {
+          "l1_code": "DC",
+          "l1_name": "繩類",
+          "iso_distribution": {},
+          "method_distribution": {
+            "TURN_BACK": 1,
+            "ENCASED": 1
+          },
+          "n_designs": 1
+        },
+        "腰頭": {
+          "l1_code": "WB",
+          "l1_name": "腰頭",
+          "iso_distribution": {
+            "401": 5,
+            "514": 4,
+            "607": 3,
+            "605": 2,
+            "301": 1
+          },
+          "method_distribution": {
+            "CLEAN_FINISH": 11,
+            "ENCASED": 9,
+            "TURN_BACK": 7,
+            "BARTACK": 4,
+            "COVERSTITCH": 3,
+            "FOLDED_EDGE": 2,
+            "SINGLE_TURN": 1,
+            "OVERLOCK": 1,
+            "CHAINSTITCH": 1,
+            "TOPSTITCH": 1
+          },
+          "n_designs": 8
+        },
+        "褲口": {
+          "l1_code": "LO",
+          "l1_name": "褲口",
+          "iso_distribution": {
+            "406": 4,
+            "605": 3,
+            "514": 2,
+            "607": 1,
+            "401": 1,
+            "301": 1
+          },
+          "method_distribution": {
+            "TURN_BACK": 10,
+            "SINGLE_TURN": 5,
+            "BARTACK": 5,
+            "OVERLOCK": 3,
+            "COVERSTITCH": 2,
+            "SN_TS": 2,
+            "BINDING": 2,
+            "DN_TS": 2,
+            "CLEAN_FINISH": 2,
+            "UNDERSTITCH": 1,
+            "ENCASED": 1
+          },
+          "n_designs": 6
+        },
+        "褲合身": {
+          "l1_code": "PS",
+          "l1_name": "褲合身",
+          "iso_distribution": {
+            "301": 2,
+            "514": 1,
+            "605": 1,
+            "401": 1
+          },
+          "method_distribution": {
+            "CLEAN_FINISH": 6,
+            "TURN_BACK": 4,
+            "ENCASED": 3,
+            "BARTACK": 2,
+            "COVERSTITCH": 2,
+            "UNDERSTITCH": 1,
+            "BINDING": 1,
+            "TOPSTITCH": 1,
+            "SINGLE_TURN": 1,
+            "FLATLOCK": 1
+          },
+          "n_designs": 7
+        },
+        "車縫(通則)": {
+          "l1_code": "—",
+          "l1_name": "車縫(通則)",
+          "iso_distribution": {
+            "607": 2
+          },
+          "method_distribution": {},
+          "n_designs": 1
+        },
+        "領": {
+          "l1_code": "NK",
+          "l1_name": "領",
+          "iso_distribution": {},
+          "method_distribution": {
+            "BINDING": 1
+          },
+          "n_designs": 1
+        }
+      }
+    },
+    "TOP": {
+      "n_designs": 494,
+      "n_zones": 10,
+      "item_types": {
+        "COLLARED_TOP": 49,
+        "LONG_SLEEVE_TOP": 44,
+        "BASIC_TOP": 32,
+        "ZIP_COLLAR_TOP": 27,
+        "ZIP_TOP": 26,
+        "RAGLAN_TOP": 24,
+        "SLEEVELESS_TOP": 21,
+        "POLO": 12,
+        "RASHGUARD": 9,
+        "SWIM_BASIC": 5,
+        "BIKINI": 2
+      },
+      "source_categories": [
+        "boys_knit_tops",
+        "boys_perf_tops",
+        "girls_dress_tops",
+        "girls_perf_tops",
+        "maternity_tops",
+        "mens_fleece_tops",
+        "mens_knit_tops",
+        "mens_perf_tops",
+        "mens_woven_tops",
+        "newborn_swim",
+        "other_swim",
+        "toddler_knit_tops",
+        "womens_fleece_tops",
+        "womens_knit_tops",
+        "womens_perf_outer",
+        "womens_perf_tops",
+        "womens_woven_tops"
+      ],
+      "zones": {
+        "下襬": {
+          "l1_code": "BM",
+          "l1_name": "下襬",
+          "iso_distribution": {
+            "406": 38,
+            "401": 20,
+            "514": 17,
+            "301": 10,
+            "605": 3
+          },
+          "method_distribution": {
+            "TURN_BACK": 91,
+            "BINDING": 34,
+            "SN_TS": 21,
+            "CLEAN_FINISH": 19,
+            "BARTACK": 17,
+            "SINGLE_TURN": 17,
+            "COVERSTITCH": 15,
+            "ENCASED": 15,
+            "FOLDED_EDGE": 12,
+            "TOPSTITCH": 8,
+            "UNDERSTITCH": 7,
+            "ZIGZAG": 7,
+            "OVERLOCK": 3,
+            "DN_TS": 3,
+            "CHAINSTITCH": 2
+          },
+          "n_designs": 13
+        },
+        "前拉鍊": {
+          "l1_code": "—",
+          "l1_name": "前拉鍊",
+          "iso_distribution": {
+            "514": 3,
+            "401": 1,
+            "301": 1
+          },
+          "method_distribution": {
+            "SN_TS": 3,
+            "BARTACK": 2,
+            "TURN_BACK": 2,
+            "FOLDED_EDGE": 1,
+            "CLEAN_FINISH": 1,
+            "COVERSTITCH": 1
+          },
+          "n_designs": 3
+        },
+        "口袋": {
+          "l1_code": "PK",
+          "l1_name": "口袋",
+          "iso_distribution": {
+            "514": 5,
+            "301": 5,
+            "406": 2
+          },
+          "method_distribution": {
+            "BARTACK": 15,
+            "TURN_BACK": 11,
+            "SN_TS": 10,
+            "TOPSTITCH": 7,
+            "CLEAN_FINISH": 5,
+            "SINGLE_TURN": 4,
+            "FOLDED_EDGE": 3,
+            "COVERSTITCH": 3,
+            "UNDERSTITCH": 2
+          },
+          "n_designs": 5
+        },
+        "滾邊": {
+          "l1_code": "—",
+          "l1_name": "滾邊",
+          "iso_distribution": {
+            "401": 16,
+            "406": 14,
+            "514": 10,
+            "301": 9
+          },
+          "method_distribution": {
+            "BINDING": 130,
+            "SN_TS": 15,
+            "TURN_BACK": 12,
+            "ENCASED": 10,
+            "CLEAN_FINISH": 8,
+            "COVERSTITCH": 3,
+            "BARTACK": 3,
+            "TOPSTITCH": 2,
+            "UNDERSTITCH": 2,
+            "OVERLOCK": 1,
+            "FOLDED_EDGE": 1
+          },
+          "n_designs": 18
+        },
+        "肩": {
+          "l1_code": "SH",
+          "l1_name": "肩",
+          "iso_distribution": {
+            "514": 7,
+            "406": 5,
+            "401": 4,
+            "301": 1
+          },
+          "method_distribution": {
+            "SN_TS": 15,
+            "TURN_BACK": 13,
+            "BINDING": 11,
+            "CLEAN_FINISH": 6,
+            "COVERSTITCH": 4,
+            "BARTACK": 3,
+            "FOLDED_EDGE": 2,
+            "TOPSTITCH": 2,
+            "SINGLE_TURN": 2,
+            "UNDERSTITCH": 1,
+            "ZIGZAG": 1,
+            "OVERLOCK": 1,
+            "FLATLOCK": 1,
+            "ENCASED": 1
+          },
+          "n_designs": 6
+        },
+        "脇邊": {
+          "l1_code": "SS",
+          "l1_name": "脇邊",
+          "iso_distribution": {
+            "514": 6,
+            "406": 5,
+            "401": 2,
+            "301": 1
+          },
+          "method_distribution": {
+            "TURN_BACK": 13,
+            "CLEAN_FINISH": 10,
+            "BARTACK": 10,
+            "SN_TS": 10,
+            "BINDING": 9,
+            "COVERSTITCH": 4,
+            "TOPSTITCH": 4,
+            "ZIGZAG": 1,
+            "UNDERSTITCH": 1,
+            "SINGLE_TURN": 1,
+            "ENCASED": 1
+          },
+          "n_designs": 7
+        },
+        "袖口": {
+          "l1_code": "SL",
+          "l1_name": "袖口",
+          "iso_distribution": {
+            "401": 11,
+            "406": 10,
+            "514": 7,
+            "301": 6,
+            "605": 2
+          },
+          "method_distribution": {
+            "TURN_BACK": 24,
+            "FOLDED_EDGE": 14,
+            "SN_TS": 10,
+            "BINDING": 9,
+            "ENCASED": 8,
+            "COVERSTITCH": 7,
+            "TOPSTITCH": 7,
+            "BARTACK": 5,
+            "CLEAN_FINISH": 4,
+            "SINGLE_TURN": 4,
+            "UNDERSTITCH": 2,
+            "OVERLOCK": 1
+          },
+          "n_designs": 8
+        },
+        "袖孔": {
+          "l1_code": "AE",
+          "l1_name": "袖孔",
+          "iso_distribution": {
+            "514": 13,
+            "406": 8,
+            "401": 6,
+            "605": 1
+          },
+          "method_distribution": {
+            "BINDING": 19,
+            "SN_TS": 11,
+            "CLEAN_FINISH": 6,
+            "UNDERSTITCH": 6,
+            "TURN_BACK": 4,
+            "ENCASED": 4,
+            "BARTACK": 3,
+            "COVERSTITCH": 3,
+            "SINGLE_TURN": 2,
+            "ZIGZAG": 2,
+            "OVERLOCK": 1
+          },
+          "n_designs": 6
+        },
+        "車縫(通則)": {
+          "l1_code": "—",
+          "l1_name": "車縫(通則)",
+          "iso_distribution": {
+            "514": 20,
+            "401": 3
+          },
+          "method_distribution": {},
+          "n_designs": 5
+        },
+        "領": {
+          "l1_code": "NK",
+          "l1_name": "領",
+          "iso_distribution": {
+            "401": 27,
+            "301": 22,
+            "514": 17,
+            "406": 17
+          },
+          "method_distribution": {
+            "BINDING": 100,
+            "SN_TS": 35,
+            "CLEAN_FINISH": 25,
+            "TURN_BACK": 24,
+            "UNDERSTITCH": 16,
+            "ENCASED": 14,
+            "TOPSTITCH": 10,
+            "OVERLOCK": 10,
+            "FOLDED_EDGE": 9,
+            "ZIGZAG": 8,
+            "COVERSTITCH": 8,
+            "CHAINSTITCH": 4,
+            "SINGLE_TURN": 4,
+            "BARTACK": 4,
+            "DN_TS": 3
+          },
+          "n_designs": 19
+        }
+      }
+    },
+    "UNKNOWN": {
+      "n_designs": 284,
+      "n_zones": 3,
+      "item_types": {
+        "UNKNOWN": 3
+      },
+      "source_categories": [
+        "newborn_misc"
+      ],
+      "zones": {
+        "下襬": {
+          "l1_code": "BM",
+          "l1_name": "下襬",
+          "iso_distribution": {},
+          "method_distribution": {
+            "TOPSTITCH": 1
+          },
+          "n_designs": 2
+        },
+        "滾邊": {
+          "l1_code": "—",
+          "l1_name": "滾邊",
+          "iso_distribution": {},
+          "method_distribution": {
+            "TOPSTITCH": 6,
+            "BINDING": 6,
+            "CLEAN_FINISH": 4
+          },
+          "n_designs": 2
+        },
+        "領": {
+          "l1_code": "NK",
+          "l1_name": "領",
+          "iso_distribution": {},
+          "method_distribution": {
+            "TOPSTITCH": 4,
+            "CLEAN_FINISH": 1,
+            "BINDING": 1
+          },
+          "n_designs": 2
+        }
+      }
+    }
+  }
+}
