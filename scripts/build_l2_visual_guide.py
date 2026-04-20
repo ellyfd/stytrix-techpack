@@ -77,7 +77,7 @@ def read_registry(path='L2_代號中文對照表.xlsx'):
 # ------------------------------------------------------------
 # 2. Parse markdown for per-L2 feature text
 # ------------------------------------------------------------
-MD = open('L2_Visual_Differentiation_FullAnalysis.md', encoding='utf-8').read()
+MD = open('L2_Visual_Differentiation_FullAnalysis_修正版.md', encoding='utf-8').read()
 SECTION_RE = re.compile(r'^###\s+([A-Z]{2})(?:([^\s—]+))?\s*—\s*(\d+)\s+L2\s*(.*)$', re.M)
 
 def tier_from_emoji(cell):
@@ -101,14 +101,15 @@ for i, m in enumerate(sections):
     start = m.end()
     end = sections[i+1].start() if i+1 < len(sections) else len(MD)
     body = MD[start:end]
-    row_re = re.compile(rf'^\|\s*({code}_\d{{3}})\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|\n]+?)\s*\|', re.M)
+    # 修正版 tables use 5 columns: | code | name | L3_count | feature | tier |
+    row_re = re.compile(rf'^\|\s*({code}_\d{{3}})\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|\n]+?)\s*\|', re.M)
     for row in row_re.finditer(body):
         l2_code = row.group(1)
         md_features[l2_code] = {
             "display_name": strip_md(row.group(2)),
-            "feature": strip_md(row.group(3)),
-            "tier": tier_from_emoji(row.group(4)),
-            "vs": vs_from_cell(row.group(4)),
+            "feature": strip_md(row.group(4)),
+            "tier": tier_from_emoji(row.group(5)),
+            "vs": vs_from_cell(row.group(5)),
         }
 
 # ------------------------------------------------------------
