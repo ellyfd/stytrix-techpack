@@ -1,7 +1,7 @@
 {
   "_meta": {
-    "version": "5.2",
-    "source": "942 designs x mc_pom_2024/2025/2026",
+    "version": "5.3",
+    "source": "943 designs x mc_pom_2024/2025/2026",
     "date": "2026-04-17",
     "departments": [
       "Active",
@@ -18,9 +18,7 @@
       "Swim 1PC/RASHGUARD/BOTTOM GT mapping",
       "Sleepwear ONESIE/FOOTED/ROBE GT mapping",
       "LEGGINGS as separate GT",
-      "Raw tolerance from mc_pom files",
-      "pom_sort_order from raw mc_pom position data",
-      "foundational_measurements confidence boost per GT"
+      "Raw tolerance from mc_pom files"
     ],
     "tier1_enforcement": {
       "upper_body": [
@@ -41,90 +39,91 @@
         "N9"
       ],
       "combined_gts": [
-        "ROMPER_JUMPSUIT",
         "SET",
-        "BODYSUIT"
+        "BODYSUIT",
+        "ROMPER_JUMPSUIT"
       ],
       "rule": "Tier 1 POMs forced to must tier regardless of hit rate"
-    }
+    },
+    "changelog_v53": "Fixed Centric 8 fraction parsing (1⁄ 17 2 = 17.5). Regenerated all median_values and grading_rules."
   },
   "buckets": [
     {
       "bucket": "RTW_TOP|WOMENS",
       "file": "womens_rtw_top.json",
-      "n": 76,
+      "n": 80,
       "department": "RTW",
       "garment_type": "TOP",
       "gender": "WOMENS",
-      "pom_count": 150,
+      "pom_count": 170,
       "must_count": 8,
-      "size_kb": 54.3
+      "size_kb": 56.2
     },
     {
       "bucket": "Active_LEGGINGS|WOMENS",
       "file": "womens_active_leggings.json",
-      "n": 74,
+      "n": 76,
       "department": "Active",
       "garment_type": "LEGGINGS",
       "gender": "WOMENS",
-      "pom_count": 79,
-      "must_count": 15,
-      "size_kb": 26.0
+      "pom_count": 89,
+      "must_count": 14,
+      "size_kb": 30.5
     },
     {
       "bucket": "Active_TOP|WOMENS",
       "file": "womens_active_top.json",
-      "n": 49,
+      "n": 47,
       "department": "Active",
       "garment_type": "TOP",
       "gender": "WOMENS",
-      "pom_count": 103,
+      "pom_count": 92,
       "must_count": 9,
-      "size_kb": 33.8
+      "size_kb": 30.8
     },
     {
       "bucket": "Active_OUTERWEAR|WOMENS",
       "file": "womens_active_outerwear.json",
-      "n": 41,
+      "n": 37,
       "department": "Active",
       "garment_type": "OUTERWEAR",
       "gender": "WOMENS",
-      "pom_count": 107,
-      "must_count": 13,
-      "size_kb": 38.0
-    },
-    {
-      "bucket": "Active_PANTS|WOMENS",
-      "file": "womens_active_pants.json",
-      "n": 34,
-      "department": "Active",
-      "garment_type": "PANTS",
-      "gender": "WOMENS",
-      "pom_count": 66,
-      "must_count": 10,
-      "size_kb": 24.3
+      "pom_count": 100,
+      "must_count": 14,
+      "size_kb": 35.3
     },
     {
       "bucket": "RTW_DRESS|WOMENS",
       "file": "womens_rtw_dress.json",
-      "n": 31,
+      "n": 30,
       "department": "RTW",
       "garment_type": "DRESS",
       "gender": "WOMENS",
-      "pom_count": 125,
+      "pom_count": 118,
       "must_count": 7,
-      "size_kb": 36.9
+      "size_kb": 35.5
     },
     {
       "bucket": "Active_TOP|MENS",
       "file": "mens_active_top.json",
-      "n": 29,
+      "n": 28,
       "department": "Active",
       "garment_type": "TOP",
       "gender": "MENS",
-      "pom_count": 86,
+      "pom_count": 83,
       "must_count": 18,
-      "size_kb": 32.4
+      "size_kb": 30.3
+    },
+    {
+      "bucket": "Active_PANTS|WOMENS",
+      "file": "womens_active_pants.json",
+      "n": 28,
+      "department": "Active",
+      "garment_type": "PANTS",
+      "gender": "WOMENS",
+      "pom_count": 59,
+      "must_count": 11,
+      "size_kb": 21.6
     },
     {
       "bucket": "Active_OUTERWEAR|MENS",
@@ -133,31 +132,20 @@
       "department": "Active",
       "garment_type": "OUTERWEAR",
       "gender": "MENS",
-      "pom_count": 107,
+      "pom_count": 104,
       "must_count": 19,
-      "size_kb": 38.1
+      "size_kb": 37.0
     },
     {
       "bucket": "Active_PANTS|MENS",
       "file": "mens_active_pants.json",
-      "n": 24,
+      "n": 23,
       "department": "Active",
       "garment_type": "PANTS",
       "gender": "MENS",
-      "pom_count": 71,
-      "must_count": 16,
-      "size_kb": 30.5
-    },
-    {
-      "bucket": "RTW_TOP|MENS",
-      "file": "mens_rtw_top.json",
-      "n": 23,
-      "department": "RTW",
-      "garment_type": "TOP",
-      "gender": "MENS",
-      "pom_count": 84,
-      "must_count": 17,
-      "size_kb": 33.8
+      "pom_count": 68,
+      "must_count": 14,
+      "size_kb": 29.6
     },
     {
       "bucket": "Swimwear_TOP|GIRLS",
@@ -166,42 +154,64 @@
       "department": "Swimwear",
       "garment_type": "TOP",
       "gender": "GIRLS",
-      "pom_count": 81,
+      "pom_count": 80,
       "must_count": 7,
-      "size_kb": 32.0
+      "size_kb": 31.4
     },
     {
       "bucket": "RTW_ROMPER_JUMPSUIT|WOMENS",
       "file": "womens_rtw_romper_jumpsuit.json",
-      "n": 21,
+      "n": 22,
       "department": "RTW",
       "garment_type": "ROMPER_JUMPSUIT",
       "gender": "WOMENS",
-      "pom_count": 86,
-      "must_count": 11,
-      "size_kb": 30.2
+      "pom_count": 85,
+      "must_count": 10,
+      "size_kb": 29.3
     },
     {
-      "bucket": "Maternity_LEGGINGS|WOMENS",
-      "file": "womens_maternity_leggings.json",
-      "n": 17,
-      "department": "Maternity",
-      "garment_type": "LEGGINGS",
-      "gender": "WOMENS",
-      "pom_count": 34,
-      "must_count": 14,
-      "size_kb": 15.0
+      "bucket": "RTW_TOP|MENS",
+      "file": "mens_rtw_top.json",
+      "n": 20,
+      "department": "RTW",
+      "garment_type": "TOP",
+      "gender": "MENS",
+      "pom_count": 70,
+      "must_count": 18,
+      "size_kb": 31.1
     },
     {
       "bucket": "RTW_SHORTS|WOMENS",
       "file": "womens_rtw_shorts.json",
-      "n": 16,
+      "n": 17,
       "department": "RTW",
       "garment_type": "SHORTS",
       "gender": "WOMENS",
-      "pom_count": 88,
+      "pom_count": 90,
       "must_count": 0,
-      "size_kb": 27.1
+      "size_kb": 27.0
+    },
+    {
+      "bucket": "Maternity_LEGGINGS|UNKNOWN",
+      "file": "unknown_maternity_leggings.json",
+      "n": 16,
+      "department": "Maternity",
+      "garment_type": "LEGGINGS",
+      "gender": "UNKNOWN",
+      "pom_count": 40,
+      "must_count": 12,
+      "size_kb": 15.7
+    },
+    {
+      "bucket": "RTW_TOP|GIRLS",
+      "file": "girls_rtw_top.json",
+      "n": 15,
+      "department": "RTW",
+      "garment_type": "TOP",
+      "gender": "GIRLS",
+      "pom_count": 69,
+      "must_count": 10,
+      "size_kb": 22.0
     },
     {
       "bucket": "RTW_TOP|TODDLER",
@@ -210,9 +220,9 @@
       "department": "RTW",
       "garment_type": "TOP",
       "gender": "TODDLER",
-      "pom_count": 56,
-      "must_count": 15,
-      "size_kb": 17.0
+      "pom_count": 54,
+      "must_count": 13,
+      "size_kb": 16.5
     },
     {
       "bucket": "Swimwear_TOP|WOMENS",
@@ -221,42 +231,9 @@
       "department": "Swimwear",
       "garment_type": "TOP",
       "gender": "WOMENS",
-      "pom_count": 57,
+      "pom_count": 56,
       "must_count": 0,
-      "size_kb": 19.1
-    },
-    {
-      "bucket": "RTW_TOP|GIRLS",
-      "file": "girls_rtw_top.json",
-      "n": 14,
-      "department": "RTW",
-      "garment_type": "TOP",
-      "gender": "GIRLS",
-      "pom_count": 69,
-      "must_count": 11,
-      "size_kb": 22.7
-    },
-    {
-      "bucket": "Fleece_OUTERWEAR|WOMENS",
-      "file": "womens_fleece_outerwear.json",
-      "n": 14,
-      "department": "Fleece",
-      "garment_type": "OUTERWEAR",
-      "gender": "WOMENS",
-      "pom_count": 54,
-      "must_count": 14,
-      "size_kb": 25.1
-    },
-    {
-      "bucket": "Active_TOP|GIRLS",
-      "file": "girls_active_top.json",
-      "n": 14,
-      "department": "Active",
-      "garment_type": "TOP",
-      "gender": "GIRLS",
-      "pom_count": 63,
-      "must_count": 10,
-      "size_kb": 22.0
+      "size_kb": 18.4
     },
     {
       "bucket": "Active_DRESS|WOMENS",
@@ -265,53 +242,53 @@
       "department": "Active",
       "garment_type": "DRESS",
       "gender": "WOMENS",
-      "pom_count": 92,
+      "pom_count": 88,
       "must_count": 7,
-      "size_kb": 34.0
-    },
-    {
-      "bucket": "Maternity_TOP|WOMENS",
-      "file": "womens_maternity_top.json",
-      "n": 13,
-      "department": "Maternity",
-      "garment_type": "TOP",
-      "gender": "WOMENS",
-      "pom_count": 80,
-      "must_count": 5,
-      "size_kb": 27.8
+      "size_kb": 32.1
     },
     {
       "bucket": "Active_SHORTS|WOMENS",
       "file": "womens_active_shorts.json",
-      "n": 13,
+      "n": 14,
       "department": "Active",
       "garment_type": "SHORTS",
       "gender": "WOMENS",
       "pom_count": 41,
       "must_count": 8,
-      "size_kb": 17.2
+      "size_kb": 17.1
     },
     {
-      "bucket": "Active_OUTERWEAR|BOYS",
-      "file": "boys_active_outerwear.json",
-      "n": 12,
+      "bucket": "Maternity_TOP|UNKNOWN",
+      "file": "unknown_maternity_top.json",
+      "n": 13,
+      "department": "Maternity",
+      "garment_type": "TOP",
+      "gender": "UNKNOWN",
+      "pom_count": 78,
+      "must_count": 4,
+      "size_kb": 26.9
+    },
+    {
+      "bucket": "Active_TOP|GIRLS",
+      "file": "girls_active_top.json",
+      "n": 13,
       "department": "Active",
-      "garment_type": "OUTERWEAR",
-      "gender": "BOYS",
-      "pom_count": 71,
-      "must_count": 20,
-      "size_kb": 26.0
+      "garment_type": "TOP",
+      "gender": "GIRLS",
+      "pom_count": 60,
+      "must_count": 10,
+      "size_kb": 20.5
     },
     {
       "bucket": "RTW_PANTS|WOMENS",
       "file": "womens_rtw_pants.json",
-      "n": 10,
+      "n": 11,
       "department": "RTW",
       "garment_type": "PANTS",
       "gender": "WOMENS",
       "pom_count": 58,
-      "must_count": 12,
-      "size_kb": 21.1
+      "must_count": 11,
+      "size_kb": 21.6
     },
     {
       "bucket": "Sleepwear_SET|TODDLER",
@@ -320,9 +297,9 @@
       "department": "Sleepwear",
       "garment_type": "SET",
       "gender": "TODDLER",
-      "pom_count": 69,
-      "must_count": 18,
-      "size_kb": 27.6
+      "pom_count": 65,
+      "must_count": 16,
+      "size_kb": 25.2
     },
     {
       "bucket": "Active_OUTERWEAR|GIRLS",
@@ -331,20 +308,31 @@
       "department": "Active",
       "garment_type": "OUTERWEAR",
       "gender": "GIRLS",
-      "pom_count": 58,
-      "must_count": 12,
-      "size_kb": 21.9
+      "pom_count": 57,
+      "must_count": 11,
+      "size_kb": 22.3
     },
     {
-      "bucket": "Swimwear_TOP|TODDLER",
-      "file": "toddler_swimwear_top.json",
+      "bucket": "Fleece_OUTERWEAR|WOMENS",
+      "file": "womens_fleece_outerwear.json",
       "n": 10,
-      "department": "Swimwear",
-      "garment_type": "TOP",
-      "gender": "TODDLER",
-      "pom_count": 74,
-      "must_count": 12,
-      "size_kb": 28.0
+      "department": "Fleece",
+      "garment_type": "OUTERWEAR",
+      "gender": "WOMENS",
+      "pom_count": 50,
+      "must_count": 13,
+      "size_kb": 22.0
+    },
+    {
+      "bucket": "Active_OUTERWEAR|BOYS",
+      "file": "boys_active_outerwear.json",
+      "n": 10,
+      "department": "Active",
+      "garment_type": "OUTERWEAR",
+      "gender": "BOYS",
+      "pom_count": 61,
+      "must_count": 21,
+      "size_kb": 22.7
     },
     {
       "bucket": "Swimwear_ROMPER_JUMPSUIT|WOMENS",
@@ -353,9 +341,9 @@
       "department": "Swimwear",
       "garment_type": "ROMPER_JUMPSUIT",
       "gender": "WOMENS",
-      "pom_count": 44,
+      "pom_count": 43,
       "must_count": 13,
-      "size_kb": 18.5
+      "size_kb": 18.3
     },
     {
       "bucket": "Active_SHORTS|MENS",
@@ -364,31 +352,31 @@
       "department": "Active",
       "garment_type": "SHORTS",
       "gender": "MENS",
-      "pom_count": 51,
-      "must_count": 10,
-      "size_kb": 17.9
+      "pom_count": 49,
+      "must_count": 9,
+      "size_kb": 16.5
     },
     {
-      "bucket": "RTW_SHORTS|GIRLS",
-      "file": "girls_rtw_shorts.json",
-      "n": 9,
-      "department": "RTW",
-      "garment_type": "SHORTS",
+      "bucket": "Active_LEGGINGS|GIRLS",
+      "file": "girls_active_leggings.json",
+      "n": 8,
+      "department": "Active",
+      "garment_type": "LEGGINGS",
       "gender": "GIRLS",
-      "pom_count": 78,
-      "must_count": 6,
-      "size_kb": 26.5
+      "pom_count": 26,
+      "must_count": 15,
+      "size_kb": 11.1
     },
     {
-      "bucket": "Swimwear_ROMPER_JUMPSUIT|TODDLER",
-      "file": "toddler_swimwear_romper_jumpsuit.json",
-      "n": 9,
-      "department": "Swimwear",
-      "garment_type": "ROMPER_JUMPSUIT",
-      "gender": "TODDLER",
-      "pom_count": 42,
-      "must_count": 8,
-      "size_kb": 18.1
+      "bucket": "Fleece_TOP|WOMENS",
+      "file": "womens_fleece_top.json",
+      "n": 8,
+      "department": "Fleece",
+      "garment_type": "TOP",
+      "gender": "WOMENS",
+      "pom_count": 52,
+      "must_count": 15,
+      "size_kb": 21.0
     },
     {
       "bucket": "Sleepwear_SET|GIRLS",
@@ -397,9 +385,9 @@
       "department": "Sleepwear",
       "garment_type": "SET",
       "gender": "GIRLS",
-      "pom_count": 57,
-      "must_count": 15,
-      "size_kb": 21.8
+      "pom_count": 63,
+      "must_count": 19,
+      "size_kb": 20.7
     },
     {
       "bucket": "Swimwear_ROMPER_JUMPSUIT|GIRLS",
@@ -408,9 +396,20 @@
       "department": "Swimwear",
       "garment_type": "ROMPER_JUMPSUIT",
       "gender": "GIRLS",
-      "pom_count": 33,
+      "pom_count": 32,
       "must_count": 18,
-      "size_kb": 13.4
+      "size_kb": 13.2
+    },
+    {
+      "bucket": "RTW_SHORTS|GIRLS",
+      "file": "girls_rtw_shorts.json",
+      "n": 8,
+      "department": "RTW",
+      "garment_type": "SHORTS",
+      "gender": "GIRLS",
+      "pom_count": 64,
+      "must_count": 6,
+      "size_kb": 21.0
     },
     {
       "bucket": "RTW_DRESS|TODDLER",
@@ -419,9 +418,9 @@
       "department": "RTW",
       "garment_type": "DRESS",
       "gender": "TODDLER",
-      "pom_count": 47,
-      "must_count": 5,
-      "size_kb": 17.2
+      "pom_count": 45,
+      "must_count": 4,
+      "size_kb": 16.7
     },
     {
       "bucket": "Active_PANTS|BOYS",
@@ -430,31 +429,20 @@
       "department": "Active",
       "garment_type": "PANTS",
       "gender": "BOYS",
-      "pom_count": 40,
-      "must_count": 13,
-      "size_kb": 16.4
+      "pom_count": 38,
+      "must_count": 12,
+      "size_kb": 15.6
     },
     {
-      "bucket": "Maternity_ROMPER_JUMPSUIT|WOMENS",
-      "file": "womens_maternity_romper_jumpsuit.json",
-      "n": 7,
-      "department": "Maternity",
-      "garment_type": "ROMPER_JUMPSUIT",
-      "gender": "WOMENS",
-      "pom_count": 66,
-      "must_count": 6,
-      "size_kb": 22.0
-    },
-    {
-      "bucket": "Active_LEGGINGS|GIRLS",
-      "file": "girls_active_leggings.json",
-      "n": 7,
-      "department": "Active",
-      "garment_type": "LEGGINGS",
-      "gender": "GIRLS",
-      "pom_count": 26,
-      "must_count": 16,
-      "size_kb": 10.9
+      "bucket": "RTW_OUTERWEAR|UNKNOWN",
+      "file": "unknown_rtw_outerwear.json",
+      "n": 8,
+      "department": "RTW",
+      "garment_type": "OUTERWEAR",
+      "gender": "UNKNOWN",
+      "pom_count": 50,
+      "must_count": 10,
+      "size_kb": 23.0
     },
     {
       "bucket": "RTW_ROMPER_JUMPSUIT|GIRLS",
@@ -463,9 +451,9 @@
       "department": "RTW",
       "garment_type": "ROMPER_JUMPSUIT",
       "gender": "GIRLS",
-      "pom_count": 74,
+      "pom_count": 69,
       "must_count": 3,
-      "size_kb": 24.8
+      "size_kb": 23.1
     },
     {
       "bucket": "Swimwear_PANTS|WOMENS",
@@ -476,7 +464,7 @@
       "gender": "WOMENS",
       "pom_count": 19,
       "must_count": 14,
-      "size_kb": 11.2
+      "size_kb": 11.0
     },
     {
       "bucket": "RTW_TOP|BOYS",
@@ -487,7 +475,7 @@
       "gender": "BOYS",
       "pom_count": 38,
       "must_count": 18,
-      "size_kb": 18.7
+      "size_kb": 18.4
     },
     {
       "bucket": "RTW_SET|TODDLER",
@@ -496,31 +484,20 @@
       "department": "RTW",
       "garment_type": "SET",
       "gender": "TODDLER",
-      "pom_count": 86,
-      "must_count": 17,
-      "size_kb": 26.4
+      "pom_count": 80,
+      "must_count": 15,
+      "size_kb": 24.8
     },
     {
-      "bucket": "RTW_OUTERWEAR|TODDLER",
-      "file": "toddler_rtw_outerwear.json",
+      "bucket": "RTW_OUTERWEAR|WOMENS",
+      "file": "womens_rtw_outerwear.json",
       "n": 7,
       "department": "RTW",
       "garment_type": "OUTERWEAR",
-      "gender": "TODDLER",
-      "pom_count": 49,
-      "must_count": 25,
-      "size_kb": 18.9
-    },
-    {
-      "bucket": "RTW_OUTERWEAR|UNKNOWN",
-      "file": "unknown_rtw_outerwear.json",
-      "n": 7,
-      "department": "RTW",
-      "garment_type": "OUTERWEAR",
-      "gender": "UNKNOWN",
-      "pom_count": 45,
-      "must_count": 16,
-      "size_kb": 22.0
+      "gender": "WOMENS",
+      "pom_count": 70,
+      "must_count": 14,
+      "size_kb": 27.2
     },
     {
       "bucket": "Sleepwear_TOP|WOMENS",
@@ -534,59 +511,92 @@
       "size_kb": 16.7
     },
     {
+      "bucket": "Maternity_ROMPER_JUMPSUIT|UNKNOWN",
+      "file": "unknown_maternity_romper_jumpsuit.json",
+      "n": 6,
+      "department": "Maternity",
+      "garment_type": "ROMPER_JUMPSUIT",
+      "gender": "UNKNOWN",
+      "pom_count": 63,
+      "must_count": 3,
+      "size_kb": 21.7
+    },
+    {
       "bucket": "Active_ROMPER_JUMPSUIT|WOMENS",
       "file": "womens_active_romper_jumpsuit.json",
       "n": 6,
       "department": "Active",
       "garment_type": "ROMPER_JUMPSUIT",
       "gender": "WOMENS",
-      "pom_count": 60,
-      "must_count": 16,
-      "size_kb": 22.4
+      "pom_count": 59,
+      "must_count": 15,
+      "size_kb": 22.3
     },
     {
-      "bucket": "Fleece_TOP|WOMENS",
-      "file": "womens_fleece_top.json",
-      "n": 6,
-      "department": "Fleece",
-      "garment_type": "TOP",
-      "gender": "WOMENS",
-      "pom_count": 50,
-      "must_count": 14,
-      "size_kb": 20.3
-    },
-    {
-      "bucket": "RTW_OUTERWEAR|WOMENS",
-      "file": "womens_rtw_outerwear.json",
+      "bucket": "RTW_OUTERWEAR|MENS",
+      "file": "mens_rtw_outerwear.json",
       "n": 6,
       "department": "RTW",
       "garment_type": "OUTERWEAR",
-      "gender": "WOMENS",
-      "pom_count": 72,
-      "must_count": 12,
-      "size_kb": 27.1
+      "gender": "MENS",
+      "pom_count": 69,
+      "must_count": 18,
+      "size_kb": 26.7
     },
     {
-      "bucket": "Active_PANTS|GIRLS",
-      "file": "girls_active_pants.json",
+      "bucket": "RTW_OUTERWEAR|TODDLER",
+      "file": "toddler_rtw_outerwear.json",
       "n": 6,
-      "department": "Active",
-      "garment_type": "PANTS",
-      "gender": "GIRLS",
-      "pom_count": 36,
-      "must_count": 12,
-      "size_kb": 13.7
+      "department": "RTW",
+      "garment_type": "OUTERWEAR",
+      "gender": "TODDLER",
+      "pom_count": 42,
+      "must_count": 14,
+      "size_kb": 17.5
     },
     {
-      "bucket": "Active_SHORTS|TODDLER",
-      "file": "toddler_active_shorts.json",
+      "bucket": "RTW_PANTS|MENS",
+      "file": "mens_rtw_pants.json",
       "n": 5,
-      "department": "Active",
+      "department": "RTW",
+      "garment_type": "PANTS",
+      "gender": "MENS",
+      "pom_count": 44,
+      "must_count": 25,
+      "size_kb": 18.3
+    },
+    {
+      "bucket": "Maternity_SHORTS|UNKNOWN",
+      "file": "unknown_maternity_shorts.json",
+      "n": 5,
+      "department": "Maternity",
       "garment_type": "SHORTS",
+      "gender": "UNKNOWN",
+      "pom_count": 30,
+      "must_count": 10,
+      "size_kb": 11.6
+    },
+    {
+      "bucket": "Swimwear_TOP|TODDLER",
+      "file": "toddler_swimwear_top.json",
+      "n": 5,
+      "department": "Swimwear",
+      "garment_type": "TOP",
       "gender": "TODDLER",
-      "pom_count": 41,
-      "must_count": 26,
-      "size_kb": 17.7
+      "pom_count": 50,
+      "must_count": 12,
+      "size_kb": 20.7
+    },
+    {
+      "bucket": "Maternity_DRESS|UNKNOWN",
+      "file": "unknown_maternity_dress.json",
+      "n": 5,
+      "department": "Maternity",
+      "garment_type": "DRESS",
+      "gender": "UNKNOWN",
+      "pom_count": 70,
+      "must_count": 4,
+      "size_kb": 23.1
     },
     {
       "bucket": "Active_ROMPER_JUMPSUIT|GIRLS",
@@ -597,7 +607,18 @@
       "gender": "GIRLS",
       "pom_count": 64,
       "must_count": 14,
-      "size_kb": 22.3
+      "size_kb": 21.8
+    },
+    {
+      "bucket": "Active_PANTS|GIRLS",
+      "file": "girls_active_pants.json",
+      "n": 5,
+      "department": "Active",
+      "garment_type": "PANTS",
+      "gender": "GIRLS",
+      "pom_count": 34,
+      "must_count": 14,
+      "size_kb": 12.3
     },
     {
       "bucket": "Sleepwear_PANTS|BOYS",
@@ -606,20 +627,31 @@
       "department": "Sleepwear",
       "garment_type": "PANTS",
       "gender": "BOYS",
-      "pom_count": 57,
+      "pom_count": 56,
       "must_count": 13,
-      "size_kb": 16.3
+      "size_kb": 16.1
     },
     {
-      "bucket": "Maternity_PANTS|WOMENS",
-      "file": "womens_maternity_pants.json",
+      "bucket": "Swimwear_SET|TODDLER",
+      "file": "toddler_swimwear_set.json",
       "n": 5,
-      "department": "Maternity",
-      "garment_type": "PANTS",
-      "gender": "WOMENS",
-      "pom_count": 29,
+      "department": "Swimwear",
+      "garment_type": "SET",
+      "gender": "TODDLER",
+      "pom_count": 48,
+      "must_count": 26,
+      "size_kb": 21.4
+    },
+    {
+      "bucket": "Swimwear_ROMPER_JUMPSUIT|TODDLER",
+      "file": "toddler_swimwear_romper_jumpsuit.json",
+      "n": 5,
+      "department": "Swimwear",
+      "garment_type": "ROMPER_JUMPSUIT",
+      "gender": "TODDLER",
+      "pom_count": 30,
       "must_count": 12,
-      "size_kb": 11.5
+      "size_kb": 13.4
     },
     {
       "bucket": "Active_SHORTS|BOYS",
@@ -628,9 +660,31 @@
       "department": "Active",
       "garment_type": "SHORTS",
       "gender": "BOYS",
-      "pom_count": 37,
-      "must_count": 12,
-      "size_kb": 15.3
+      "pom_count": 34,
+      "must_count": 11,
+      "size_kb": 14.0
+    },
+    {
+      "bucket": "RTW_SET|GIRLS",
+      "file": "girls_rtw_set.json",
+      "n": 5,
+      "department": "RTW",
+      "garment_type": "SET",
+      "gender": "GIRLS",
+      "pom_count": 79,
+      "must_count": 9,
+      "size_kb": 27.1
+    },
+    {
+      "bucket": "RTW_UNKNOWN|WOMENS",
+      "file": "womens_rtw_unknown.json",
+      "n": 4,
+      "department": "RTW",
+      "garment_type": "UNKNOWN",
+      "gender": "WOMENS",
+      "pom_count": 35,
+      "must_count": 10,
+      "size_kb": 13.9
     },
     {
       "bucket": "RTW_DRESS|GIRLS",
@@ -644,37 +698,37 @@
       "size_kb": 18.1
     },
     {
-      "bucket": "RTW_PANTS|MENS",
-      "file": "mens_rtw_pants.json",
+      "bucket": "RTW_SHORTS|MENS",
+      "file": "mens_rtw_shorts.json",
       "n": 4,
       "department": "RTW",
-      "garment_type": "PANTS",
+      "garment_type": "SHORTS",
       "gender": "MENS",
-      "pom_count": 37,
-      "must_count": 28,
-      "size_kb": 18.1
+      "pom_count": 62,
+      "must_count": 26,
+      "size_kb": 28.2
     },
     {
-      "bucket": "Maternity_DRESS|WOMENS",
-      "file": "womens_maternity_dress.json",
+      "bucket": "Active_SHORTS|TODDLER",
+      "file": "toddler_active_shorts.json",
       "n": 4,
-      "department": "Maternity",
-      "garment_type": "DRESS",
-      "gender": "WOMENS",
-      "pom_count": 66,
-      "must_count": 21,
-      "size_kb": 28.0
+      "department": "Active",
+      "garment_type": "SHORTS",
+      "gender": "TODDLER",
+      "pom_count": 41,
+      "must_count": 26,
+      "size_kb": 18.4
     },
     {
-      "bucket": "RTW_OUTERWEAR|MENS",
-      "file": "mens_rtw_outerwear.json",
+      "bucket": "Active_TOP|BOYS",
+      "file": "boys_active_top.json",
       "n": 4,
-      "department": "RTW",
-      "garment_type": "OUTERWEAR",
-      "gender": "MENS",
-      "pom_count": 66,
-      "must_count": 22,
-      "size_kb": 30.8
+      "department": "Active",
+      "garment_type": "TOP",
+      "gender": "BOYS",
+      "pom_count": 49,
+      "must_count": 9,
+      "size_kb": 21.9
     },
     {
       "bucket": "RTW_PANTS|TODDLER",
@@ -683,20 +737,20 @@
       "department": "RTW",
       "garment_type": "PANTS",
       "gender": "TODDLER",
-      "pom_count": 30,
-      "must_count": 14,
-      "size_kb": 11.7
+      "pom_count": 26,
+      "must_count": 13,
+      "size_kb": 10.4
     },
     {
-      "bucket": "Swimwear_SET|TODDLER",
-      "file": "toddler_swimwear_set.json",
+      "bucket": "Maternity_PANTS|UNKNOWN",
+      "file": "unknown_maternity_pants.json",
       "n": 4,
-      "department": "Swimwear",
-      "garment_type": "SET",
-      "gender": "TODDLER",
-      "pom_count": 44,
-      "must_count": 26,
-      "size_kb": 20.8
+      "department": "Maternity",
+      "garment_type": "PANTS",
+      "gender": "UNKNOWN",
+      "pom_count": 22,
+      "must_count": 13,
+      "size_kb": 10.9
     },
     {
       "bucket": "Fleece_SHORTS|WOMENS",
@@ -706,8 +760,8 @@
       "garment_type": "SHORTS",
       "gender": "WOMENS",
       "pom_count": 29,
-      "must_count": 15,
-      "size_kb": 12.8
+      "must_count": 13,
+      "size_kb": 12.4
     },
     {
       "bucket": "RTW_SHORTS|TODDLER",
@@ -716,20 +770,31 @@
       "department": "RTW",
       "garment_type": "SHORTS",
       "gender": "TODDLER",
-      "pom_count": 32,
+      "pom_count": 30,
       "must_count": 1,
-      "size_kb": 13.2
+      "size_kb": 12.2
     },
     {
-      "bucket": "RTW_SET|GIRLS",
-      "file": "girls_rtw_set.json",
+      "bucket": "Swimwear_TOP|UNKNOWN",
+      "file": "unknown_swimwear_top.json",
       "n": 4,
-      "department": "RTW",
-      "garment_type": "SET",
-      "gender": "GIRLS",
-      "pom_count": 68,
-      "must_count": 24,
-      "size_kb": 29.7
+      "department": "Swimwear",
+      "garment_type": "TOP",
+      "gender": "UNKNOWN",
+      "pom_count": 47,
+      "must_count": 20,
+      "size_kb": 15.8
+    },
+    {
+      "bucket": "Swimwear_ROMPER_JUMPSUIT|UNKNOWN",
+      "file": "unknown_swimwear_romper_jumpsuit.json",
+      "n": 4,
+      "department": "Swimwear",
+      "garment_type": "ROMPER_JUMPSUIT",
+      "gender": "UNKNOWN",
+      "pom_count": 31,
+      "must_count": 21,
+      "size_kb": 11.7
     },
     {
       "bucket": "RTW_BODYSUIT|WOMENS",
@@ -740,18 +805,7 @@
       "gender": "WOMENS",
       "pom_count": 34,
       "must_count": 18,
-      "size_kb": 16.2
-    },
-    {
-      "bucket": "Maternity_SHORTS|WOMENS",
-      "file": "womens_maternity_shorts.json",
-      "n": 3,
-      "department": "Maternity",
-      "garment_type": "SHORTS",
-      "gender": "WOMENS",
-      "pom_count": 26,
-      "must_count": 0,
-      "size_kb": 11.9
+      "size_kb": 16.3
     },
     {
       "bucket": "Sleepwear_SHORTS|BOYS",
@@ -760,9 +814,9 @@
       "department": "Sleepwear",
       "garment_type": "SHORTS",
       "gender": "BOYS",
-      "pom_count": 19,
-      "must_count": 13,
-      "size_kb": 9.9
+      "pom_count": 18,
+      "must_count": 12,
+      "size_kb": 9.0
     },
     {
       "bucket": "Sleepwear_PANTS|WOMENS",
@@ -773,40 +827,18 @@
       "gender": "WOMENS",
       "pom_count": 19,
       "must_count": 10,
-      "size_kb": 9.0
+      "size_kb": 9.1
     },
     {
-      "bucket": "RTW_SHORTS|MENS",
-      "file": "mens_rtw_shorts.json",
-      "n": 3,
-      "department": "RTW",
-      "garment_type": "SHORTS",
-      "gender": "MENS",
-      "pom_count": 57,
-      "must_count": 0,
-      "size_kb": 25.4
-    },
-    {
-      "bucket": "Active_TOP|BOYS",
-      "file": "boys_active_top.json",
-      "n": 3,
-      "department": "Active",
-      "garment_type": "TOP",
-      "gender": "BOYS",
-      "pom_count": 41,
-      "must_count": 6,
-      "size_kb": 18.0
-    },
-    {
-      "bucket": "Maternity_OUTERWEAR|WOMENS",
-      "file": "womens_maternity_outerwear.json",
+      "bucket": "Maternity_OUTERWEAR|UNKNOWN",
+      "file": "unknown_maternity_outerwear.json",
       "n": 3,
       "department": "Maternity",
       "garment_type": "OUTERWEAR",
-      "gender": "WOMENS",
+      "gender": "UNKNOWN",
       "pom_count": 44,
-      "must_count": 6,
-      "size_kb": 16.5
+      "must_count": 5,
+      "size_kb": 16.3
     },
     {
       "bucket": "Fleece_PANTS|WOMENS",
@@ -816,7 +848,7 @@
       "garment_type": "PANTS",
       "gender": "WOMENS",
       "pom_count": 29,
-      "must_count": 14,
+      "must_count": 12,
       "size_kb": 13.1
     },
     {
@@ -828,7 +860,7 @@
       "gender": "TODDLER",
       "pom_count": 22,
       "must_count": 13,
-      "size_kb": 10.3
+      "size_kb": 10.4
     },
     {
       "bucket": "RTW_TOP|UNKNOWN",
@@ -837,9 +869,9 @@
       "department": "RTW",
       "garment_type": "TOP",
       "gender": "UNKNOWN",
-      "pom_count": 73,
-      "must_count": 18,
-      "size_kb": 29.1
+      "pom_count": 64,
+      "must_count": 14,
+      "size_kb": 25.7
     },
     {
       "bucket": "Active_SHORTS|GIRLS",
@@ -848,9 +880,9 @@
       "department": "Active",
       "garment_type": "SHORTS",
       "gender": "GIRLS",
-      "pom_count": 24,
+      "pom_count": 23,
       "must_count": 8,
-      "size_kb": 11.0
+      "size_kb": 10.6
     },
     {
       "bucket": "RTW_PANTS|UNKNOWN",
@@ -859,9 +891,9 @@
       "department": "RTW",
       "garment_type": "PANTS",
       "gender": "UNKNOWN",
-      "pom_count": 32,
-      "must_count": 15,
-      "size_kb": 14.3
+      "pom_count": 30,
+      "must_count": 12,
+      "size_kb": 13.1
     }
   ]
 }

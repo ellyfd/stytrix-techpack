@@ -6,14 +6,19 @@
   <title>StyTrix — Techpack Creation</title>
   <style>
     body { margin: 0; font-family: system-ui, sans-serif; }
-    /* a11y: 保留可見焦點環（Chrome 預設會在滑鼠點擊時隱藏 outline，
-       :focus-visible 只在鍵盤導航時顯示） */
-    :focus { outline: none; }
+    /* a11y: 只在鍵盤導航時顯示焦點環；滑鼠點擊不顯示。
+       不影響元素本身的 border-radius — 僅 outline。 */
+    :focus:not(:focus-visible) { outline: none; }
     :focus-visible {
       outline: 2px solid #065f46;
       outline-offset: 2px;
-      border-radius: 4px;
     }
+    /* Design tokens（文件用；inline style 若要使用可寫 color: "var(--text-muted)"）
+       Text: #1a1a1a 主要 / #525252 強調次要 / #767676 次要 / #999 弱 / #bbb 微弱
+       Border: #e8e5e1 主 / #eee 次 / #ddd 分隔線
+       Bg hover: #faf9f7 溫灰
+       Radius: 4px 小 chip / 6px input / 8px button / 10px card / 999px pill
+       Accent: #065f46 綠（完成、locked） */
   </style>
 </head>
 <body>
@@ -393,7 +398,7 @@ function Sel({ label, value, onChange, options, disabled, badgeMap, labelMap, lo
 
   const displayText = value ? ((labelMap && labelMap[value]) || value) : "—";
   const displayBadge = value && badgeMap && badgeMap[value];
-  const borderColor = disabled ? "#eee" : (filled ? (locked ? "#065f46" : "#1a1a1a") : "#d4d4d4");
+  const borderColor = disabled ? "#eee" : (filled ? (locked ? "#065f46" : "#1a1a1a") : "#ddd");
 
   const selectOpt = (v) => { onChange(v); setOpen(false); };
 
@@ -403,37 +408,86 @@ function Sel({ label, value, onChange, options, disabled, badgeMap, labelMap, lo
         {label}
       </div>
 
-      {/* Trigger：看起來跟原本 underline select 幾乎一樣 */}
-      <button onClick={() => !disabled && setOpen(o => !o)}
-        disabled={disabled}
-        aria-expanded={open}
-        aria-haspopup="listbox"
-        style={{
-          width: "100%", padding: "6px 0", fontSize: "14px", textAlign: "left",
-          background: "transparent", color: filled ? "#1a1a1a" : "#bbb",
-          fontWeight: filled ? 600 : 400,
-          border: "none", borderBottom: `1.5px solid ${borderColor}`,
-          fontFamily: "inherit", cursor: disabled ? "not-allowed" : "pointer",
-          borderRadius: 0, transition: "border-color 0.15s",
-          display: "flex", justifyContent: "space-between", alignItems: "center",
-        }}>
-        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {displayText}{displayBadge ? ` (${displayBadge})` : ""}
-        </span>
-        <span aria-hidden="true" style={{ fontSize: "10px", color: "#bbb", marginLeft: "6px", transform: open ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.15s" }}>▾</span>
-      </button>
+      <div style={{ position: "relative" }}>
+        {/* Trigger：看起來跟原本 underline select 幾乎一樣 */}
+        <button onClick={() => !disabled && setOpen(o => !o)}
+          disabled={disabled}
+          aria-expanded={open}
+          aria-haspopup="listbox"
+          style={{
+            width: "100%", padding: "6px 0", fontSize: "14px", textAlign: "left",
+            background: "transparent", color: filled ? "#1a1a1a" : "#bbb",
+            fontWeight: filled ? 600 : 400,
+            border: "none", borderBottom: `1.5px solid ${borderColor}`,
+            fontFamily: "inherit", cursor: disabled ? "not-allowed" : "pointer",
+            borderRadius: 0, transition: "border-color 0.15s",
+            display: "flex", justifyContent: "space-between", alignItems: "center",
+          }}>
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {displayText}{displayBadge ? ` (${displayBadge})` : ""}
+          </span>
+          <span aria-hidden="true" style={{ fontSize: "10px", color: "#bbb", marginLeft: "6px", transform: open ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.15s" }}>▾</span>
+        </button>
+
+        {/* 選項清單：附著在觸發按鈕正下方，不擠壓下方內容 */}
+        {open && !disabled && (
+          <div role="listbox" aria-label={label}
+            style={{
+              position: "absolute", top: "100%", left: 0, right: 0, zIndex: 30,
+              marginTop: "4px",
+              border: "1px solid #e8e5e1", borderRadius: "8px",
+              background: "#fff", maxHeight: "260px", overflowY: "auto",
+              boxShadow: "0 4px 14px rgba(0,0,0,0.06)",
+              animation: "fadeIn 0.12s ease",
+            }}>
+            <div role="option" aria-selected={!value} aria-label={`${label}：不選擇`}
+              onClick={() => selectOpt("")}
+              style={{ padding: "8px 12px", fontSize: "13px", color: "#bbb", cursor: "pointer", borderBottom: "1px solid #f5f5f5" }}
+              onMouseEnter={e => e.currentTarget.style.background = "#faf9f7"}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+              —
+            </div>
+            {options.map(o => {
+              const b = badgeMap && badgeMap[o];
+              const d = (labelMap && labelMap[o]) || o;
+              const sel = o === value;
+              return (
+                <div key={o} role="option" aria-selected={sel} aria-label={b ? `${d}，${b} 筆` : d}
+                  onClick={() => selectOpt(o)}
+                  style={{
+                    padding: "8px 12px", fontSize: "13px",
+                    color: sel ? "#065f46" : "#1a1a1a",
+                    fontWeight: sel ? 700 : 400,
+                    background: sel ? "#ecfdf5" : "transparent",
+                    cursor: "pointer",
+                    display: "flex", justifyContent: "space-between", alignItems: "center",
+                    gap: "10px",
+                  }}
+                  onMouseEnter={e => { if (!sel) e.currentTarget.style.background = "#faf9f7"; }}
+                  onMouseLeave={e => { if (!sel) e.currentTarget.style.background = "transparent"; }}>
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d}</span>
+                  {b && <span style={{ fontSize: "11px", color: "#999", fontWeight: 400, fontFamily: "'JetBrains Mono',monospace" }}>{b}</span>}
+                </div>
+              );
+            })}
+            {options.length === 0 && (
+              <div style={{ padding: "10px 12px", fontSize: "12px", color: "#bbb" }}>無可選項目</div>
+            )}
+          </div>
+        )}
+      </div>
 
       {onToggleLock && (
         <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "4px", minHeight: "14px" }}>
           <button onClick={onToggleLock}
             title={locked ? "已鎖 — refresh 不會重設" : "按一下鎖住，refresh 不會重設"}
-            aria-label={`${label} ${locked ? "解鎖" : "鎖住"}`}
+            aria-label={locked ? `解除鎖定 ${label}，refresh 後將重設` : `鎖定 ${label}，refresh 時保留此值`}
             aria-pressed={locked}
             style={{
               background: "none", border: "none", cursor: "pointer",
               padding: "0 2px", lineHeight: 0,
-              color: locked ? "#065f46" : "#d4d4d4",
-              opacity: locked ? 1 : 0.55, transition: "opacity 0.15s, color 0.15s",
+              color: locked ? "#065f46" : "#ddd",
+              opacity: locked ? 1 : 0.55, transition: "opacity 0.15s",
               display: "inline-flex", alignItems: "center",
             }}
             onMouseEnter={e => e.currentTarget.style.opacity = "1"}
@@ -443,53 +497,6 @@ function Sel({ label, value, onChange, options, disabled, badgeMap, labelMap, lo
               {locked ? <path d="M7 11V7a5 5 0 0 1 10 0v4"/> : <path d="M7 11V7a5 5 0 0 1 9.9-1"/>}
             </svg>
           </button>
-        </div>
-      )}
-
-      {/* 選項清單：附著在觸發按鈕正下方，不擠壓下方內容 */}
-      {open && !disabled && (
-        <div role="listbox" aria-label={label}
-          style={{
-            position: "absolute", top: "100%", left: 0, right: 0, zIndex: 30,
-            marginTop: "4px",
-            border: "1px solid #e8e5e1", borderRadius: "8px",
-            background: "#fff", maxHeight: "260px", overflowY: "auto",
-            boxShadow: "0 4px 14px rgba(0,0,0,0.06)",
-            animation: "fadeIn 0.12s ease",
-          }}>
-          <div role="option" aria-selected={!value}
-            onClick={() => selectOpt("")}
-            style={{ padding: "8px 12px", fontSize: "13px", color: "#bbb", cursor: "pointer", borderBottom: "1px solid #f5f5f5" }}
-            onMouseEnter={e => e.currentTarget.style.background = "#faf9f7"}
-            onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-            —
-          </div>
-          {options.map(o => {
-            const b = badgeMap && badgeMap[o];
-            const d = (labelMap && labelMap[o]) || o;
-            const sel = o === value;
-            return (
-              <div key={o} role="option" aria-selected={sel}
-                onClick={() => selectOpt(o)}
-                style={{
-                  padding: "8px 12px", fontSize: "13px",
-                  color: sel ? "#065f46" : "#1a1a1a",
-                  fontWeight: sel ? 700 : 400,
-                  background: sel ? "#ecfdf5" : "transparent",
-                  cursor: "pointer",
-                  display: "flex", justifyContent: "space-between", alignItems: "center",
-                  gap: "10px",
-                }}
-                onMouseEnter={e => { if (!sel) e.currentTarget.style.background = "#faf9f7"; }}
-                onMouseLeave={e => { if (!sel) e.currentTarget.style.background = "transparent"; }}>
-                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d}</span>
-                {b && <span style={{ fontSize: "11px", color: "#999", fontWeight: 400, fontFamily: "'JetBrains Mono',monospace" }}>{b}</span>}
-              </div>
-            );
-          })}
-          {options.length === 0 && (
-            <div style={{ padding: "10px 12px", fontSize: "12px", color: "#bbb" }}>無可選項目</div>
-          )}
         </div>
       )}
     </div>
@@ -539,19 +546,19 @@ function L3Line({ l3, editId, setEditId, idx, col }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "6px", flex: 1, minWidth: 0 }}></div>
         <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
-          <span style={{ fontSize: "14px", color: "#1a1a1a", fontWeight: 700, fontVariantNumeric: "tabular-nums", fontFamily: "'JetBrains Mono',monospace" }}>{Math.round(l3.ie)}<span style={{ fontSize: "10px", color: "#aaa", marginLeft: "3px", fontWeight: 500 }}>秒</span></span>
-          {l3.auto && <span style={{ fontSize: "10px", color: "#065f46", background: "#ecfdf5", padding: "2px 8px", borderRadius: "5px", fontWeight: 600, letterSpacing: "0.3px" }}>auto</span>}
+          <span style={{ fontSize: "14px", color: "#1a1a1a", fontWeight: 700, fontVariantNumeric: "tabular-nums", fontFamily: "'JetBrains Mono',monospace" }}>{Math.round(l3.ie)}<span style={{ fontSize: "10px", color: "#999", marginLeft: "3px", fontWeight: 500 }}>秒</span></span>
+          {l3.auto && <span style={{ fontSize: "10px", color: "#065f46", background: "#ecfdf5", padding: "2px 8px", borderRadius: "6px", fontWeight: 600, letterSpacing: "0.3px" }}>auto</span>}
           {!l3.auto && hasAlts && <button onClick={() => setEditId(isEditing ? null : idx)}
                 style={{
-                  width: "30px", height: "30px", borderRadius: "7px",
+                  width: "30px", height: "30px", borderRadius: "6px",
                   border: isEditing ? `2px solid ${col}` : "1.5px solid #ddd",
                   background: isEditing ? col : "#fff",
-                  color: isEditing ? "#fff" : "#777",
+                  color: isEditing ? "#fff" : "#767676",
                   fontSize: "15px", cursor: "pointer",
                   display: "flex", alignItems: "center", justifyContent: "center",
                   transition: "all 0.15s", flexShrink: 0
                 }}
-                onMouseEnter={e => { if (!isEditing) { e.currentTarget.style.borderColor = "#aaa"; e.currentTarget.style.background = "#f5f4f0"; }}}
+                onMouseEnter={e => { if (!isEditing) { e.currentTarget.style.borderColor = "#999"; e.currentTarget.style.background = "#f5f4f0"; }}}
                 onMouseLeave={e => { if (!isEditing) { e.currentTarget.style.borderColor = "#ddd"; e.currentTarget.style.background = "#fff"; }}}
               >ⓘ</button>}
         </div>
@@ -565,7 +572,7 @@ function L3Line({ l3, editId, setEditId, idx, col }) {
           {l3.opts.map((o, oi) => (
             <button key={oi} onClick={() => { setSel(oi); setChanged(oi !== l3.pick); setEditId(null); }}
               style={{
-                fontSize: "12px", padding: "7px 14px", borderRadius: "7px", cursor: "pointer",
+                fontSize: "12px", padding: "7px 14px", borderRadius: "6px", cursor: "pointer",
                 minHeight: "36px", lineHeight: 1.3,
                 border: sel === oi ? `2px solid ${col}` : "1.5px solid #e0ddda",
                 background: sel === oi ? col + "10" : "#fff",
@@ -598,7 +605,7 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
     <div style={{
       background: "#fff",
       border: `1.5px solid ${isOpen ? col + "50" : "#e8e5e1"}`,
-      borderRadius: "12px", marginBottom: "8px", overflow: "hidden",
+      borderRadius: "10px", marginBottom: "8px", overflow: "hidden",
       boxShadow: isOpen ? `0 4px 16px ${col}12` : "0 1px 3px rgba(0,0,0,0.04)",
       transition: "all 0.2s"
     }}>
@@ -610,7 +617,7 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
         {/* LEFT: number + L1 › L2 */}
         <div style={{ display: "flex", alignItems: "flex-start", gap: "10px", flex: 1, minWidth: 0 }}>
           <div style={{
-            width: "30px", height: "30px", borderRadius: "9px",
+            width: "30px", height: "30px", borderRadius: "8px",
             background: isOpen ? col : "#fff",
             color: isOpen ? "#fff" : "#767676",
             border: isOpen ? "none" : "1.5px solid #e5e5e5",
@@ -635,7 +642,7 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
                   onMouseEnter={e => { e.stopPropagation(); setShowTip(true); }}
                   onMouseLeave={() => setShowTip(false)}
                   style={{
-                    fontSize: "10px", color: "#aaa", fontFamily: "'JetBrains Mono',monospace",
+                    fontSize: "10px", color: "#999", fontFamily: "'JetBrains Mono',monospace",
                     cursor: "help", position: "relative"
                   }}>
                   ref: {card.matchCode}
@@ -688,7 +695,7 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
                   )}
                 </div>
                 <button onClick={() => setShowL2Alts(v => !v)}
-                  style={{ fontSize: "11px", color: col, background: "#fff", border: `1px solid ${col}40`, padding: "3px 10px", borderRadius: "5px", cursor: "pointer", fontWeight: 600, fontFamily: "inherit" }}>
+                  style={{ fontSize: "11px", color: col, background: "#fff", border: `1px solid ${col}40`, padding: "3px 10px", borderRadius: "6px", cursor: "pointer", fontWeight: 600, fontFamily: "inherit" }}>
                   {showL2Alts ? "收合" : `切換 (${card.l2Variants.length})`} ▾
                 </button>
               </div>
@@ -724,12 +731,7 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
                             </span>
                           )}
                         </div>
-                        {aiCue && (
-                          <div style={{ fontSize: "10px", color: aiCue.color, marginTop: "3px", lineHeight: 1.35, fontWeight: 600 }}>
-                            {aiCue.icon} {aiCue.text}
-                          </div>
-                        )}
-                        {v.feature && <div style={{ fontSize: "11px", color: "#777", marginTop: "2px", lineHeight: 1.35 }}>{v.feature}</div>}
+                        {v.feature && <div style={{ fontSize: "11px", color: "#767676", marginTop: "2px", lineHeight: 1.35 }}>{v.feature}</div>}
                       </div>
                     );
                   })}
@@ -747,7 +749,7 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
                   )}
                 </div>
                 <button onClick={() => setShowL3Alts(v => !v)}
-                  style={{ fontSize: "11px", color: col, background: "#fff", border: `1px solid ${col}40`, padding: "3px 10px", borderRadius: "5px", cursor: "pointer", fontWeight: 600, fontFamily: "inherit" }}>
+                  style={{ fontSize: "11px", color: col, background: "#fff", border: `1px solid ${col}40`, padding: "3px 10px", borderRadius: "6px", cursor: "pointer", fontWeight: 600, fontFamily: "inherit" }}>
                   {showL3Alts ? "收合" : `切換 (${card.l3Variants.length})`} ▾
                 </button>
               </div>
@@ -788,7 +790,7 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
                   )}
                 </div>
                 <button onClick={() => setShowMethods(v => !v)}
-                  style={{ fontSize: "11px", color: col, background: "#fff", border: `1px solid ${col}40`, padding: "3px 10px", borderRadius: "5px", cursor: "pointer", fontWeight: 600, fontFamily: "inherit" }}>
+                  style={{ fontSize: "11px", color: col, background: "#fff", border: `1px solid ${col}40`, padding: "3px 10px", borderRadius: "6px", cursor: "pointer", fontWeight: 600, fontFamily: "inherit" }}>
                   {showMethods ? "收合" : "展開切換"} ▾
                 </button>
               </div>
@@ -822,13 +824,13 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
               )}
             </div>
           )}
-          <div style={{ fontSize: "11px", color: "#aaa", padding: "8px 0 4px 10px" }}>
+          <div style={{ fontSize: "11px", color: "#999", padding: "8px 0 4px 10px" }}>
             工段 · 秒數
           </div>
           {card.l3s.map((l3, i) => <L3Line key={`${card.methodIdx}-${i}`} l3={l3} editId={editId} setEditId={setEditId} idx={i} col={col} />)}
           <div style={{ display: "flex", justifyContent: "flex-end", padding: "8px 0 0", gap: "8px" }}>
-            <span style={{ fontSize: "13px", color: "#aaa" }}>小計</span>
-            <span style={{ fontSize: "14px", color: "#1a1a1a", fontWeight: 800, fontFamily: "'JetBrains Mono',monospace" }}>{Math.round(card.ie)}<span style={{ fontSize: "11px", color: "#aaa", marginLeft: "3px", fontWeight: 500 }}>秒</span></span>
+            <span style={{ fontSize: "13px", color: "#999" }}>小計</span>
+            <span style={{ fontSize: "14px", color: "#1a1a1a", fontWeight: 800, fontFamily: "'JetBrains Mono',monospace" }}>{Math.round(card.ie)}<span style={{ fontSize: "11px", color: "#999", marginLeft: "3px", fontWeight: 500 }}>秒</span></span>
           </div>
         </div>
       </div>
@@ -865,7 +867,7 @@ function MissyPomRow({ pom, tier, isOpen, onToggle, onToggleInclude, included, s
           {pom.subRows && <span style={{ fontSize: "9px", color: "#666", background: "#f5f4f0", padding: "2px 6px", borderRadius: "4px" }}>{pom.subRows.length} sub</span>}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
-          <span style={{ fontSize: "10px", color: tc.c, background: tc.bg, padding: "2px 7px", borderRadius: "5px", fontWeight: 600 }}>{tc.icon} {tc.label}</span>
+          <span style={{ fontSize: "10px", color: tc.c, background: tc.bg, padding: "2px 7px", borderRadius: "6px", fontWeight: 600 }}>{tc.icon} {tc.label}</span>
           <span style={{ fontSize: "15px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: "#1a1a1a" }}>{frmt(pom.mVal)}"</span>
           <div style={{ fontSize: "13px", color: "#ccc", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.25s" }}>▾</div>
         </div>
@@ -908,7 +910,7 @@ function MissyPomRow({ pom, tier, isOpen, onToggle, onToggleInclude, included, s
                   </div>
                 );
               })}
-              <div style={{ padding: "5px 4px", fontSize: "9px", color: "#aaa" }}>Grade</div>
+              <div style={{ padding: "5px 4px", fontSize: "9px", color: "#999" }}>Grade</div>
               {sizes.map((s, i) => {
                 const g = pom.grading[s] || 0;
                 const prev = i > 0 ? (pom.grading[sizes[i - 1]] || 0) : null;
@@ -1019,7 +1021,7 @@ function PlusPomRow({ pom, tier, isOpen, onToggle, onToggleInclude, included }) 
           {pom.noteVsMissy && <span style={{ fontSize: "9px", color: "#be185d", background: "#fdf2f8", padding: "2px 6px", borderRadius: "4px", fontWeight: 600 }}>≠ MISSY</span>}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
-          <span style={{ fontSize: "10px", color: tc.c, background: tc.bg, padding: "2px 7px", borderRadius: "5px", fontWeight: 600 }}>{tc.icon} {tc.label}</span>
+          <span style={{ fontSize: "10px", color: tc.c, background: tc.bg, padding: "2px 7px", borderRadius: "6px", fontWeight: 600 }}>{tc.icon} {tc.label}</span>
           <span style={{ fontSize: "15px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{frmt(pom.mVal)}"</span>
           <div style={{ fontSize: "13px", color: "#ccc", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.25s" }}>▾</div>
         </div>
@@ -1059,7 +1061,7 @@ function PlusPomRow({ pom, tier, isOpen, onToggle, onToggleInclude, included }) 
                   </div>
                 );
               })}
-              <div style={{ padding: "5px 4px", fontSize: "9px", color: "#aaa" }}>Grade</div>
+              <div style={{ padding: "5px 4px", fontSize: "9px", color: "#999" }}>Grade</div>
               {sizes.map((s, i) => {
                 const g = pom.grading[s] || 0;
                 const prev = i > 0 ? (pom.grading[sizes[i - 1]] || 0) : null;
@@ -1124,7 +1126,7 @@ function BucketPomRow({ code, tier, measurement, median, grading, pomName, isOpe
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
-          <span style={{ fontSize: "10px", color: tc.c, background: tc.bg, padding: "2px 7px", borderRadius: "5px", fontWeight: 600 }}>{tc.icon} {tc.label}</span>
+          <span style={{ fontSize: "10px", color: tc.c, background: tc.bg, padding: "2px 7px", borderRadius: "6px", fontWeight: 600 }}>{tc.icon} {tc.label}</span>
           <span title={`${measurement?.count || 0} designs`} style={{ fontSize: "10px", color: "#666", fontFamily: "'JetBrains Mono',monospace" }}>{Math.round((measurement?.rate || 0) * 100)}%</span>
           {tolDisplay && <span style={{ fontSize: "10px", color: "#525252", background: "#f3f4f6", padding: "2px 6px", borderRadius: "4px", fontWeight: 600, fontFamily: "'JetBrains Mono',monospace" }}>±{tolDisplay}"</span>}
           <span style={{ fontSize: "15px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: "#1a1a1a" }}>{medianM != null ? frmt(medianM) + '"' : "—"}</span>
@@ -1209,6 +1211,7 @@ function AdminModal({
   pomNamesOverride, onUploadPomNames, onClearPomNames,
   pomRulesOverride, onUploadPomRules, onClearPomRules, currentBucketKey,
   partPresenceOverride, onUploadPartPresence, onClearPartPresence,
+  pomRulesOverride, onUploadPomRules, onClearPomRules, onPushToGithub, currentBucketKey,
 }) {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -1271,13 +1274,13 @@ function AdminModal({
       zIndex: 100, padding: '20px',
     }}>
       <div onClick={e => e.stopPropagation()} style={{
-        background: '#fff', borderRadius: '12px', padding: '22px',
+        background: '#fff', borderRadius: '10px', padding: '22px',
         maxWidth: '480px', width: '100%', maxHeight: '85vh', overflowY: 'auto',
         boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '6px' }}>
           <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 700 }}>管理 · 資料覆蓋</h2>
-          <button onClick={onClose} aria-label="關閉" style={{
+          <button onClick={onClose} aria-label="關閉管理面板" style={{
             background: 'none', border: 'none', cursor: 'pointer',
             fontSize: '22px', color: '#999', padding: '0 4px', lineHeight: 1,
             fontFamily: 'inherit',
@@ -1290,9 +1293,9 @@ function AdminModal({
         <div style={{ border: '1px solid #e8e5e1', borderRadius: '10px', padding: '14px' }}>
           <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '4px' }}>POM 翻譯表</div>
           <div style={{ fontSize: '11px', color: '#767676', marginBottom: '12px', lineHeight: 1.5 }}>
-            預期格式：<code style={{ background: '#f5f5f5', padding: '1px 4px', borderRadius: '3px' }}>{'{"A1": {"en": "...", "zh": "..."}, ...}'}</code>
+            預期格式：<code style={{ background: '#f5f5f5', padding: '1px 4px', borderRadius: '4px' }}>{'{"A1": {"en": "...", "zh": "..."}, ...}'}</code>
             <br />
-            也接受候選表格式 <code style={{ background: '#f5f5f5', padding: '1px 4px', borderRadius: '3px' }}>{'{"mapping": {...}}'}</code>（matched=true 時取 zh_pptx）
+            也接受候選表格式 <code style={{ background: '#f5f5f5', padding: '1px 4px', borderRadius: '4px' }}>{'{"mapping": {...}}'}</code>（matched=true 時取 zh_pptx）
           </div>
 
           <div style={{
@@ -1308,7 +1311,7 @@ function AdminModal({
 
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <label style={{
-              display: 'inline-block', padding: '8px 14px',
+              display: 'inline-block', padding: '8px 16px',
               background: uploading ? '#999' : '#1a1a1a', color: '#fff', borderRadius: '6px',
               cursor: uploading ? 'not-allowed' : 'pointer',
               fontSize: '12px', fontWeight: 600,
@@ -1318,13 +1321,17 @@ function AdminModal({
                 onChange={e => { handleFile(e.target.files?.[0]); e.target.value = ''; }} />
             </label>
             {pomNamesOverride && (
-              <button onClick={() => { onClearPomNames(); setSuccess(null); setError(null); }}
+              <button onClick={confirmingClear ? doClear : armClear}
+                aria-label={confirmingClear ? "再點一次確認清除覆蓋" : "清除覆蓋並還原內建翻譯表"}
                 style={{
-                  padding: '8px 14px',
-                  background: '#fff', border: '1px solid #e8e5e1', borderRadius: '6px',
-                  cursor: 'pointer', fontSize: '12px', fontWeight: 600, color: '#dc2626',
-                  fontFamily: 'inherit',
-                }}>清除覆蓋 · 還原內建</button>
+                  padding: '8px 16px',
+                  background: confirmingClear ? '#dc2626' : '#fff',
+                  border: `1px solid ${confirmingClear ? '#dc2626' : '#e8e5e1'}`,
+                  borderRadius: '6px',
+                  cursor: 'pointer', fontSize: '12px', fontWeight: 600,
+                  color: confirmingClear ? '#fff' : '#dc2626',
+                  fontFamily: 'inherit', transition: 'background 0.15s, color 0.15s, border-color 0.15s',
+                }}>{confirmingClear ? '再點一次確認清除' : '清除覆蓋 · 還原內建'}</button>
             )}
           </div>
         </div>
@@ -1450,6 +1457,80 @@ function AdminModal({
           </div>
         </div>
 
+        {/* Push to GitHub 區塊 */}
+        {(() => {
+          const bucketCount = Object.keys(pomRulesOverride?.buckets || {}).length;
+          const hasIndex = !!pomRulesOverride?.index;
+          const hasNames = !!pomNamesOverride;
+          const totalFiles = (hasIndex ? 1 : 0) + bucketCount + (hasNames ? 1 : 0);
+          return (
+            <div style={{ marginTop: '12px', border: '1px solid #b45309', borderRadius: '10px', padding: '14px', background: '#fff7ed' }}>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#9a3412', marginBottom: '4px' }}>推送到 GitHub · Deploy 給所有人</div>
+              <div style={{ fontSize: '11px', color: '#9a3412', marginBottom: '12px', lineHeight: 1.5 }}>
+                把你目前的覆蓋直接 commit 到 <code>main</code> 分支,會觸發 Vercel 重新 deploy,**所有使用者**都會看到新資料。
+                推送成功後本機覆蓋會清空(main 已是新真相)。
+              </div>
+
+              <div style={{ marginBottom: '10px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: '#555', marginBottom: '4px' }}>Admin Token</div>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <input
+                    type={showToken ? 'text' : 'password'}
+                    value={adminToken}
+                    onChange={e => saveToken(e.target.value)}
+                    placeholder="Vercel env 裡設的 ADMIN_TOKEN"
+                    style={{ flex: 1, padding: '7px 9px', fontSize: '12px', fontFamily: 'monospace', border: '1px solid #e8e5e1', borderRadius: '5px' }}
+                  />
+                  <button onClick={() => setShowToken(v => !v)} style={{ padding: '7px 10px', fontSize: '11px', background: '#fff', border: '1px solid #e8e5e1', borderRadius: '5px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                    {showToken ? '隱藏' : '顯示'}
+                  </button>
+                </div>
+                <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '3px' }}>存在這台瀏覽器的 localStorage,不會傳到 GitHub。</div>
+              </div>
+
+              <div style={{ marginBottom: '10px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: '#555', marginBottom: '4px' }}>Commit message(可空)</div>
+                <input
+                  type="text" value={pushMessage} onChange={e => setPushMessage(e.target.value)}
+                  placeholder={`admin: 更新 pom_rules (${totalFiles} files)`}
+                  style={{ width: '100%', padding: '7px 9px', fontSize: '12px', border: '1px solid #e8e5e1', borderRadius: '5px' }}
+                />
+              </div>
+
+              <div style={{ padding: '8px 10px', borderRadius: '6px', background: '#fff', border: '1px solid #fed7aa', fontSize: '11px', color: '#555', marginBottom: '10px' }}>
+                將推送 <strong>{totalFiles}</strong> 個檔案:
+                {hasIndex && <> · 1 × <code>_index.json</code></>}
+                {bucketCount > 0 && <> · {bucketCount} × bucket</>}
+                {hasNames && <> · 1 × <code>pom_names.json</code></>}
+                {totalFiles === 0 && <span style={{ color: '#dc2626' }}>(沒有本機覆蓋,先在上方上傳檔案)</span>}
+              </div>
+
+              <button
+                onClick={handlePush}
+                disabled={pushing || totalFiles === 0 || !adminToken}
+                style={{
+                  width: '100%', padding: '10px 14px',
+                  background: (pushing || totalFiles === 0 || !adminToken) ? '#d1d5db' : '#9a3412',
+                  color: '#fff', border: 'none', borderRadius: '6px',
+                  cursor: (pushing || totalFiles === 0 || !adminToken) ? 'not-allowed' : 'pointer',
+                  fontSize: '13px', fontWeight: 700, fontFamily: 'inherit',
+                }}
+              >
+                {pushing ? '推送中…(可能需 10~30 秒)' : '⚠ 推送到 GitHub main'}
+              </button>
+
+              {pushError && <div style={{ marginTop: '10px', padding: '8px 10px', background: '#fef2f2', color: '#b91c1c', fontSize: '11px', borderRadius: '6px' }}>⚠ {pushError}</div>}
+              {pushResult && (
+                <div style={{ marginTop: '10px', padding: '8px 10px', background: '#ecfdf5', color: '#065f46', fontSize: '11px', borderRadius: '6px', lineHeight: 1.5 }}>
+                  ✓ 已推送 {pushResult.fileCount} 個檔案 · commit <code>{pushResult.sha?.slice(0, 7)}</code>
+                  {pushResult.url && <> · <a href={pushResult.url} target="_blank" rel="noopener" style={{ color: '#065f46', textDecoration: 'underline' }}>看 commit</a></>}
+                  <br />Vercel 通常 30 秒內 deploy 完,重新整理即可看到新資料。
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
         {error && <div style={{ marginTop: '10px', padding: '8px 10px', background: '#fef2f2', color: '#b91c1c', fontSize: '11px', borderRadius: '6px' }}>⚠ {error}</div>}
         {success && <div style={{ marginTop: '10px', padding: '8px 10px', background: '#ecfdf5', color: '#065f46', fontSize: '11px', borderRadius: '6px' }}>✓ {success}</div>}
 
@@ -1476,7 +1557,7 @@ function OnboardingModal({ open, onDismiss }) {
       zIndex: 150, padding: "20px", animation: "fadeIn 0.15s ease",
     }}>
       <div onClick={e => e.stopPropagation()} style={{
-        background: "#fff", borderRadius: "14px", padding: "26px 28px",
+        background: "#fff", borderRadius: "10px", padding: "26px 28px",
         maxWidth: "440px", width: "100%",
         boxShadow: "0 12px 36px rgba(0,0,0,0.2)",
       }}>
@@ -1499,7 +1580,7 @@ function OnboardingModal({ open, onDismiss }) {
                 <div style={{ fontSize: "13px", fontWeight: 700, color: "#1a1a1a", marginBottom: "2px" }}>
                   {s.title}
                 </div>
-                <div style={{ fontSize: "12px", color: "#555", lineHeight: 1.55 }}>
+                <div style={{ fontSize: "12px", color: "#525252", lineHeight: 1.55 }}>
                   {s.body}
                 </div>
               </div>
@@ -1527,9 +1608,29 @@ function App() {
     try {
       const locks = JSON.parse(localStorage.getItem("stytrix_locks") || "{}");
       const values = JSON.parse(localStorage.getItem("stytrix_values") || "{}");
+      // 用可同步判斷的選項驗證 stale value；it 之後等 pomRules 載入再驗
+      const validators = {
+        brand: v => BRANDS.some(b => b.code === v),
+        fabric: v => v === "Woven" || v === "Knit",
+        gender: v => GENDER_OPTIONS.some(g => g.value === v),
+        dept: v => DEPT_OPTIONS.includes(v),
+        gt: v => GT_OPTIONS.includes(v),
+      };
       const restored = {};
-      Object.keys(locks).forEach(k => { if (locks[k] && values[k]) restored[k] = values[k]; });
-      return { locks, values: restored };
+      const validLocks = { ...locks };
+      Object.keys(locks).forEach(k => {
+        if (!locks[k]) return;
+        const v = values[k];
+        if (!v) return;
+        const check = validators[k];
+        if (check && !check(v)) {
+          // stale 值：清掉 lock 與 value
+          delete validLocks[k];
+          return;
+        }
+        restored[k] = v;
+      });
+      return { locks: validLocks, values: restored };
     } catch { return { locks: {}, values: {} }; }
   };
   const _saved = loadSaved();
@@ -1567,43 +1668,37 @@ function App() {
   // shape: { index: {filename, uploadedAt, count} | null, buckets: { [bucketKey]: {filename, uploadedAt, count} } }
   const [pomRulesOverride, setPomRulesOverride] = useState({ index: null, buckets: {} });
   const [adminOpen, setAdminOpen] = useState(false);
-  useEffect(() => {
-    // _index.json:先看覆蓋,沒有才抓內建
-    let usedRulesIndex = false;
-    try {
-      const stored = localStorage.getItem('stytrix.override.pomRules');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        // 新格式 { index: {meta, data?}, buckets: { [bucketKey]: {meta, data} } }
-        if (parsed && (parsed.index || parsed.buckets)) {
-          const meta = {
-            index: parsed.index ? { filename: parsed.index.filename, uploadedAt: parsed.index.uploadedAt, count: parsed.index.count } : null,
-            buckets: Object.fromEntries(Object.entries(parsed.buckets || {}).map(([k, v]) => [k, { filename: v.filename, uploadedAt: v.uploadedAt, count: v.count }])),
-          };
-          setPomRulesOverride(meta);
-          if (parsed.index?.data && Array.isArray(parsed.index.data.buckets)) {
-            setPomRules(parsed.index.data); window.POM_RULES = parsed.index.data;
-            usedRulesIndex = true;
-          }
-        }
-      }
-    } catch (e) { console.warn('讀取 pomRules 覆蓋失敗:', e); }
-    if (!usedRulesIndex) {
-      fetch('./pom_rules/_index.json')
-        .then(r => r.ok ? r.json() : Promise.reject(r.status))
-        .then(data => {
-          const merged = mergeBucketOverridesIntoIndex(data);
-          setPomRules(merged); window.POM_RULES = merged;
-        })
-        .catch(err => console.error('載入 pom_rules/_index.json 失敗:', err));
-    } else {
-      // 用了 index override,也要把 bucket overrides 裡的新 category 合進來
-      setPomRules(prev => {
-        const merged = mergeBucketOverridesIntoIndex(prev);
-        window.POM_RULES = merged;
-        return merged;
+  const [fetchErrors, setFetchErrors] = useState([]); // [{key, label, retry}]
+  const addFetchError = (key, label, retry) => {
+    setFetchErrors(prev => prev.some(e => e.key === key) ? prev : [...prev, { key, label, retry }]);
+  };
+  const clearFetchError = (key) => {
+    setFetchErrors(prev => prev.filter(e => e.key !== key));
+  };
+
+  const loadPomIndex = () => {
+    clearFetchError('pom_rules');
+    fetch('./pom_rules/_index.json')
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(data => { setPomRules(data); window.POM_RULES = data; })
+      .catch(err => {
+        console.error('載入 pom_rules/_index.json 失敗:', err);
+        addFetchError('pom_rules', '基礎 POM 規則表', loadPomIndex);
       });
-    }
+  };
+  const loadPomNames = () => {
+    clearFetchError('pom_names');
+    fetch('./pom_rules/pom_names.json')
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(data => { setPomNames(data); window.POM_NAMES = data; })
+      .catch(err => {
+        console.error('載入 pom_rules/pom_names.json 失敗:', err);
+        addFetchError('pom_names', 'POM 名稱翻譯表', loadPomNames);
+      });
+  };
+
+  useEffect(() => {
+    loadPomIndex();
     // POM 翻譯表：先看 localStorage 覆蓋，沒有才抓內建
     let usedOverride = false;
     try {
@@ -1622,12 +1717,7 @@ function App() {
         }
       }
     } catch (e) { console.warn('讀取 pomNames 覆蓋失敗:', e); }
-    if (!usedOverride) {
-      fetch('./pom_rules/pom_names.json')
-        .then(r => r.ok ? r.json() : Promise.reject(r.status))
-        .then(data => { setPomNames(data); window.POM_NAMES = data; })
-        .catch(err => console.error('載入 pom_rules/pom_names.json 失敗:', err));
-    }
+    if (!usedOverride) loadPomNames();
   }, []);
 
   /* ── Admin override handlers ── */
@@ -1835,6 +1925,88 @@ function App() {
       .catch(err => console.error('重新載入 l1_part_presence 失敗:', err));
   };
 
+  /* 把目前所有 localStorage 覆蓋(POM Rules + POM 翻譯表)打包推到
+     GitHub main,觸發 Vercel 重新 deploy。成功後本機 overrides 會
+     被清空,因為 main 已是新真相,不再需要 preview 層覆蓋。 */
+  const pushOverridesToGithub = async ({ token, message }) => {
+    if (!token) throw new Error('請先填 Admin Token');
+    const files = [];
+
+    // POM Rules index + buckets
+    let rulesStored = null;
+    try {
+      const raw = localStorage.getItem('stytrix.override.pomRules');
+      if (raw) rulesStored = JSON.parse(raw);
+    } catch (e) { throw new Error('讀 pomRules 覆蓋失敗:' + e.message); }
+
+    if (rulesStored?.index?.data) {
+      files.push({ path: 'pom_rules/_index.json', content: JSON.stringify(rulesStored.index.data, null, 2) });
+    }
+    // canonical filename resolution:內建 _index.buckets 有 file 欄位 → 用它;
+    // 否則用使用者上傳的檔名(若 .json 結尾)作為 fallback。
+    const canonicalByBucket = {};
+    if (rulesStored?.index?.data?.buckets) {
+      for (const b of rulesStored.index.data.buckets) {
+        if (b.bucket && b.file) canonicalByBucket[b.bucket] = b.file;
+      }
+    }
+    if (!Object.keys(canonicalByBucket).length && pomRules?.buckets) {
+      for (const b of pomRules.buckets) {
+        if (b.bucket && b.file) canonicalByBucket[b.bucket] = b.file;
+      }
+    }
+    for (const [bkey, entry] of Object.entries(rulesStored?.buckets || {})) {
+      if (!entry?.data) continue;
+      let fname = canonicalByBucket[bkey] || entry.filename;
+      if (!fname || !/\.json$/i.test(fname)) {
+        // derive:RTW_TOP|WOMENS → womens_rtw_top.json
+        const [left, gender] = bkey.split('|');
+        const parts = left?.split('_') || [];
+        fname = `${(gender || 'unknown').toLowerCase()}_${parts.join('_').toLowerCase()}.json`;
+      }
+      files.push({ path: `pom_rules/${fname}`, content: JSON.stringify(entry.data, null, 2) });
+    }
+
+    // POM 翻譯表
+    try {
+      const raw = localStorage.getItem('stytrix.override.pomNames');
+      if (raw) {
+        const p = JSON.parse(raw);
+        if (p?.data) {
+          files.push({ path: 'pom_rules/pom_names.json', content: JSON.stringify(p.data, null, 2) });
+        }
+      }
+    } catch {}
+
+    if (!files.length) throw new Error('目前沒有任何本機覆蓋可推送');
+
+    const res = await fetch('/api/push-pom-rules', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-admin-token': token },
+      body: JSON.stringify({ files, message: message || null }),
+    });
+    let data;
+    try { data = await res.json(); } catch { data = {}; }
+    if (!res.ok) throw new Error(data.error || `API 錯誤 ${res.status}`);
+
+    // 成功:清空本機覆蓋(main 已是新真相),重抓 built-in
+    try { localStorage.removeItem('stytrix.override.pomRules'); } catch {}
+    try { localStorage.removeItem('stytrix.override.pomNames'); } catch {}
+    setPomRulesOverride({ index: null, buckets: {} });
+    setPomNamesOverride(null);
+    // 稍微等一下讓 Vercel 的 deploy 能跑到,不然馬上 fetch 還會拿到舊版
+    // 這裡先重抓,使用者若看到舊資料過 30s 再重新整理即可
+    fetch('./pom_rules/_index.json?t=' + Date.now())
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(d => { setPomRules(d); window.POM_RULES = d; })
+      .catch(() => {});
+    fetch('./pom_rules/pom_names.json?t=' + Date.now())
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(d => { setPomNames(d); window.POM_NAMES = d; })
+      .catch(() => {});
+    return data;
+  };
+
   const [pomNames, setPomNames] = useState({});
   const [currentBucket, setCurrentBucket] = useState(null);
   const [bucketLoading, setBucketLoading] = useState(false);
@@ -1858,13 +2030,21 @@ function App() {
       }
     } catch (e) { console.warn('讀取 bucket 覆蓋失敗:', e); }
     if (!bucketMeta) { setCurrentBucket(null); return; }
-    setBucketLoading(true);
-    fetch(`./pom_rules/${bucketMeta.file}`)
-      .then(r => r.ok ? r.json() : Promise.reject(r.status))
-      .then(data => { setCurrentBucket(data); window.CURRENT_BUCKET = data; })
-      .catch(err => { console.error('載入 bucket 失敗:', err); setCurrentBucket(null); })
-      .finally(() => setBucketLoading(false));
-  }, [bucketMeta, bucketKey]);
+    const load = () => {
+      clearFetchError('bucket');
+      setBucketLoading(true);
+      fetch(`./pom_rules/${bucketMeta.file}`)
+        .then(r => r.ok ? r.json() : Promise.reject(r.status))
+        .then(data => { setCurrentBucket(data); window.CURRENT_BUCKET = data; })
+        .catch(err => {
+          console.error('載入 bucket 失敗:', err);
+          setCurrentBucket(null);
+          addFetchError('bucket', `${bucketMeta.file}（基碼表）`, load);
+        })
+        .finally(() => setBucketLoading(false));
+    };
+    load();
+  }, [bucketMeta]);
   const handleSketchUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -1919,47 +2099,32 @@ function App() {
 
   // 大 JSON 懶載：只在用戶上傳 sketch 後才抓。首屏省 ~900KB，
   // 純用尺寸表的流程完全不下載這三個檔。
+  const loadIsoRec = () => {
+    clearFetchError('iso_rec');
+    fetch('./l1_iso_recommendations_v1.json')
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(setIsoRec)
+      .catch(err => { console.error('載入 l1_iso_recommendations 失敗:', err); addFetchError('iso_rec', 'ISO 推薦表', loadIsoRec); });
+  };
+  const loadPartPresence = () => {
+    clearFetchError('part_presence');
+    fetch('./l1_part_presence_v1.json')
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(setPartPresence)
+      .catch(err => { console.error('載入 l1_part_presence 失敗:', err); addFetchError('part_presence', '部位存在檢查表', loadPartPresence); });
+  };
+  const loadVisualGuide = () => {
+    clearFetchError('visual_guide');
+    fetch('./data/l2_visual_guide.json')
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(setVisualGuide)
+      .catch(err => { console.error('載入 l2_visual_guide 失敗:', err); addFetchError('visual_guide', 'L2 視覺指引', loadVisualGuide); });
+  };
   useEffect(() => {
     if (!sketchSrc) return;
-    if (!isoRec) {
-      fetch('./l1_iso_recommendations_v1.json')
-        .then(r => r.ok ? r.json() : Promise.reject(r.status))
-        .then(setIsoRec)
-        .catch(err => console.error('載入 l1_iso_recommendations 失敗:', err));
-    }
-    if (!partPresence) {
-      // 先看 localStorage 是否有使用者上傳的覆蓋版；沒有才抓內建
-      let usedOverride = false;
-      try {
-        const stored = localStorage.getItem('stytrix.override.partPresence');
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (parsed?.data?.by_gt_it) {
-            setPartPresence(parsed.data);
-            setPartPresenceOverride({
-              filename: parsed.filename || '(unnamed)',
-              uploadedAt: parsed.uploadedAt || null,
-              bucketsCount: Object.keys(parsed.data.by_gt_it).length,
-              partsCount: Object.values(parsed.data.by_gt_it)
-                .reduce((n, b) => n + (Array.isArray(b?.parts) ? b.parts.length : 0), 0),
-            });
-            usedOverride = true;
-          }
-        }
-      } catch (e) { console.warn('讀取 partPresence 覆蓋失敗:', e); }
-      if (!usedOverride) {
-        fetch('./l1_part_presence_v1.json')
-          .then(r => r.ok ? r.json() : Promise.reject(r.status))
-          .then(setPartPresence)
-          .catch(err => console.error('載入 l1_part_presence 失敗:', err));
-      }
-    }
-    if (!visualGuide) {
-      fetch('./data/l2_visual_guide.json')
-        .then(r => r.ok ? r.json() : Promise.reject(r.status))
-        .then(setVisualGuide)
-        .catch(err => console.error('載入 l2_visual_guide 失敗:', err));
-    }
+    if (!isoRec) loadIsoRec();
+    if (!partPresence) loadPartPresence();
+    if (!visualGuide) loadVisualGuide();
   }, [sketchSrc]);
 
   /* ── 尺寸表 tab state ── */
@@ -2086,6 +2251,14 @@ function App() {
     if (!gt) return [];
     return IT_OPTIONS[gt] || [];
   }, [gt]);
+
+  // 清掉 stale 的 Item Type（例如 gt 改了、IT_OPTIONS 變動，之前鎖的 it 已不存在）
+  useEffect(() => {
+    if (it && gt && !curItOptions.includes(it)) {
+      setIt("");
+      setLocks(prev => prev.it ? { ...prev, it: false } : prev);
+    }
+  }, [it, gt, curItOptions]);
 
   const ptCount = useMemo(() => {
     let p = 0, t = 0;
@@ -2506,6 +2679,27 @@ function App() {
         </div>
       </div>
 
+      {fetchErrors.length > 0 && (
+        <div role="alert" aria-live="polite" style={{
+          position: "sticky", top: 0, zIndex: 80,
+          background: "#fef2f2", borderBottom: "1px solid #fecaca",
+          padding: isMobile ? "8px 14px" : "10px 28px",
+          display: "flex", flexDirection: isMobile ? "column" : "row",
+          alignItems: isMobile ? "stretch" : "center", gap: "8px",
+          fontSize: "12px", color: "#991b1b", fontFamily: "inherit",
+        }}>
+          <span style={{ fontWeight: 600 }}>⚠ 資料載入失敗：</span>
+          <span style={{ flex: 1 }}>{fetchErrors.map(e => e.label).join("、")}。部分功能可能不可用。</span>
+          <button onClick={() => fetchErrors.forEach(e => e.retry && e.retry())}
+            style={{
+              padding: "4px 12px", background: "#fff", color: "#b91c1c",
+              border: "1px solid #fca5a5", borderRadius: "6px",
+              fontSize: "11px", fontWeight: 600, cursor: "pointer",
+              fontFamily: "inherit", whiteSpace: "nowrap",
+            }}>重試</button>
+        </div>
+      )}
+
       <div style={{ maxWidth: "1280px", margin: "0 auto", padding: isMobile ? "14px 14px" : "24px 28px" }}>
         {/* ─── Filter (v10: flush underline selects) ─── */}
         {(() => {
@@ -2530,7 +2724,7 @@ function App() {
                   <span key={i} style={{
                     fontSize: "12px", padding: "4px 10px",
                     background: i === 0 ? "#1a1a1a" : "#f5f5f5",
-                    color: i === 0 ? "#fff" : "#555",
+                    color: i === 0 ? "#fff" : "#525252",
                     borderRadius: "999px", fontWeight: 600,
                     whiteSpace: "nowrap",
                   }}>{f.v}</span>
@@ -2657,7 +2851,7 @@ function App() {
               {tabs.map((t, idx, arr) => {
                 const active = activeTab === t.key;
                 const dis = !!t.disabled;
-                const stepColor = active ? "#065f46" : (t.done ? "#065f46" : (dis ? "#e5e5e5" : "#bbb"));
+                const stepColor = active ? "#065f46" : (t.done ? "#065f46" : (dis ? "#eee" : "#bbb"));
                 const stepBg = active ? "#065f46" : (t.done ? "#ecfdf5" : "transparent");
                 const stepTextColor = active ? "#fff" : (t.done ? "#065f46" : (dis ? "#ccc" : "#999"));
                 return (
@@ -2677,7 +2871,7 @@ function App() {
                         padding: "12px 0", background: "none", border: "none",
                         borderBottom: active ? "2px solid #065f46" : "2px solid transparent",
                         cursor: dis ? "not-allowed" : "pointer",
-                        color: active ? "#1a1a1a" : (dis ? "#ddd" : "#555"),
+                        color: active ? "#1a1a1a" : (dis ? "#ddd" : "#525252"),
                         fontSize: isMobile ? "13px" : "14px",
                         fontWeight: active ? 700 : 500,
                         marginBottom: "-1px", transition: "all 0.15s", fontFamily: "inherit",
@@ -2699,7 +2893,7 @@ function App() {
                     {idx < arr.length - 1 && (
                       <span aria-hidden="true" style={{
                         margin: "0 14px",
-                        fontSize: "12px", color: "#d4d4d4", userSelect: "none",
+                        fontSize: "12px", color: "#ddd", userSelect: "none",
                       }}>▸</span>
                     )}
                   </React.Fragment>
@@ -2743,7 +2937,7 @@ function App() {
                     <div style={{ fontSize: "18px", color: "#065f46", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{Math.round(totalIE)}</div>
                   </div>
                   <button onClick={runConstruction} style={{
-                    padding: "8px 14px", background: "#fff", color: "#999",
+                    padding: "8px 16px", background: "#fff", color: "#999",
                     border: "1px solid #eee", borderRadius: "8px", fontSize: "12px", cursor: "pointer", fontFamily: "inherit"
                   }}>Re-analyze</button>
                 </div>
@@ -2813,7 +3007,7 @@ function App() {
                     </div>
                     {cDone && <div style={{ padding: "10px 16px", borderTop: "1px solid #f0f0f0", display: "flex", gap: "5px", flexWrap: "wrap" }}>
                       {[brand, fabric, dept, gender, gt, it].filter(Boolean).map((v, i) => (
-                        <span key={v} style={{ fontSize: "11px", padding: "2px 8px", background: i === 0 ? "#1a1a1a" : "#f5f5f5", borderRadius: "4px", color: i === 0 ? "#fff" : "#777", fontWeight: i === 0 ? 600 : 400 }}>{v}</span>
+                        <span key={v} style={{ fontSize: "11px", padding: "2px 8px", background: i === 0 ? "#1a1a1a" : "#f5f5f5", borderRadius: "4px", color: i === 0 ? "#fff" : "#767676", fontWeight: i === 0 ? 600 : 400 }}>{v}</span>
                       ))}
                     </div>}
                     {cDone && <div style={{
@@ -2856,7 +3050,7 @@ function App() {
                           fontSize: "13px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace",
                           color: addonOn ? "#065f46" : "#ccc",
                         }}>
-                          {addonOn ? "+" : ""}{ADDON.ie}<span style={{ fontSize: "10px", color: "#aaa", marginLeft: "3px", fontWeight: 500 }}>秒</span>
+                          {addonOn ? "+" : ""}{ADDON.ie}<span style={{ fontSize: "10px", color: "#999", marginLeft: "3px", fontWeight: 500 }}>秒</span>
                         </span>
                       </label>
                     )}
@@ -2889,7 +3083,7 @@ function App() {
                           {analyzeErr}
                         </div>
                         <div style={{ fontSize: "11px", color: "#991b1b", marginTop: "8px", lineHeight: 1.5 }}>
-                          可能原因：Claude API 配額用盡、網路中斷、或圖檔格式不支援。檢查環境變數 <code style={{ background: "#fee2e2", padding: "0 4px", borderRadius: "3px" }}>ANTHROPIC_API_KEY</code>
+                          可能原因：Claude API 配額用盡、網路中斷、或圖檔格式不支援。檢查環境變數 <code style={{ background: "#fee2e2", padding: "0 4px", borderRadius: "4px" }}>ANTHROPIC_API_KEY</code>
                         </div>
                       </div>
                     </div>
@@ -2904,7 +3098,7 @@ function App() {
                           cursor: canAnalyze ? "pointer" : "not-allowed", fontFamily: "inherit",
                         }}>重試</button>
                       <button onClick={() => setAnalyzeErr(null)} style={{
-                        padding: "8px 14px",
+                        padding: "8px 16px",
                         background: "#fff", color: "#991b1b",
                         border: "1px solid #fecaca", borderRadius: "6px",
                         fontSize: "12px", fontWeight: 600,
@@ -3050,7 +3244,7 @@ function App() {
                         <polyline points="7 10 12 15 17 10"/>
                         <line x1="12" y1="15" x2="12" y2="3"/>
                       </svg>
-                      Export JSON
+                      匯出 JSON
                     </button>
                   </div>
                 </div>}
@@ -3231,7 +3425,8 @@ function App() {
                     <div style={{ fontSize: isMobile ? "14px" : "15px", fontWeight: 700, color: "#1a1a1a", marginTop: "4px", marginBottom: "8px" }}>
                       基碼 <span style={{ fontSize: isMobile ? "12px" : "13px", color: "#888", fontWeight: 400 }}>M size 基本尺寸 · 勾選要納入的 POM，並可手動調整尺寸</span>
                     </div>
-                    <div style={{ background: "#fff", border: "1px solid #e8e5e1", borderRadius: "10px", overflow: "auto", marginBottom: "12px" }}>
+                    <div style={{ position: "relative", marginBottom: "12px" }}>
+                    <div className="stytrix-scroll-x" style={{ background: "#fff", border: "1px solid #e8e5e1", borderRadius: "10px", overflowX: "auto", overflowY: "visible", WebkitOverflowScrolling: "touch" }}>
                       <table style={{ width: "100%", minWidth: isMobile ? "680px" : "auto", borderCollapse: "collapse", fontSize: "14px" }}>
                         <thead>
                           <tr style={{ background: "#faf9f7", borderBottom: "1.5px solid #e8e5e1" }}>
@@ -3329,7 +3524,7 @@ function App() {
                                             width: isMobile ? "92px" : "104px", textAlign: "right", padding: "7px 9px",
                                             fontFamily: "'JetBrains Mono',monospace", fontSize: "14px", fontWeight: 700,
                                             color: invalid ? "#dc2626" : "#065f46",
-                                            border: `1px solid ${invalid ? "#dc2626" : "#a7f3d0"}`, borderRadius: "5px",
+                                            border: `1px solid ${invalid ? "#dc2626" : "#a7f3d0"}`, borderRadius: "6px",
                                             background: "#fff",
                                           }} />
                                         <span style={{ fontSize: "13px", color: "#065f46", marginLeft: "3px" }}>"</span>
@@ -3342,6 +3537,15 @@ function App() {
                           })}
                         </tbody>
                       </table>
+                    </div>
+                    {isMobile && (
+                      <div aria-hidden="true" style={{
+                        position: "absolute", top: 0, right: 0, bottom: 0,
+                        width: "28px", pointerEvents: "none",
+                        background: "linear-gradient(to left, rgba(255,255,255,0.95), rgba(255,255,255,0))",
+                        borderTopRightRadius: "10px", borderBottomRightRadius: "10px",
+                      }} />
+                    )}
                     </div>
 
                   {/* Sticky 底部動作列 — 基碼確認頁：右下「下一頁 · 全碼 →」 */}
@@ -3435,7 +3639,7 @@ function App() {
                 <div style={{
                   background: sizeRun === "missy" ? "#ecfdf5" : "#fdf2f8",
                   border: `1.5px solid ${sizeRun === "missy" ? "#a7f3d0" : "#fbcfe8"}`,
-                  borderRadius: "10px", padding: "8px 14px", marginBottom: "10px",
+                  borderRadius: "10px", padding: "8px 16px", marginBottom: "10px",
                   display: "flex", justifyContent: "space-between", alignItems: "center"
                 }}>
                   <div style={{ fontSize: "11px", color: sizeRun === "missy" ? "#065f46" : "#be185d" }}>
@@ -3632,7 +3836,7 @@ function App() {
                                 <span style={{ fontFamily: "'JetBrains Mono',monospace", fontWeight: 700, color: tc.c, fontSize: "13px" }}>{code}</span>
                                 <span style={{ fontSize: "12px", color: "#1a1a1a", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis" }}>{pn.en || code}</span>
                               </div>
-                              {edited && <span style={{ fontSize: "9px", color: "#7e22ce", background: "#f5f3ff", padding: "2px 6px", borderRadius: "3px", fontWeight: 600, whiteSpace: "nowrap" }}>已調整</span>}
+                              {edited && <span style={{ fontSize: "9px", color: "#7e22ce", background: "#f5f3ff", padding: "2px 6px", borderRadius: "4px", fontWeight: 600, whiteSpace: "nowrap" }}>已調整</span>}
                             </div>
                             <div style={{ display: "flex", gap: "14px", fontSize: "10px", color: "#888", marginBottom: "8px", paddingBottom: "8px", borderBottom: "1px solid #f5f5f5" }}>
                               <span>公差 <span style={{ fontFamily: "'JetBrains Mono',monospace", color: "#525252", fontWeight: 600 }}>{tolStr(m)}</span></span>
@@ -3647,7 +3851,7 @@ function App() {
                                     padding: "5px 4px",
                                     background: isM ? "#ecfdf5" : "#fafafa",
                                     border: isM ? "1px solid #a7f3d0" : "1px solid transparent",
-                                    borderRadius: "5px", textAlign: "center",
+                                    borderRadius: "6px", textAlign: "center",
                                   }}>
                                     <div style={{ fontSize: "9px", color: isM ? "#065f46" : "#888", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", letterSpacing: "0.02em" }}>
                                       {s}{isM && " · BASE"}
@@ -3691,7 +3895,7 @@ function App() {
                                 <td style={{ padding: "5px 8px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: tc.c, position: "sticky", left: 0, background: "#fff" }}>{code}</td>
                                 <td style={{ padding: "5px 8px", fontSize: "11px", color: "#1a1a1a" }}>
                                   {pn.en || code}
-                                  {edited && <span style={{ marginLeft: "6px", fontSize: "9px", color: "#7e22ce", background: "#f5f3ff", padding: "1px 5px", borderRadius: "3px", fontWeight: 600, whiteSpace: "nowrap" }}>已調整</span>}
+                                  {edited && <span style={{ marginLeft: "6px", fontSize: "9px", color: "#7e22ce", background: "#f5f3ff", padding: "1px 5px", borderRadius: "4px", fontWeight: 600, whiteSpace: "nowrap" }}>已調整</span>}
                                 </td>
                                 <td style={{ padding: "5px 8px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", color: "#525252", fontWeight: 600, whiteSpace: "nowrap" }}>
                                   {tolStr(m)}
@@ -3807,7 +4011,7 @@ function App() {
             fontFamily: "inherit", padding: "2px 4px",
           }}>復原</button>
           <button onClick={() => { if (undoTimerRef.current) clearTimeout(undoTimerRef.current); setUndoToast(null); }}
-            aria-label="關閉"
+            aria-label="關閉復原提示"
             style={{
               background: "none", border: "none", color: "#999",
               fontSize: "18px", cursor: "pointer", padding: "0 2px", lineHeight: 1,
