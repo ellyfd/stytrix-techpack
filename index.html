@@ -3581,6 +3581,14 @@ function App() {
               const gradingCodes = allCodesFlat.filter(c => !excluded.has(c));
               const bucketIncluded = gradingCodes.length;
               const sizes = currentBucket.size_range || [];
+              // Size run / Plus 相關衍生值(跟全碼表共用,讓基碼 header 也能顯示 toggle)
+              const isPlus = s => /^\d+X$/.test(s);
+              const plusSeq = sizes.filter(isPlus).slice().sort((a, b) => parseInt(a) - parseInt(b));
+              const plusAnchor = plusSeq[0] || "2X";
+              const hasPlus = plusSeq.length > 0;
+              const runOffsets = currentBucket.size_run_offsets || {};
+              const activeOffsets = sizeRunVariant === 'regular' ? null : (runOffsets[sizeRunVariant] || null);
+              const hasRunData = !!activeOffsets && Object.keys(activeOffsets).length > 0;
               const tierOf = code => mr.must?.[code] ? "must" : mr.recommend?.[code] ? "recommend" : "optional";
               const tolStr = m => {
                 const t = m?.tolerance;
@@ -3637,38 +3645,75 @@ function App() {
 
               return (
                 <div style={{ animation: "slideUp 0.3s ease", paddingBottom: "72px" }}>
-                  {/* Header (合併:title + 計數明細 + bucket + Re-generate) */}
+                  {/* Header:title + 計數明細 + bucket + Re-generate + Size controls(Run/Plus) */}
                   <div style={{
                     background: "#fff", border: "1px solid #eee", borderRadius: "10px",
                     padding: isMobile ? "14px 16px" : "18px 22px",
                     marginBottom: isMobile ? "12px" : "16px",
-                    display: "flex",
-                    flexDirection: isMobile ? "column" : "row",
-                    justifyContent: "space-between",
-                    alignItems: isMobile ? "stretch" : "center",
-                    gap: isMobile ? "12px" : "16px"
                   }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: isMobile ? "16px" : "18px", fontWeight: 700, color: "#1a1a1a" }}>基碼 / POM 確認</div>
-                      <div style={{ fontSize: isMobile ? "12px" : "13px", color: "#888", marginTop: "3px" }}>POM 建議 × 公差 × Base (M)</div>
-                      <div style={{ display: "flex", alignItems: "baseline", gap: "8px", marginTop: "12px", flexWrap: "wrap" }}>
-                        <span style={{ fontSize: isMobile ? "24px" : "30px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: "#1a1a1a", lineHeight: 1 }}>{bucketIncluded}</span>
-                        <span style={{ fontSize: isMobile ? "14px" : "16px", color: "#888" }}>/ {totalPoms} POMs</span>
-                        <span style={{ fontSize: isMobile ? "13px" : "14px", color: "#666", marginLeft: "8px" }}>
-                          {codesByTier.must.length} 必備 · {codesByTier.recommend.length} 建議 · {codesByTier.optional.length} 選配
-                        </span>
+                    <div style={{
+                      display: "flex",
+                      flexDirection: isMobile ? "column" : "row",
+                      justifyContent: "space-between",
+                      alignItems: isMobile ? "stretch" : "center",
+                      gap: isMobile ? "12px" : "16px"
+                    }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: isMobile ? "16px" : "18px", fontWeight: 700, color: "#1a1a1a" }}>基碼 / POM 確認</div>
+                        <div style={{ fontSize: isMobile ? "12px" : "13px", color: "#888", marginTop: "3px" }}>POM 建議 × 公差 × Base (M)</div>
+                        <div style={{ display: "flex", alignItems: "baseline", gap: "8px", marginTop: "12px", flexWrap: "wrap" }}>
+                          <span style={{ fontSize: isMobile ? "24px" : "30px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: "#1a1a1a", lineHeight: 1 }}>{bucketIncluded}</span>
+                          <span style={{ fontSize: isMobile ? "14px" : "16px", color: "#888" }}>/ {totalPoms} POMs</span>
+                          <span style={{ fontSize: isMobile ? "13px" : "14px", color: "#666", marginLeft: "8px" }}>
+                            {codesByTier.must.length} 必備 · {codesByTier.recommend.length} 建議 · {codesByTier.optional.length} 選配
+                          </span>
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", flexDirection: isMobile ? "row" : "column", alignItems: isMobile ? "center" : "flex-end", justifyContent: "space-between", gap: "10px" }}>
+                        <div style={{ textAlign: isMobile ? "left" : "right" }}>
+                          <div style={{ fontSize: isMobile ? "13px" : "14px", color: "#065f46", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{currentBucket.bucket}</div>
+                          <div style={{ fontSize: isMobile ? "11px" : "12px", color: "#999", marginTop: "2px" }}>n={currentBucket.n} · inches (fractions)</div>
+                        </div>
+                        <button onClick={runMeasurement} style={{
+                          padding: "8px 16px", background: "#fff", color: "#666",
+                          border: "1px solid #ddd", borderRadius: "8px", fontSize: "13px", fontWeight: 500,
+                          cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap"
+                        }}>Re-generate</button>
                       </div>
                     </div>
-                    <div style={{ display: "flex", flexDirection: isMobile ? "row" : "column", alignItems: isMobile ? "center" : "flex-end", justifyContent: "space-between", gap: "10px" }}>
-                      <div style={{ textAlign: isMobile ? "left" : "right" }}>
-                        <div style={{ fontSize: isMobile ? "13px" : "14px", color: "#065f46", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{currentBucket.bucket}</div>
-                        <div style={{ fontSize: isMobile ? "11px" : "12px", color: "#999", marginTop: "2px" }}>n={currentBucket.n} · inches (fractions)</div>
+                    {/* Size 擴展控制列(Run / Plus)— 跟全碼頁共用 state,兩邊同步 */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap", marginTop: "14px", paddingTop: "12px", borderTop: "1px dashed #eee" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        <span style={{ fontSize: "11px", color: "#888", fontWeight: 500 }}>Run</span>
+                        <div style={{ display: "inline-flex", border: "1px solid #e8e5e1", borderRadius: "6px", overflow: "hidden" }}>
+                          {['regular','petite','tall'].map(run => {
+                            const active = sizeRunVariant === run;
+                            return (
+                              <button key={run} onClick={() => setSizeRunVariant(run)}
+                                style={{
+                                  padding: "5px 11px", fontSize: "12px", fontWeight: active ? 700 : 500,
+                                  background: active ? "#1a1a1a" : "#fff",
+                                  color: active ? "#fff" : "#555",
+                                  border: "none", cursor: "pointer", fontFamily: "inherit",
+                                  borderRight: run !== 'tall' ? "1px solid #e8e5e1" : "none",
+                                }}>
+                                {run === 'regular' ? 'Regular' : run === 'petite' ? 'Petite' : 'Tall'}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {sizeRunVariant !== 'regular' && !hasRunData && (
+                          <span style={{ fontSize: "10px", color: "#b45309" }}>(此 bucket 無 {sizeRunVariant === 'petite' ? 'Petite' : 'Tall'} 資料)</span>
+                        )}
                       </div>
-                      <button onClick={runMeasurement} style={{
-                        padding: "8px 16px", background: "#fff", color: "#666",
-                        border: "1px solid #ddd", borderRadius: "8px", fontSize: "13px", fontWeight: 500,
-                        cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap"
-                      }}>Re-generate</button>
+                      {hasPlus && (
+                        <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "#555", cursor: "pointer", userSelect: "none" }}>
+                          <input type="checkbox" checked={showPlus} onChange={e => setShowPlus(e.target.checked)}
+                            style={{ width: "14px", height: "14px", cursor: "pointer" }} />
+                          顯示 Plus sizes <span style={{ fontSize: "10px", color: "#888" }}>({plusSeq.join("/")} · 自有基碼 {plusAnchor})</span>
+                        </label>
+                      )}
+                      <span style={{ fontSize: "10px", color: "#999", marginLeft: "auto" }}>切換會同時套用到「全碼」表</span>
                     </div>
                   </div>
 
@@ -3789,18 +3834,17 @@ function App() {
                       </table>
                     </div>
 
-                  {/* 底部狀態列 — 只顯示狀態資訊,切頁用上方 tabs */}
-                  <div style={{
-                    marginTop: "16px",
-                    background: "#fff", border: "1px solid #eee", borderRadius: "10px",
-                    padding: isMobile ? "10px 14px" : "12px 18px",
-                    fontSize: isMobile ? "12px" : "13px",
-                    color: invalidOverrides.length ? "#dc2626" : "#666",
-                  }}>
-                    {invalidOverrides.length
-                      ? `⚠ 有 ${invalidOverrides.length} 筆尺寸格式不正確(例:16、16 1/2、1/8)`
-                      : `已勾選 ${bucketIncluded} / ${totalPoms} · ${Object.keys(baseOverrides).filter(c => baseOverrides[c] !== "").length} 筆尺寸已調整`}
-                  </div>
+                  {/* 錯誤提示(僅在有格式錯誤時出現,狀態資訊已在 header) */}
+                  {invalidOverrides.length > 0 && (
+                    <div style={{
+                      marginTop: "12px",
+                      background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "10px",
+                      padding: isMobile ? "10px 14px" : "12px 18px",
+                      fontSize: isMobile ? "12px" : "13px", color: "#dc2626",
+                    }}>
+                      ⚠ 有 {invalidOverrides.length} 筆尺寸格式不正確(例:16、16 1/2、1/8)
+                    </div>
+                  )}
                 </div>
               );
             })()}
@@ -4064,35 +4108,42 @@ function App() {
               };
 
               return (
-                <div style={{ animation: "slideUp 0.3s ease", paddingBottom: "72px" }}>
-                  {/* Summary bar */}
-                  <div style={{ background: "#fff", border: "1px solid #eee", borderRadius: "10px", padding: isMobile ? "10px 12px" : "14px 18px", marginBottom: "12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div>
-                      <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
-                        <span style={{ fontSize: isMobile ? "17px" : "20px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{gradingCodes.length}</span>
-                        <span style={{ fontSize: "12px", color: "#bbb" }}>
-                          POMs · {visibleSizes.length} sizes
-                          {hasPlus && !showPlus && <span style={{ color: "#b45309" }}> (+{plusSeq.length} Plus 未顯示)</span>}
-                        </span>
+                <div style={{ animation: "slideUp 0.3s ease", paddingBottom: "24px" }}>
+                  {/* Header:跟基碼同一形式(title + 計數 + bucket + Size controls)*/}
+                  <div style={{
+                    background: "#fff", border: "1px solid #eee", borderRadius: "10px",
+                    padding: isMobile ? "14px 16px" : "18px 22px",
+                    marginBottom: isMobile ? "12px" : "16px",
+                  }}>
+                    <div style={{
+                      display: "flex",
+                      flexDirection: isMobile ? "column" : "row",
+                      justifyContent: "space-between",
+                      alignItems: isMobile ? "stretch" : "center",
+                      gap: isMobile ? "12px" : "16px"
+                    }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: isMobile ? "16px" : "18px", fontWeight: 700, color: "#1a1a1a" }}>全碼 / 尺寸表</div>
+                        <div style={{ fontSize: isMobile ? "12px" : "13px", color: "#888", marginTop: "3px" }}>各 size 中位數 · 公差 · 跳碼 · Grading 由 Base 推導</div>
+                        <div style={{ display: "flex", alignItems: "baseline", gap: "8px", marginTop: "12px", flexWrap: "wrap" }}>
+                          <span style={{ fontSize: isMobile ? "24px" : "30px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: "#1a1a1a", lineHeight: 1 }}>{gradingCodes.length}</span>
+                          <span style={{ fontSize: isMobile ? "14px" : "16px", color: "#888" }}>POMs · {visibleSizes.length} sizes</span>
+                          {hasPlus && !showPlus && (
+                            <span style={{ fontSize: isMobile ? "12px" : "13px", color: "#b45309", marginLeft: "4px" }}>(+{plusSeq.length} Plus 未顯示)</span>
+                          )}
+                        </div>
                       </div>
-                      <div style={{ fontSize: "11px", color: "#888", marginTop: "4px" }}>
-                        Base: <span style={{ fontWeight: 700, color: "#065f46" }}>M</span>
-                        {showPlus && <> + <span style={{ fontWeight: 700, color: "#065f46" }}>{plusAnchor}</span> (Plus 獨立)</>}
-                        · Grading 由 Base 推導
+                      <div style={{ textAlign: isMobile ? "left" : "right" }}>
+                        <div style={{ fontSize: isMobile ? "13px" : "14px", color: "#065f46", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{currentBucket.bucket}</div>
+                        <div style={{ fontSize: isMobile ? "11px" : "12px", color: "#999", marginTop: "2px" }}>
+                          Base: <span style={{ fontWeight: 700, color: "#065f46" }}>M</span>
+                          {showPlus && <> + <span style={{ fontWeight: 700, color: "#065f46" }}>{plusAnchor}</span></>}
+                          {" · inches (fractions)"}
+                        </div>
                       </div>
                     </div>
-                    <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: "11px", color: "#065f46", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{currentBucket.bucket}</div>
-                      <div style={{ fontSize: "10px", color: "#999" }}>inches (fractions)</div>
-                    </div>
-                  </div>
-
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "4px", marginBottom: "8px", gap: "12px", flexWrap: "wrap" }}>
-                    <div style={{ fontSize: "13px", fontWeight: 700, color: "#1a1a1a" }}>
-                      全碼 <span style={{ fontSize: "11px", color: "#999", fontWeight: 400 }}>各 size 中位數 + 公差 + 跳碼(size 與 size 間的遞增量)</span>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-                      {/* Size Run 切換(Regular / Petite / Tall) */}
+                    {/* Size 擴展控制列(Run / Plus)— 跟基碼頁共用 state,兩邊同步 */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap", marginTop: "14px", paddingTop: "12px", borderTop: "1px dashed #eee" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                         <span style={{ fontSize: "11px", color: "#888", fontWeight: 500 }}>Run</span>
                         <div style={{ display: "inline-flex", border: "1px solid #e8e5e1", borderRadius: "6px", overflow: "hidden" }}>
@@ -4113,7 +4164,7 @@ function App() {
                           })}
                         </div>
                         {sizeRunVariant !== 'regular' && !hasRunData && (
-                          <span style={{ fontSize: "10px", color: "#b45309" }}>(此 bucket 無 {sizeRunVariant === 'petite' ? 'Petite' : 'Tall'} 資料,顯示與 Regular 相同)</span>
+                          <span style={{ fontSize: "10px", color: "#b45309" }}>(此 bucket 無 {sizeRunVariant === 'petite' ? 'Petite' : 'Tall'} 資料)</span>
                         )}
                       </div>
                       {hasPlus && (
@@ -4123,6 +4174,7 @@ function App() {
                           顯示 Plus sizes <span style={{ fontSize: "10px", color: "#888" }}>({plusSeq.join("/")} · 自有基碼 {plusAnchor})</span>
                         </label>
                       )}
+                      <span style={{ fontSize: "10px", color: "#999", marginLeft: "auto" }}>切換會同時套用到「基碼」頁</span>
                     </div>
                   </div>
 
@@ -4274,16 +4326,6 @@ function App() {
                     </div>
                   )}
 
-                  {/* 底部狀態列 — 只顯示狀態,切頁用上方 tabs;未來若有 Save 動作放這裡 */}
-                  <div style={{
-                    marginTop: "16px",
-                    background: "#fff", border: "1px solid #eee", borderRadius: "10px",
-                    padding: isMobile ? "10px 14px" : "12px 18px",
-                    fontSize: isMobile ? "12px" : "13px", color: "#666",
-                    textAlign: "right",
-                  }}>
-                    {gradingCodes.length} POM · {visibleSizes.length} sizes{hasPlus && !showPlus ? ` (+${plusSeq.length} Plus 未顯示)` : ""}
-                  </div>
                 </div>
               );
             })()}
