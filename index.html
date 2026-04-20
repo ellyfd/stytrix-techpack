@@ -3119,23 +3119,28 @@ function App() {
           }
         }
         // no_data / iso=null 的 L1 直接濾掉,不產卡片 —— 避免顯示「ISO null」
-        // 帶上 entry 後過濾 no_data(iso=null):這些部位在此 Fabric×Dept×GT 下
-        // 沒有歷史資料覆蓋(例如 LEGGINGS 沒袖、標籤無規則),卡片直接不產生,
-        // 避免顯示「ISO null」誤導。
-        const builtAll = detected.map((d) => ({ d, entry: lookupV4(d.code) }));
-        const builtFiltered = builtAll.filter(x => x.entry && x.entry.iso);
-        const built = builtFiltered.map(({ d, entry }, i) => {
+        // 透過 isoOptionsFor 合併:先試 v4.2(信心高 + 性別),找不到再退 v4。
+        // opts[0] 是 primary(含 iso / iso_zh / machine / source),opts[1+] 是替代。
+        const builtAll = detected.map((d) => {
+          const opts = isoOptionsFor(isoLookupV42, isoLookupV4, { fabric, dept, gender, gt, it }, d.code);
+          const primary = opts && opts.length ? opts[0] : null;
+          // v4 entry 仍保留:bridge 沒資料時用 pptx_2025_votes 填替代 ISO 分布
+          const v4Entry = lookupV4(d.code);
+          return { d, primary, v4Entry };
+        });
+        const builtFiltered = builtAll.filter(x => x.primary && x.primary.iso);
+        const built = builtFiltered.map(({ d, primary, v4Entry }, i) => {
           const l1 = L1_CODE_TO_NAME[d.code] || d.code;
-          const label = `ISO ${entry.iso}${entry.iso_zh ? " · " + entry.iso_zh : ""}${entry.machine ? " · " + entry.machine : ""}`;
+          const label = `ISO ${primary.iso}${primary.iso_zh ? " · " + primary.iso_zh : ""}${primary.machine ? " · " + primary.machine : ""}`;
           // 替代 ISO 來源:優先用 bridge v6 的 iso_distribution(跨 1,328 designs 三年累計),
           // 沒 bridge 才 fallback 到 v4 entry 的 pptx_2025_votes(只有 2025 當年)
           const bridgeZone = bridgeByL1[d.code] || null;
           const isoDist = bridgeZone?.iso_distribution
-            || entry.pptx_2025_votes
+            || v4Entry?.pptx_2025_votes
             || {};
           const isoTotal = Object.values(isoDist).reduce((s, n) => s + (Number(n) || 0), 0) || 1;
           const alternatives = Object.entries(isoDist)
-            .filter(([iso]) => iso !== entry.iso)
+            .filter(([iso]) => iso !== primary.iso)
             .sort((a, b) => b[1] - a[1])
             .slice(0, 5)
             .map(([iso, count]) => ({
