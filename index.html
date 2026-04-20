@@ -817,17 +817,16 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
                 )}
                 {u?.alternatives?.length > 0 && (
                   <div style={{ marginTop: "10px", borderTop: "1px dashed #e8e5e1", paddingTop: "8px" }}>
-                    <div style={{ fontSize: "10px", color: "#767676", fontWeight: 600, marginBottom: "4px", letterSpacing: "0.05em" }}>替代方案</div>
+                    <div style={{ fontSize: "10px", color: "#767676", fontWeight: 600, marginBottom: "4px", letterSpacing: "0.05em" }}>替代 ISO · 歷史票數</div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                       {u.alternatives.map((a, idx) => (
-                        <span key={idx} style={{
+                        <span key={idx} title={`pptx_2025 出現 ${a.count} 次`} style={{
                           fontSize: "11px", padding: "3px 8px", borderRadius: "6px",
                           background: "#fff", border: "1px solid #e8e5e1", color: "#525252",
                           fontFamily: "'JetBrains Mono',monospace", fontWeight: 600,
                         }}>
                           ISO {a.iso}
-                          {a.machine && <span style={{ marginLeft: "4px", color: "#999", fontWeight: 500, fontFamily: "'Outfit',sans-serif" }}>{a.machine}</span>}
-                          {a.pct != null && <span style={{ marginLeft: "6px", color: "#b45309" }}>{a.pct}%</span>}
+                          {a.count != null && <span style={{ marginLeft: "6px", color: "#b45309" }}>{a.count}票</span>}
                         </span>
                       ))}
                     </div>
@@ -2304,8 +2303,11 @@ function App() {
   const [isoRec, setIsoRec] = useState(null);
   const [partPresence, setPartPresence] = useState(null);
   const [visualGuide, setVisualGuide] = useState(null);
-  // 通用模型 Path 2 — v4_lookup_index.json(Fabric × Department × GT × L1_code → ISO + 機種)
-  // v4 把 LEGGINGS 升為 GT、拿掉 IT 維度、加入 Department 對齊 pom_rules v5.5
+  // 通用模型 Path 2 — iso_lookup_factory_v4.json(Fabric × Department × GT × L1_code → ISO)
+  // v4 把 LEGGINGS 升為 GT、拿掉 IT 維度、加入 Department 對齊 pom_rules v5.5。
+  // 讀 entries 陣列(282 筆,輕量)而不是 v4_lookup_index —— 因為 index 聚合時
+  // 遇到同 L1_code 的多筆(如 PS=褲合身/前褲身/後褲身)有可能挑到 no_data 的那筆,
+  // 前端自己排序(iso 非 null > confidence 高 > expect=yes)才能挑到正確的一筆。
   const [isoLookupV4, setIsoLookupV4] = useState(null);
   const [analyzeErr, setAnalyzeErr] = useState(null);
   // { model, pass1: {input, output, cache_read, cache_write}, pass2: {...}, cost_est } | null
@@ -2365,10 +2367,10 @@ function App() {
         .catch(err => console.error('載入 l2_visual_guide 失敗:', err));
     }
     if (!isoLookupV4 && appMode === "universal") {
-      fetch('./General%20Model_Path2_Construction%20Suggestion/v4_lookup_index.json')
+      fetch('./General%20Model_Path2_Construction%20Suggestion/iso_lookup_factory_v4.json')
         .then(r => r.ok ? r.json() : Promise.reject(r.status))
         .then(setIsoLookupV4)
-        .catch(err => console.error('載入 v4_lookup_index 失敗:', err));
+        .catch(err => console.error('載入 iso_lookup_factory_v4 失敗:', err));
     }
   }, [sketchSrc, appMode]);
 
@@ -2732,62 +2734,79 @@ function App() {
       }
       const detected = Array.from(byCode.values());
 
-      // ── Path 2 通用模型 — VLM(L1) → v4_lookup_index(Fabric × Department × GT × L1_code) ──
+      // ── Path 2 通用模型 — VLM(L1) → iso_lookup_factory_v4 entries 陣列 ──
       // 走 ISO 查表輸出,不走 L2/L3/L4 五階層。v4 對齊 pom_rules v5.5:
       //   - LEGGINGS 升為 GT(原 v3 是 IT under PANT)
       //   - 拿掉 IT 維度(CAPRI / BIKER 不影響做工 ISO)
       //   - 加入 Department(Active / RTW / Swimwear / Sleepwear)
-      // 前端 GT 與 v4 GT 幾乎對齊,只差 SWIM_PIECE→(需 Department=Swimwear)、
-      // 少數 GT(BODYSUIT、SKIRT)v4 還沒資料,就逐級放寬 fallback。
+      // 直接 filter entries 陣列(282 筆小)而不讀 v4_lookup_index —— index 聚合
+      // 時遇到同 l1_code 多筆(如 PS=褲合身/前褲身/後褲身)會挑到 no_data 那筆,
+      // 導致「資料有但查不到」。這裡自己依 (非 null iso > confidence > expect=yes)
+      // 排序。282 筆 × 一次請求 7 個 L1 的規模完全不用擔心效能。
       if (appMode === "universal") {
         const fabricV4 = (fabric || "Knit").toLowerCase() === "woven" ? "Woven" : "Knit";
-        // v4 現有的 Department 值(依 pom_rules v5.5)
         const V4_DEPTS = ["Active", "RTW", "Swimwear", "Sleepwear"];
-        // 前端 dept 是大寫,v4 的 department 首字大寫 → 做一次對齊
         const normDept = (() => {
           if (!dept) return null;
           const match = V4_DEPTS.find(d => d.toUpperCase() === String(dept).toUpperCase());
           return match || null;
         })();
-        // v4 GT 與前端 GT 對應;SWIM_PIECE 不是 v4 的 GT,但可由 Department=Swimwear
-        // + TOP/PANTS 類推。未支援的 GT(BODYSUIT、SKIRT)進 fallback。
+        // SWIM_PIECE 不是 v4 GT,但可由 Department=Swimwear + TOP/PANTS 類推
         const GT_V4_ALIAS = { SWIM_PIECE: ["TOP", "PANTS"] };
         const gtCandidates = GT_V4_ALIAS[gt] || [gt];
-        const index = isoLookupV4?.index || {};
-        const deptCandidates = normDept
-          ? [normDept, ...V4_DEPTS.filter(d => d !== normDept)]
-          : V4_DEPTS;
-        const lookupV4 = (l1_code) => {
-          // 1) 精準:Fabric|Dept|GT|L1_code
-          for (const g of gtCandidates) {
-            const hit = index[`${fabricV4}|${normDept}|${g}|${l1_code}`];
-            if (hit) return hit;
-          }
-          // 2) 放寬 Dept:嘗試其他 Department
-          for (const g of gtCandidates) {
-            for (const d of deptCandidates) {
-              const hit = index[`${fabricV4}|${d}|${g}|${l1_code}`];
-              if (hit) return hit;
-            }
-          }
-          // 3) 放寬 GT:同 Fabric、同 Dept、任意 GT
-          for (const d of deptCandidates) {
-            for (const k of Object.keys(index)) {
-              if (k.startsWith(`${fabricV4}|${d}|`) && k.endsWith(`|${l1_code}`)) return index[k];
-            }
-          }
-          // 4) 最後 fallback:同 Fabric、任意 Dept/GT
-          for (const k of Object.keys(index)) {
-            if (k.startsWith(`${fabricV4}|`) && k.endsWith(`|${l1_code}`)) return index[k];
-          }
-          return null;
+        const entriesAll = isoLookupV4?.entries || [];
+        // 排序權重:iso 非 null 最重要,再看 confidence,再看 expect=yes
+        const CONF_RANK = { strong: 4, likely: 3, mixed: 2, no_dominant: 1, no_data: 0 };
+        const rankEntry = (e) => (
+          (e.iso ? 1000 : 0) +
+          (CONF_RANK[e.confidence] || 0) * 10 +
+          (e.expect === "yes" ? 1 : 0)
+        );
+        const pickBest = (list) => {
+          if (!list.length) return null;
+          let best = list[0];
+          for (const e of list) if (rankEntry(e) > rankEntry(best)) best = e;
+          return best;
         };
-        const built = detected.map((d, i) => {
+        const lookupV4 = (l1_code) => {
+          // 1) 精準:Fabric × Dept × GT × L1_code 的所有 entry,排序取最佳
+          let cands = entriesAll.filter(e =>
+            e.fabric === fabricV4 && e.department === normDept &&
+            gtCandidates.includes(e.gt) && e.l1_code === l1_code);
+          let best = pickBest(cands);
+          if (best?.iso) return best;
+          // 2) 放寬 Dept(同 Fabric × GT × L1_code)
+          cands = entriesAll.filter(e =>
+            e.fabric === fabricV4 && gtCandidates.includes(e.gt) && e.l1_code === l1_code);
+          best = pickBest(cands);
+          if (best?.iso) return best;
+          // 3) 放寬 GT(同 Fabric × Dept × L1_code)
+          cands = entriesAll.filter(e =>
+            e.fabric === fabricV4 && e.department === normDept && e.l1_code === l1_code);
+          best = pickBest(cands);
+          if (best?.iso) return best;
+          // 4) 最後 fallback:同 Fabric × L1_code
+          cands = entriesAll.filter(e =>
+            e.fabric === fabricV4 && e.l1_code === l1_code);
+          return pickBest(cands);
+        };
+        // no_data / iso=null 的 L1 直接濾掉,不產卡片 —— 避免顯示「ISO null」
+        // 帶上 entry 後過濾 no_data(iso=null):這些部位在此 Fabric×Dept×GT 下
+        // 沒有歷史資料覆蓋(例如 LEGGINGS 沒袖、標籤無規則),卡片直接不產生,
+        // 避免顯示「ISO null」誤導。
+        const builtAll = detected.map((d) => ({ d, entry: lookupV4(d.code) }));
+        const builtFiltered = builtAll.filter(x => x.entry && x.entry.iso);
+        const built = builtFiltered.map(({ d, entry }, i) => {
           const l1 = L1_CODE_TO_NAME[d.code] || d.code;
-          const entry = lookupV4(d.code);
-          const label = entry
-            ? `ISO ${entry.iso}${entry.iso_zh ? " · " + entry.iso_zh : ""}${entry.machine ? " · " + entry.machine : ""}`
-            : "—";
+          const label = `ISO ${entry.iso}${entry.iso_zh ? " · " + entry.iso_zh : ""}${entry.machine ? " · " + entry.machine : ""}`;
+          // v4 entry 的 pptx_2025_votes 是歷史票數(例如 PK: {"514": 21})
+          // 把非主 ISO 的列成替代方案供未來 picker 用
+          const votes = entry.pptx_2025_votes || {};
+          const alternatives = Object.entries(votes)
+            .filter(([iso]) => iso !== entry.iso)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5)
+            .map(([iso, count]) => ({ iso, count }));
           return {
             id: i + 1,
             l1,
@@ -2802,19 +2821,19 @@ function App() {
             side: d.side === "back" ? "right" : "left",
             ie: 0,
             action: "manual",
-            isoConfidence: entry?.confidence || "no_data",
+            isoConfidence: entry.confidence || "no_data",
             presenceTier: presenceByCode[d.code]?.tier_en || null,
             presencePct: presenceByCode[d.code]?.presence_pct ?? null,
             // Path 2 專屬:ISO 資訊
-            universal: entry ? {
+            universal: {
               iso: entry.iso,
               iso_zh: entry.iso_zh || null,
               machine: entry.machine || null,
               confidence: entry.confidence || null,
               action: null,
-              alternatives: [],
-            } : null,
-            // 留空：universal mode 不使用五階層 drill-down
+              alternatives,
+            },
+            // 留空:universal mode 不使用五階層 drill-down
             methodIdx: 0, methodVariants: [],
             l2Idx: 0, l2Variants: [],
             l3Idx: 0, l3Variants: [],
