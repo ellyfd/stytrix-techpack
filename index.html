@@ -383,6 +383,12 @@ function Sel({ label, value, onChange, options, disabled, badgeMap, labelMap, lo
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   const filled = !!value;
+  // 隱藏沒有資料的選項:badgeMap 有設且 key 對應的 count 為 0 / undefined → 不顯示。
+  // badgeMap 是空物件(像 brandBadgeMap)或沒傳 → 不過濾,維持原本的 hardcoded 列表。
+  const hasBadgeData = badgeMap && Object.keys(badgeMap).length > 0;
+  const visibleOptions = hasBadgeData
+    ? options.filter(o => (badgeMap[o] || 0) > 0)
+    : options;
 
   // 點外面或按 Escape 關閉
   useEffect(() => {
@@ -448,7 +454,7 @@ function Sel({ label, value, onChange, options, disabled, badgeMap, labelMap, lo
               onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
               —
             </div>
-            {options.map(o => {
+            {visibleOptions.map(o => {
               const b = badgeMap && badgeMap[o];
               const d = (labelMap && labelMap[o]) || o;
               const sel = o === value;
@@ -471,7 +477,7 @@ function Sel({ label, value, onChange, options, disabled, badgeMap, labelMap, lo
                 </div>
               );
             })}
-            {options.length === 0 && (
+            {visibleOptions.length === 0 && (
               <div style={{ padding: "10px 12px", fontSize: "12px", color: "#bbb" }}>無可選項目</div>
             )}
           </div>
