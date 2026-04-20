@@ -407,28 +407,8 @@ function Sel({ label, value, onChange, options, disabled, badgeMap, labelMap, lo
 
   return (
     <div ref={ref} style={{ position: "relative" }}>
-      <div style={{ fontSize: "11px", color: "#888", marginBottom: "6px", fontWeight: 500, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span>{label}</span>
-        {onToggleLock && (
-          <button onClick={onToggleLock}
-            title={locked ? "已鎖 — refresh 不會重設" : "按一下鎖住，refresh 不會重設"}
-            aria-label={`${label} ${locked ? "解鎖" : "鎖住"}`}
-            aria-pressed={locked}
-            style={{
-              background: "none", border: "none", cursor: "pointer",
-              padding: "0 2px", lineHeight: 0,
-              color: locked ? "#065f46" : "#bbb",
-              opacity: locked ? 1 : 0.55, transition: "opacity 0.15s, color 0.15s",
-              display: "inline-flex", alignItems: "center",
-            }}
-            onMouseEnter={e => e.currentTarget.style.opacity = "1"}
-            onMouseLeave={e => e.currentTarget.style.opacity = locked ? "1" : "0.55"}>
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-              {locked ? <path d="M7 11V7a5 5 0 0 1 10 0v4"/> : <path d="M7 11V7a5 5 0 0 1 9.9-1"/>}
-            </svg>
-          </button>
-        )}
+      <div style={{ fontSize: "11px", color: "#888", marginBottom: "6px", fontWeight: 500 }}>
+        {label}
       </div>
 
       {/* Trigger：看起來跟原本 underline select 幾乎一樣 */}
@@ -450,6 +430,29 @@ function Sel({ label, value, onChange, options, disabled, badgeMap, labelMap, lo
         </span>
         <span aria-hidden="true" style={{ fontSize: "10px", color: "#bbb", marginLeft: "6px", transform: open ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.15s" }}>▾</span>
       </button>
+
+      {onToggleLock && (
+        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "4px", minHeight: "14px" }}>
+          <button onClick={onToggleLock}
+            title={locked ? "已鎖 — refresh 不會重設" : "按一下鎖住，refresh 不會重設"}
+            aria-label={`${label} ${locked ? "解鎖" : "鎖住"}`}
+            aria-pressed={locked}
+            style={{
+              background: "none", border: "none", cursor: "pointer",
+              padding: "0 2px", lineHeight: 0,
+              color: locked ? "#065f46" : "#d4d4d4",
+              opacity: locked ? 1 : 0.55, transition: "opacity 0.15s, color 0.15s",
+              display: "inline-flex", alignItems: "center",
+            }}
+            onMouseEnter={e => e.currentTarget.style.opacity = "1"}
+            onMouseLeave={e => e.currentTarget.style.opacity = locked ? "1" : "0.55"}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              {locked ? <path d="M7 11V7a5 5 0 0 1 10 0v4"/> : <path d="M7 11V7a5 5 0 0 1 9.9-1"/>}
+            </svg>
+          </button>
+        </div>
+      )}
 
       {/* 選項清單：附著在觸發按鈕正下方，不擠壓下方內容 */}
       {open && !disabled && (
