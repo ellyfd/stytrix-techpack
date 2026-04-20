@@ -664,7 +664,7 @@ function L3Line({ l3, editId, setEditId, idx, col }) {
 }
 
 /* ─── Card ─── */
-function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL2, onSwitchL3, appMode }) {
+function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL2, onSwitchL3, onPickUniversalIso, appMode }) {
   const [editId, setEditId] = useState(null);
   const [showTip, setShowTip] = useState(false);
   const [showMethods, setShowMethods] = useState(false);
@@ -769,6 +769,7 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
               mixed:      { label: "mixed",      bg: "#fffbeb", c: "#b45309", hint: "25-39% · 需選擇" },
               no_dominant:{ label: "no_dominant",bg: "#fef2f2", c: "#b91c1c", hint: "<25% · 手動" },
               no_data:    { label: "no_data",    bg: "#f5f5f4", c: "#57534e", hint: "查表無對應" },
+              manual:     { label: "manual",     bg: "#f0f9ff", c: "#0c4a6e", hint: "使用者手動選擇" },
             };
             const ACTION_META = {
               recommend: { label: "推薦", c: "#065f46", bg: "#ecfdf5", icon: "✓" },
@@ -817,17 +818,25 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
                 )}
                 {u?.alternatives?.length > 0 && (
                   <div style={{ marginTop: "10px", borderTop: "1px dashed #e8e5e1", paddingTop: "8px" }}>
-                    <div style={{ fontSize: "10px", color: "#767676", fontWeight: 600, marginBottom: "4px", letterSpacing: "0.05em" }}>替代 ISO · 歷史票數</div>
+                    <div style={{ fontSize: "10px", color: "#767676", fontWeight: 600, marginBottom: "4px", letterSpacing: "0.05em" }}>替代 ISO · 點選即可切換</div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                       {u.alternatives.map((a, idx) => (
-                        <span key={idx} title={`pptx_2025 出現 ${a.count} 次`} style={{
-                          fontSize: "11px", padding: "3px 8px", borderRadius: "6px",
-                          background: "#fff", border: "1px solid #e8e5e1", color: "#525252",
-                          fontFamily: "'JetBrains Mono',monospace", fontWeight: 600,
-                        }}>
+                        <button
+                          key={idx}
+                          onClick={(e) => { e.stopPropagation(); onPickUniversalIso && onPickUniversalIso(card.id, a.iso); }}
+                          title={a.count != null ? `pptx_2025 出現 ${a.count} 次 · 點擊切換為此 ISO` : "點擊切換為此 ISO"}
+                          style={{
+                            fontSize: "11px", padding: "3px 8px", borderRadius: "6px",
+                            background: "#fff", border: "1px solid #e8e5e1", color: "#525252",
+                            fontFamily: "'JetBrains Mono',monospace", fontWeight: 600,
+                            cursor: "pointer",
+                          }}
+                          onMouseEnter={e => { e.currentTarget.style.borderColor = "#0c4a6e"; e.currentTarget.style.color = "#0c4a6e"; }}
+                          onMouseLeave={e => { e.currentTarget.style.borderColor = "#e8e5e1"; e.currentTarget.style.color = "#525252"; }}
+                        >
                           ISO {a.iso}
                           {a.count != null && <span style={{ marginLeft: "6px", color: "#b45309" }}>{a.count}票</span>}
-                        </span>
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -3708,7 +3717,34 @@ function App() {
                         onSwitchL3={(cardId, newL3Idx) => {
                           const cc = cards.find(x => x.id === cardId);
                           if (cc) rebuildCardFromL2(cc, cc.l2Idx ?? 0, newL3Idx, fabric, setCards);
-                        }} />
+                        }}
+                        onPickUniversalIso={(cardId, newIso) => setCards(cs => cs.map(cc => {
+                          if (cc.id !== cardId) return cc;
+                          const u = cc.universal;
+                          if (!u || u.iso === newIso) return cc;
+                          // 從 v4 entries 找 newIso 的 iso_zh / machine (取第一筆有值的即可)
+                          const allEntries = isoLookupV4?.entries || [];
+                          const meta = allEntries.find(e => e.iso === newIso && (e.iso_zh || e.machine)) || {};
+                          // 舊主 ISO 推入替代陣列(不保留票數,因為已是使用者選擇軌跡),
+                          // 新 ISO 從替代中移除(避免重複)
+                          const newAlts = [
+                            { iso: u.iso, count: null },
+                            ...u.alternatives.filter(a => a.iso !== newIso),
+                          ];
+                          return {
+                            ...cc,
+                            l2: `ISO ${newIso}${meta.iso_zh ? " · " + meta.iso_zh : ""}${meta.machine ? " · " + meta.machine : ""}`,
+                            isoConfidence: "manual",
+                            universal: {
+                              ...u,
+                              iso: newIso,
+                              iso_zh: meta.iso_zh || null,
+                              machine: meta.machine || null,
+                              confidence: "manual",
+                              alternatives: newAlts,
+                            },
+                          };
+                        }))} />
                     );
                     if (!showHeaders) return vis.map((c, i) => renderCard({ c, i }));
                     return activeTiers.map(t => (
