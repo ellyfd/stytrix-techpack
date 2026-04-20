@@ -1106,7 +1106,7 @@ function BucketPomRow({ code, tier, measurement, median, grading, pomName, isOpe
         <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
           <span style={{ fontSize: "10px", color: tc.c, background: tc.bg, padding: "2px 7px", borderRadius: "5px", fontWeight: 600 }}>{tc.icon} {tc.label}</span>
           <span title={`${measurement?.count || 0} designs`} style={{ fontSize: "10px", color: "#666", fontFamily: "'JetBrains Mono',monospace" }}>{Math.round((measurement?.rate || 0) * 100)}%</span>
-          {tolDisplay && <span style={{ fontSize: "10px", color: "#7e22ce", background: "#f5f3ff", padding: "2px 6px", borderRadius: "4px", fontWeight: 600, fontFamily: "'JetBrains Mono',monospace" }}>±{tolDisplay}"</span>}
+          {tolDisplay && <span style={{ fontSize: "10px", color: "#525252", background: "#f3f4f6", padding: "2px 6px", borderRadius: "4px", fontWeight: 600, fontFamily: "'JetBrains Mono',monospace" }}>±{tolDisplay}"</span>}
           <span style={{ fontSize: "15px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: "#1a1a1a" }}>{medianM != null ? frmt(medianM) + '"' : "—"}</span>
           <div style={{ fontSize: "13px", color: "#ccc", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.25s" }}>▾</div>
         </div>
@@ -1299,6 +1299,7 @@ function App() {
   const [gt, setGt] = useState(_saved.values.gt || "");
   const [it, setIt] = useState(_saved.values.it || "");
   const [locks, setLocks] = useState(_saved.locks);
+  const [filterExpanded, setFilterExpanded] = useState(false); // 手機版：選完 ≥2 filter 後收合成 pill
   const toggleLock = (key) => setLocks(prev => ({ ...prev, [key]: !prev[key] }));
   useEffect(() => {
     localStorage.setItem("stytrix_locks", JSON.stringify(locks));
@@ -1417,6 +1418,9 @@ function App() {
   const [removed, setRemoved] = useState(new Set());
   const [openId, setOpenId] = useState(null);
   const [addonOn, setAddonOn] = useState(true);
+  const [hintDismissed, setHintDismissed] = useState(() => {
+    try { return localStorage.getItem("stytrix.hint.card.dismissed") === "1"; } catch { return false; }
+  });
   const [cards, setCards] = useState([]);
   const [isoRec, setIsoRec] = useState(null);
   const [partPresence, setPartPresence] = useState(null);
@@ -1885,41 +1889,92 @@ function App() {
 
       <div style={{ maxWidth: "1280px", margin: "0 auto", padding: isMobile ? "14px 14px" : "24px 28px" }}>
         {/* ─── Filter (v10: flush underline selects) ─── */}
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(6, 1fr)",
-          gap: isMobile ? "12px 14px" : "20px",
-          alignItems: "start",
-          marginBottom: isMobile ? "18px" : "28px",
-          paddingBottom: isMobile ? "14px" : "24px",
-          borderBottom: "1px solid #eee"
-        }}>
-          <Sel label="Brand" value={brand} onChange={setBrand}
-            options={BRANDS.map(b => b.code)} badgeMap={brandBadgeMap}
-            locked={!!locks.brand} onToggleLock={() => toggleLock("brand")} />
-          <Sel label="Fabric" value={fabric}
-            onChange={v => { setFabric(v); setIt(""); }}
-            options={["Woven", "Knit"]} badgeMap={fabricBadgeMap}
-            locked={!!locks.fabric} onToggleLock={() => toggleLock("fabric")} />
-          <Sel label="Gender" value={gender} onChange={setGender}
-            options={pomRules ? Object.keys(genderBadgeMap).filter(v => genderBadgeMap[v] > 0).sort((a,b) => GENDER_OPTIONS.findIndex(g => g.value === a) - GENDER_OPTIONS.findIndex(g => g.value === b)) : GENDER_OPTIONS.map(g => g.value)}
-            labelMap={Object.fromEntries(GENDER_OPTIONS.map(g => [g.value, g.label]))}
-            badgeMap={genderBadgeMap}
-            locked={!!locks.gender} onToggleLock={() => toggleLock("gender")} />
-          <Sel label="Department" value={dept} onChange={setDept}
-            options={pomRules ? Object.keys(deptBadgeMap).filter(d => deptBadgeMap[d] > 0).sort() : DEPT_OPTIONS}
-            badgeMap={deptBadgeMap}
-            locked={!!locks.dept} onToggleLock={() => toggleLock("dept")} />
-          <Sel label="Garment Type" value={gt}
-            onChange={v => { setGt(v); setIt(""); }}
-            options={pomRules ? Object.keys(gtBadgeMap).filter(g => gtBadgeMap[g] > 0).sort() : GT_OPTIONS}
-            badgeMap={gtBadgeMap}
-            locked={!!locks.gt} onToggleLock={() => toggleLock("gt")} />
-          <Sel label="Item Type" value={it} onChange={setIt}
-            options={curItOptions}
-            disabled={curItOptions.length === 0}
-            locked={!!locks.it} onToggleLock={() => toggleLock("it")} />
-        </div>
+        {(() => {
+          const selectedFilters = [
+            brand && { label: "Brand", v: brand },
+            fabric && { label: "Fabric", v: fabric },
+            gender && { label: "Gender", v: (GENDER_OPTIONS.find(g => g.value === gender)?.label) || gender },
+            dept && { label: "Dept", v: dept },
+            gt && { label: "GT", v: gt },
+            it && { label: "IT", v: it },
+          ].filter(Boolean);
+          const collapsed = isMobile && selectedFilters.length >= 2 && !filterExpanded;
+          if (collapsed) {
+            return (
+              <div style={{
+                display: "flex", alignItems: "center", gap: "8px",
+                flexWrap: "wrap",
+                marginBottom: "14px", paddingBottom: "12px",
+                borderBottom: "1px solid #eee",
+              }}>
+                {selectedFilters.map((f, i) => (
+                  <span key={i} style={{
+                    fontSize: "12px", padding: "4px 10px",
+                    background: i === 0 ? "#1a1a1a" : "#f5f5f5",
+                    color: i === 0 ? "#fff" : "#555",
+                    borderRadius: "999px", fontWeight: 600,
+                    whiteSpace: "nowrap",
+                  }}>{f.v}</span>
+                ))}
+                <button onClick={() => setFilterExpanded(true)} aria-label="編輯 filter" style={{
+                  marginLeft: "auto",
+                  fontSize: "11px", padding: "4px 10px",
+                  background: "#fff", color: "#767676",
+                  border: "1px solid #e8e5e1", borderRadius: "6px",
+                  cursor: "pointer", fontWeight: 600, fontFamily: "inherit",
+                  display: "inline-flex", alignItems: "center", gap: "4px",
+                }}>✎ 編輯</button>
+              </div>
+            );
+          }
+          return (
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(6, 1fr)",
+              gap: isMobile ? "12px 14px" : "20px",
+              alignItems: "start",
+              marginBottom: isMobile ? "18px" : "28px",
+              paddingBottom: isMobile ? "14px" : "24px",
+              borderBottom: "1px solid #eee",
+              position: "relative",
+            }}>
+              {isMobile && selectedFilters.length >= 2 && (
+                <button onClick={() => setFilterExpanded(false)} aria-label="收合 filter" style={{
+                  position: "absolute", top: "-4px", right: 0,
+                  fontSize: "11px", padding: "2px 8px",
+                  background: "#fff", color: "#767676",
+                  border: "1px solid #e8e5e1", borderRadius: "6px",
+                  cursor: "pointer", fontWeight: 600, fontFamily: "inherit",
+                }}>收合</button>
+              )}
+              <Sel label="Brand" value={brand} onChange={setBrand}
+                options={BRANDS.map(b => b.code)} badgeMap={brandBadgeMap}
+                locked={!!locks.brand} onToggleLock={() => toggleLock("brand")} />
+              <Sel label="Fabric" value={fabric}
+                onChange={v => { setFabric(v); setIt(""); }}
+                options={["Woven", "Knit"]} badgeMap={fabricBadgeMap}
+                locked={!!locks.fabric} onToggleLock={() => toggleLock("fabric")} />
+              <Sel label="Gender" value={gender} onChange={setGender}
+                options={pomRules ? Object.keys(genderBadgeMap).filter(v => genderBadgeMap[v] > 0).sort((a,b) => GENDER_OPTIONS.findIndex(g => g.value === a) - GENDER_OPTIONS.findIndex(g => g.value === b)) : GENDER_OPTIONS.map(g => g.value)}
+                labelMap={Object.fromEntries(GENDER_OPTIONS.map(g => [g.value, g.label]))}
+                badgeMap={genderBadgeMap}
+                locked={!!locks.gender} onToggleLock={() => toggleLock("gender")} />
+              <Sel label="Department" value={dept} onChange={setDept}
+                options={pomRules ? Object.keys(deptBadgeMap).filter(d => deptBadgeMap[d] > 0).sort() : DEPT_OPTIONS}
+                badgeMap={deptBadgeMap}
+                locked={!!locks.dept} onToggleLock={() => toggleLock("dept")} />
+              <Sel label="Garment Type" value={gt}
+                onChange={v => { setGt(v); setIt(""); }}
+                options={pomRules ? Object.keys(gtBadgeMap).filter(g => gtBadgeMap[g] > 0).sort() : GT_OPTIONS}
+                badgeMap={gtBadgeMap}
+                locked={!!locks.gt} onToggleLock={() => toggleLock("gt")} />
+              <Sel label="Item Type" value={it} onChange={setIt}
+                options={curItOptions}
+                disabled={curItOptions.length === 0}
+                locked={!!locks.it} onToggleLock={() => toggleLock("it")} />
+            </div>
+          );
+        })()}
 
         {/* ─── Tabs (v10: underline only) ─── */}
         <div style={{
@@ -2117,9 +2172,25 @@ function App() {
                     }}>復原</button>
                   </div>}
 
-                  <div style={{ fontSize: "11px", color: "#bbb", marginBottom: "10px" }}>
-                    展開卡片後點 ⓘ 可改工法
-                  </div>
+                  {!hintDismissed && (
+                    <div style={{
+                      fontSize: "11px", color: "#767676", marginBottom: "10px",
+                      padding: "6px 10px", background: "#faf9f7", borderRadius: "6px",
+                      display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px",
+                    }}>
+                      <span>展開卡片後點 ⓘ 可改工法</span>
+                      <button onClick={() => {
+                        setHintDismissed(true);
+                        try { localStorage.setItem("stytrix.hint.card.dismissed", "1"); } catch {}
+                      }}
+                        aria-label="關閉提示"
+                        style={{
+                          background: "none", border: "none", cursor: "pointer",
+                          fontSize: "14px", color: "#999", padding: "0 4px", lineHeight: 1,
+                          fontFamily: "inherit",
+                        }}>×</button>
+                    </div>
+                  )}
 
                   {(() => {
                     const TIER_META = {
@@ -2127,7 +2198,7 @@ function App() {
                       common:     { label: "常見",   hint: "50–79%" },
                       occasional: { label: "偶見",   hint: "20–49%" },
                       rare:       { label: "少見",   hint: "<20%" },
-                      other:      { label: "其他",   hint: "AI 偵測無歷史資料" },
+                      other:      { label: "AI 新偵測", hint: "歷史資料未涵蓋，AI 視覺辨識加入" },
                     };
                     const TIER_ORDER = ["essential", "common", "occasional", "rare", "other"];
                     const visWithIdx = vis.map((c, i) => ({ c, i }));
@@ -2372,7 +2443,7 @@ function App() {
                             <th style={{ padding: isMobile ? "6px 6px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", width: "30px" }}>✓</th>
                             <th style={{ padding: isMobile ? "6px 6px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", width: "56px" }}>POM</th>
                             <th style={{ padding: isMobile ? "6px 6px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999" }}>Name</th>
-                            <th style={{ padding: isMobile ? "6px 6px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#7e22ce", width: isMobile ? "64px" : "80px" }}>公差</th>
+                            <th style={{ padding: isMobile ? "6px 6px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#999", width: isMobile ? "64px" : "80px" }}>公差</th>
                             <th style={{ padding: isMobile ? "6px 6px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#065f46", width: isMobile ? "96px" : "110px" }}>Base (M)</th>
                           </tr>
                         </thead>
@@ -2442,6 +2513,13 @@ function App() {
                                   const ov = baseOverrides[code] ?? "";
                                   const invalid = ov !== "" && parseInch(ov) == null;
                                   const displayVal = ov !== "" ? ov : (baseM != null ? frmt(baseM) : "");
+                                  // 已修改：用戶輸入過且合法、且與中位數不同
+                                  const ovParsed = ov !== "" && !invalid ? parseInch(ov) : null;
+                                  const isChanged = ovParsed != null && baseM != null && Math.abs(ovParsed - baseM) > 1e-9;
+                                  const originalTip = isChanged ? `原值 ${frmt(baseM)}"` : undefined;
+                                  const inputBorder = invalid ? "#dc2626" : (isChanged ? "#f59e0b" : "#a7f3d0");
+                                  const inputColor  = invalid ? "#dc2626" : (isChanged ? "#b45309" : "#065f46");
+                                  const cellBg      = isChanged ? "#fffbeb" : "#ecfdf5";
                                   return (
                                     <tr key={code} style={{ borderBottom: "1px solid #f0eeeb", opacity: included ? 1 : 0.35, transition: "opacity 0.15s" }}>
                                       <td style={{ padding: isMobile ? "5px 6px" : "6px 10px" }}>
@@ -2454,21 +2532,24 @@ function App() {
                                         <div style={{ fontWeight: 600, color: "#1a1a1a", fontSize: isMobile ? "11px" : "inherit" }}>{pn.en || code}</div>
                                         {pn.zh && <div style={{ fontSize: isMobile ? "9px" : "10px", color: "#999" }}>{pn.zh}</div>}
                                       </td>
-                                      <td style={{ padding: isMobile ? "5px 6px" : "6px 10px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", color: "#7e22ce", fontWeight: 600, whiteSpace: "nowrap" }}>{tolStr(m)}</td>
-                                      <td style={{ padding: isMobile ? "4px 6px" : "4px 10px", textAlign: "right", background: "#ecfdf5" }}>
+                                      <td style={{ padding: isMobile ? "5px 6px" : "6px 10px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", color: "#525252", fontWeight: 600, whiteSpace: "nowrap" }}>{tolStr(m)}</td>
+                                      <td style={{ padding: isMobile ? "4px 6px" : "4px 10px", textAlign: "right", background: cellBg, borderLeft: isChanged ? "2px solid #f59e0b" : "none", position: "relative" }}
+                                        title={originalTip}>
                                         <input type="text" value={displayVal}
                                           onChange={(e) => setBaseOverrides(prev => ({ ...prev, [code]: e.target.value }))}
+                                          onDoubleClick={() => setBaseOverrides(prev => { const n = { ...prev }; delete n[code]; return n; })}
                                           disabled={!included}
                                           placeholder={baseM != null ? frmt(baseM) : "—"}
                                           inputMode="text"
+                                          title={isChanged ? `${originalTip} · 雙擊還原` : undefined}
                                           style={{
                                             width: isMobile ? "72px" : "92px", textAlign: "right", padding: "4px 6px",
                                             fontFamily: "'JetBrains Mono',monospace", fontSize: "12px", fontWeight: 700,
-                                            color: invalid ? "#dc2626" : "#065f46",
-                                            border: `1px solid ${invalid ? "#dc2626" : "#a7f3d0"}`, borderRadius: "5px",
+                                            color: inputColor,
+                                            border: `1px solid ${inputBorder}`, borderRadius: "5px",
                                             background: "#fff",
                                           }} />
-                                        <span style={{ fontSize: "10px", color: "#065f46", marginLeft: "2px" }}>"</span>
+                                        <span style={{ fontSize: "10px", color: inputColor, marginLeft: "2px" }}>"</span>
                                       </td>
                                     </tr>
                                   );
@@ -2747,7 +2828,7 @@ function App() {
                           <tr style={{ background: "#faf9f7", borderBottom: "1.5px solid #e8e5e1" }}>
                             <th style={{ padding: "8px 8px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", position: "sticky", left: 0, background: "#faf9f7", width: isMobile ? "50px" : "60px" }}>POM</th>
                             <th style={{ padding: "8px 8px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", minWidth: isMobile ? "100px" : "120px" }}>Name</th>
-                            <th style={{ padding: "8px 8px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#7e22ce", width: isMobile ? "56px" : "70px" }}>公差</th>
+                            <th style={{ padding: "8px 8px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#999", width: isMobile ? "56px" : "70px" }}>公差</th>
                             <th style={{ padding: "8px 8px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#b45309", width: isMobile ? "56px" : "70px" }}>跳碼<div style={{ fontSize: "8px", fontWeight: 400, color: "#b45309" }}>Grading</div></th>
                             {sizes.map(s => (
                               <th key={s} style={{ padding: "8px 6px", textAlign: "center", fontWeight: 700, fontSize: "10px", color: s === "M" ? "#065f46" : "#666", fontFamily: "'JetBrains Mono',monospace", background: s === "M" ? "#ecfdf5" : "transparent", minWidth: isMobile ? "42px" : "48px" }}>{s}{s === "M" && <div style={{ fontSize: "7px", color: "#065f46" }}>BASE</div>}</th>
@@ -2769,7 +2850,7 @@ function App() {
                                   {pn.en || code}
                                   {edited && <span style={{ marginLeft: "6px", fontSize: "9px", color: "#7e22ce", background: "#f5f3ff", padding: "1px 5px", borderRadius: "3px", fontWeight: 600, whiteSpace: "nowrap" }}>已調整</span>}
                                 </td>
-                                <td style={{ padding: "5px 8px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", color: "#7e22ce", fontWeight: 600, whiteSpace: "nowrap" }}>
+                                <td style={{ padding: "5px 8px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", color: "#525252", fontWeight: 600, whiteSpace: "nowrap" }}>
                                   {tolStr(m)}
                                 </td>
                                 <td style={{ padding: "5px 8px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", color: "#b45309", fontWeight: 600, whiteSpace: "nowrap" }}>
