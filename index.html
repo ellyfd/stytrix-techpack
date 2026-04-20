@@ -2537,12 +2537,15 @@ function App() {
     return { petite: p, tall: t };
   }, []);
 
-  const C_STAGES = [
-    "① 偵測 L1 部位（bbox）...",
-    "② 比對 5,203 張零件參考圖 → L2 零件...",
-    "③ 歷史配方帶 L3 候選...",
-    "④ 零件圖匹配確認 L3...",
-    "⑤ 查 204K DB → L4 眾數推薦...",
+  const C_STAGES = appMode === "universal" ? [
+    "① L1 部位判讀...",
+    "② 建議歷史 ISO...",
+    "✓ 完成"
+  ] : [
+    "① L1 部位判讀...",
+    "② L2 零件判讀...",
+    "③ 工段推薦...",
+    "④ IE人員選擇...",
     "✓ 完成"
   ];
   const M_STAGES = [
