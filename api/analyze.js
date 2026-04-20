@@ -1,4 +1,4 @@
-export const config = { runtime: "edge" };
+export const config = { runtime: "nodejs", maxDuration: 60 };
 
 const L1_CODES = {
   AE: "袖孔", AH: "袖圍", BM: "下襬", BN: "貼合", BP: "襬叉",
