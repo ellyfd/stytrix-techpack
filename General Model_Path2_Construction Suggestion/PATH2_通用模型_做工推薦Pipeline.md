@@ -4,6 +4,7 @@
 > **模型定位**：通用版（不分品牌），適用所有客人
 > **建立日期**：2026-04-20
 > **資料來源**：ONY Knit 370 款 Centric 8 + Woven 36 款 PPTX
+> **查表版本**：v4.0（2026-04-20，GT/IT 對齊 pom_rules v5.5）
 
 ---
 
@@ -23,8 +24,8 @@
                           ↓
             ┌─────────────────────────────┐
             │  ISO 查表（Stage ②）          │
-            │  查詢：Fabric × GT × IT × L1   │
-            │  來源：iso_lookup_factory_v3    │
+            │  查詢：Fabric × Dept × GT × L1  │
+            │  來源：iso_lookup_factory_v4    │
             │  輸出：每個 L1 的 ISO + 機種     │
             └──────────────┬──────────────┘
                           ↓
@@ -161,7 +162,7 @@ for l1_code in detected:
 
 ### ⚠️ 重要發現：一個部位 ≠ 一個 ISO
 
-從 47 款 Knit PPTX 中文翻譯的做工描述分析發現：**同一個部位往往涉及多道工序、多個 ISO**。
+從 975 款 PPTX（47 Knit 2026/5 + 928 Seasonal 2025） 中文翻譯的做工描述分析發現：**同一個部位往往涉及多道工序、多個 ISO**。
 
 **例：腰頭（WB）的完整做工配方**
 
@@ -355,7 +356,33 @@ Fabric 不需要 VLM 判，從系統已知資訊帶入：
 
 ---
 
+## 八、全量分析摘要（2026-04-20）
+
+**數據規模**：14,225 JSONL + 928 PPTX（2025 四季 FA/HO/SP/SU）
+
+**JSONL GT 分佈**：903 unique designs — TOP 298 / UNKNOWN 151 / DRESS 105 / OUTERWEAR 98 / PANT 92 / LEGGING 88 / SHORTS 73 / SWIM 65 / SKORT 42 / JOGGER 36 / SKIRT 21 / ROMPER_JUMPSUIT 16 / SLEEPWEAR 13 / SET 7 / BODYSUIT 5
+
+**PPTX 做工發現**：
+- 928 份中 456 份有 zone 提取，532 份有做工得分
+- 2025 seasonal 幾乎全是 **Woven**（WWT 407 / WWD 299 / WWS 153 / Chambray 8）
+- 最常出現的 zone：SV(袖) 298 / 肩 218 / SC(袖口) 203 / PK(口袋) 159 / WB(腰頭) 155
+
+**交叉驗證**：4 corroborated（BD→514, WB→514, BM→301, NK→514）、1 contradicted（PK）、2 new zones（HM, SV）
+
+**Woven vs Knit 關鍵差異**：
+- BM(下襬)：Woven→301 lockstitch vs Knit→406 coverstitch
+- PK(口袋)：Woven→514 only vs Knit→301+406 mixed
+- BD(大身)：Woven→514+301 vs Knit→607/514 overlock family
+- **Fabric 必須是 Filter Chain 第一維度**
+
+**v3 覆蓋缺口**：Woven 僅 16 條 vs Knit 266 條，2025 seasonal PPTX 是最佳 Woven 擴展來源
+
+詳細數據 → `full_analysis_20260420.json`
+
+---
+
 *最後更新：2026-04-20*
-*資料版本：iso_lookup_factory_v3.2（282 entries = Knit 266 + Woven 16）*
-*底層資料集：all_years.jsonl 8,075 records（含 2026/5 新增 53 份 Centric 8 PDF）*
-*Woven 來源：38 款 PPTX 中文翻譯（含 FA25 D63716 + HO25 D68142）*
+*資料版本：iso_lookup_factory_v4.0（282 entries，GT/IT 對齊 pom_rules v5.5）*
+*v3→v4 變更：LEGGINGS 升為 GT / IT 移除查表維度 / 新增 Department 維度（Active/RTW/Swimwear/Sleepwear）*
+*底層資料集：all_years.jsonl 14,225 records + seasonal_2025_pptx_extracts.json 928 PPTX*
+*全量分析報告：full_analysis_20260420.json*
