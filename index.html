@@ -2276,7 +2276,10 @@ function App() {
   const [removed, setRemoved] = useState(new Set());
   const [openId, setOpenId] = useState(null);
   // 品牌套組（商標 Labels）AI 無法從 sketch 判定是否需要，預設不勾，由使用者自行加上
-  const [addonOn, setAddonOn] = useState(false);
+  // addonSteps = 已勾選的工段 index set；addonOn 由 size > 0 推導
+  const [addonSteps, setAddonSteps] = useState(new Set());
+  const [showAddonSteps, setShowAddonSteps] = useState(false);
+  const addonOn = addonSteps.size > 0;
   const [hintDismissed, setHintDismissed] = useState(() => {
     try { return localStorage.getItem("stytrix.hint.card.dismissed") === "1"; } catch { return false; }
   });
@@ -2316,7 +2319,7 @@ function App() {
     const prev = prevAppModeRef.current;
     if (prev === appMode) return;
     constructionStoresRef.current[prev] = {
-      cStep, cStage, cards, removed, openId, addonOn, analyzeErr, analyzeUsage,
+      cStep, cStage, cards, removed, openId, addonSteps, analyzeErr, analyzeUsage,
     };
     const snap = constructionStoresRef.current[appMode];
     if (snap) {
@@ -2325,7 +2328,7 @@ function App() {
       setCards(snap.cards);
       setRemoved(snap.removed);
       setOpenId(snap.openId);
-      setAddonOn(snap.addonOn);
+      setAddonSteps(snap.addonSteps || new Set());
       setAnalyzeErr(snap.analyzeErr);
       setAnalyzeUsage(snap.analyzeUsage);
     } else {
@@ -2334,7 +2337,7 @@ function App() {
       setCards([]);
       setRemoved(new Set());
       setOpenId(null);
-      setAddonOn(false);
+      setAddonSteps(new Set());
       setAnalyzeErr(null);
       setAnalyzeUsage(null);
     }
@@ -2422,7 +2425,9 @@ function App() {
   const vis = cards.filter(c => !removed.has(c.id));
   const visSet = useMemo(() => new Set(vis.map(c => c.id)), [removed, cards]);
   const aiIE = vis.reduce((s, c) => s + c.ie, 0);
-  const totalIE = aiIE + (addonOn ? ADDON.ie : 0);
+  // 品牌套組工段 IE 以分鐘存，轉秒累加 (step.ie * 60)
+  const addonSelectedIE = Array.from(addonSteps).reduce((s, i) => s + (ADDON.steps[i]?.ie || 0) * 60, 0);
+  const totalIE = aiIE + addonSelectedIE;
   const aiCount = vis.filter(c => c.source === "ai").length;
   const structCount = vis.filter(c => c.source === "struct").length;
 
@@ -2566,7 +2571,14 @@ function App() {
         total_ie_seconds: Math.round(totalIE),
         ai_count: aiCount,
         struct_count: structCount,
-        addon: addonOn ? { brand, name: ADDON.name, ie_seconds: ADDON.ie, steps: ADDON.steps.length } : null,
+        addon: addonOn ? {
+          brand, name: ADDON.name,
+          ie_seconds: Math.round(addonSelectedIE),
+          steps: Array.from(addonSteps).sort((a, b) => a - b).map(i => ({
+            name: ADDON.steps[i].l3,
+            ie_seconds: Math.round(ADDON.steps[i].ie * 60),
+          })),
+        } : null,
         removed_ids: Array.from(removed),
         cards: vis.map(c => ({
           id: c.id,
@@ -3470,31 +3482,85 @@ function App() {
                         已自動選好
                       </span>
                     </div>}
-                    {cDone && appMode !== "universal" && (
-                      <label style={{
-                        padding: "10px 16px", borderTop: "1px solid #f0f0f0",
-                        display: "flex", alignItems: "center", gap: "10px",
-                        cursor: "pointer",
-                      }}
-                        title={`${brand} 品牌套組 · ${ADDON.steps.length} 工段`}>
-                        <input type="checkbox" checked={addonOn}
-                          onChange={() => setAddonOn(!addonOn)}
-                          style={{ width: "15px", height: "15px", accentColor: "#1a1a1a", cursor: "pointer" }} />
-                        <span style={{ fontSize: "12px", fontWeight: 600, color: addonOn ? "#1a1a1a" : "#999" }}>
-                          {brand} 品牌套組
-                        </span>
-                        <span style={{ fontSize: "10px", color: "#999" }}>
-                          {ADDON.steps.length} 工段
-                        </span>
-                        <span style={{
-                          marginLeft: "auto",
-                          fontSize: "13px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace",
-                          color: addonOn ? "#065f46" : "#ccc",
-                        }}>
-                          {addonOn ? "+" : ""}{ADDON.ie}<span style={{ fontSize: "10px", color: "#999", marginLeft: "3px", fontWeight: 500 }}>秒</span>
-                        </span>
-                      </label>
-                    )}
+                    {cDone && appMode !== "universal" && (() => {
+                      const allSelected = addonSteps.size === ADDON.steps.length;
+                      const toggleAll = (e) => {
+                        e.stopPropagation();
+                        setAddonSteps(allSelected ? new Set() : new Set(ADDON.steps.map((_, i) => i)));
+                      };
+                      const toggleStep = (i) => {
+                        const next = new Set(addonSteps);
+                        if (next.has(i)) next.delete(i); else next.add(i);
+                        setAddonSteps(next);
+                      };
+                      return (
+                        <div style={{ borderTop: "1px solid #f0f0f0" }}>
+                          <div
+                            onClick={() => setShowAddonSteps(v => !v)}
+                            style={{
+                              padding: "10px 16px",
+                              display: "flex", alignItems: "center", gap: "10px",
+                              cursor: "pointer", userSelect: "none",
+                            }}
+                            title={`${brand} 品牌套組 · ${ADDON.steps.length} 工段`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={allSelected}
+                              ref={el => { if (el) el.indeterminate = addonOn && !allSelected; }}
+                              onClick={(e) => e.stopPropagation()}
+                              onChange={toggleAll}
+                              style={{ width: "15px", height: "15px", accentColor: "#1a1a1a", cursor: "pointer" }}
+                            />
+                            <span style={{ fontSize: "12px", fontWeight: 600, color: addonOn ? "#1a1a1a" : "#999" }}>
+                              {brand} 品牌套組
+                            </span>
+                            <span style={{ fontSize: "10px", color: "#999" }}>
+                              {addonSteps.size}/{ADDON.steps.length} 工段
+                            </span>
+                            <span style={{ fontSize: "10px", color: "#999", marginLeft: "4px" }}>
+                              {showAddonSteps ? "▴" : "▾"}
+                            </span>
+                            <span style={{
+                              marginLeft: "auto",
+                              fontSize: "13px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace",
+                              color: addonOn ? "#065f46" : "#ccc",
+                            }}>
+                              {addonOn ? "+" : ""}{Math.round(addonSelectedIE)}<span style={{ fontSize: "10px", color: "#999", marginLeft: "3px", fontWeight: 500 }}>秒</span>
+                            </span>
+                          </div>
+                          {showAddonSteps && (
+                            <div style={{
+                              padding: "4px 16px 10px 40px",
+                              display: "flex", flexDirection: "column", gap: "6px",
+                              background: "#fafafa",
+                            }}>
+                              {ADDON.steps.map((step, i) => (
+                                <label key={i} style={{
+                                  display: "flex", alignItems: "center", gap: "8px", cursor: "pointer",
+                                }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={addonSteps.has(i)}
+                                    onChange={() => toggleStep(i)}
+                                    style={{ width: "13px", height: "13px", accentColor: "#1a1a1a", cursor: "pointer" }}
+                                  />
+                                  <span style={{ fontSize: "11px", color: addonSteps.has(i) ? "#1a1a1a" : "#999" }}>
+                                    {step.l3}
+                                  </span>
+                                  <span style={{
+                                    marginLeft: "auto", fontSize: "11px", color: "#999",
+                                    fontFamily: "'JetBrains Mono',monospace",
+                                  }}>
+                                    +{Math.round(step.ie * 60)}秒
+                                  </span>
+                                </label>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </>
                 )}
               </div>
