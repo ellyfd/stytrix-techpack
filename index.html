@@ -1817,30 +1817,29 @@ function App() {
   useEffect(() => {
     if (appMode === "universal" && activeTab === "grading") setActiveTab("measurement");
   }, [appMode]);
-  // 通用模型 — 基礎大尺寸欄位 + 使用者填入值
-  // 上衣: 肩寬 / 胸圍 / 下擺 / 袖長 / 身長
-  // 下身: 腰圍 / 臀圍 / 前後檔 / 內長 / 褲口
-  const UNIVERSAL_TOP_FIELDS = [
-    { key: "SH", zh: "肩寬",  en: "Shoulder Width" },
-    { key: "CH", zh: "胸圍",  en: "Chest" },
-    { key: "HM", zh: "下擺",  en: "Hem" },
-    { key: "SL", zh: "袖長",  en: "Sleeve Length" },
-    { key: "BL", zh: "身長",  en: "Body Length" },
+  // 通用模型 — 基礎大尺寸：每欄位一組 candidate POM codes，按順序挑第一個
+  // 在 currentBucket 裡有資料（median_values.M 或 measurement_rules）的碼，
+  // 直接沿用聚陽 bucket 的中位數/公差/POM 翻譯，只是顯示比較少項。
+  const UNIVERSAL_TOP_SPEC = [
+    { zh: "肩寬", en: "Shoulder Width",        candidates: ["C1", "C2"] },
+    { zh: "胸圍", en: "Chest",                 candidates: ["F10", "F11", "F17"] },
+    { zh: "下擺", en: "Hem / Bottom Opening",  candidates: ["I13", "I5", "I7", "I8", "I2"] },
+    { zh: "袖長", en: "Sleeve Length",         candidates: ["E1", "E3"] },
+    { zh: "身長", en: "Body Length",           candidates: ["J10", "J9", "J19", "J20", "J8", "J7"] },
   ];
-  const UNIVERSAL_BOTTOM_FIELDS = [
-    { key: "WS", zh: "腰圍",     en: "Waist" },
-    { key: "HP", zh: "臀圍",     en: "Hip" },
-    { key: "RS", zh: "前後檔",    en: "Front + Back Rise" },
-    { key: "IS", zh: "內長",     en: "Inseam" },
-    { key: "LO", zh: "褲口",     en: "Leg Opening" },
+  const UNIVERSAL_BOTTOM_SPEC = [
+    { zh: "腰圍", en: "Waist",                 candidates: ["H8", "H2", "H3", "H18", "H9"] },
+    { zh: "臀圍", en: "Hip",                   candidates: ["L8", "L5", "L6"] },
+    { zh: "前襠", en: "Front Rise",            candidates: ["K1"] },
+    { zh: "後襠", en: "Back Rise",             candidates: ["K2"] },
+    { zh: "內長", en: "Inseam",                candidates: ["O4"] },
+    { zh: "褲口", en: "Leg Opening",           candidates: ["N9"] },
   ];
   const universalGarmentFamily = (() => {
     const bottoms = new Set(["PANTS", "SHORTS", "SKIRT", "LEGGINGS"]);
     return bottoms.has(gt) ? "bottom" : "top";
   })();
-  const universalFields = universalGarmentFamily === "bottom" ? UNIVERSAL_BOTTOM_FIELDS : UNIVERSAL_TOP_FIELDS;
-  const [universalBase, setUniversalBase] = useState({});
-  useEffect(() => { setUniversalBase({}); }, [gt, appMode]);
+  const universalSpec = universalGarmentFamily === "bottom" ? UNIVERSAL_BOTTOM_SPEC : UNIVERSAL_TOP_SPEC;
   useEffect(() => {
     fetch('./pom_rules/_index.json')
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
@@ -3574,7 +3573,30 @@ function App() {
         )}
 
         {/* ═══ Measurement Tab Panel ═══ */}
-        {activeTab === "measurement" && appMode === "universal" && (
+        {activeTab === "measurement" && appMode === "universal" && (() => {
+          // 通用模型用同一組聚陽 bucket 資料（median + tolerance + POM 翻譯），
+          // 只挑每個基礎大尺寸欄位的第一個候選 POM code。
+          const mv = currentBucket?.median_values || {};
+          const mr = currentBucket?.measurement_rules || {};
+          const tolStr = m => {
+            const t = m?.tolerance;
+            if (!t) return "—";
+            if (typeof t === "object") return "±" + (t.display || frmt(t.standard)) + '"';
+            return "±" + frmt(t) + '"';
+          };
+          const resolveCode = (cands) => cands.find(c => (mv[c]?.size_medians?.M != null)
+            || mr.must?.[c] || mr.recommend?.[c] || mr.optional?.[c]) || null;
+          const rows = universalSpec.map(s => {
+            const code = resolveCode(s.candidates);
+            const baseM = code ? (mv[code]?.size_medians?.M ?? null) : null;
+            const rule = code ? (mr.must?.[code] || mr.recommend?.[code] || mr.optional?.[code] || null) : null;
+            return { ...s, code, baseM, rule };
+          });
+          const matchedCount = rows.filter(r => r.code).length;
+          const familyLabel = universalGarmentFamily === "bottom"
+            ? "下身 · 腰圍 / 臀圍 / 前襠 / 後襠 / 內長 / 褲口"
+            : "上衣 · 肩寬 / 胸圍 / 下擺 / 袖長 / 身長";
+          return (
           <div style={{ animation: "fadeIn 0.2s ease" }}>
             {/* ─── 通用模型 · 基礎大尺寸 ─── */}
             <div style={{
@@ -3596,10 +3618,9 @@ function App() {
                     letterSpacing: "0.05em",
                   }}>通用模型</span>
                 </div>
-                <div style={{ fontSize: isMobile ? "12px" : "13px", color: "#888" }}>
-                  {universalGarmentFamily === "bottom"
-                    ? "下身 · 腰圍 / 臀圍 / 前後檔 / 內長 / 褲口"
-                    : "上衣 · 肩寬 / 胸圍 / 下擺 / 袖長 / 身長"}
+                <div style={{ fontSize: isMobile ? "12px" : "13px", color: "#888" }}>{familyLabel}</div>
+                <div style={{ fontSize: "11px", color: "#999", marginTop: "3px" }}>
+                  聚陽 bucket 同源 · {currentBucket?.bucket || "—"}{currentBucket ? ` · 對應 ${matchedCount} / ${rows.length} 欄位` : ""}
                 </div>
               </div>
               <div style={{ textAlign: isMobile ? "left" : "right" }}>
@@ -3610,43 +3631,96 @@ function App() {
               </div>
             </div>
 
-            <div style={{ background: "#fff", border: "1px solid #e8e5e1", borderRadius: "10px", overflow: "auto" }}>
-              <table style={{ width: "100%", minWidth: isMobile ? "520px" : "auto", borderCollapse: "collapse", fontSize: "14px" }}>
-                <thead>
-                  <tr style={{ background: "#faf9f7", borderBottom: "1.5px solid #e8e5e1" }}>
-                    <th style={{ padding: isMobile ? "8px 10px" : "10px 14px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", width: "72px" }}>CODE</th>
-                    <th style={{ padding: isMobile ? "8px 10px" : "10px 14px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999" }}>部位</th>
-                    <th style={{ padding: isMobile ? "8px 10px" : "10px 14px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999" }}>EN</th>
-                    <th style={{ padding: isMobile ? "8px 10px" : "10px 14px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#065f46", width: isMobile ? "120px" : "150px" }}>Base (M)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {universalFields.map(f => (
-                    <tr key={f.key} style={{ borderBottom: "1px solid #f0eeeb" }}>
-                      <td style={{ padding: isMobile ? "10px 10px" : "12px 14px", fontFamily: "'JetBrains Mono',monospace", fontWeight: 700, fontSize: "13px", color: "#0369a1" }}>{f.key}</td>
-                      <td style={{ padding: isMobile ? "10px 10px" : "12px 14px", fontWeight: 600, color: "#1a1a1a", fontSize: "14px" }}>{f.zh}</td>
-                      <td style={{ padding: isMobile ? "10px 10px" : "12px 14px", color: "#888", fontSize: "13px" }}>{f.en}</td>
-                      <td style={{ padding: isMobile ? "6px 8px" : "8px 14px", textAlign: "right", background: "#ecfdf5" }}>
-                        <input type="text"
-                          value={universalBase[f.key] ?? ""}
-                          onChange={(e) => setUniversalBase(prev => ({ ...prev, [f.key]: e.target.value }))}
-                          placeholder="—"
-                          inputMode="decimal"
-                          aria-label={`${f.zh} 基礎尺寸 (inch)`}
-                          style={{
-                            width: isMobile ? "104px" : "120px", textAlign: "right", padding: "7px 9px",
-                            fontFamily: "'JetBrains Mono',monospace", fontSize: "14px", fontWeight: 700,
-                            color: "#065f46",
-                            border: "1px solid #a7f3d0", borderRadius: "6px",
-                            background: "#fff",
-                          }} />
-                        <span style={{ fontSize: "13px", color: "#065f46", marginLeft: "3px" }}>"</span>
-                      </td>
+            {!currentBucket ? (
+              <div style={{
+                background: "#fff", border: "1px solid #eee", borderRadius: "10px",
+                padding: "28px", textAlign: "center", color: "#888", fontSize: "13px",
+              }}>
+                {canGenerateSpec ? "載入 bucket 資料中…" : "請先於上方完成 Brand / Fabric / Gender / Dept / GT filter"}
+              </div>
+            ) : (
+              <div style={{ background: "#fff", border: "1px solid #e8e5e1", borderRadius: "10px", overflow: "auto" }}>
+                <table style={{ width: "100%", minWidth: isMobile ? "640px" : "auto", borderCollapse: "collapse", fontSize: "14px" }}>
+                  <thead>
+                    <tr style={{ background: "#faf9f7", borderBottom: "1.5px solid #e8e5e1" }}>
+                      <th style={{ padding: isMobile ? "8px 10px" : "10px 14px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", width: "56px" }}>POM</th>
+                      <th style={{ padding: isMobile ? "8px 10px" : "10px 14px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999" }}>部位</th>
+                      <th style={{ padding: isMobile ? "8px 10px" : "10px 14px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999" }}>EN</th>
+                      <th style={{ padding: isMobile ? "8px 10px" : "10px 14px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#7e22ce", width: isMobile ? "72px" : "90px" }}>公差</th>
+                      <th style={{ padding: isMobile ? "8px 10px" : "10px 14px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#065f46", width: isMobile ? "124px" : "150px" }}>Base (M)</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {rows.map(r => {
+                      const pn = r.code ? (pomNames[r.code] || {}) : {};
+                      const ov = r.code ? (baseOverrides[r.code] ?? "") : "";
+                      const invalid = ov !== "" && parseInch(ov) == null;
+                      const displayVal = ov !== "" ? ov : (r.baseM != null ? frmt(r.baseM) : "");
+                      const ovParsed = ov !== "" && !invalid ? parseInch(ov) : null;
+                      const isChanged = ovParsed != null && r.baseM != null && Math.abs(ovParsed - r.baseM) > 1e-9;
+                      const inputBorder = invalid ? "#dc2626" : (isChanged ? "#f59e0b" : "#a7f3d0");
+                      const inputColor  = invalid ? "#dc2626" : (isChanged ? "#b45309" : "#065f46");
+                      const cellBg      = isChanged ? "#fffbeb" : "#ecfdf5";
+                      const hasCode = !!r.code;
+                      return (
+                        <tr key={r.zh} style={{ borderBottom: "1px solid #f0eeeb", opacity: hasCode ? 1 : 0.55 }}>
+                          <td style={{ padding: isMobile ? "10px 10px" : "12px 14px", fontFamily: "'JetBrains Mono',monospace", fontWeight: 700, fontSize: "13px", color: hasCode ? "#0369a1" : "#bbb" }}>
+                            {r.code || "—"}
+                          </td>
+                          <td style={{ padding: isMobile ? "10px 10px" : "12px 14px" }}>
+                            <div style={{ fontWeight: 600, color: "#1a1a1a", fontSize: "14px" }}>{r.zh}</div>
+                            {hasCode && pn.zh && pn.zh !== r.zh && (
+                              <div style={{ fontSize: "11px", color: "#888", marginTop: "2px" }}>bucket: {pn.zh}</div>
+                            )}
+                          </td>
+                          <td style={{ padding: isMobile ? "10px 10px" : "12px 14px", color: "#888", fontSize: "13px" }}>
+                            <div>{hasCode && pn.en ? pn.en : r.en}</div>
+                            {!hasCode && <div style={{ fontSize: "11px", color: "#b91c1c", marginTop: "2px" }}>此 bucket 無對應 POM</div>}
+                          </td>
+                          <td style={{ padding: isMobile ? "10px 10px" : "12px 14px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", fontSize: "13px", color: "#7e22ce", fontWeight: 600, whiteSpace: "nowrap" }}>
+                            {hasCode ? tolStr(r.rule) : "—"}
+                          </td>
+                          <td style={{ padding: isMobile ? "6px 8px" : "8px 14px", textAlign: "right", background: hasCode ? cellBg : "#fafaf9" }}>
+                            {hasCode ? (
+                              <>
+                                <input type="text"
+                                  value={displayVal}
+                                  onChange={(e) => setBaseOverrides(prev => ({ ...prev, [r.code]: e.target.value }))}
+                                  onBlur={() => {
+                                    const raw = baseOverrides[r.code];
+                                    if (raw == null || raw === "") return;
+                                    const parsed = parseInch(raw);
+                                    if (parsed == null) return;
+                                    const normalized = frmt(parsed);
+                                    if (normalized !== "—" && normalized !== raw) {
+                                      setBaseOverrides(prev => ({ ...prev, [r.code]: normalized }));
+                                    }
+                                  }}
+                                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); } }}
+                                  placeholder={r.baseM != null ? frmt(r.baseM) : "—"}
+                                  inputMode="text"
+                                  title={isChanged ? `原值 ${frmt(r.baseM)}" · 雙擊還原` : undefined}
+                                  aria-label={`${r.zh} 基礎尺寸 (inch)`}
+                                  style={{
+                                    width: isMobile ? "104px" : "120px", textAlign: "right", padding: "7px 9px",
+                                    fontFamily: "'JetBrains Mono',monospace", fontSize: "14px", fontWeight: 700,
+                                    color: inputColor,
+                                    border: `1px solid ${inputBorder}`, borderRadius: "6px",
+                                    background: "#fff",
+                                  }} />
+                                <span style={{ fontSize: "13px", color: inputColor, marginLeft: "3px" }}>"</span>
+                              </>
+                            ) : (
+                              <span style={{ fontSize: "13px", color: "#bbb", fontFamily: "'JetBrains Mono',monospace" }}>—</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
 
             <div style={{
               marginTop: "14px", padding: "10px 14px",
@@ -3655,10 +3729,11 @@ function App() {
             }}>
               <span style={{ fontWeight: 700 }}>通用模型</span>
               {" · "}
-              只需填 5 個基礎大尺寸；不跳碼、不出全碼。若要切換至 POM tier / 全碼，請於右上改用「聚陽模型」。
+              資料與聚陽同源（bucket {currentBucket?.bucket || "—"} 的 median + 公差），只取基礎大尺寸；不跳碼、不出全碼。若要切換至 POM tier / 全碼，請於右上改用「聚陽模型」。
             </div>
           </div>
-        )}
+          );
+        })()}
 
         {activeTab === "measurement" && appMode !== "universal" && (
           <div style={{ animation: "fadeIn 0.2s ease" }}>
