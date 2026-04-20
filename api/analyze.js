@@ -245,6 +245,41 @@ async function callClaude(apiKey, mediaType, b64, { system, userText }, maxToken
 }
 
 function parseJson(text) {
-  const clean = (text || "").replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim();
-  try { return JSON.parse(clean); } catch { return null; }
+  const raw = (text || "").trim();
+  if (!raw) return null;
+  // Strip markdown code fences anywhere in the string (```json ... ``` or ``` ... ```)
+  const unfenced = raw
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/```\s*$/, "")
+    .trim();
+  // 1) Direct parse (covers the happy path: Claude obeyed "ONLY JSON").
+  try { return JSON.parse(unfenced); } catch {}
+  // 2) Best-effort extraction: grab the largest balanced {...} or [...] span.
+  //    Scans for the first { or [ and finds its matching close while respecting
+  //    string escapes — handles Claude prefixing/suffixing prose around JSON.
+  const text2 = unfenced;
+  const firstObj = text2.indexOf("{");
+  const firstArr = text2.indexOf("[");
+  let start = -1, opener = "";
+  if (firstObj !== -1 && (firstArr === -1 || firstObj < firstArr)) { start = firstObj; opener = "{"; }
+  else if (firstArr !== -1) { start = firstArr; opener = "["; }
+  if (start === -1) return null;
+  const closer = opener === "{" ? "}" : "]";
+  let depth = 0, inStr = false, esc = false;
+  for (let i = start; i < text2.length; i++) {
+    const c = text2[i];
+    if (esc) { esc = false; continue; }
+    if (c === "\\" && inStr) { esc = true; continue; }
+    if (c === '"') { inStr = !inStr; continue; }
+    if (inStr) continue;
+    if (c === opener) depth++;
+    else if (c === closer) {
+      depth--;
+      if (depth === 0) {
+        const candidate = text2.slice(start, i + 1);
+        try { return JSON.parse(candidate); } catch { return null; }
+      }
+    }
+  }
+  return null;
 }
