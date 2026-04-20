@@ -348,6 +348,15 @@ const IT_LENGTH_POM = {
   DRESS:    { code: "J9", label: "裙長" },
   SKIRT:    { code: "J9", label: "裙長" },
 };
+/* 依 GT 列出「會隨長度而變」的 POM 代碼集。未選 Item Type 時,這些 POM 的
+   Base M 與全碼表格子一律留空,避免 BIKER(5"內長) 還顯示 28" inseam、
+   或用不到膝圍/小腿圍。 */
+const IT_LENGTH_DEP_POMS = {
+  LEGGINGS: new Set(["O4", "N5", "N7"]),
+  SHORTS:   new Set(["O4", "N5"]),
+  DRESS:    new Set(["J9", "J10", "J8", "J7", "I6", "I5"]),
+  SKIRT:    new Set(["J9", "J10", "I6"]),
+};
 /* 從 "~28\"" 之類的 hint 字串抽出英吋數值。沒有數字(如 "緊身"、"百褶")回傳 null。 */
 const parseHintInches = (hint) => {
   if (!hint) return null;
@@ -3749,13 +3758,17 @@ function App() {
                 if (typeof t === "object") return "±" + (t.display || frmt(t.standard)) + '"';
                 return "±" + frmt(t) + '"';
               };
-              // 基碼 M：使用者覆寫優先，否則資料中位數
+              // 未選 Item Type 時,長度敏感 POM 視為「待選長度」— 不顯示數值
+              const isLengthPending = code =>
+                !it && IT_LENGTH_HINTS[gt] && IT_LENGTH_DEP_POMS[gt]?.has(code);
+              // 基碼 M：使用者覆寫優先，否則資料中位數;長度待選時留空
               const effectiveBaseM = code => {
                 const ov = baseOverrides[code];
                 if (ov != null && ov !== "") {
                   const v = parseInch(ov);
                   if (v != null) return v;
                 }
+                if (isLengthPending(code)) return null;
                 return mv[code]?.size_medians?.M;
               };
               const isOverrideValid = code => {
@@ -3874,8 +3887,8 @@ function App() {
                             </span>
                           </div>
                           <div style={{ fontSize: isMobile ? "11px" : "12px", color: "#78350f", marginBottom: "10px", lineHeight: 1.5 }}>
-                            {gt} 有多種長度版本,目前 Item Type 未選,{lengthCode} 會使用全體中位數 ({mv[lengthCode]?.size_medians?.M != null ? frmt(mv[lengthCode].size_medians.M) + '"' : "—"})。
-                            選好後會自動帶入正確的尺寸表。
+                            {gt} 有多種長度版本,長度相關 POM(如 {lengthCode}) 暫時留空。
+                            選好長度後會自動帶入正確的尺寸表。
                           </div>
                           <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                             {(IT_OPTIONS[gt] || []).map(opt => {
@@ -3952,7 +3965,8 @@ function App() {
                                 {!collapsed && codes.map(code => {
                                   const m = mr[tier][code];
                                   const mvRow = mv[code];
-                                  const baseM = mvRow?.size_medians?.M;
+                                  const pending = isLengthPending(code);
+                                  const baseM = pending ? null : mvRow?.size_medians?.M;
                                   const included = !excluded.has(code);
                                   const pn = pomNames[code] || {};
                                   const ov = baseOverrides[code] ?? "";
@@ -4018,9 +4032,9 @@ function App() {
                                             if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); }
                                           }}
                                           disabled={!included}
-                                          placeholder={baseM != null ? frmt(baseM) : "—"}
+                                          placeholder={pending ? "待選長度" : (baseM != null ? frmt(baseM) : "—")}
                                           inputMode="text"
-                                          title={isChanged ? `${originalTip} · 雙擊還原` : undefined}
+                                          title={isChanged ? `${originalTip} · 雙擊還原` : (pending ? "請先在上方選擇長度" : undefined)}
                                           style={{
                                             width: isMobile ? "92px" : "104px", textAlign: "right", padding: "7px 9px",
                                             fontFamily: "'JetBrains Mono',monospace", fontSize: "14px", fontWeight: 700,
@@ -4031,7 +4045,7 @@ function App() {
                                         <span style={{ fontSize: "13px", color: "#065f46", marginLeft: "3px" }}>"</span>
                                       </td>
                                       {showPlus && hasPlus && (() => {
-                                        const base2X = mvRow?.size_medians?.[plusAnchor];
+                                        const base2X = pending ? null : mvRow?.size_medians?.[plusAnchor];
                                         const ov2 = plusBaseOverrides[code] ?? "";
                                         const invalid2 = ov2 !== "" && parseInch(ov2) == null;
                                         const display2 = ov2 !== "" ? ov2 : (base2X != null ? frmt(base2X) : "");
@@ -4051,7 +4065,7 @@ function App() {
                                               }}
                                               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); } }}
                                               disabled={!included}
-                                              placeholder={base2X != null ? frmt(base2X) : "—"}
+                                              placeholder={pending ? "待選長度" : (base2X != null ? frmt(base2X) : "—")}
                                               inputMode="text"
                                               aria-label={`${code} Base ${plusAnchor}`}
                                               style={{
@@ -4304,7 +4318,13 @@ function App() {
                 }
                 return mv[code]?.size_medians?.[plusAnchor];
               };
+              // 未選 Item Type 且 POM 屬於「會因長度而變」的 → 整列留空
+              const isLengthPending = code =>
+                !it && IT_LENGTH_HINTS[gt] && IT_LENGTH_DEP_POMS[gt]?.has(code);
               const sizeValueFor = (code, s) => {
+                if (isLengthPending(code) && !(baseOverrides[code] && parseInch(baseOverrides[code]) != null)) {
+                  return null;
+                }
                 const origS = mv[code]?.size_medians?.[s];
                 let v;
                 if (isPlus(s)) {
