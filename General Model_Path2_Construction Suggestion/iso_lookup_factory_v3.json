@@ -1,5 +1,5 @@
 {
-  "version": "v3",
+  "version": "v3.2",
   "created": "2026-04-20",
   "purpose": "Path 2: AI → ISO → factory. Four-dimensional: Fabric × GT × IT × L1",
   "confidence_levels": {
@@ -266,12 +266,87 @@
       "l1": "大身",
       "l1_code": "BD",
       "expect": "yes",
-      "iso": "406",
+      "iso": "514",
       "iso_zh": "三本雙針/壓三本",
-      "confidence": "mixed",
-      "machine": "三本車 Coverstitch",
+      "confidence": "strong",
+      "machine": "拷克車 overlock",
       "fabric": "Knit",
-      "action": "select"
+      "action": "recommend",
+      "pptx_corroborate": 1,
+      "pptx_total": 6,
+      "pptx_votes": {
+        "514": 4,
+        "401": 1,
+        "406": 1
+      },
+      "pct": 67,
+      "n_designs": 6,
+      "alternatives": [
+        {
+          "iso": "401",
+          "pct": 17,
+          "machine": "鏈縫 chainstitch"
+        },
+        {
+          "iso": "406",
+          "pct": 17,
+          "machine": "三本車 coverstitch"
+        }
+      ],
+      "update_source": "2026/5 PPTX cross-validation",
+      "previous": {
+        "iso": "406",
+        "confidence": "mixed"
+      },
+      "construction_context": {
+        "n_pptx_designs": 24,
+        "representative_recipes": [
+          "(素色)主布-RD1046294-大身/腰頭/後貼式口袋",
+          "所有大身缝514四线拷克 ，除非有其他说明 → 大身反折，内加松紧带",
+          "固定大身 压514+401  1/8’’",
+          "所有大身缝514四线拷克，除非 有其他说明 → 副料：压401锁链车固定于大身",
+          "所有大身缝514四线拷克，除非有其他说明"
+        ],
+        "iso_evidence": {
+          "514": [
+            {
+              "design": "D39519",
+              "trigger": "「拷克」→ 拷克/包邊→overlock",
+              "line": "所有大身缝514四线拷克 ，除非有其他说明"
+            },
+            {
+              "design": "D46001",
+              "trigger": "「拷克」→ 拷克/包邊→overlock",
+              "line": "所有大身缝514四线拷克，除非 有其他说明"
+            },
+            {
+              "design": "D46049",
+              "trigger": "「拷克」→ 拷克/包邊→overlock",
+              "line": "所有大身缝514四线拷克，除非有其他说明"
+            }
+          ],
+          "401": [
+            {
+              "design": "D43390",
+              "trigger": "文中直接寫 ISO 401",
+              "line": "固定大身 压514+401  1/8’’"
+            }
+          ],
+          "406": [
+            {
+              "design": "D59328",
+              "trigger": "文中直接寫 ISO 406",
+              "line": "固定大身压 514+1/8’ 406"
+            }
+          ]
+        },
+        "common_construction_keywords": [
+          "拷克",
+          "固定",
+          "貼式",
+          "反折"
+        ]
+      }
     },
     {
       "gt": "PANT",
@@ -284,7 +359,110 @@
       "confidence": "mixed",
       "machine": "三本車 Coverstitch",
       "fabric": "Knit",
-      "action": "select"
+      "action": "select",
+      "pptx_corroborate": 4,
+      "pptx_total": 18,
+      "pptx_votes": {
+        "301": 5,
+        "514": 4,
+        "406": 4,
+        "401": 4,
+        "605": 1
+      },
+      "construction_context": {
+        "n_pptx_designs": 31,
+        "representative_recipes": [
+          "翻卷腰座：双层反折腰座拷克到大身",
+          "SP線-所有面線/腰繩出口/打結車 → SP線-所有面線/腰繩出口/打結車 → 腰頭於縫跨壓1/4“雙針 → 剪接腰頭,內包鬆緊帶 → 2道單針鎖鏈平均分配腰頭高, → 腰頭縫至外側壓線",
+          "腰頭反摺內包鬆緊帶",
+          "做工:腰頭→本布剪接腰頭內包鬆緊帶，距腰頭頂邊及腰底1/2”壓單針鎖鍊明線。隧道间距3/4’’ → 腰繩於腰頭中間隧道穿出雞眼於外側，雞眼間距1 ½”。腰繩固定至後中壓穿所有層。",
+          "腰頭鬆緊帶RD39602 → 腰頭鬆緊帶RD39602 → 做工:腰頭→本布剪接腰頭內包鬆緊帶，距腰頭頂邊及腰底1/2”壓單針鎖鍊明線。 → 腰繩於腰頭中間隧道穿出雞眼於外側，雞眼間距1 ½”。腰繩固定至後中壓穿所有層。"
+        ],
+        "iso_evidence": {
+          "514": [
+            {
+              "design": "D11809",
+              "trigger": "「拷克」→ 拷克/包邊→overlock",
+              "line": "翻卷腰座：双层反折腰座拷克到大身"
+            },
+            {
+              "design": "D20681",
+              "trigger": "文中直接寫 ISO 514",
+              "line": "腰缝 514+1/8’’ 406"
+            },
+            {
+              "design": "D39576",
+              "trigger": "文中直接寫 ISO 514",
+              "line": "401，抽绳在后中固定，腰缝固定大身 514+605"
+            }
+          ],
+          "301": [
+            {
+              "design": "D1213",
+              "trigger": "「SP線」→ 壓單針/SP線→平車",
+              "line": "SP線-所有面線/腰繩出口/打結車"
+            },
+            {
+              "design": "D1213",
+              "trigger": "「SP線」→ 壓單針/SP線→平車",
+              "line": "SP線-所有面線/腰繩出口/打結車"
+            },
+            {
+              "design": "D22929",
+              "trigger": "「壓單針」→ 壓單針/SP線→平車",
+              "line": "做工:腰頭→本布剪接腰頭內包鬆緊帶，距腰頭頂邊及腰底1/2”壓單針鎖鍊明線。隧道间距3/4’’"
+            }
+          ],
+          "401": [
+            {
+              "design": "D1213",
+              "trigger": "「鎖鏈」→ 鏈縫/鎖鏈→chainstitch",
+              "line": "2道單針鎖鏈平均分配腰頭高,"
+            },
+            {
+              "design": "D29189",
+              "trigger": "文中直接寫 ISO 401",
+              "line": "腰 内加松紧带，401 压线创造隧道"
+            },
+            {
+              "design": "D32544",
+              "trigger": "「鎖鏈」→ 鏈縫/鎖鏈→chainstitch",
+              "line": "剪接腰頭,內包鬆緊帶 2道單針鎖鏈平均分配腰頭高, 穿繩車入中間隧道, 穿繩從鎖眼出口穿出, 末端反折包光固定"
+            }
+          ],
+          "406": [
+            {
+              "design": "D20681",
+              "trigger": "文中直接寫 ISO 406",
+              "line": "腰缝 514+1/8’’ 406"
+            },
+            {
+              "design": "D20681",
+              "trigger": "文中直接寫 ISO 406",
+              "line": "更为侧片 剪接的压线为 1/8’’ 406 ，像腰座缝，确保底线在成衣内侧"
+            },
+            {
+              "design": "D20681",
+              "trigger": "文中直接寫 ISO 406",
+              "line": "更为侧片 剪接的压线为 1/8’’ 406 ，像腰座缝，确保底线在成衣内侧"
+            }
+          ],
+          "605": [
+            {
+              "design": "D39576",
+              "trigger": "文中直接寫 ISO 605",
+              "line": "401，抽绳在后中固定，腰缝固定大身 514+605"
+            }
+          ]
+        },
+        "common_construction_keywords": [
+          "鬆緊帶",
+          "固定",
+          "反折",
+          "明線",
+          "SP線"
+        ]
+      }
     },
     {
       "gt": "PANT",
@@ -294,10 +472,79 @@
       "expect": "yes",
       "iso": "406",
       "iso_zh": "三本雙針/壓三本",
-      "confidence": "mixed",
-      "machine": "三本車 Coverstitch",
+      "confidence": "strong",
+      "machine": "三本車 coverstitch",
       "fabric": "Knit",
-      "action": "select"
+      "action": "recommend",
+      "pptx_corroborate": 5,
+      "pptx_total": 7,
+      "pptx_votes": {
+        "406": 5,
+        "514": 1,
+        "605": 1
+      },
+      "pct": 71,
+      "n_designs": 7,
+      "alternatives": [
+        {
+          "iso": "514",
+          "pct": 14,
+          "machine": "拷克車 overlock"
+        },
+        {
+          "iso": "605",
+          "pct": 14,
+          "machine": "爬網車 coverstitch"
+        }
+      ],
+      "update_source": "2026/5 PPTX cross-validation",
+      "previous": {
+        "iso": "406",
+        "confidence": "mixed"
+      },
+      "construction_context": {
+        "n_pptx_designs": 18,
+        "representative_recipes": [
+          "褲口寬度 __ 高於羅紋/克夫縫線 - 2\" - 於縫線腿部 → 褲口寬度於羅紋/克夫縫線 - 於縫線連接處的克夫和腿部",
+          "裤口反折5/8”压1/8”三本双针",
+          "裤口：直接反折，压 1/8” 406三本双针 → 裤口：直接反折，压 1/8” 406三本双针",
+          "裤口：直接反折，压1/4”三本双针",
+          "裤口：直接反折 ，压1/4” 406三本双针"
+        ],
+        "iso_evidence": {
+          "406": [
+            {
+              "design": "D37020",
+              "trigger": "「三本双针」→ 三本車→coverstitch",
+              "line": "裤口反折5/8”压1/8”三本双针"
+            },
+            {
+              "design": "D39519",
+              "trigger": "「三本双针」→ 三本車→coverstitch",
+              "line": "裤口：直接反折，压 1/8” 406三本双针"
+            },
+            {
+              "design": "D39519",
+              "trigger": "「三本双针」→ 三本車→coverstitch",
+              "line": "裤口：直接反折，压 1/8” 406三本双针"
+            }
+          ],
+          "514": [
+            {
+              "design": "D46049",
+              "trigger": "「拷克」→ 拷克/包邊→overlock",
+              "line": "裤口:514四线拷克+1/4” 406三本双针"
+            }
+          ]
+        },
+        "common_construction_keywords": [
+          "反折",
+          "三本",
+          "克夫",
+          "鬆緊帶",
+          "羅紋"
+        ]
+      }
     },
     {
       "gt": "PANT",
@@ -318,12 +565,111 @@
       "l1": "口袋",
       "l1_code": "PK",
       "expect": "yes",
-      "iso": "605",
+      "iso": "301",
       "iso_zh": "三針五線爬網",
-      "confidence": "mixed",
-      "machine": "爬網車 Flatseam 3N5T",
+      "confidence": "likely",
+      "machine": "平車 lockstitch",
       "fabric": "Knit",
-      "action": "select"
+      "action": "recommend",
+      "pptx_corroborate": 0,
+      "pptx_total": 11,
+      "pptx_votes": {
+        "301": 6,
+        "406": 3,
+        "514": 1,
+        "401": 1
+      },
+      "pct": 55,
+      "n_designs": 11,
+      "alternatives": [
+        {
+          "iso": "406",
+          "pct": 27,
+          "machine": "三本車 coverstitch"
+        },
+        {
+          "iso": "514",
+          "pct": 9,
+          "machine": "拷克車 overlock"
+        },
+        {
+          "iso": "401",
+          "pct": 9,
+          "machine": "鏈縫 chainstitch"
+        }
+      ],
+      "update_source": "2026/5 PPTX cross-validation",
+      "previous": {
+        "iso": "605",
+        "confidence": "mixed"
+      },
+      "construction_context": {
+        "n_pptx_designs": 27,
+        "representative_recipes": [
+          "貼式口袋車至大身距邊1/16”壓單針面線, → 後口袋-距襠縫 → 後口袋-距腰縫於轉角中心 → 縫上口袋開口 → 縫上口袋位距底",
+          "縫上口袋口 → 縫上口袋位      距腰頭    縫線底邊",
+          "功能性縫上口袋 → 縫上口袋口",
+          "口袋  反折一次压1/8’’ 406 ，袋口套结",
+          "前斜口袋→袋口向後反折包光，且距邊1/16壓1/4雙針明線，口袋尾端壓打結車。 → 前穿者左拉鍊口袋→隱型拉鍊，口袋各尾端壓打結車。隱藏式口袋與前協口袋有不同的兩個入口&分開的袋布。 → 後穿者右袋唇拉鍊口袋→車反向隱型拉鍊，口袋尾端壓打結車，見附圖。後口袋布延伸至腰縫，後口袋布為TRICOT布 → ，後口袋布底邊拷克車合。雙層克夫→於底邊反折。先車內長再車襠。前片膝處打死摺→反折摺深3/8，摺長2”。"
+        ],
+        "iso_evidence": {
+          "301": [
+            {
+              "design": "D1213",
+              "trigger": "「壓單針」→ 壓單針/SP線→平車",
+              "line": "貼式口袋車至大身距邊1/16”壓單針面線,"
+            },
+            {
+              "design": "D2350",
+              "trigger": "「明線」→ 明線→平車",
+              "line": "前斜口袋→袋口向後反折包光，且距邊1/16壓1/4雙針明線，口袋尾端壓打結車。"
+            },
+            {
+              "design": "D32544",
+              "trigger": "「壓單針」→ 壓單針/SP線→平車",
+              "line": "貼式口袋車至大身距邊1/16”壓單針面線，口袋有三角壓線，口袋反折邊1/8“雙針面線。"
+            }
+          ],
+          "406": [
+            {
+              "design": "D20681",
+              "trigger": "文中直接寫 ISO 406",
+              "line": "口袋  反折一次压1/8’’ 406 ，袋口套结"
+            },
+            {
+              "design": "D39519",
+              "trigger": "「三本双针」→ 三本車→coverstitch",
+              "line": "口袋：口袋布做光，压1/8” 406三本双针。"
+            },
+            {
+              "design": "D43390",
+              "trigger": "文中直接寫 ISO 406",
+              "line": "前口袋 反折一次压1/8’’ 406"
+            }
+          ],
+          "514": [
+            {
+              "design": "D2350",
+              "trigger": "「拷克」→ 拷克/包邊→overlock",
+              "line": "，後口袋布底邊拷克車合。雙層克夫→於底邊反折。先車內長再車襠。前片膝處打死摺→反折摺深3/8，摺長2”。"
+            }
+          ],
+          "401": [
+            {
+              "design": "D39576",
+              "trigger": "文中直接寫 ISO 401",
+              "line": "口袋，1/4’’ 401 单针锁链，上下打套结"
+            }
+          ]
+        },
+        "common_construction_keywords": [
+          "反折",
+          "壓單針",
+          "貼式",
+          "車至大身",
+          "明線"
+        ]
+      }
     },
     {
       "gt": "PANT",
@@ -375,7 +721,14 @@
       "confidence": "strong",
       "machine": "拷克車 4-thread Overlock",
       "fabric": "Knit",
-      "action": "recommend"
+      "action": "recommend",
+      "pptx_corroborate": 2,
+      "pptx_total": 6,
+      "pptx_votes": {
+        "301": 2,
+        "406": 2,
+        "514": 2
+      }
     },
     {
       "gt": "PANT",
@@ -396,12 +749,38 @@
       "l1": "下擺",
       "l1_code": "BM",
       "expect": "maybe",
-      "iso": "605",
+      "iso": "406",
       "iso_zh": "三針五線爬網",
-      "confidence": "mixed",
-      "machine": "爬網車 Flatseam 3N5T",
+      "confidence": "strong",
+      "machine": "三本車 coverstitch",
       "fabric": "Knit",
-      "action": "select"
+      "action": "recommend",
+      "pptx_corroborate": 0,
+      "pptx_total": 7,
+      "pptx_votes": {
+        "406": 5,
+        "401": 1,
+        "514": 1
+      },
+      "pct": 71,
+      "n_designs": 7,
+      "alternatives": [
+        {
+          "iso": "401",
+          "pct": 14,
+          "machine": "鏈縫 chainstitch"
+        },
+        {
+          "iso": "514",
+          "pct": 14,
+          "machine": "拷克車 overlock"
+        }
+      ],
+      "update_source": "2026/5 PPTX cross-validation",
+      "previous": {
+        "iso": "605",
+        "confidence": "mixed"
+      }
     },
     {
       "gt": "PANT",
@@ -414,7 +793,47 @@
       "confidence": "mixed",
       "machine": "拷克車 4-thread Overlock",
       "fabric": "Knit",
-      "action": "select"
+      "action": "select",
+      "pptx_corroborate": 1,
+      "pptx_total": 3,
+      "pptx_votes": {
+        "514": 1,
+        "301": 1,
+        "406": 1
+      },
+      "construction_context": {
+        "n_pptx_designs": 12,
+        "representative_recipes": [
+          "鬆緊帶-腰頭/克夫",
+          "鬆緊帶-內穿腰&克夫 → 三線拷克504接鬆緊帶於褲口。",
+          "客評: 實際反折高和鬆緊帶高應該是1 1/8”，但實際壓線高應該是1”，這樣清楚嗎?",
+          "鬆緊帶 - 腰頭",
+          "RD#103873 內包鬆緊帶於腰頭 → 內包鬆緊帶, 壓1/4”三本雙針"
+        ],
+        "iso_evidence": {
+          "514": [
+            {
+              "design": "D48289",
+              "trigger": "「拷克」→ 拷克/包邊→overlock",
+              "line": "三線拷克504接鬆緊帶於褲口。"
+            }
+          ],
+          "406": [
+            {
+              "design": "D904",
+              "trigger": "「三本雙針」→ 三本車→coverstitch",
+              "line": "內包鬆緊帶, 壓1/4”三本雙針"
+            }
+          ]
+        },
+        "common_construction_keywords": [
+          "鬆緊帶",
+          "克夫",
+          "拷克",
+          "反折",
+          "三本"
+        ]
+      }
     },
     {
       "gt": "PANT",
@@ -427,7 +846,12 @@
       "confidence": "strong",
       "machine": "三本車 Coverstitch",
       "fabric": "Knit",
-      "action": "recommend"
+      "action": "recommend",
+      "pptx_corroborate": 0,
+      "pptx_total": 2,
+      "pptx_votes": {
+        "301": 2
+      }
     },
     {
       "gt": "PANT",
@@ -518,7 +942,68 @@
       "confidence": "strong",
       "machine": "拷克車 4-thread Overlock",
       "fabric": "Knit",
-      "action": "recommend"
+      "action": "recommend",
+      "pptx_corroborate": 2,
+      "pptx_total": 6,
+      "pptx_votes": {
+        "301": 2,
+        "406": 2,
+        "514": 2
+      },
+      "construction_context": {
+        "n_pptx_designs": 9,
+        "representative_recipes": [
+          "克夫跨壓雙針 → 於克夫&褲口接合縫",
+          "克夫縫跨壓1/4”三本雙針 → 克夫縫跨壓1/4”三本雙針",
+          "克夫有抽繩&調節器,調節器用織帶固定在側縫",
+          "克夫，底边对折，固定大身 514 拷克加爬网，侧缝内做光"
+        ],
+        "iso_evidence": {
+          "301": [
+            {
+              "design": "D1213",
+              "trigger": "「壓雙針」→ 壓雙針→平車(雙針)",
+              "line": "克夫跨壓雙針"
+            }
+          ],
+          "406": [
+            {
+              "design": "D32544",
+              "trigger": "「三本雙針」→ 三本車→coverstitch",
+              "line": "克夫縫跨壓1/4”三本雙針"
+            },
+            {
+              "design": "D32544",
+              "trigger": "「三本雙針」→ 三本車→coverstitch",
+              "line": "克夫縫跨壓1/4”三本雙針"
+            },
+            {
+              "design": "D48286",
+              "trigger": "文中直接寫 ISO 406",
+              "line": "3/4”褲克夫本布反折壓1/4”三本雙針(406)"
+            }
+          ],
+          "514": [
+            {
+              "design": "D39576",
+              "trigger": "文中直接寫 ISO 514",
+              "line": "克夫 对折，做光，侧缝， 514，"
+            },
+            {
+              "design": "D63356",
+              "trigger": "文中直接寫 ISO 514",
+              "line": "克夫，底边对折，固定大身 514 拷克加爬网，侧缝内做光"
+            }
+          ]
+        },
+        "common_construction_keywords": [
+          "克夫",
+          "三本",
+          "固定",
+          "壓雙針",
+          "接合"
+        ]
+      }
     },
     {
       "gt": "PANT",
@@ -1090,7 +1575,60 @@
       "confidence": "mixed",
       "machine": "爬網車 Flatseam 3N5T",
       "fabric": "Knit",
-      "action": "select"
+      "action": "select",
+      "pptx_corroborate": 1,
+      "pptx_total": 5,
+      "pptx_votes": {
+        "406": 2,
+        "514": 2,
+        "605": 1
+      },
+      "construction_context": {
+        "n_pptx_designs": 3,
+        "representative_recipes": [
+          "腰座，两道单针锁链 成隧道，抽绳后中固定",
+          "腰縫三針五線 → 腰 内加网布，顶边有缝，514+605 固定大身",
+          "腰座 顶裁开 1/8’’ 406 三本双针暗线，固定大身 514拷克加401 单针锁链"
+        ],
+        "iso_evidence": {
+          "406": [
+            {
+              "design": "D40588",
+              "trigger": "文中直接寫 ISO 406",
+              "line": "腰： 顶边有缝，1/8’’ 406 暗线"
+            },
+            {
+              "design": "D63358",
+              "trigger": "文中直接寫 ISO 406",
+              "line": "腰座 顶裁开 1/8’’ 406 三本双针暗线，固定大身 514拷克加401 单针锁链"
+            }
+          ],
+          "514": [
+            {
+              "design": "D46652",
+              "trigger": "文中直接寫 ISO 514",
+              "line": "腰 内加网布，顶边有缝，514+605 固定大身"
+            },
+            {
+              "design": "D63358",
+              "trigger": "「拷克」→ 拷克/包邊→overlock",
+              "line": "腰座 顶裁开 1/8’’ 406 三本双针暗线，固定大身 514拷克加401 单针锁链"
+            }
+          ],
+          "605": [
+            {
+              "design": "D46652",
+              "trigger": "文中直接寫 ISO 605",
+              "line": "腰 内加网布，顶边有缝，514+605 固定大身"
+            }
+          ]
+        },
+        "common_construction_keywords": [
+          "固定",
+          "三本",
+          "拷克"
+        ]
+      }
     },
     {
       "gt": "PANT",
@@ -1098,12 +1636,68 @@
       "l1": "大身",
       "l1_code": "BD",
       "expect": "yes",
-      "iso": "605",
+      "iso": "514",
       "iso_zh": "三針五線爬網",
-      "confidence": "mixed",
-      "machine": "爬網車 Flatseam 3N5T",
+      "confidence": "likely",
+      "machine": "拷克車 overlock",
       "fabric": "Knit",
-      "action": "select"
+      "action": "recommend",
+      "pptx_corroborate": 2,
+      "pptx_total": 4,
+      "pptx_votes": {
+        "514": 2,
+        "605": 2
+      },
+      "pct": 50,
+      "n_designs": 4,
+      "alternatives": [
+        {
+          "iso": "605",
+          "pct": 50,
+          "machine": "爬網車 coverstitch"
+        }
+      ],
+      "update_source": "2026/5 PPTX cross-validation",
+      "previous": {
+        "iso": "605",
+        "confidence": "mixed"
+      },
+      "construction_context": {
+        "n_pptx_designs": 3,
+        "representative_recipes": [
+          "固定在大身 514+605",
+          "内缝 514+605 固定大身"
+        ],
+        "iso_evidence": {
+          "514": [
+            {
+              "design": "D40588",
+              "trigger": "文中直接寫 ISO 514",
+              "line": "固定在大身 514+605"
+            },
+            {
+              "design": "D46652",
+              "trigger": "文中直接寫 ISO 514",
+              "line": "内缝 514+605 固定大身"
+            }
+          ],
+          "605": [
+            {
+              "design": "D40588",
+              "trigger": "文中直接寫 ISO 605",
+              "line": "固定在大身 514+605"
+            },
+            {
+              "design": "D46652",
+              "trigger": "文中直接寫 ISO 605",
+              "line": "内缝 514+605 固定大身"
+            }
+          ]
+        },
+        "common_construction_keywords": [
+          "固定"
+        ]
+      }
     },
     {
       "gt": "PANT",
@@ -1142,7 +1736,32 @@
       "confidence": "mixed",
       "machine": "爬網車 Flatseam 3N5T",
       "fabric": "Knit",
-      "action": "select"
+      "action": "select",
+      "pptx_corroborate": 0,
+      "pptx_total": 1,
+      "pptx_votes": {
+        "406": 1
+      },
+      "construction_context": {
+        "n_pptx_designs": 3,
+        "representative_recipes": [
+          "口袋 袋口反折 压1/8’’ 406",
+          "口袋 固定大身压401 单针锁链，袋口套结，开口反折605 爬网"
+        ],
+        "iso_evidence": {
+          "406": [
+            {
+              "design": "D40588",
+              "trigger": "文中直接寫 ISO 406",
+              "line": "口袋 袋口反折 压1/8’’ 406"
+            }
+          ]
+        },
+        "common_construction_keywords": [
+          "反折",
+          "固定"
+        ]
+      }
     },
     {
       "gt": "PANT",
@@ -1233,7 +1852,13 @@
       "confidence": "no_data",
       "machine": "",
       "fabric": "Knit",
-      "action": "manual"
+      "action": "manual",
+      "pptx_corroborate": 0,
+      "pptx_total": 2,
+      "pptx_votes": {
+        "514": 1,
+        "605": 1
+      }
     },
     {
       "gt": "SHORTS",
@@ -1246,7 +1871,30 @@
       "confidence": "no_dominant",
       "machine": "三本車 Coverstitch",
       "fabric": "Knit",
-      "action": "manual"
+      "action": "manual",
+      "pptx_corroborate": 0,
+      "pptx_total": 1,
+      "pptx_votes": {
+        "514": 1
+      },
+      "construction_context": {
+        "n_pptx_designs": 4,
+        "representative_recipes": [
+          "所有大身缝514四线拷克，除非有其他说明"
+        ],
+        "iso_evidence": {
+          "514": [
+            {
+              "design": "D55275",
+              "trigger": "「拷克」→ 拷克/包邊→overlock",
+              "line": "所有大身缝514四线拷克，除非有其他说明"
+            }
+          ]
+        },
+        "common_construction_keywords": [
+          "拷克"
+        ]
+      }
     },
     {
       "gt": "SHORTS",
@@ -1259,7 +1907,37 @@
       "confidence": "mixed",
       "machine": "爬網車 Flatseam 3N5T",
       "fabric": "Knit",
-      "action": "select"
+      "action": "select",
+      "pptx_corroborate": 0,
+      "pptx_total": 1,
+      "pptx_votes": {
+        "514": 1
+      },
+      "construction_context": {
+        "n_pptx_designs": 8,
+        "representative_recipes": [
+          "翻卷腰座：双层反折腰座拷克到大身",
+          "腰頭鬆緊帶 → 平腰頭內包鬆緊帶,包光至大身",
+          "褲1車線-腰頭包芯線 → 褲2車線-腰頭包芯線 → 臀圍3點量   下臀距腰縫 → 後襠       到腰縫 → 前襠    到腰縫 → J型車線長   到腰縫",
+          "单针固定腰绳@后中",
+          "反折腰座内穿1/2”松紧带(不要车住) → 套结固定腰绳于前中/后中"
+        ],
+        "iso_evidence": {
+          "514": [
+            {
+              "design": "D11816",
+              "trigger": "「拷克」→ 拷克/包邊→overlock",
+              "line": "翻卷腰座：双层反折腰座拷克到大身"
+            }
+          ]
+        },
+        "common_construction_keywords": [
+          "反折",
+          "鬆緊帶",
+          "固定",
+          "拷克"
+        ]
+      }
     },
     {
       "gt": "SHORTS",
@@ -1267,12 +1945,64 @@
       "l1": "褲口",
       "l1_code": "LO",
       "expect": "yes",
-      "iso": "605",
+      "iso": "406",
       "iso_zh": "三針五線爬網",
-      "confidence": "mixed",
-      "machine": "爬網車 Flatseam 3N5T",
+      "confidence": "strong",
+      "machine": "三本車 coverstitch",
       "fabric": "Knit",
-      "action": "select"
+      "action": "recommend",
+      "pptx_corroborate": 0,
+      "pptx_total": 4,
+      "pptx_votes": {
+        "406": 3,
+        "301": 1
+      },
+      "pct": 75,
+      "n_designs": 4,
+      "alternatives": [
+        {
+          "iso": "301",
+          "pct": 25,
+          "machine": "平車 lockstitch"
+        }
+      ],
+      "update_source": "2026/5 PPTX cross-validation",
+      "previous": {
+        "iso": "605",
+        "confidence": "mixed"
+      },
+      "construction_context": {
+        "n_pptx_designs": 5,
+        "representative_recipes": [
+          "褲口反折壓1/4“三針五線扒網",
+          "褲口壓1/8”三本雙針",
+          "裤口反折5/8”压1/8”三本双针",
+          "裤口：直接反折，压1/8” 406三本双针"
+        ],
+        "iso_evidence": {
+          "406": [
+            {
+              "design": "D333",
+              "trigger": "「三本雙針」→ 三本車→coverstitch",
+              "line": "褲口壓1/8”三本雙針"
+            },
+            {
+              "design": "D37017",
+              "trigger": "「三本双针」→ 三本車→coverstitch",
+              "line": "裤口反折5/8”压1/8”三本双针"
+            },
+            {
+              "design": "D55275",
+              "trigger": "「三本双针」→ 三本車→coverstitch",
+              "line": "裤口：直接反折，压1/8” 406三本双针"
+            }
+          ]
+        },
+        "common_construction_keywords": [
+          "反折",
+          "三本"
+        ]
+      }
     },
     {
       "gt": "SHORTS",
@@ -1311,7 +2041,51 @@
       "confidence": "mixed",
       "machine": "爬網車 Flatseam 3N5T",
       "fabric": "Knit",
-      "action": "select"
+      "action": "select",
+      "pptx_corroborate": 0,
+      "pptx_total": 2,
+      "pptx_votes": {
+        "301": 1,
+        "406": 1
+      },
+      "construction_context": {
+        "n_pptx_designs": 4,
+        "representative_recipes": [
+          "斜插口袋:功能性口袋壓單針包光 → 前口袋:袋口底端加打結車 → 口袋貼邊為本布並與內側單面布袋布包光 → 後口袋車入大身壓1/8”單針明線 → 口袋轉角有三角壓線加固 → 後口袋:邊有三角壓線",
+          "口袋：做光，压1/8” 406三本双针"
+        ],
+        "iso_evidence": {
+          "301": [
+            {
+              "design": "D2316",
+              "trigger": "「壓單針」→ 壓單針/SP線→平車",
+              "line": "斜插口袋:功能性口袋壓單針包光"
+            },
+            {
+              "design": "D2316",
+              "trigger": "「壓1/8”單針」→ 壓單針/SP線→平車",
+              "line": "後口袋車入大身壓1/8”單針明線"
+            },
+            {
+              "design": "D2316",
+              "trigger": "「明線」→ 明線→平車",
+              "line": "後口袋車入大身壓1/8”單針明線"
+            }
+          ],
+          "406": [
+            {
+              "design": "D55275",
+              "trigger": "「三本双针」→ 三本車→coverstitch",
+              "line": "口袋：做光，压1/8” 406三本双针"
+            }
+          ]
+        },
+        "common_construction_keywords": [
+          "壓單針",
+          "明線",
+          "三本"
+        ]
+      }
     },
     {
       "gt": "SHORTS",
@@ -1319,12 +2093,32 @@
       "l1": "下擺",
       "l1_code": "BM",
       "expect": "yes",
-      "iso": "605",
+      "iso": "406",
       "iso_zh": "三針五線爬網",
-      "confidence": "mixed",
-      "machine": "爬網車 Flatseam 3N5T",
+      "confidence": "strong",
+      "machine": "三本車 coverstitch",
       "fabric": "Knit",
-      "action": "select"
+      "action": "recommend",
+      "pptx_corroborate": 0,
+      "pptx_total": 4,
+      "pptx_votes": {
+        "406": 3,
+        "301": 1
+      },
+      "pct": 75,
+      "n_designs": 4,
+      "alternatives": [
+        {
+          "iso": "301",
+          "pct": 25,
+          "machine": "平車 lockstitch"
+        }
+      ],
+      "update_source": "2026/5 PPTX cross-validation",
+      "previous": {
+        "iso": "605",
+        "confidence": "mixed"
+      }
     },
     {
       "gt": "SHORTS",
@@ -1376,7 +2170,35 @@
       "confidence": "mixed",
       "machine": "三本車 Coverstitch",
       "fabric": "Knit",
-      "action": "select"
+      "action": "select",
+      "pptx_corroborate": 1,
+      "pptx_total": 2,
+      "pptx_votes": {
+        "301": 1,
+        "406": 1
+      },
+      "construction_context": {
+        "n_pptx_designs": 4,
+        "representative_recipes": [
+          "鬆緊帶末端接合於後中壓密集的人字車",
+          "反折內包1“鬆緊帶,壓1/4”三本雙針"
+        ],
+        "iso_evidence": {
+          "406": [
+            {
+              "design": "D5226",
+              "trigger": "「三本雙針」→ 三本車→coverstitch",
+              "line": "反折內包1“鬆緊帶,壓1/4”三本雙針"
+            }
+          ]
+        },
+        "common_construction_keywords": [
+          "鬆緊帶",
+          "接合",
+          "反折",
+          "三本"
+        ]
+      }
     },
     {
       "gt": "SHORTS",
@@ -3726,7 +4548,125 @@
       "n_designs": 3,
       "alternatives": [],
       "l1_code": "NK"
+    },
+    {
+      "fabric": "Knit",
+      "gt": "PANT",
+      "it": "PANTS",
+      "l1": "前立",
+      "l1_code": "FL",
+      "iso": "301",
+      "machine": "平車 lockstitch",
+      "confidence": "mixed",
+      "action": "select",
+      "pct": 50,
+      "n_designs": 2,
+      "alternatives": [
+        {
+          "iso": "406",
+          "pct": 50,
+          "machine": "三本車 coverstitch"
+        }
+      ],
+      "source": "2026/5 PPTX 翻譯檔",
+      "pptx_corroborate": 1,
+      "pptx_total": 2,
+      "pptx_votes": {
+        "301": 1,
+        "406": 1
+      },
+      "construction_context": {
+        "n_pptx_designs": 3,
+        "representative_recipes": [
+          "假J形壓線前立→內側本布層朝穿者左對折，J型壓線壓單針鎖鍊車。於J型壓線底壓水平向打結車，垂直向打結車壓在距水平向打結車上1“處。",
+          "假前立:1/8“三本雙針 → 假前立:1/8“三本雙針406"
+        ],
+        "iso_evidence": {
+          "301": [
+            {
+              "design": "D1213",
+              "trigger": "「雙針面線」→ 壓雙針→平車(雙針)",
+              "line": "假前立:1/8”雙針面線"
+            },
+            {
+              "design": "D2350",
+              "trigger": "「壓單針」→ 壓單針/SP線→平車",
+              "line": "假J形壓線前立→內側本布層朝穿者左對折，J型壓線壓單針鎖鍊車。於J型壓線底壓水平向打結車，垂直向打結車壓在距水平向打結車上1“處。"
+            }
+          ],
+          "406": [
+            {
+              "design": "D32544",
+              "trigger": "「三本雙針」→ 三本車→coverstitch",
+              "line": "假前立:1/8“三本雙針"
+            },
+            {
+              "design": "D32544",
+              "trigger": "「三本雙針」→ 三本車→coverstitch",
+              "line": "假前立:1/8“三本雙針406"
+            }
+          ]
+        },
+        "common_construction_keywords": [
+          "三本",
+          "壓單針"
+        ]
+      }
+    },
+    {
+      "fabric": "Knit",
+      "gt": "SHORTS",
+      "it": "SHORTS",
+      "l1": "前立",
+      "l1_code": "FL",
+      "iso": "301",
+      "machine": "平車 lockstitch",
+      "confidence": "strong",
+      "action": "recommend",
+      "pct": 100,
+      "n_designs": 1,
+      "alternatives": [],
+      "source": "2026/5 PPTX 翻譯檔",
+      "pptx_corroborate": 1,
+      "pptx_total": 1,
+      "pptx_votes": {
+        "301": 1
+      },
+      "construction_context": {
+        "n_pptx_designs": 1,
+        "representative_recipes": [
+          "前中假前立壓單針明線"
+        ],
+        "iso_evidence": {
+          "301": [
+            {
+              "design": "D333",
+              "trigger": "「壓單針」→ 壓單針/SP線→平車",
+              "line": "前中假前立壓單針明線"
+            },
+            {
+              "design": "D333",
+              "trigger": "「明線」→ 明線→平車",
+              "line": "前中假前立壓單針明線"
+            }
+          ]
+        },
+        "common_construction_keywords": [
+          "壓單針",
+          "明線"
+        ]
+      }
     }
   ],
-  "note_l1_code": "每筆加了 l1_code 欄位，可直接用 VLM 輸出的 L1 code 查表"
+  "note_l1_code": "每筆加了 l1_code 欄位，可直接用 VLM 輸出的 L1 code 查表",
+  "update_log": [
+    {
+      "date": "2026-04-20",
+      "action": "PPTX cross-validation merge",
+      "entries_updated": 7,
+      "entries_corroborated": 21,
+      "source": "47 Knit PPTX from 2026/5 folder",
+      "rules": "Only update mixed/no_dominant entries with ≥3 PPTX votes and ≥50% agreement. Excluded SS(脇邊) and SL(袖口) due to known inference bias."
+    }
+  ]
 }

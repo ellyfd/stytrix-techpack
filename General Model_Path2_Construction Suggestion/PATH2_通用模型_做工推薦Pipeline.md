@@ -159,33 +159,77 @@ for l1_code in detected:
 
 ---
 
+### ⚠️ 重要發現：一個部位 ≠ 一個 ISO
+
+從 47 款 Knit PPTX 中文翻譯的做工描述分析發現：**同一個部位往往涉及多道工序、多個 ISO**。
+
+**例：腰頭（WB）的完整做工配方**
+
+```
+D20681: 腰缝 514+1/8'' 406
+  → 514 拷克車：接合腰頭到大身
+  → 406 三本車：跨壓線 1/8"
+
+D1213: 剪接腰頭,內包鬆緊帶 → 2道單針鎖鏈平均分配腰頭高 → SP線面線
+  → 514 拷克車：接合結構
+  → 401 鎖鏈：分隔隧道
+  → 301 SP線：面線裝飾
+
+D29189: 腰 内加松紧带，401 压线创造隧道
+  → 401 鎖縫：建立鬆緊帶隧道
+```
+
+**含義**：查表推薦的是「主要（第一道）ISO」，但工廠實際需要看完整工序。`construction_context` 欄位保存了原始做工描述和每道 ISO 的來源證據，供 Stage ③ 顯示。
+
+**例：口袋（PK）的 ISO 來源追溯**
+
+```
+ISO 301（推薦）← 「貼式口袋車至大身距邊1/16"壓單針面線」(D1213)
+                ← 「前斜口袋→袋口反折包光，且距邊1/16壓1/4雙針明線」(D2350)
+ISO 406（替代）← 「口袋 反折一次压1/8'' 406，袋口套结」(D20681)
+                ← 「口袋布做光，压1/8" 406三本双针」(D39519)
+```
+
+---
+
 ### Stage ③ 工廠輸出
 
 **三種 action 的 UI 行為**：
 
 | action | 條件 | UI 行為 |
 |--------|------|---------|
-| `recommend` | confidence = strong 或 likely | 自動填入 ISO + 機種，使用者可覆寫 |
-| `select` | confidence = mixed | 顯示 ISO 選項清單（含 alternatives），使用者選一個 |
+| `recommend` | confidence = strong 或 likely | 自動填入 ISO + 機種 + 做工描述，使用者可覆寫 |
+| `select` | confidence = mixed | 顯示 ISO 選項清單（含 alternatives + 來源描述），使用者選一個 |
 | `manual` | confidence = no_dominant 或查無資料 | 空白，使用者自行輸入 |
 
-**工廠輸出格式（每個部位一張卡片）**：
+**工廠輸出格式（每個部位一張卡片，含做工上下文）**：
 
 ```
-┌─────────────────────────────┐
-│ 領 (NK)                      │
-│ ✅ 推薦：ISO 301 → 平車       │
-│    confidence: strong (100%)  │
-│    替代方案：無                │
-└─────────────────────────────┘
+┌─────────────────────────────────────────────┐
+│ 領 (NK)                                      │
+│ ✅ 推薦：ISO 301 → 平車                       │
+│    confidence: strong (100%)                  │
+│    替代方案：無                                │
+└─────────────────────────────────────────────┘
 
-┌─────────────────────────────┐
-│ 脇邊 (SS)                    │
-│ 🔶 請選擇：                   │
-│   ○ ISO 514 拷克車 (45%)      │
-│   ○ ISO 607 併縫車 (30%)      │
-│   ○ ISO 406 三本車 (25%)      │
-└─────────────────────────────┘
+┌─────────────────────────────────────────────┐
+│ 下襬 (BM)                                    │
+│ ✅ 推薦：ISO 406 → 三本車                     │
+│    confidence: strong (71%, 7 designs)        │
+│    做工描述：「反折壓1/8"三本雙針」              │
+│    來源：D11809, D20681, D22929...            │
+│    替代：ISO 514 (14%), ISO 401 (14%)         │
+└─────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────┐
+│ 腰頭 (WB)                                    │
+│ 🔶 請選擇（31 designs, 5 種 ISO 都有人用）：    │
+│   ○ ISO 406 三本車 ← 「跨壓線1/8"」           │
+│   ○ ISO 514 拷克車 ← 「接合腰頭到大身」         │
+│   ○ ISO 401 鎖鏈   ← 「壓線創造隧道」          │
+│   ○ ISO 301 平車   ← 「SP線面線」             │
+│   ⚠ 腰頭通常需要多道工序組合                     │
+└─────────────────────────────────────────────┘
 ```
 
 ---
@@ -200,8 +244,11 @@ for l1_code in detected:
 | `iso_lookup_factory_v3.json` | 四維查表：Fabric × GT × IT × L1 → ISO | ② |
 | `l1_code_to_v3_mapping.json` | L1 code ↔ 中文部位名對照（除錯用） | ①→② 橋接 |
 | `construction_recipes/` | GT×IT 做工配方（含 zone 出現率、ISO 分佈詳情） | 參考 |
-| `woven_construction_extracts.json` | 36 款 Woven 做工原始提取 | 資料來源 |
+| `woven_construction_extracts.json` | 38 款 Woven 做工原始提取 | 資料來源 |
 | `woven_iso_inferred.json` | Woven 中文→ISO 推論詳情 | 資料來源 |
+| `knit_2026_5_construction_extracts.json` | 47 款 Knit 下裝 PPTX 做工提取（2026/5 翻譯檔） | 資料來源 |
+| `pptx_vs_v3_analysis.json` | PPTX vs v3 交叉驗證分析（21 組比對、7 組安全更新） | 驗證 |
+| `knit_pptx_construction_context.json` | 完整做工上下文：每句話→哪個 ISO、跨設計比對、做工配方 | ②③ 上下文 |
 
 ---
 
@@ -245,8 +292,8 @@ for l1_code in detected:
 
 | Fabric | GT×IT 組合 | Zone 數 | 資料來源 |
 |--------|-----------|---------|---------|
-| Knit | 13 組 | 264 | Centric 8 PDF（~370 款設計） |
-| Woven | 3 組 | 16 | Source-Data PPTX（36 款設計） |
+| Knit | 13 組 | 264 | Centric 8 PDF（~370 款設計，含 2026/5 新增 53 份） |
+| Woven | 3 組 | 16 | Source-Data PPTX（38 款設計，含 FA25/HO25 新增 2 款） |
 
 **Knit 13 組**：TOP\|TOPS, PANT\|PANTS, PANT\|LEGGINGS, SHORTS\|SHORTS, SHORTS\|LEGGINGS, DRESS\|DRESSES, SWIM\|SWIM, SWIM\|SWIM_RASHGUARD, SLEEPWEAR\|SLEEPWEAR, SET\|SET, SET\|SLEEPWEAR, OUTERWEAR\|OUTERWEAR, ONE_PIECE\|ONE PIECE
 
@@ -272,13 +319,15 @@ Fabric 不需要 VLM 判，從系統已知資訊帶入：
 
 ### 已知限制
 
-1. **Woven 資料量少**：僅 36 款 / 3 個 GT×IT 組合。Knit 有 370 款 / 13 組。Woven 側 confidence 看起來都 strong，但底層樣本數只有 2-4 款，統計穩健性有限。
+1. **一個部位 ≠ 一個 ISO**（v3.2 新發現）：從 47 款 PPTX 中文做工分析確認，腰頭（WB）平均涉及 2-4 個 ISO（514 接合 + 406 壓線 + 401 隧道 + 301 面線），口袋（PK）也常見 301 壓線 + 514 拷克收邊的組合。目前查表只推薦「主要 ISO」，完整工序需查 `construction_context` 欄位。
 
-2. **Woven ISO 是推論的**：36 款中只有 1 款（D68210）直接寫 ISO 碼，其餘 35 款從中文做工描述推論。推論規則：「壓單針/明線/SP車線 → 301」「拷克 → 514」等。準確率高但非 100%。
+2. **Woven 資料量少**：僅 38 款 / 3 個 GT×IT 組合。Knit 有 370+ 款 / 13 組。Woven 側 confidence 看起來都 strong，但底層樣本數只有 2-4 款，統計穩健性有限。（2026-04-20 從 FA25/HO25 新增 D63716、D68142 兩款）
 
-3. **通用版不分品牌**：同一個 GT×IT×L1，不同品牌可能有不同偏好（例如 GAP 腰頭固定用某種 ISO，Athleta 偏好另一種）。品牌版需要加 Brand 維度，本查表不含。
+3. **Woven ISO 是推論的**：38 款中只有 1 款（D68210）直接寫 ISO 碼，其餘從中文做工描述推論。推論規則：「壓單針/明線/SP車線 → 301」「拷克 → 514」等。準確率高但非 100%。
 
-4. **L1 偵測依賴 VLM 品質**：VLM 漏判或誤判 L1 會連帶影響 ISO 推薦。多標籤偵測（一張 sketch 同時 6-15 個 L1）是 VLM 端的主要挑戰。
+4. **通用版不分品牌**：同一個 GT×IT×L1，不同品牌可能有不同偏好（例如 GAP 腰頭固定用某種 ISO，Athleta 偏好另一種）。品牌版需要加 Brand 維度，本查表不含。
+
+5. **L1 偵測依賴 VLM 品質**：VLM 漏判或誤判 L1 會連帶影響 ISO 推薦。多標籤偵測（一張 sketch 同時 6-15 個 L1）是 VLM 端的主要挑戰。
 
 ### 擴展方向
 
@@ -289,6 +338,7 @@ Fabric 不需要 VLM 判，從系統已知資訊帶入：
 | 加 Department 維度 | Swimwear / Sleepwear 獨立 ISO 分佈 | Swim 只用 514+605，Sleepwear 以 406 為主 |
 | VLM 訓練迭代 | 用 ONY sketch 做 few-shot / fine-tune | L1 偵測準確率提升 |
 | 回饋閉環 | 工廠實際採用的 ISO 回寫更新查表 | 持續提升 confidence |
+| 多道工序推薦 | 查表從「推一個 ISO」升級為「推一組工序」（如腰頭 = 514+406+401） | 更貼近工廠實際需求 |
 
 ---
 
@@ -306,4 +356,6 @@ Fabric 不需要 VLM 判，從系統已知資訊帶入：
 ---
 
 *最後更新：2026-04-20*
-*資料版本：iso_lookup_factory_v3（280 entries = Knit 264 + Woven 16）*
+*資料版本：iso_lookup_factory_v3.2（282 entries = Knit 266 + Woven 16）*
+*底層資料集：all_years.jsonl 8,075 records（含 2026/5 新增 53 份 Centric 8 PDF）*
+*Woven 來源：38 款 PPTX 中文翻譯（含 FA25 D63716 + HO25 D68142）*
