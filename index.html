@@ -2659,6 +2659,7 @@ function App() {
     setRemoved(new Set()); setOpenId(null);
     setCards([]); setAnalyzeErr(null); setAnalyzeUsage(null);
     const si = setInterval(() => setCStage(s => s < 5 ? s + 1 : s), 280);
+    const analyzeStartedAt = performance.now();
     try {
       const resp = await fetch('/api/analyze', {
         method: 'POST',
@@ -2708,6 +2709,7 @@ function App() {
         pass1: data.usage_l1 || null,
         pass2: data.usage_l2 || null,
         cents_est: +(centsFor(data.usage_l1) + centsFor(data.usage_l2)).toFixed(3),
+        elapsed_ms: Math.round(performance.now() - analyzeStartedAt),
       };
       console.log('[analyze] usage:', usageSummary);
       setAnalyzeUsage(usageSummary);
@@ -3463,6 +3465,40 @@ function App() {
                         <span key={v} style={{ fontSize: "11px", padding: "2px 8px", background: i === 0 ? "#1a1a1a" : "#f5f5f5", borderRadius: "4px", color: i === 0 ? "#fff" : "#767676", fontWeight: i === 0 ? 600 : 400 }}>{v}</span>
                       ))}
                     </div>}
+                    {cDone && analyzeUsage && (() => {
+                      // 模型代碼 → 中文顯示名
+                      const MODEL_ZH = {
+                        "claude-opus-4-7": "Claude Opus 4.7",
+                        "claude-sonnet-4-6": "Claude Sonnet 4.6",
+                        "claude-haiku-4-5-20251001": "Claude Haiku 4.5",
+                      };
+                      const modelName = MODEL_ZH[analyzeUsage.model] || analyzeUsage.model || "—";
+                      const secs = (analyzeUsage.elapsed_ms || 0) / 1000;
+                      const cents = analyzeUsage.cents_est || 0;
+                      // USD → TWD 匯率約 32（2026 年參考值）
+                      const twd = cents * 0.01 * 32;
+                      return (
+                        <div style={{
+                          padding: "10px 16px", borderTop: "1px solid #f0f0f0",
+                          fontSize: "11px", color: "#767676", lineHeight: 1.6,
+                        }}>
+                          <div style={{ display: "flex", justifyContent: "space-between" }}>
+                            <span>模型</span>
+                            <span style={{ color: "#1a1a1a", fontFamily: "'JetBrains Mono',monospace" }}>{modelName}</span>
+                          </div>
+                          <div style={{ display: "flex", justifyContent: "space-between" }}>
+                            <span>分析耗時</span>
+                            <span style={{ color: "#1a1a1a", fontFamily: "'JetBrains Mono',monospace" }}>{secs.toFixed(1)} 秒</span>
+                          </div>
+                          <div style={{ display: "flex", justifyContent: "space-between" }}>
+                            <span>預估成本</span>
+                            <span style={{ color: "#065f46", fontFamily: "'JetBrains Mono',monospace" }}>
+                              ≈{cents.toFixed(2)}¢ USD · 約 NT${twd.toFixed(2)}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })()}
                     {cDone && <div style={{
                       padding: "10px 16px", borderTop: "1px solid #f0f0f0",
                       display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px",
