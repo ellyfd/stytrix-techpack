@@ -1837,20 +1837,8 @@ function App() {
     return bottoms.has(gt) ? "bottom" : "top";
   })();
   const universalSpec = universalGarmentFamily === "bottom" ? UNIVERSAL_BOTTOM_SPEC : UNIVERSAL_TOP_SPEC;
-  // 依目前 bucket 解析通用模型的基礎 POM codes（按 candidate 優先序挑第一個在 bucket 有資料的）。
-  // 聚陽 / 通用共用同一套 measurement/grading 版面，差異只在這組 code 集合。
-  const universalBasicCodes = useMemo(() => {
-    if (!currentBucket) return new Set();
-    const mv = currentBucket.median_values || {};
-    const mr = currentBucket.measurement_rules || {};
-    const out = new Set();
-    for (const s of universalSpec) {
-      const code = s.candidates.find(c => (mv[c]?.size_medians?.M != null)
-        || mr.must?.[c] || mr.recommend?.[c] || mr.optional?.[c]);
-      if (code) out.add(code);
-    }
-    return out;
-  }, [currentBucket, universalSpec]);
+  // 依目前 bucket 解析通用模型的基礎 POM codes(按 candidate 優先序挑第一個在 bucket 有資料的)已移到
+  // currentBucket state 宣告之後,避免 TDZ ReferenceError。
   useEffect(() => {
     fetch('./pom_rules/_index.json')
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
@@ -2189,6 +2177,20 @@ function App() {
   };
   const [currentBucket, setCurrentBucket] = useState(null);
   const [bucketLoading, setBucketLoading] = useState(false);
+  // 依目前 bucket 解析通用模型的基礎 POM codes(按 candidate 優先序挑第一個在 bucket 有資料的)。
+  // 聚陽 / 通用共用同一套 measurement/grading 版面,差異只在這組 code 集合。
+  const universalBasicCodes = useMemo(() => {
+    if (!currentBucket) return new Set();
+    const mv = currentBucket.median_values || {};
+    const mr = currentBucket.measurement_rules || {};
+    const out = new Set();
+    for (const s of universalSpec) {
+      const code = s.candidates.find(c => (mv[c]?.size_medians?.M != null)
+        || mr.must?.[c] || mr.recommend?.[c] || mr.optional?.[c]);
+      if (code) out.add(code);
+    }
+    return out;
+  }, [currentBucket, universalSpec]);
   const bucketKey = (dept && gt && gender) ? `${dept}_${gt}|${gender}` : null;
   const bucketMeta = useMemo(() => {
     if (!bucketKey || !pomRules) return null;
