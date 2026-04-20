@@ -1814,9 +1814,6 @@ function App() {
   useEffect(() => {
     try { localStorage.setItem('stytrix.appMode', appMode); } catch {}
   }, [appMode]);
-  useEffect(() => {
-    if (appMode === "universal" && activeTab === "grading") setActiveTab("measurement");
-  }, [appMode]);
   // 通用模型 — 基礎大尺寸：每欄位一組 candidate POM codes，按順序挑第一個
   // 在 currentBucket 裡有資料（median_values.M 或 measurement_rules）的碼，
   // 直接沿用聚陽 bucket 的中位數/公差/POM 翻譯，只是顯示比較少項。
@@ -1840,6 +1837,20 @@ function App() {
     return bottoms.has(gt) ? "bottom" : "top";
   })();
   const universalSpec = universalGarmentFamily === "bottom" ? UNIVERSAL_BOTTOM_SPEC : UNIVERSAL_TOP_SPEC;
+  // 依目前 bucket 解析通用模型的基礎 POM codes（按 candidate 優先序挑第一個在 bucket 有資料的）。
+  // 聚陽 / 通用共用同一套 measurement/grading 版面，差異只在這組 code 集合。
+  const universalBasicCodes = useMemo(() => {
+    if (!currentBucket) return new Set();
+    const mv = currentBucket.median_values || {};
+    const mr = currentBucket.measurement_rules || {};
+    const out = new Set();
+    for (const s of universalSpec) {
+      const code = s.candidates.find(c => (mv[c]?.size_medians?.M != null)
+        || mr.must?.[c] || mr.recommend?.[c] || mr.optional?.[c]);
+      if (code) out.add(code);
+    }
+    return out;
+  }, [currentBucket, universalSpec]);
   useEffect(() => {
     fetch('./pom_rules/_index.json')
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
@@ -2334,11 +2345,15 @@ function App() {
   const curPoms = sizeRun === "missy" ? MISSY_POMS : PLUS_POMS;
   const allCodes = [...curPoms.must, ...curPoms.recommend, ...curPoms.optional].map(p => p.code);
   const includedCount = allCodes.filter(c => !excluded.has(c)).length;
-  const bucketCodes = currentBucket ? [
+  const bucketCodesRaw = currentBucket ? [
     ...Object.keys(currentBucket.measurement_rules?.must || {}),
     ...Object.keys(currentBucket.measurement_rules?.recommend || {}),
     ...Object.keys(currentBucket.measurement_rules?.optional || {}),
   ] : [];
+  // 通用模型只計算基礎大尺寸 POM；聚陽模型用完整 bucket codes。
+  const bucketCodes = appMode === "universal"
+    ? bucketCodesRaw.filter(c => universalBasicCodes.has(c))
+    : bucketCodesRaw;
   const bucketIncludedCount = bucketCodes.filter(c => !excluded.has(c)).length;
   const displayPomCount = currentBucket ? bucketCodes.length : allCodes.length;
   const displayIncludedCount = currentBucket ? bucketIncludedCount : includedCount;
@@ -3099,12 +3114,10 @@ function App() {
         {(() => {
           const tabs = [
             { key: "construction", label: appMode === "universal" ? "作工建議 · ISO" : "作工建議", done: cDone, disabled: false },
-            { key: "measurement",  label: appMode === "universal" ? "基礎大尺寸" : "基碼確認",     done: mDone, disabled: false },
-            ...(appMode === "universal" ? [] : [{
-              key: "grading", label: "全碼",
+            { key: "measurement",  label: appMode === "universal" ? "基碼確認 · 基礎" : "基碼確認",   done: mDone, disabled: false },
+            { key: "grading",      label: appMode === "universal" ? "全碼 · 基礎"     : "全碼",
               done: mDone && displayIncludedCount > 0,
-              disabled: !(mDone && currentBucket && displayIncludedCount > 0),
-            }]),
+              disabled: !(mDone && currentBucket && displayIncludedCount > 0) },
           ];
           const onTabKey = (e, idx) => {
             if (e.key !== "ArrowLeft" && e.key !== "ArrowRight" && e.key !== "Home" && e.key !== "End") return;
@@ -3572,305 +3585,7 @@ function App() {
           </div>
         )}
 
-        {/* ═══ Measurement Tab Panel ═══ */}
-        {activeTab === "measurement" && appMode === "universal" && (() => {
-          // 通用模型用同一組聚陽 bucket 資料（median + tolerance + POM 翻譯），
-          // 只挑每個基礎大尺寸欄位的第一個候選 POM code。
-          // Regular/Petite/Tall/Plus 全支援，只是 POM 列數少（5–6 個）。
-          const mv = currentBucket?.median_values || {};
-          const mr = currentBucket?.measurement_rules || {};
-          const gr = currentBucket?.grading_rules || {};
-          const sizes = currentBucket?.size_range || [];
-          const tolStr = m => {
-            const t = m?.tolerance;
-            if (!t) return "—";
-            if (typeof t === "object") return "±" + (t.display || frmt(t.standard)) + '"';
-            return "±" + frmt(t) + '"';
-          };
-          const resolveCode = (cands) => cands.find(c => (mv[c]?.size_medians?.M != null)
-            || mr.must?.[c] || mr.recommend?.[c] || mr.optional?.[c]) || null;
-          const rows = universalSpec.map(s => {
-            const code = resolveCode(s.candidates);
-            const baseM = code ? (mv[code]?.size_medians?.M ?? null) : null;
-            const rule = code ? (mr.must?.[code] || mr.recommend?.[code] || mr.optional?.[code] || null) : null;
-            return { ...s, code, baseM, rule };
-          });
-          const matchedCount = rows.filter(r => r.code).length;
-          const familyLabel = universalGarmentFamily === "bottom"
-            ? "下身 · 腰圍 / 臀圍 / 前襠 / 後襠 / 內長 / 褲口"
-            : "上衣 · 肩寬 / 胸圍 / 下擺 / 袖長 / 身長";
-          // 跟 grading tab 同樣的 size 推導邏輯
-          const isPlus = s => /^\d+X$/.test(s);
-          const missySeq = sizes.filter(x => !isPlus(x));
-          const plusSeq = sizes.filter(isPlus).slice().sort((a, b) => parseInt(a) - parseInt(b));
-          const plusAnchor = plusSeq[0] || "2X";
-          const mIdxMissy = missySeq.indexOf("M");
-          const hasPlus = plusSeq.length > 0;
-          const runOffsets = currentBucket?.size_run_offsets || {};
-          const activeOffsets = sizeRunVariant === 'regular' ? null : (runOffsets[sizeRunVariant] || null);
-          const hasRunData = !!activeOffsets && Object.keys(activeOffsets).length > 0;
-          const applyRunOffset = (code, v) => {
-            if (v == null || !activeOffsets) return v;
-            const d = activeOffsets[code];
-            return d != null ? v + d : v;
-          };
-          const effectiveBaseM = code => {
-            const ov = baseOverrides[code];
-            if (ov != null && ov !== "") { const v = parseInch(ov); if (v != null) return v; }
-            return mv[code]?.size_medians?.M;
-          };
-          const effectivePlusBase = (code) => {
-            const ov = plusBaseOverrides[code];
-            if (ov != null && ov !== "") { const v = parseInch(ov); if (v != null) return v; }
-            return mv[code]?.size_medians?.[plusAnchor];
-          };
-          const sizeValueFor = (code, s) => {
-            const origS = mv[code]?.size_medians?.[s];
-            let v;
-            if (isPlus(s)) {
-              const newBase = effectivePlusBase(code);
-              const origBase = mv[code]?.size_medians?.[plusAnchor];
-              if (newBase == null) v = origS ?? null;
-              else {
-                const sIdx = plusSeq.indexOf(s);
-                const baseIdx = plusSeq.indexOf(plusAnchor);
-                const inc = gr[code]?.typical_increment;
-                if (sIdx >= 0 && baseIdx >= 0 && inc != null) v = newBase + (sIdx - baseIdx) * inc;
-                else if (origS == null || origBase == null) v = origS ?? null;
-                else v = origS + (newBase - origBase);
-              }
-            } else {
-              const origM = mv[code]?.size_medians?.M;
-              const newM = effectiveBaseM(code);
-              if (newM == null) v = origS ?? null;
-              else if (mIdxMissy >= 0) {
-                const sIdx = missySeq.indexOf(s);
-                const inc = gr[code]?.typical_increment;
-                if (sIdx >= 0 && inc != null) v = newM + (sIdx - mIdxMissy) * inc;
-                else if (origS == null || origM == null) v = origS ?? null;
-                else v = origS + (newM - origM);
-              } else {
-                if (origS == null || origM == null) v = origS ?? null;
-                else v = origS + (newM - origM);
-              }
-            }
-            return applyRunOffset(code, v);
-          };
-          const visibleSizes = showPlus ? [...missySeq, ...plusSeq] : missySeq;
-          return (
-          <div style={{ animation: "fadeIn 0.2s ease" }}>
-            {/* ─── 通用模型 · 基礎大尺寸 ─── */}
-            <div style={{
-              background: "#fff", border: "1px solid #eee", borderRadius: "10px",
-              padding: isMobile ? "14px 16px" : "18px 22px",
-              marginBottom: isMobile ? "12px" : "16px",
-              display: "flex",
-              flexDirection: isMobile ? "column" : "row",
-              justifyContent: "space-between",
-              alignItems: isMobile ? "stretch" : "center",
-              gap: isMobile ? "10px" : "16px",
-            }}>
-              <div>
-                <div style={{ fontSize: isMobile ? "16px" : "18px", fontWeight: 700, marginBottom: "4px", color: "#1a1a1a" }}>
-                  基礎大尺寸
-                  <span style={{
-                    marginLeft: "8px", fontSize: "10px", padding: "2px 8px",
-                    background: "#eff6ff", color: "#1e40af", borderRadius: "999px", fontWeight: 700,
-                    letterSpacing: "0.05em",
-                  }}>通用模型</span>
-                </div>
-                <div style={{ fontSize: isMobile ? "12px" : "13px", color: "#888" }}>{familyLabel}</div>
-                <div style={{ fontSize: "11px", color: "#999", marginTop: "3px" }}>
-                  聚陽 bucket 同源 · {currentBucket?.bucket || "—"}{currentBucket ? ` · 對應 ${matchedCount} / ${rows.length} 欄位` : ""}
-                </div>
-              </div>
-              <div style={{ textAlign: isMobile ? "left" : "right" }}>
-                <div style={{ fontSize: "11px", color: "#999" }}>品類</div>
-                <div style={{ fontSize: "14px", fontWeight: 700, color: "#065f46", fontFamily: "'JetBrains Mono',monospace" }}>
-                  {gt || "—"}{it ? " · " + it : ""}
-                </div>
-              </div>
-            </div>
-
-            {!currentBucket ? (
-              <div style={{
-                background: "#fff", border: "1px solid #eee", borderRadius: "10px",
-                padding: "28px", textAlign: "center", color: "#888", fontSize: "13px",
-              }}>
-                {canGenerateSpec ? "載入 bucket 資料中…" : "請先於上方完成 Brand / Fabric / Gender / Dept / GT filter"}
-              </div>
-            ) : (
-              <>
-                {/* ─── Run / Plus 切換（與聚陽全碼 tab 同樣的 UI） ─── */}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "4px", marginBottom: "8px", gap: "12px", flexWrap: "wrap" }}>
-                  <div style={{ fontSize: "13px", fontWeight: 700, color: "#1a1a1a" }}>
-                    基礎大尺寸 · 全碼
-                    <span style={{ fontSize: "11px", color: "#999", fontWeight: 400, marginLeft: "6px" }}>
-                      各 size 中位數 + 公差 + 跳碼（列數少，但 run / plus 全支援）
-                    </span>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <span style={{ fontSize: "11px", color: "#888", fontWeight: 500 }}>Run</span>
-                      <div style={{ display: "inline-flex", border: "1px solid #e8e5e1", borderRadius: "6px", overflow: "hidden" }}>
-                        {['regular','petite','tall'].map(run => {
-                          const active = sizeRunVariant === run;
-                          return (
-                            <button key={run} onClick={() => setSizeRunVariant(run)}
-                              style={{
-                                padding: "5px 11px", fontSize: "12px", fontWeight: active ? 700 : 500,
-                                background: active ? "#1a1a1a" : "#fff",
-                                color: active ? "#fff" : "#555",
-                                border: "none", cursor: "pointer", fontFamily: "inherit",
-                                borderRight: run !== 'tall' ? "1px solid #e8e5e1" : "none",
-                              }}>
-                              {run === 'regular' ? 'Regular' : run === 'petite' ? 'Petite' : 'Tall'}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      {sizeRunVariant !== 'regular' && !hasRunData && (
-                        <span style={{ fontSize: "10px", color: "#b45309" }}>(此 bucket 無 {sizeRunVariant === 'petite' ? 'Petite' : 'Tall'} 資料,顯示與 Regular 相同)</span>
-                      )}
-                    </div>
-                    {hasPlus && (
-                      <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "#555", cursor: "pointer", userSelect: "none" }}>
-                        <input type="checkbox" checked={showPlus} onChange={e => setShowPlus(e.target.checked)}
-                          style={{ width: "14px", height: "14px", cursor: "pointer" }} />
-                        顯示 Plus sizes <span style={{ fontSize: "10px", color: "#888" }}>({plusSeq.join("/")} · 自有基碼 {plusAnchor})</span>
-                      </label>
-                    )}
-                  </div>
-                </div>
-
-                <div style={{ background: "#fff", border: "1px solid #e8e5e1", borderRadius: "10px", overflow: "auto" }}>
-                  <table style={{ width: "100%", minWidth: isMobile ? "900px" : "auto", borderCollapse: "collapse", fontSize: "14px" }}>
-                    <thead>
-                      <tr style={{ background: "#faf9f7", borderBottom: "1.5px solid #e8e5e1" }}>
-                        <th style={{ padding: "10px 12px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", width: "56px", position: "sticky", left: 0, background: "#faf9f7" }}>POM</th>
-                        <th style={{ padding: "10px 12px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", minWidth: "140px" }}>部位 / EN</th>
-                        <th style={{ padding: "10px 12px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#7e22ce", width: "72px" }}>公差</th>
-                        <th style={{ padding: "10px 12px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#b45309", width: "72px" }}>跳碼</th>
-                        {visibleSizes.map(s => {
-                          const isMissyBase = s === "M";
-                          const isPlusBase = isPlus(s) && s === plusAnchor;
-                          const highlight = isMissyBase || isPlusBase;
-                          return (
-                            <th key={s} style={{
-                              padding: "10px 8px", textAlign: "center", fontWeight: 700, fontSize: "11px",
-                              color: highlight ? "#065f46" : "#525252",
-                              background: highlight ? "#ecfdf5" : "#faf9f7",
-                              fontFamily: "'JetBrains Mono',monospace",
-                            }}>
-                              {s}
-                              {highlight && <div style={{ fontSize: "8px", color: "#065f46", fontWeight: 600, marginTop: "1px" }}>BASE</div>}
-                            </th>
-                          );
-                        })}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {rows.map(r => {
-                        const pn = r.code ? (pomNames[r.code] || {}) : {};
-                        const hasCode = !!r.code;
-                        const grRow = hasCode ? gr[r.code] : null;
-                        const incText = grRow?.typical_increment != null
-                          ? (grRow.typical_increment >= 0 ? "+" : "") + frmt(grRow.typical_increment) + '"'
-                          : "—";
-                        const edited = hasCode && baseOverrides[r.code] != null && baseOverrides[r.code] !== ""
-                          && parseInch(baseOverrides[r.code]) != null;
-                        return (
-                          <tr key={r.zh} style={{ borderBottom: "1px solid #f0eeeb", opacity: hasCode ? 1 : 0.55 }}>
-                            <td style={{ padding: "9px 12px", fontFamily: "'JetBrains Mono',monospace", fontWeight: 700, fontSize: "14px", color: hasCode ? "#0369a1" : "#bbb", position: "sticky", left: 0, background: "#fff" }}>
-                              {r.code || "—"}
-                            </td>
-                            <td style={{ padding: "9px 12px" }}>
-                              <div style={{ fontWeight: 600, color: "#1a1a1a", fontSize: "14px", display: "flex", alignItems: "center", gap: "6px" }}>
-                                {r.zh}
-                                {edited && <span style={{ fontSize: "9px", color: "#7e22ce", background: "#f5f3ff", padding: "2px 6px", borderRadius: "4px", fontWeight: 600 }}>已調整</span>}
-                              </div>
-                              <div style={{ fontSize: "11px", color: "#888", marginTop: "2px" }}>
-                                {hasCode && pn.en ? pn.en : r.en}
-                                {!hasCode && <span style={{ color: "#b91c1c", marginLeft: "6px" }}>· 此 bucket 無對應 POM</span>}
-                              </div>
-                            </td>
-                            <td style={{ padding: "9px 12px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", fontSize: "13px", color: "#7e22ce", fontWeight: 600, whiteSpace: "nowrap" }}>
-                              {hasCode ? tolStr(r.rule) : "—"}
-                            </td>
-                            <td style={{ padding: "9px 12px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", fontSize: "13px", color: "#b45309", fontWeight: 600, whiteSpace: "nowrap" }}>
-                              {hasCode ? incText : "—"}
-                            </td>
-                            {visibleSizes.map(s => {
-                              if (!hasCode) {
-                                return <td key={s} style={{ padding: "9px 8px", textAlign: "center", fontFamily: "'JetBrains Mono',monospace", fontSize: "13px", color: "#ccc" }}>—</td>;
-                              }
-                              const val = sizeValueFor(r.code, s);
-                              const isMissyBase = s === "M";
-                              const isPlusBase = isPlus(s) && s === plusAnchor;
-                              if (isMissyBase || isPlusBase) {
-                                const storeMap = isMissyBase ? baseOverrides : plusBaseOverrides;
-                                const setStore = isMissyBase ? setBaseOverrides : setPlusBaseOverrides;
-                                const rawBase = mv[r.code]?.size_medians?.[s];
-                                const ov = storeMap[r.code] ?? "";
-                                const invalid = ov !== "" && parseInch(ov) == null;
-                                const displayVal = ov !== "" ? ov : (rawBase != null ? frmt(rawBase) : "");
-                                return (
-                                  <td key={s} style={{ padding: "6px 6px", textAlign: "center", background: "#ecfdf5" }}>
-                                    <input type="text" value={displayVal}
-                                      onChange={(e) => setStore(prev => ({ ...prev, [r.code]: e.target.value }))}
-                                      onBlur={() => {
-                                        const raw = storeMap[r.code];
-                                        if (raw == null || raw === "") return;
-                                        const parsed = parseInch(raw);
-                                        if (parsed == null) return;
-                                        const normalized = frmt(parsed);
-                                        if (normalized !== "—" && normalized !== raw) {
-                                          setStore(prev => ({ ...prev, [r.code]: normalized }));
-                                        }
-                                      }}
-                                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); } }}
-                                      placeholder={rawBase != null ? frmt(rawBase) : "—"}
-                                      inputMode="text"
-                                      aria-label={`${r.code} Base ${s}`}
-                                      style={{
-                                        width: isMobile ? "80px" : "90px", textAlign: "center", padding: "6px 7px",
-                                        fontFamily: "'JetBrains Mono',monospace", fontSize: "13px", fontWeight: 700,
-                                        color: invalid ? "#dc2626" : "#065f46",
-                                        border: `1px solid ${invalid ? "#dc2626" : "#a7f3d0"}`, borderRadius: "5px",
-                                        background: "#fff",
-                                      }} />
-                                  </td>
-                                );
-                              }
-                              return (
-                                <td key={s} style={{ padding: "9px 8px", textAlign: "center", fontFamily: "'JetBrains Mono',monospace", fontSize: "13px", color: "#1a1a1a", fontWeight: 500 }}>
-                                  {val != null ? frmt(val) + '"' : "—"}
-                                </td>
-                              );
-                            })}
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </>
-            )}
-
-            <div style={{
-              marginTop: "14px", padding: "10px 14px",
-              background: "#eff6ff", border: "1px dashed #93c5fd",
-              borderRadius: "8px", fontSize: "12px", color: "#1e3a8a", lineHeight: 1.5,
-            }}>
-              <span style={{ fontWeight: 700 }}>通用模型</span>
-              {" · "}
-              資料與聚陽同源（bucket {currentBucket?.bucket || "—"} 的 median + 公差 + 跳碼 + Regular/Petite/Tall/Plus），只是 POM 列數少（5–6 項）。若要展開完整 POM tier，請於右上改用「聚陽模型」。
-            </div>
-          </div>
-          );
-        })()}
-
-        {activeTab === "measurement" && appMode !== "universal" && (
+        {activeTab === "measurement" && (
           <div style={{ animation: "fadeIn 0.2s ease" }}>
             {/* Action bar — 僅在未完成 / 生成前顯示,完成後改在下方合併成一個 header */}
             {!mDone && (
@@ -3933,7 +3648,9 @@ function App() {
               const mr = currentBucket.measurement_rules || {};
               const mv = currentBucket.median_values || {};
               const gr = currentBucket.grading_rules || {};
-              const tierPoms = tier => Object.keys(mr[tier] || {}).filter(c => mr[tier][c] != null);
+              // 通用模型只顯示 5–6 個基礎大尺寸 POM code；其餘版面、邏輯與聚陽一致。
+              const keep = appMode === "universal" ? (c => universalBasicCodes.has(c)) : (() => true);
+              const tierPoms = tier => Object.keys(mr[tier] || {}).filter(c => mr[tier][c] != null && keep(c));
               const tiersOrdered = ["must", "recommend", "optional"];
               const codesByTier = Object.fromEntries(
                 tiersOrdered.map(t => [t, sortPomCodes(tierPoms(t), currentBucket.pom_sort_order)])
@@ -4321,7 +4038,7 @@ function App() {
         )}
 
         {/* ═══ Grading (全碼) Tab Panel ═══ */}
-        {activeTab === "grading" && appMode !== "universal" && (
+        {activeTab === "grading" && (
           <div style={{ animation: "fadeIn 0.2s ease" }}>
             {!(mDone && currentBucket) && (
               <div style={{
@@ -4342,7 +4059,9 @@ function App() {
               const gr = currentBucket.grading_rules || {};
               const mr = currentBucket.measurement_rules || {};
               const tiersOrdered = ["must", "recommend", "optional"];
-              const tierPoms = tier => Object.keys(mr[tier] || {}).filter(c => mr[tier][c] != null);
+              // 通用模型過濾為基礎大尺寸 POM；其餘版面與聚陽 100% 共用。
+              const keep = appMode === "universal" ? (c => universalBasicCodes.has(c)) : (() => true);
+              const tierPoms = tier => Object.keys(mr[tier] || {}).filter(c => mr[tier][c] != null && keep(c));
               const allCodesFlat = sortPomCodes(
                 tiersOrdered.flatMap(t => tierPoms(t)),
                 currentBucket.pom_sort_order
