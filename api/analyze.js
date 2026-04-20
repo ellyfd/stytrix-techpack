@@ -65,7 +65,12 @@ export default async function handler(request) {
       l2_alternatives: l2info.alternatives || []
     };
   });
-  return json({ detected: merged, usage_l1: detected.usage, usage_l2: l2Map.usage });
+  return json({
+    detected: merged,
+    usage_l1: detected.usage,
+    usage_l2: l2Map.usage,
+    model: CLAUDE_MODEL,
+  });
 }
 
 async function identifyL1(apiKey, mediaType, b64, ctxObj, guide) {
@@ -84,16 +89,14 @@ async function identifyL1(apiKey, mediaType, b64, ctxObj, guide) {
     ctxObj.item_type && `Item Type: ${ctxObj.item_type}`
   ].filter(Boolean).join("\n");
 
-  const prompt = `You are a garment manufacturing expert. Analyze this clothing sketch and identify which of the 38 construction parts below are visible in the drawing.
+  // System block: stable across every call (same 38 L1 list + sketch defs).
+  // Gets cache_control=ephemeral so repeat calls hit prompt cache.
+  const system = `You are a garment manufacturing expert. Analyze a clothing sketch and identify which of the 38 construction parts are visible in the drawing.
 
 Each entry below is "code = 中文名 — sketch visual definition with sibling contrasts (↔ marks comparisons against sibling L1s you must distinguish from)". Use the sketch definition to ground your judgment in what the artist actually drew, and use the ↔ contrasts to break ties between siblings (e.g. AE 無袖開口 vs AH 有袖接合線; BM 上衣底邊 vs LO 褲腳 vs BP 側邊開叉).
 
 Part codes:
 ${partList}
-
-${ctx ? "Context:\n" + ctx + "\n" : ""}
-Return ONLY valid JSON (no markdown fences, no prose) in this exact shape:
-{"detected":[{"code":"WB","side":"front","x":50,"y":10,"confidence":92}]}
 
 Rules:
 - code: one of the 38 codes above (exact).
@@ -104,7 +107,11 @@ Rules:
 - For parts marked "幾乎不可見" / "通常不可見" (BN, NT, LI, etc.), only include if a callout/text annotation in the sketch explicitly mentions them.
 - If the sketch shows both front and back views side-by-side, x for a back part should be in the right half.`;
 
-  const data = await callClaude(apiKey, mediaType, b64, prompt, 2000);
+  // User block: per-call (context + return-format reminder).
+  const userText = `${ctx ? "Context:\n" + ctx + "\n\n" : ""}Return ONLY valid JSON (no markdown fences, no prose) in this exact shape:
+{"detected":[{"code":"WB","side":"front","x":50,"y":10,"confidence":92}]}`;
+
+  const data = await callClaude(apiKey, mediaType, b64, { system, userText }, 2000);
   if (data.error) return { error: data.error, detail: data.detail };
 
   const parsed = parseJson(data.text);
@@ -155,12 +162,13 @@ async function identifyL2(apiKey, mediaType, b64, detectedL1s, guide, trees) {
   }
   if (!blocks.length) return { error: "no decision tree matched any detected L1" };
 
+  // System block: §0 通用 prompt is invariant across every call, so caching it gives
+  // the biggest savings. The per-L1 tree blocks vary per sketch (based on Pass 1
+  // output) so they stay in user content.
+  const system = trees.common;
+
   const detectedCodes = detectedL1s.map(d => d.code).join(", ");
-  const prompt = `${trees.common}
-
----
-
-以下是本次 sketch 偵測到的 ${detectedL1s.length} 個 L1 部位（${detectedCodes}）的判定邏輯樹。針對 **每個** L1 套用其 decision tree 找出最可能的 L2 零件。
+  const userText = `以下是本次 sketch 偵測到的 ${detectedL1s.length} 個 L1 部位（${detectedCodes}）的判定邏輯樹。針對 **每個** L1 套用其 decision tree 找出最可能的 L2 零件。
 
 ${blocks.join("\n\n---\n\n")}
 
@@ -177,7 +185,7 @@ Rules:
 - needs_text=false 時 merged_candidates 可為空陣列。
 - 只回 JSON，不要 markdown code fence、不要任何其他文字。`;
 
-  const data = await callClaude(apiKey, mediaType, b64, prompt, 4000);
+  const data = await callClaude(apiKey, mediaType, b64, { system, userText }, 4000);
   if (data.error) return { error: data.error, detail: data.detail };
 
   const parsed = parseJson(data.text);
@@ -210,7 +218,34 @@ Rules:
   return { byCode, usage: data.usage };
 }
 
-async function callClaude(apiKey, mediaType, b64, prompt, maxTokens = 2000) {
+// Production-tunable knob: claude-opus-4-7 (~76% L2) vs claude-sonnet-4-6 (~5× cheaper).
+// Sonnet is good enough once the decision-tree prompt infrastructure guides reasoning.
+const CLAUDE_MODEL = "claude-sonnet-4-6";
+
+// system + image + user text: system holds the stable, cache-hittable prompt block;
+// user holds image + per-call varying context. Image gets ephemeral cache too so
+// Pass 1 and Pass 2 on the same sketch share the image tokenization.
+async function callClaude(apiKey, mediaType, b64, { system, userText }, maxTokens = 2000) {
+  const body = {
+    model: CLAUDE_MODEL,
+    max_tokens: maxTokens,
+    messages: [{
+      role: "user",
+      content: [
+        {
+          type: "image",
+          source: { type: "base64", media_type: mediaType, data: b64 },
+          cache_control: { type: "ephemeral" }
+        },
+        { type: "text", text: userText }
+      ]
+    }]
+  };
+  if (system) {
+    // Array form lets us attach cache_control to the stable block so repeated
+    // analyses across different sketches share the system-prompt cache.
+    body.system = [{ type: "text", text: system, cache_control: { type: "ephemeral" } }];
+  }
   const resp = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -219,28 +254,14 @@ async function callClaude(apiKey, mediaType, b64, prompt, maxTokens = 2000) {
       "anthropic-version": "2023-06-01",
       "anthropic-beta": "prompt-caching-2024-07-31"
     },
-    body: JSON.stringify({
-      model: "claude-opus-4-7",
-      max_tokens: maxTokens,
-      messages: [{
-        role: "user",
-        content: [
-          {
-            type: "image",
-            source: { type: "base64", media_type: mediaType, data: b64 },
-            cache_control: { type: "ephemeral" }
-          },
-          { type: "text", text: prompt }
-        ]
-      }]
-    })
+    body: JSON.stringify(body)
   });
   if (!resp.ok) {
     const detail = await resp.text();
     return { error: `Claude API ${resp.status}`, detail };
   }
   const data = await resp.json();
-  return { text: data.content?.[0]?.text || "", usage: data.usage || null };
+  return { text: data.content?.[0]?.text || "", usage: data.usage || null, model: CLAUDE_MODEL };
 }
 
 function parseJson(text) {

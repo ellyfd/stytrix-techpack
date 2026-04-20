@@ -2053,6 +2053,8 @@ function App() {
   const [partPresence, setPartPresence] = useState(null);
   const [visualGuide, setVisualGuide] = useState(null);
   const [analyzeErr, setAnalyzeErr] = useState(null);
+  // { model, pass1: {input, output, cache_read, cache_write}, pass2: {...}, cost_est } | null
+  const [analyzeUsage, setAnalyzeUsage] = useState(null);
 
   // 大 JSON 懶載：只在用戶上傳 sketch 後才抓。首屏省 ~900KB，
   // 純用尺寸表的流程完全不下載這三個檔。
@@ -2321,8 +2323,8 @@ function App() {
 
   const runConstruction = async () => {
     setCStep(1); setCAnalyzing(true); setCStage(0);
-    setRemoved(new Set()); setOpenId(null); setAddonOn(true);
-    setCards([]); setAnalyzeErr(null);
+    setRemoved(new Set()); setOpenId(null);
+    setCards([]); setAnalyzeErr(null); setAnalyzeUsage(null);
     const si = setInterval(() => setCStage(s => s < 5 ? s + 1 : s), 280);
     try {
       const resp = await fetch('/api/analyze', {
@@ -2335,6 +2337,26 @@ function App() {
       });
       const data = await resp.json();
       if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+      // Capture Claude usage stats for display; shape per-pass:
+      //   { input_tokens, output_tokens, cache_creation_input_tokens, cache_read_input_tokens }
+      // Sonnet 4.6 rough pricing (USD/M tokens): input $3, output $15, cache_read $0.30, cache_write $3.75
+      const PRICE = { input: 3, output: 15, cache_read: 0.30, cache_write: 3.75 };
+      const centsFor = (u) => {
+        if (!u) return 0;
+        const i = u.input_tokens || 0;
+        const o = u.output_tokens || 0;
+        const cr = u.cache_read_input_tokens || 0;
+        const cw = u.cache_creation_input_tokens || 0;
+        return ((i * PRICE.input + o * PRICE.output + cr * PRICE.cache_read + cw * PRICE.cache_write) / 1e6) * 100;
+      };
+      const usageSummary = {
+        model: data.model || null,
+        pass1: data.usage_l1 || null,
+        pass2: data.usage_l2 || null,
+        cents_est: +(centsFor(data.usage_l1) + centsFor(data.usage_l2)).toFixed(3),
+      };
+      console.log('[analyze] usage:', usageSummary);
+      setAnalyzeUsage(usageSummary);
       // Deduplicate AI detections by L1 code (front + back views collapse into one).
       const raw = Array.isArray(data.detected) ? data.detected : [];
       const byCode = new Map();
@@ -2861,6 +2883,29 @@ function App() {
               )}
               {cDone && (
                 <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  {analyzeUsage && (() => {
+                    const p1In = analyzeUsage.pass1?.input_tokens || 0;
+                    const p1Out = analyzeUsage.pass1?.output_tokens || 0;
+                    const p1Cache = analyzeUsage.pass1?.cache_read_input_tokens || 0;
+                    const p2In = analyzeUsage.pass2?.input_tokens || 0;
+                    const p2Out = analyzeUsage.pass2?.output_tokens || 0;
+                    const p2Cache = analyzeUsage.pass2?.cache_read_input_tokens || 0;
+                    const fmtK = (n) => n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n);
+                    const title =
+                      `Model: ${analyzeUsage.model || '?'}\n` +
+                      `Pass 1 (L1): ${p1In} in (cache read ${p1Cache}) / ${p1Out} out\n` +
+                      `Pass 2 (L2): ${p2In} in (cache read ${p2Cache}) / ${p2Out} out\n` +
+                      `預估成本: ≈ ${analyzeUsage.cents_est.toFixed(2)}¢ USD`;
+                    return (
+                      <div title={title} style={{
+                        textAlign: "right", fontSize: "10px", color: "#999", fontFamily: "'JetBrains Mono',monospace",
+                        lineHeight: 1.3, cursor: "help", userSelect: "none",
+                      }}>
+                        <div>{fmtK(p1In + p2In)} in · {fmtK(p1Out + p2Out)} out</div>
+                        <div style={{ color: "#059669" }}>≈{analyzeUsage.cents_est.toFixed(2)}¢</div>
+                      </div>
+                    );
+                  })()}
                   <div style={{ textAlign: "right" }}>
                     <div style={{ fontSize: "10px", color: "#999" }}>Sewing 秒</div>
                     <div style={{ fontSize: "18px", color: "#065f46", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{Math.round(totalIE)}</div>
