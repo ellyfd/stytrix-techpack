@@ -2423,23 +2423,27 @@ function App() {
                             return (
                               <React.Fragment key={tier}>
                                 <tr style={{ background: tc.bg, cursor: "pointer" }}>
+                                  <td style={{ padding: isMobile ? "9px 10px" : "10px 12px" }}>
+                                    <input
+                                      type="checkbox"
+                                      checked={allOn}
+                                      ref={el => { if (el) el.indeterminate = selectedCount > 0 && !allOn; }}
+                                      onClick={(e) => e.stopPropagation()}
+                                      onChange={() => setTierSelection(tier, !allOn)}
+                                      aria-label={`${tc.label} 全選/全部取消`}
+                                      style={{ width: "16px", height: "16px", accentColor: tc.c, cursor: "pointer" }}
+                                    />
+                                  </td>
                                   <td colSpan={4}
                                     role="button"
                                     tabIndex={0}
                                     aria-expanded={!collapsed}
-                                    aria-label={`${tc.label} 區，共 ${codes.length} 項，${collapsed ? "已折疊" : "已展開"}`}
+                                    aria-label={`${tc.label} 區,共 ${codes.length} 項,${collapsed ? "已折疊" : "已展開"}`}
                                     onClick={() => toggleTier(tier)}
                                     onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleTier(tier); } }}
                                     style={{ padding: isMobile ? "9px 10px" : "10px 12px", fontSize: isMobile ? "12px" : "13px", fontWeight: 700, color: tc.c, letterSpacing: "0.03em" }}>
                                     <span style={{ display: "inline-block", width: "14px", transform: collapsed ? "rotate(-90deg)" : "rotate(0)", transition: "transform 0.15s" }} aria-hidden="true">▾</span>
                                     {" "}{tc.icon} {tc.label} · {codes.length} 項 · 已選 {selectedCount}/{codes.length}
-                                  </td>
-                                  <td style={{ padding: isMobile ? "6px 8px" : "8px 12px", textAlign: "right" }}>
-                                    <button onClick={(e) => { e.stopPropagation(); setTierSelection(tier, !allOn); }} style={{
-                                      padding: isMobile ? "4px 10px" : "5px 12px", fontSize: "12px", fontWeight: 600, fontFamily: "inherit",
-                                      border: `1px solid ${tc.c}`, borderRadius: "5px", cursor: "pointer",
-                                      background: allOn ? "#fff" : tc.c, color: allOn ? tc.c : "#fff", whiteSpace: "nowrap",
-                                    }}>{allOn ? "全部取消" : "全選"}</button>
                                   </td>
                                 </tr>
                                 {!collapsed && codes.map(code => {
