@@ -123,13 +123,31 @@ async function identifyL2(apiKey, mediaType, b64, detectedL1s, request) {
     if (noSketch) cap = Math.min(cap ?? 30, 30);
     return cap;
   };
+  // L2 subset rule: keep prompt bounded but never drop visually distinctive L2s.
+  //   1. Top 20 by historical freq.
+  //   2. Union: any tier="green" L2 (AI-rankable cue).
+  //   3. Union: any L2 whose feature starts with "Sketch 上" (visual cue written).
+  // Rationale: a low-freq L2 (e.g. appeared 2 times) with a clear sketch
+  // signature should still be pickable — the old hard slice(0,25) dropped them.
+  const SKETCH_CUE_RE = /^\s*(?:\*+\s*)?Sketch\s*上/i;
+  const pickL2Subset = (l2Map) => {
+    const all = Object.entries(l2Map)
+      .sort((a, b) => (b[1].freq || 0) - (a[1].freq || 0));
+    const keep = new Map();
+    all.slice(0, 20).forEach(([k, v]) => keep.set(k, v));
+    for (const [k, v] of all) {
+      if (keep.has(k)) continue;
+      if (v.tier === "green" || SKETCH_CUE_RE.test(v.feature || "")) {
+        keep.set(k, v);
+      }
+    }
+    return Array.from(keep.entries());
+  };
   const subsetLines = [];
   for (const d of detectedL1s) {
     const section = guide.l1?.[d.code];
     if (!section || !section.l2) continue;
-    const opts = Object.entries(section.l2)
-      .sort((a, b) => (b[1].freq || 0) - (a[1].freq || 0))
-      .slice(0, 25); // cap at 25 L2s per L1 to keep prompt bounded
+    const opts = pickL2Subset(section.l2);
     if (!opts.length) continue;
     subsetLines.push(`${d.code} (${L1_CODES[d.code]}):`);
     for (const [key, v] of opts) {
@@ -162,7 +180,7 @@ Return ONLY valid JSON (no markdown fences, no prose) in this shape:
 Rules:
 - l2_code: must be an exact key from the options list for that L1.
 - confidence: 0-100, your certainty. Respect any [信心 ≤N] cap.
-- explanation: short string (<60 chars) citing the specific Sketch 上 cue you matched, e.g. "matched: 袖孔邊緣波浪狀荷葉邊". If you are guessing because no cue was visible, say so: "guess: sibling cues inconclusive".
+- explanation: short string (<80 chars) citing the specific Sketch 上 cue you matched, e.g. "matched: 袖孔邊緣波浪狀荷葉邊". If you are guessing because no cue was visible, say so: "guess: sibling cues inconclusive".
 - alternatives: up to 3 runner-ups with their confidence. Omit if none.`;
 
   const data = await callClaude(apiKey, mediaType, b64, prompt, 3000);
@@ -181,7 +199,7 @@ Rules:
       l2_code: v.l2_code,
       l2_name: entry?.name || v.l2_code,
       confidence: Number(v.confidence) || 0,
-      explanation: typeof v.explanation === "string" ? v.explanation.slice(0, 120) : null,
+      explanation: typeof v.explanation === "string" ? v.explanation.slice(0, 80) : null,
       alternatives: Array.isArray(v.alternatives) ? v.alternatives.slice(0, 3).map(a => ({
         l2_code: a.l2_code,
         l2_name: section?.l2?.[a.l2_code]?.name || a.l2_code,
