@@ -1209,28 +1209,16 @@ function fmtTime(iso) {
 function AdminModal({
   open, onClose,
   pomNamesOverride, onUploadPomNames, onClearPomNames,
+  pomRulesOverride, onUploadPomRules, onClearPomRules, currentBucketKey,
   partPresenceOverride, onUploadPartPresence, onClearPartPresence,
   pomRulesOverride, onUploadPomRules, onClearPomRules, onPushToGithub, currentBucketKey,
 }) {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-  const [uploading, setUploading] = useState(false);
-  const [confirmingClear, setConfirmingClear] = useState(false);
-  const confirmTimerRef = useRef(null);
-
-  useEffect(() => () => { if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current); }, []);
-  useEffect(() => { if (!open) { setConfirmingClear(false); if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current); } }, [open]);
-
-  const armClear = () => {
-    setConfirmingClear(true);
-    if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current);
-    confirmTimerRef.current = setTimeout(() => setConfirmingClear(false), 3000);
-  };
-  const doClear = () => {
-    if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current);
-    setConfirmingClear(false);
-    onClearPomNames(); setSuccess(null); setError(null);
-  };
+  const [uploading, setUploading] = useState(null); // null | 'pom' | 'presence'
+  const [rulesError, setRulesError] = useState(null);
+  const [rulesSuccess, setRulesSuccess] = useState(null);
+  const [rulesUploading, setRulesUploading] = useState(false);
 
   const handleFile = async (file) => {
     if (!file) return;
@@ -1346,6 +1334,83 @@ function AdminModal({
                 }}>{confirmingClear ? '再點一次確認清除' : '清除覆蓋 · 還原內建'}</button>
             )}
           </div>
+        </div>
+
+        <div style={{ marginTop: '12px', border: '1px solid #e8e5e1', borderRadius: '10px', padding: '14px' }}>
+          <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '4px' }}>POM Rules</div>
+          <div style={{ fontSize: '11px', color: '#767676', marginBottom: '12px', lineHeight: 1.5 }}>
+            支援一次多選或選整個資料夾，自動分類：
+            <br />• <code style={{ background: '#f5f5f5', padding: '1px 4px', borderRadius: '3px' }}>_index.json</code>（含 <code>buckets</code>）→ 換掉 bucket 清單
+            <br />• 單一 bucket 檔（含 <code>bucket</code> + <code>measurement_rules</code>）→ 換掉該 bucket 的規則/中位數/跳碼
+            <br />• <code style={{ background: '#f5f5f5', padding: '1px 4px', borderRadius: '3px' }}>pom_names.json</code> → 自動路由到「POM 翻譯表」
+          </div>
+
+          {(() => {
+            const bucketCount = Object.keys(pomRulesOverride?.buckets || {}).length;
+            const hasIndex = !!pomRulesOverride?.index;
+            const hasAny = hasIndex || bucketCount > 0;
+            return (
+              <div style={{
+                padding: '8px 12px', borderRadius: '8px',
+                background: hasAny ? '#fef3c7' : '#f3f4f6',
+                fontSize: '12px', color: hasAny ? '#92400e' : '#6b7280',
+                marginBottom: '12px', lineHeight: 1.5,
+              }}>
+                {hasAny ? (
+                  <>
+                    <div><strong>已覆蓋</strong>：
+                      {hasIndex && <> _index × 1（{pomRulesOverride.index.count} bucket）</>}
+                      {hasIndex && bucketCount > 0 && <> · </>}
+                      {bucketCount > 0 && <>bucket × {bucketCount}</>}
+                    </div>
+                    {bucketCount > 0 && (
+                      <div style={{ marginTop: '4px', fontSize: '11px', opacity: 0.85, maxHeight: '72px', overflowY: 'auto' }}>
+                        {Object.entries(pomRulesOverride.buckets).slice(0, 6).map(([k, v]) =>
+                          <div key={k}><code>{k}</code> · {v.count} POM{currentBucketKey === k ? ' ← 目前檢視' : ''}</div>
+                        )}
+                        {bucketCount > 6 && <div>…其餘 {bucketCount - 6} 個</div>}
+                      </div>
+                    )}
+                  </>
+                ) : <span>目前用內建 <code>pom_rules/</code></span>}
+              </div>
+            );
+          })()}
+
+          {(pomRulesOverride?.index || Object.keys(pomRulesOverride?.buckets || {}).length > 0) && (
+            <div style={{ padding: '8px 10px', borderRadius: '6px', background: '#fff7ed', border: '1px solid #fed7aa', fontSize: '11px', color: '#9a3412', marginBottom: '10px', lineHeight: 1.5 }}>
+              ⚠ 再次上傳會<strong>完全取代</strong>現有覆蓋（上一次的上傳內容會被清掉，以這次為準）。
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <label style={{
+              display: 'inline-block', padding: '8px 14px',
+              background: rulesUploading ? '#999' : '#1a1a1a', color: '#fff', borderRadius: '6px',
+              cursor: rulesUploading ? 'not-allowed' : 'pointer',
+              fontSize: '12px', fontWeight: 600,
+            }}>
+              {rulesUploading ? '處理中…' : '選多個 JSON'}
+              <input type="file" accept=".json,application/json" hidden multiple disabled={rulesUploading}
+                onChange={e => { handleRulesFiles(e.target.files); e.target.value = ''; }} />
+            </label>
+            <label style={{
+              display: 'inline-block', padding: '8px 14px',
+              background: rulesUploading ? '#999' : '#fff', color: rulesUploading ? '#fff' : '#1a1a1a',
+              border: '1px solid #1a1a1a', borderRadius: '6px',
+              cursor: rulesUploading ? 'not-allowed' : 'pointer',
+              fontSize: '12px', fontWeight: 600,
+            }}>
+              選整個資料夾
+              <input type="file" hidden disabled={rulesUploading}
+                webkitdirectory=""
+                directory=""
+                onChange={e => { handleRulesFiles(e.target.files); e.target.value = ''; }} />
+            </label>
+          </div>
+
+          {rulesError && <div style={{ marginTop: '10px', padding: '8px 10px', background: '#fef2f2', color: '#b91c1c', fontSize: '11px', borderRadius: '6px' }}>⚠ {rulesError}</div>}
+          {rulesSuccess && <div style={{ marginTop: '10px', padding: '8px 10px', background: '#ecfdf5', color: '#065f46', fontSize: '11px', borderRadius: '6px' }}>✓ {rulesSuccess}</div>}
         </div>
 
         <div style={{ marginTop: '12px', border: '1px solid #e8e5e1', borderRadius: '10px', padding: '14px' }}>
@@ -1599,6 +1664,9 @@ function App() {
   const [pomRules, setPomRules] = useState(null);
   const [pomNamesOverride, setPomNamesOverride] = useState(null); // {filename, uploadedAt, count} | null
   const [partPresenceOverride, setPartPresenceOverride] = useState(null); // {filename, uploadedAt, bucketsCount, partsCount} | null
+  // POM Rules 覆蓋：index 單一槽位 + buckets map（一個 bucketKey 對應一個覆蓋）
+  // shape: { index: {filename, uploadedAt, count} | null, buckets: { [bucketKey]: {filename, uploadedAt, count} } }
+  const [pomRulesOverride, setPomRulesOverride] = useState({ index: null, buckets: {} });
   const [adminOpen, setAdminOpen] = useState(false);
   const [fetchErrors, setFetchErrors] = useState([]); // [{key, label, retry}]
   const addFetchError = (key, label, retry) => {
@@ -1680,6 +1748,137 @@ function App() {
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(data => { setPomNames(data); window.POM_NAMES = data; })
       .catch(err => console.error('重新載入 pom_names.json 失敗:', err));
+  };
+
+  /* 把 localStorage 裡的 bucket overrides 合成的 synthetic index entry
+     merge 進 pomRules,讓全新分類 (不在內建 _index.json 裡的 bucket)
+     也能自動出現在 filter 下拉選單。file 欄位留 null,實際資料走 override。 */
+  const mergeBucketOverridesIntoIndex = (basePomRules) => {
+    if (!basePomRules) return basePomRules;
+    try {
+      const stored = localStorage.getItem('stytrix.override.pomRules');
+      if (!stored) return basePomRules;
+      const parsed = JSON.parse(stored);
+      const overrides = parsed?.buckets || {};
+      const existing = new Set((basePomRules.buckets || []).map(b => b.bucket));
+      const extras = [];
+      for (const [key, entry] of Object.entries(overrides)) {
+        if (existing.has(key)) continue;
+        const d = entry?.data;
+        if (!d?.department || !d?.garment_type || !d?.gender) continue;
+        extras.push({ bucket: key, department: d.department, garment_type: d.garment_type, gender: d.gender, file: null });
+      }
+      if (!extras.length) return basePomRules;
+      return { ...basePomRules, buckets: [...basePomRules.buckets, ...extras] };
+    } catch { return basePomRules; }
+  };
+
+  /* POM Rules 覆蓋 — 支援一次上傳多個檔 (可選資料夾):
+     - _index.json (含 buckets 陣列) → 換掉 bucket 清單
+     - bucket 檔 (含 bucket + measurement_rules) → 換掉對應 bucketKey 的規則
+     - pom_names.json 被路由到 POM 翻譯表（normalizePomNames）
+     結構:{ index: {meta, data}|null, buckets: { [bucketKey]: {meta, data} } } */
+  const readFileAsText = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (ev) => resolve(ev.target.result);
+    reader.onerror = () => reject(new Error(`讀取 ${file.name} 失敗`));
+    reader.readAsText(file);
+  });
+
+  const applyPomRulesOverride = async (files) => {
+    const list = files instanceof File ? [files] : Array.from(files || []);
+    if (!list.length) throw new Error('沒有檔案');
+    let existing = { index: null, buckets: {} };
+    const jsonFiles = list.filter(f => /\.json$/i.test(f.name));
+    const skipped = list.length - jsonFiles.length;
+    const indexResults = [];
+    const bucketResults = [];
+    let namesResult = null;
+    const invalid = [];
+    const now = new Date().toISOString();
+
+    await Promise.all(jsonFiles.map(async (file) => {
+      try {
+        const text = await readFileAsText(file);
+        const parsed = JSON.parse(text);
+        if (Array.isArray(parsed.buckets)) {
+          existing.index = { filename: file.name, uploadedAt: now, count: parsed.buckets.length, data: parsed };
+          indexResults.push({ filename: file.name, count: parsed.buckets.length });
+        } else if (parsed.bucket && parsed.measurement_rules) {
+          const mr = parsed.measurement_rules || {};
+          const count = Object.keys(mr.must || {}).length + Object.keys(mr.recommend || {}).length + Object.keys(mr.optional || {}).length;
+          existing.buckets[parsed.bucket] = { filename: file.name, uploadedAt: now, count, data: parsed };
+          bucketResults.push({ filename: file.name, bucketName: parsed.bucket, count });
+        } else {
+          const nm = normalizePomNames(parsed);
+          if (!nm.error && nm.data) {
+            namesResult = { filename: file.name, data: nm.data, count: nm.count, invalidCount: nm.invalidCount };
+          } else {
+            invalid.push({ filename: file.name, reason: '非 _index / bucket / pom_names 格式' });
+          }
+        }
+      } catch (e) {
+        invalid.push({ filename: file.name, reason: e.message || String(e) });
+      }
+    }));
+
+    if (!indexResults.length && !bucketResults.length && !namesResult) {
+      throw new Error(`全部失敗 — ${invalid.length ? invalid.map(x => `${x.filename}: ${x.reason}`).slice(0, 3).join('; ') : '無有效 JSON'}`);
+    }
+
+    if (namesResult) {
+      const nmStored = { filename: namesResult.filename, uploadedAt: now, data: namesResult.data };
+      try { localStorage.setItem('stytrix.override.pomNames', JSON.stringify(nmStored)); }
+      catch (e) { throw new Error('localStorage 寫入失敗 (pom_names):' + e.message); }
+      setPomNames(namesResult.data); window.POM_NAMES = namesResult.data;
+      setPomNamesOverride({ filename: namesResult.filename, uploadedAt: now, count: namesResult.count });
+    }
+
+    try { localStorage.setItem('stytrix.override.pomRules', JSON.stringify(existing)); }
+    catch (e) { throw new Error('localStorage 寫入失敗(可能超出配額):' + e.message); }
+
+    if (indexResults.length) {
+      const merged = mergeBucketOverridesIntoIndex(existing.index.data);
+      setPomRules(merged); window.POM_RULES = merged;
+    } else if (bucketResults.length) {
+      setPomRules(prev => {
+        const merged = mergeBucketOverridesIntoIndex(prev);
+        window.POM_RULES = merged;
+        return merged;
+      });
+    }
+    setPomRulesOverride({
+      index: existing.index ? { filename: existing.index.filename, uploadedAt: existing.index.uploadedAt, count: existing.index.count } : null,
+      buckets: Object.fromEntries(Object.entries(existing.buckets).map(([k, v]) => [k, { filename: v.filename, uploadedAt: v.uploadedAt, count: v.count }])),
+    });
+    const matched = bucketResults.find(b => b.bucketName === bucketKey);
+    if (matched) {
+      const d = existing.buckets[matched.bucketName].data;
+      setCurrentBucket(d); window.CURRENT_BUCKET = d;
+    } else if (bucketResults.length) {
+      const last = bucketResults[bucketResults.length - 1];
+      const d = existing.buckets[last.bucketName].data;
+      setCurrentBucket(d); window.CURRENT_BUCKET = d;
+      if (d.department) setDept(d.department);
+      if (d.garment_type) setGt(d.garment_type);
+      if (d.gender) setGender(d.gender);
+    }
+    return { indexCount: indexResults.length, bucketCount: bucketResults.length, namesCount: namesResult ? 1 : 0, invalidCount: invalid.length, skippedNonJson: skipped, invalid };
+  };
+
+  const clearPomRulesOverride = () => {
+    try { localStorage.removeItem('stytrix.override.pomRules'); } catch {}
+    setPomRulesOverride({ index: null, buckets: {} });
+    fetch('./pom_rules/_index.json')
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(data => { setPomRules(data); window.POM_RULES = data; })
+      .catch(err => console.error('重新載入 _index.json 失敗:', err));
+    if (bucketMeta) {
+      fetch(`./pom_rules/${bucketMeta.file}`)
+        .then(r => r.ok ? r.json() : Promise.reject(r.status))
+        .then(data => { setCurrentBucket(data); window.CURRENT_BUCKET = data; })
+        .catch(err => console.error('重新載入 bucket 失敗:', err));
+    }
   };
 
   /* 部位出現率表（l1_part_presence）上傳覆蓋：同一個瀏覽器用 localStorage 覆寫 */
@@ -2446,25 +2645,37 @@ function App() {
           <span style={{ fontSize: "12px", color: "#999", fontWeight: 500 }}>Techpack</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <button onClick={() => setAdminOpen(true)}
-            aria-label={(pomNamesOverride || partPresenceOverride) ? "開啟管理面板（已有覆蓋）" : "開啟管理面板"}
-            title={(() => {
-              const parts = [];
-              if (pomNamesOverride) parts.push(`POM 翻譯表：${pomNamesOverride.filename}`);
-              if (partPresenceOverride) parts.push(`部位出現率表：${partPresenceOverride.filename}`);
-              return parts.length ? `已覆蓋 — ${parts.join('、')}` : "管理：上傳 POM 翻譯表 / 部位出現率表";
-            })()}
-            style={{
-              background: "#fff", border: "1px solid #e8e5e1", borderRadius: "6px",
-              padding: "4px 10px", fontSize: "11px", fontWeight: 600,
-              color: (pomNamesOverride || partPresenceOverride) ? "#b45309" : "#767676",
-              cursor: "pointer", fontFamily: "inherit",
-              display: "inline-flex", alignItems: "center", justifyContent: "center",
-              position: "relative", transition: "border-color 0.15s",
-            }}>
-            {(pomNamesOverride || partPresenceOverride) && <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#f59e0b", display: "inline-block" }} />}
-            管理
-          </button>
+          {(() => {
+            const rulesBucketCount = Object.keys(pomRulesOverride?.buckets || {}).length;
+            const hasAnyOverride = !!(pomNamesOverride || partPresenceOverride || pomRulesOverride?.index || rulesBucketCount > 0);
+            return (
+              <button onClick={() => setAdminOpen(true)}
+                aria-label={hasAnyOverride ? "開啟管理面板（已有覆蓋）" : "開啟管理面板"}
+                title={(() => {
+                  const parts = [];
+                  if (pomNamesOverride) parts.push(`POM 翻譯表：${pomNamesOverride.filename}`);
+                  if (pomRulesOverride?.index || rulesBucketCount > 0) {
+                    const bits = [];
+                    if (pomRulesOverride.index) bits.push('_index');
+                    if (rulesBucketCount > 0) bits.push(`bucket×${rulesBucketCount}`);
+                    parts.push(`POM Rules：${bits.join('+')}`);
+                  }
+                  if (partPresenceOverride) parts.push(`部位出現率表：${partPresenceOverride.filename}`);
+                  return parts.length ? `已覆蓋 — ${parts.join('、')}` : "管理：上傳 POM 翻譯表 / POM Rules / 部位出現率表";
+                })()}
+                style={{
+                  background: "#fff", border: "1px solid #e8e5e1", borderRadius: "6px",
+                  padding: "4px 10px", fontSize: "11px", fontWeight: 600,
+                  color: hasAnyOverride ? "#b45309" : "#767676",
+                  cursor: "pointer", fontFamily: "inherit",
+                  display: "inline-flex", alignItems: "center", justifyContent: "center",
+                  position: "relative", transition: "border-color 0.15s",
+                }}>
+                {hasAnyOverride && <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#f59e0b", display: "inline-block" }} />}
+                管理
+              </button>
+            );
+          })()}
         </div>
       </div>
 
@@ -3775,7 +3986,6 @@ function App() {
         pomRulesOverride={pomRulesOverride}
         onUploadPomRules={applyPomRulesOverride}
         onClearPomRules={clearPomRulesOverride}
-        onPushToGithub={pushOverridesToGithub}
         currentBucketKey={bucketKey}
         partPresenceOverride={partPresenceOverride}
         onUploadPartPresence={applyPartPresenceOverride}
