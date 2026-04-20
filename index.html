@@ -2304,8 +2304,9 @@ function App() {
   const [isoRec, setIsoRec] = useState(null);
   const [partPresence, setPartPresence] = useState(null);
   const [visualGuide, setVisualGuide] = useState(null);
-  // 通用模型 Path 2 — iso_lookup_factory_v3.json（Fabric × GT × IT × L1 → ISO + 機種）
-  const [isoLookupV3, setIsoLookupV3] = useState(null);
+  // 通用模型 Path 2 — v4_lookup_index.json(Fabric × Department × GT × L1_code → ISO + 機種)
+  // v4 把 LEGGINGS 升為 GT、拿掉 IT 維度、加入 Department 對齊 pom_rules v5.5
+  const [isoLookupV4, setIsoLookupV4] = useState(null);
   const [analyzeErr, setAnalyzeErr] = useState(null);
   // { model, pass1: {input, output, cache_read, cache_write}, pass2: {...}, cost_est } | null
   const [analyzeUsage, setAnalyzeUsage] = useState(null);
@@ -2363,11 +2364,11 @@ function App() {
         .then(setVisualGuide)
         .catch(err => console.error('載入 l2_visual_guide 失敗:', err));
     }
-    if (!isoLookupV3 && appMode === "universal") {
-      fetch('./General%20Model_Path2_Construction%20Suggestion/iso_lookup_factory_v3.json')
+    if (!isoLookupV4 && appMode === "universal") {
+      fetch('./General%20Model_Path2_Construction%20Suggestion/v4_lookup_index.json')
         .then(r => r.ok ? r.json() : Promise.reject(r.status))
-        .then(setIsoLookupV3)
-        .catch(err => console.error('載入 iso_lookup_factory_v3 失敗:', err));
+        .then(setIsoLookupV4)
+        .catch(err => console.error('載入 v4_lookup_index 失敗:', err));
     }
   }, [sketchSrc, appMode]);
 
@@ -2650,7 +2651,8 @@ function App() {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           image: sketchSrc, brand, fabric, gender,
-          garment_type: gt, item_type: it,
+          department: dept,
+          garment_type: gt,
           mode: appMode,
         })
       });
@@ -2730,30 +2732,59 @@ function App() {
       }
       const detected = Array.from(byCode.values());
 
-      // ── Path 2 通用模型 — VLM(L1) → iso_lookup_factory_v3(Fabric×GT×IT×L1) ──
-      // 走 ISO 查表輸出，不走 L2/L3/L4 五階層。v3 表 gt/it 與 app 選項命名略有
-      // 差異（PANTS vs PANT / SWIM_PIECE vs SWIM / ROMPER_JUMPSUIT vs ONE_PIECE）
-      // 需做一次 alias 並在逐級 fallback：(exact) → (same gt) → (any gt).
+      // ── Path 2 通用模型 — VLM(L1) → v4_lookup_index(Fabric × Department × GT × L1_code) ──
+      // 走 ISO 查表輸出,不走 L2/L3/L4 五階層。v4 對齊 pom_rules v5.5:
+      //   - LEGGINGS 升為 GT(原 v3 是 IT under PANT)
+      //   - 拿掉 IT 維度(CAPRI / BIKER 不影響做工 ISO)
+      //   - 加入 Department(Active / RTW / Swimwear / Sleepwear)
+      // 前端 GT 與 v4 GT 幾乎對齊,只差 SWIM_PIECE→(需 Department=Swimwear)、
+      // 少數 GT(BODYSUIT、SKIRT)v4 還沒資料,就逐級放寬 fallback。
       if (appMode === "universal") {
-        const fabricV3 = (fabric || "Knit").toLowerCase() === "woven" ? "Woven" : "Knit";
-        const GT_V3_ALIAS = { PANTS: ["PANT", "PANTS", "BOTTOM"], SHORTS: ["SHORTS", "BOTTOM"], SWIM_PIECE: ["SWIM"], ROMPER_JUMPSUIT: ["ONE_PIECE"] };
-        const gtCandidates = GT_V3_ALIAS[gt] || [gt];
-        const entries = isoLookupV3?.entries || [];
-        const lookupV3 = (l1_code) => {
+        const fabricV4 = (fabric || "Knit").toLowerCase() === "woven" ? "Woven" : "Knit";
+        // v4 現有的 Department 值(依 pom_rules v5.5)
+        const V4_DEPTS = ["Active", "RTW", "Swimwear", "Sleepwear"];
+        // 前端 dept 是大寫,v4 的 department 首字大寫 → 做一次對齊
+        const normDept = (() => {
+          if (!dept) return null;
+          const match = V4_DEPTS.find(d => d.toUpperCase() === String(dept).toUpperCase());
+          return match || null;
+        })();
+        // v4 GT 與前端 GT 對應;SWIM_PIECE 不是 v4 的 GT,但可由 Department=Swimwear
+        // + TOP/PANTS 類推。未支援的 GT(BODYSUIT、SKIRT)進 fallback。
+        const GT_V4_ALIAS = { SWIM_PIECE: ["TOP", "PANTS"] };
+        const gtCandidates = GT_V4_ALIAS[gt] || [gt];
+        const index = isoLookupV4?.index || {};
+        const deptCandidates = normDept
+          ? [normDept, ...V4_DEPTS.filter(d => d !== normDept)]
+          : V4_DEPTS;
+        const lookupV4 = (l1_code) => {
+          // 1) 精準:Fabric|Dept|GT|L1_code
           for (const g of gtCandidates) {
-            const hit = entries.find(e => e.fabric === fabricV3 && e.gt === g && e.it === it && e.l1_code === l1_code);
+            const hit = index[`${fabricV4}|${normDept}|${g}|${l1_code}`];
             if (hit) return hit;
           }
+          // 2) 放寬 Dept:嘗試其他 Department
           for (const g of gtCandidates) {
-            const hit = entries.find(e => e.fabric === fabricV3 && e.gt === g && e.l1_code === l1_code);
-            if (hit) return hit;
+            for (const d of deptCandidates) {
+              const hit = index[`${fabricV4}|${d}|${g}|${l1_code}`];
+              if (hit) return hit;
+            }
           }
-          return entries.find(e => e.fabric === fabricV3 && e.l1_code === l1_code) || null;
+          // 3) 放寬 GT:同 Fabric、同 Dept、任意 GT
+          for (const d of deptCandidates) {
+            for (const k of Object.keys(index)) {
+              if (k.startsWith(`${fabricV4}|${d}|`) && k.endsWith(`|${l1_code}`)) return index[k];
+            }
+          }
+          // 4) 最後 fallback:同 Fabric、任意 Dept/GT
+          for (const k of Object.keys(index)) {
+            if (k.startsWith(`${fabricV4}|`) && k.endsWith(`|${l1_code}`)) return index[k];
+          }
+          return null;
         };
         const built = detected.map((d, i) => {
           const l1 = L1_CODE_TO_NAME[d.code] || d.code;
-          const entry = lookupV3(d.code);
-          const alts = Array.isArray(entry?.alternatives) ? entry.alternatives : [];
+          const entry = lookupV4(d.code);
           const label = entry
             ? `ISO ${entry.iso}${entry.iso_zh ? " · " + entry.iso_zh : ""}${entry.machine ? " · " + entry.machine : ""}`
             : "—";
@@ -2770,18 +2801,18 @@ function App() {
             py: Number.isFinite(d.y) ? d.y : 50,
             side: d.side === "back" ? "right" : "left",
             ie: 0,
-            action: entry?.action || "manual",
+            action: "manual",
             isoConfidence: entry?.confidence || "no_data",
             presenceTier: presenceByCode[d.code]?.tier_en || null,
             presencePct: presenceByCode[d.code]?.presence_pct ?? null,
-            // Path 2 專屬：ISO 資訊
+            // Path 2 專屬:ISO 資訊
             universal: entry ? {
               iso: entry.iso,
               iso_zh: entry.iso_zh || null,
               machine: entry.machine || null,
               confidence: entry.confidence || null,
-              action: entry.action || null,
-              alternatives: alts.map(a => ({ iso: a.iso, pct: a.pct, machine: a.machine })),
+              action: null,
+              alternatives: [],
             } : null,
             // 留空：universal mode 不使用五階層 drill-down
             methodIdx: 0, methodVariants: [],

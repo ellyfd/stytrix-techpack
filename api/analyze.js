@@ -40,9 +40,9 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "invalid JSON body" });
   }
 
-  const { image, brand, fabric, gender, garment_type, item_type, mode } = body;
+  const { image, brand, fabric, gender, department, garment_type, mode } = body;
   if (!image) return res.status(400).json({ error: "missing image" });
-  // mode=universal → Path 2: 只跑 Pass 1 (L1)，前端走 iso_lookup_factory_v3 查表，不需 L2。
+  // mode=universal → Path 2: 只跑 Pass 1 (L1)，前端走 v4_lookup_index 查表,不需 L2。
   const skipPass2 = mode === "universal";
 
   const m = image.match(/^data:image\/(\w+);base64,(.+)$/);
@@ -50,7 +50,7 @@ export default async function handler(req, res) {
   const b64 = m ? m[2] : image;
 
   // ── Pass 1: identify which of the 38 L1 parts are in the sketch ──
-  const detected = await identifyL1(apiKey, mediaType, b64, { brand, fabric, gender, garment_type, item_type }, GUIDE);
+  const detected = await identifyL1(apiKey, mediaType, b64, { brand, fabric, gender, department, garment_type }, GUIDE);
   if (detected.error) return res.status(502).json(detected);
 
   // Path 2 通用模型只需要 L1 偵測結果即可；省掉 Pass 2 的 decision-tree 推論。
@@ -97,8 +97,8 @@ async function identifyL1(apiKey, mediaType, b64, ctxObj, guide) {
     ctxObj.brand && `Brand: ${ctxObj.brand}`,
     ctxObj.fabric && `Fabric: ${ctxObj.fabric}`,
     ctxObj.gender && `Gender: ${ctxObj.gender}`,
-    ctxObj.garment_type && `Garment Type: ${ctxObj.garment_type}`,
-    ctxObj.item_type && `Item Type: ${ctxObj.item_type}`
+    ctxObj.department && `Department: ${ctxObj.department}`,
+    ctxObj.garment_type && `Garment Type: ${ctxObj.garment_type}`
   ].filter(Boolean).join("\n");
 
   const system = `You are a garment manufacturing expert. Analyze a clothing sketch and identify which of the 38 construction parts are visible in the drawing.
