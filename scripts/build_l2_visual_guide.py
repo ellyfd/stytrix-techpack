@@ -80,6 +80,17 @@ def read_registry(path='L2_代號中文對照表.xlsx'):
 MD = open('L2_Visual_Differentiation_FullAnalysis_修正版.md', encoding='utf-8').read()
 SECTION_RE = re.compile(r'^###\s+([A-Z]{2})(?:([^\s—]+))?\s*—\s*(\d+)\s+L2\s*(.*)$', re.M)
 
+# Parse L1 sketch definitions from sister doc. Table format:
+#   | L1 | 部位名稱 | L2 數 | Sketch 上的視覺定義 |
+#   | AE | 袖孔 | 9 | Sketch 上**無袖/背心**款式...↔ AH... |
+L1_DEF_PATH = 'L1_部位定義_Sketch視覺指引.md'
+l1_sketch_defs = {}
+if os.path.exists(L1_DEF_PATH):
+    L1_MD = open(L1_DEF_PATH, encoding='utf-8').read()
+    L1_ROW_RE = re.compile(r'^\|\s*([A-Z]{2})\s*\|\s*[^|]+?\s*\|\s*\d+\s*\|\s*(.+?)\s*\|\s*$', re.M)
+    for m in L1_ROW_RE.finditer(L1_MD):
+        l1_sketch_defs[m.group(1)] = m.group(2).strip()
+
 def tier_from_emoji(cell):
     if '🟢' in cell: return 'green'
     if '🟡' in cell: return 'yellow'
@@ -137,7 +148,11 @@ l1_data = OrderedDict()
 for row in registry:
     l1c = row['l1_code']
     if l1c not in l1_data:
-        l1_data[l1c] = {"name": row['l1_name'], "l2": OrderedDict()}
+        l1_data[l1c] = {
+            "name": row['l1_name'],
+            "sketch_def": l1_sketch_defs.get(l1c, ""),
+            "l2": OrderedDict(),
+        }
     entry = {
         "name": row['l2_name'],
         "l3_count": row['l3_count'],
@@ -175,7 +190,8 @@ out = {
     "created": datetime.date.today().isoformat(),
     "sources": {
         "registry": "L2_代號中文對照表.xlsx (283 L2s, authoritative)",
-        "markdown": "L2_Visual_Differentiation_FullAnalysis_修正版.md (visual features overlay)",
+        "l1_sketch_def": "L1_部位定義_Sketch視覺指引.md (per-L1 sketch visual definition + sibling contrasts)",
+        "markdown": "L2_Visual_Differentiation_FullAnalysis_修正版.md (per-L2 visual features overlay)",
         "freq": "l2_l3_ie/*.json row counts (historical frequency)"
     },
     "tier_rules": {
