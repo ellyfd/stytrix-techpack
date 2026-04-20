@@ -1281,6 +1281,65 @@ function AdminModal({ open, onClose, pomNamesOverride, onUploadPomNames, onClear
   );
 }
 
+function OnboardingModal({ open, onDismiss }) {
+  if (!open) return null;
+  const steps = [
+    { n: 1, title: "選 Filter", body: "從 Brand / Fabric / Gender / Dept / Garment Type 篩選歷史資料。Item Type 是選填。" },
+    { n: 2, title: "上傳草圖並 Analyze", body: "拖放或點擊上傳草圖 → 按 Analyze，AI 辨識工法部位並自動推薦 ISO 縫法。" },
+    { n: 3, title: "三步驟流程", body: "① 作工建議 → ② 基碼確認 → ③ 全碼。tab 會依完成度亮起綠色 ✓。" },
+  ];
+  return (
+    <div onClick={onDismiss} role="dialog" aria-modal="true" aria-labelledby="onboarding-title" style={{
+      position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      zIndex: 150, padding: "20px", animation: "fadeIn 0.15s ease",
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background: "#fff", borderRadius: "14px", padding: "26px 28px",
+        maxWidth: "440px", width: "100%",
+        boxShadow: "0 12px 36px rgba(0,0,0,0.2)",
+      }}>
+        <div style={{ fontSize: "11px", color: "#065f46", fontWeight: 700, letterSpacing: "0.1em", marginBottom: "4px" }}>
+          STYTRIX · TECHPACK
+        </div>
+        <h2 id="onboarding-title" style={{ margin: "0 0 18px 0", fontSize: "19px", fontWeight: 700, color: "#1a1a1a" }}>
+          歡迎！3 步驟完成一份 techpack
+        </h2>
+        <div style={{ display: "flex", flexDirection: "column", gap: "14px", marginBottom: "22px" }}>
+          {steps.map(s => (
+            <div key={s.n} style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
+              <span aria-hidden="true" style={{
+                flexShrink: 0, width: "26px", height: "26px", borderRadius: "50%",
+                background: "#065f46", color: "#fff",
+                display: "inline-flex", alignItems: "center", justifyContent: "center",
+                fontSize: "12px", fontWeight: 700,
+              }}>{s.n}</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: "13px", fontWeight: 700, color: "#1a1a1a", marginBottom: "2px" }}>
+                  {s.title}
+                </div>
+                <div style={{ fontSize: "12px", color: "#555", lineHeight: 1.55 }}>
+                  {s.body}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{ fontSize: "11px", color: "#767676", marginBottom: "16px", lineHeight: 1.55 }}>
+          右上角 <span style={{ display: "inline-flex", alignItems: "center", padding: "0 4px" }}>⚙</span> 管理可以餵入更新的翻譯表；每個 filter 旁的 🔒 讓 refresh 保留選擇。
+        </div>
+        <button onClick={onDismiss} style={{
+          width: "100%", padding: "11px",
+          background: "#1a1a1a", color: "#fff",
+          border: "none", borderRadius: "8px",
+          fontSize: "13px", fontWeight: 600, cursor: "pointer",
+          fontFamily: "inherit",
+        }}>開始使用</button>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   /* ── 共用 filter state + 鎖 + localStorage persistence ── */
   const loadSaved = () => {
@@ -1427,6 +1486,13 @@ function App() {
   const [hintDismissed, setHintDismissed] = useState(() => {
     try { return localStorage.getItem("stytrix.hint.card.dismissed") === "1"; } catch { return false; }
   });
+  const [onboardingOpen, setOnboardingOpen] = useState(() => {
+    try { return localStorage.getItem("stytrix.onboarding.done") !== "1"; } catch { return false; }
+  });
+  const dismissOnboarding = () => {
+    try { localStorage.setItem("stytrix.onboarding.done", "1"); } catch {}
+    setOnboardingOpen(false);
+  };
   const [undoToast, setUndoToast] = useState(null); // { message, onUndo, expires }
   const undoTimerRef = useRef(null);
   const showUndo = (message, onUndo) => {
@@ -1620,6 +1686,91 @@ function App() {
     "⑤ Tolerance 眾數推薦...",
     "✓ 尺寸建議表生成完成"
   ];
+
+  const exportTechpack = () => {
+    const snapshot = {
+      version: "1.0",
+      exportedAt: new Date().toISOString(),
+      filters: { brand, fabric, gender, dept, garment_type: gt, item_type: it || null },
+      construction: cDone ? {
+        total_ie_seconds: Math.round(totalIE),
+        ai_count: aiCount,
+        struct_count: structCount,
+        addon: addonOn ? { brand, name: ADDON.name, ie_seconds: ADDON.ie, steps: ADDON.steps.length } : null,
+        removed_ids: Array.from(removed),
+        cards: vis.map(c => ({
+          id: c.id,
+          l1_code: c.code,
+          l1_name: c.l1,
+          l2: c.l2 || null,
+          l2_code: c.l2Code || null,
+          source: c.source,
+          ie_seconds: Math.round(c.ie),
+          method: c.methodName || null,
+          l3_steps: (c.l3s || []).map(l3 => ({
+            name: l3.pick != null && l3.opts ? (l3.opts[l3.pick]?.n ?? null) : null,
+            ie_seconds: Math.round(l3.ie || 0),
+          })),
+        })),
+      } : null,
+      measurement: (mDone && currentBucket) ? {
+        bucket: currentBucket.bucket,
+        n_designs: currentBucket.n,
+        sizes: currentBucket.size_range || [],
+        poms: (() => {
+          const mr = currentBucket.measurement_rules || {};
+          const mv = currentBucket.median_values || {};
+          const gr = currentBucket.grading_rules || {};
+          const sizes = currentBucket.size_range || [];
+          const out = [];
+          ["must", "recommend", "optional"].forEach(tier => {
+            Object.keys(mr[tier] || {}).forEach(code => {
+              if (excluded.has(code)) return;
+              const pn = pomNames[code] || {};
+              const m = mr[tier][code];
+              const mvRow = mv[code] || {};
+              const baseM = mvRow.size_medians?.M;
+              const ov = baseOverrides[code];
+              const ovParsed = ov != null && ov !== "" ? parseInch(ov) : null;
+              const effBase = ovParsed != null ? ovParsed : baseM;
+              const sizeVals = {};
+              sizes.forEach(s => {
+                const origM = mvRow.size_medians?.M;
+                const origS = mvRow.size_medians?.[s];
+                if (origS == null) return;
+                if (effBase == null || origM == null) { sizeVals[s] = origS; return; }
+                sizeVals[s] = origS + (effBase - origM);
+              });
+              out.push({
+                code,
+                name_en: pn.en || code,
+                name_zh: pn.zh || null,
+                tier,
+                tolerance: tolStr(m),
+                base_m: effBase != null ? Number(effBase.toFixed(4)) : null,
+                overridden: ovParsed != null && baseM != null && Math.abs(ovParsed - baseM) > 1e-9,
+                grading_increment: gr[code]?.typical_increment ?? null,
+                size_values: sizeVals,
+              });
+            });
+          });
+          return out;
+        })(),
+      } : null,
+    };
+    const json = JSON.stringify(snapshot, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const stamp = new Date().toISOString().slice(0, 10);
+    const slug = [brand, gt, it].filter(Boolean).join("_") || "techpack";
+    a.href = url;
+    a.download = `techpack_${slug}_${stamp}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   const runConstruction = async () => {
     setCStep(1); setCAnalyzing(true); setCStage(0);
@@ -2444,11 +2595,21 @@ function App() {
                   })()}
 
                   <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "20px" }}>
-                    <button style={{
-                      padding: "10px 20px", background: "#fff", color: "#767676",
-                      border: "1px solid #e8e5e1", borderRadius: "8px",
-                      fontSize: "12px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit"
-                    }}>Export</button>
+                    <button onClick={exportTechpack}
+                      title="下載目前 techpack 狀態為 JSON 檔"
+                      style={{
+                        padding: "10px 20px", background: "#fff", color: "#1a1a1a",
+                        border: "1px solid #e8e5e1", borderRadius: "8px",
+                        fontSize: "12px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+                        display: "inline-flex", alignItems: "center", gap: "6px",
+                      }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                      </svg>
+                      Export JSON
+                    </button>
                   </div>
                 </div>}
               </div>
@@ -2897,16 +3058,11 @@ function App() {
                 )}
 
                 <div style={{ display: "flex", gap: "8px", marginTop: "20px" }}>
-                  <button style={{
+                  <button onClick={exportTechpack} style={{
                     flex: 1, padding: "12px", background: "#1a1a1a", color: "#fff",
                     border: "none", borderRadius: "8px", fontSize: "13px", fontWeight: 600,
                     cursor: "pointer", fontFamily: "inherit",
-                  }}>Export Techpack</button>
-                  <button style={{
-                    padding: "12px 18px", background: "#fff", color: "#999",
-                    border: "1px solid #eee", borderRadius: "8px",
-                    fontSize: "12px", cursor: "pointer", fontFamily: "inherit"
-                  }}>Export CSV</button>
+                  }}>Export JSON</button>
                 </div>
               </div>
             )}
@@ -3129,6 +3285,7 @@ function App() {
         onUploadPomNames={applyPomNamesOverride}
         onClearPomNames={clearPomNamesOverride}
       />
+      <OnboardingModal open={onboardingOpen} onDismiss={dismissOnboarding} />
 
       {undoToast && (
         <div role="status" aria-live="polite" style={{
