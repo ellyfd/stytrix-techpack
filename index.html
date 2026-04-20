@@ -1211,7 +1211,6 @@ function AdminModal({ open, onClose, pomNamesOverride, onUploadPomNames, onClear
   const [rulesError, setRulesError] = useState(null);
   const [rulesSuccess, setRulesSuccess] = useState(null);
   const [rulesUploading, setRulesUploading] = useState(false);
-  const [rulesMerge, setRulesMerge] = useState(false); // 預設 replace 整個 overrides
 
   const handleFile = async (file) => {
     if (!file) return;
@@ -1230,7 +1229,7 @@ function AdminModal({ open, onClose, pomNamesOverride, onUploadPomNames, onClear
     if (!files || !files.length) return;
     setRulesError(null); setRulesSuccess(null); setRulesUploading(true);
     try {
-      const result = await onUploadPomRules(files, { merge: rulesMerge });
+      const result = await onUploadPomRules(files);
       const parts = [];
       if (result.indexCount) parts.push(`${result.indexCount} 個 _index`);
       if (result.bucketCount) parts.push(`${result.bucketCount} 個 bucket`);
@@ -1354,10 +1353,11 @@ function AdminModal({ open, onClose, pomNamesOverride, onUploadPomNames, onClear
             );
           })()}
 
-          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#555', marginBottom: '8px', cursor: 'pointer' }}>
-            <input type="checkbox" checked={rulesMerge} onChange={e => setRulesMerge(e.target.checked)} style={{ width: '14px', height: '14px', cursor: 'pointer' }} />
-            <span>累加模式(保留前一次上傳,同 bucket 以新的為準)。不勾則每次上傳都先清空既有覆蓋 — 建議「上傳整個資料夾」時保持不勾。</span>
-          </label>
+          {(pomRulesOverride?.index || Object.keys(pomRulesOverride?.buckets || {}).length > 0) && (
+            <div style={{ padding: '8px 10px', borderRadius: '6px', background: '#fff7ed', border: '1px solid #fed7aa', fontSize: '11px', color: '#9a3412', marginBottom: '10px', lineHeight: 1.5 }}>
+              ⚠ 再次上傳會<strong>完全取代</strong>現有覆蓋(上一次的上傳內容會被清掉,以這次為準)。
+            </div>
+          )}
 
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <label style={{
@@ -1639,21 +1639,12 @@ function App() {
     reader.readAsText(file);
   });
 
-  const applyPomRulesOverride = async (files, opts = {}) => {
+  const applyPomRulesOverride = async (files) => {
     // 允許傳入單一 File (舊呼叫) 或 FileList / Array
     const list = files instanceof File ? [files] : Array.from(files || []);
     if (!list.length) throw new Error('沒有檔案');
-    // 預設 clean-slate (replace 整個 overrides) — 用 opts.merge=true 可切成累加
+    // Clean-slate:每次上傳都完全取代既有 overrides
     let existing = { index: null, buckets: {} };
-    if (opts.merge) {
-      try {
-        const stored = localStorage.getItem('stytrix.override.pomRules');
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (parsed?.index || parsed?.buckets) existing = { index: parsed.index || null, buckets: parsed.buckets || {} };
-        }
-      } catch {}
-    }
 
     // 僅收 .json 檔
     const jsonFiles = list.filter(f => /\.json$/i.test(f.name));
