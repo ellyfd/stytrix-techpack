@@ -2144,9 +2144,8 @@ function App() {
   // Plus sizes 有自己的 2X 基碼(獨立於 Missy M),預設不顯示 Plus
   const [plusBaseOverrides, setPlusBaseOverrides] = useState({});
   const [showPlus, setShowPlus] = useState(false);
-  // Size run variant:regular / petite / tall。非 regular 會在 sizeValueFor 加上
-  // bucket.size_run_offsets[sizeRunVariant][code] 的 offset。
-  // 命名上不用 `sizeRun` 以免跟上面 missy/plus 那個舊 sizeRun 衝突。
+  // Size run:regular / petite / tall。非 regular 會在 sizeValueFor 加上
+  // bucket.size_run_offsets[sizeRunVariant][code] 的 offset(目前大多 bucket 還沒這層資料)
   const [sizeRunVariant, setSizeRunVariant] = useState('regular');
   // 手機版斷點（< 720px）：表格切換為卡片 / 精簡欄位
   const [isMobile, setIsMobile] = useState(() =>
