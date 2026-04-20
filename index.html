@@ -1233,6 +1233,7 @@ function AdminModal({ open, onClose, pomNamesOverride, onUploadPomNames, onClear
       const parts = [];
       if (result.indexCount) parts.push(`${result.indexCount} 個 _index`);
       if (result.bucketCount) parts.push(`${result.bucketCount} 個 bucket`);
+      if (result.namesCount) parts.push(`1 個 pom_names (已路由到 POM 翻譯表)`);
       let msg = `已套用 ${parts.join(' + ')}`;
       if (result.invalidCount) msg += `(跳過 ${result.invalidCount} 個格式錯誤)`;
       if (result.skippedNonJson) msg += `(跳過 ${result.skippedNonJson} 個非 .json)`;
@@ -1319,6 +1320,7 @@ function AdminModal({ open, onClose, pomNamesOverride, onUploadPomNames, onClear
             支援一次多選或選整個資料夾,自動分類:
             <br />• <code style={{ background: '#f5f5f5', padding: '1px 4px', borderRadius: '3px' }}>_index.json</code>(含 <code>buckets</code>)→ 換掉 bucket 清單
             <br />• 單一 bucket 檔(含 <code>bucket</code> + <code>measurement_rules</code>)→ 換掉該 bucket 的規則/中位數/跳碼
+            <br />• <code style={{ background: '#f5f5f5', padding: '1px 4px', borderRadius: '3px' }}>pom_names.json</code> → 自動路由到「POM 翻譯表」
           </div>
 
           {(() => {
@@ -1383,15 +1385,6 @@ function AdminModal({ open, onClose, pomNamesOverride, onUploadPomNames, onClear
                 directory=""
                 onChange={e => { handleRulesFiles(e.target.files); e.target.value = ''; }} />
             </label>
-            {(pomRulesOverride?.index || Object.keys(pomRulesOverride?.buckets || {}).length > 0) && (
-              <button onClick={() => { onClearPomRules(); setRulesSuccess(null); setRulesError(null); }}
-                style={{
-                  padding: '8px 14px',
-                  background: '#fff', border: '1px solid #e8e5e1', borderRadius: '6px',
-                  cursor: 'pointer', fontSize: '12px', fontWeight: 600, color: '#dc2626',
-                  fontFamily: 'inherit',
-                }}>清除全部覆蓋</button>
-            )}
           </div>
 
           {rulesError && <div style={{ marginTop: '10px', padding: '8px 10px', background: '#fef2f2', color: '#b91c1c', fontSize: '11px', borderRadius: '6px' }}>⚠ {rulesError}</div>}
@@ -1651,6 +1644,7 @@ function App() {
     const skipped = list.length - jsonFiles.length;
     const indexResults = [];
     const bucketResults = [];
+    let namesResult = null; // 只會有一個 pom_names override (最後一個)
     const invalid = [];
     const now = new Date().toISOString();
 
@@ -1659,7 +1653,6 @@ function App() {
         const text = await readFileAsText(file);
         const parsed = JSON.parse(text);
         if (Array.isArray(parsed.buckets)) {
-          // _index.json
           existing.index = { filename: file.name, uploadedAt: now, count: parsed.buckets.length, data: parsed };
           indexResults.push({ filename: file.name, count: parsed.buckets.length });
         } else if (parsed.bucket && parsed.measurement_rules) {
@@ -1668,15 +1661,30 @@ function App() {
           existing.buckets[parsed.bucket] = { filename: file.name, uploadedAt: now, count, data: parsed };
           bucketResults.push({ filename: file.name, bucketName: parsed.bucket, count });
         } else {
-          invalid.push({ filename: file.name, reason: '非 _index 也非 bucket 格式' });
+          // 嘗試當成 pom_names 處理 — 允許整個資料夾丟進來時自動路由
+          const nm = normalizePomNames(parsed);
+          if (!nm.error && nm.data) {
+            namesResult = { filename: file.name, data: nm.data, count: nm.count, invalidCount: nm.invalidCount };
+          } else {
+            invalid.push({ filename: file.name, reason: '非 _index / bucket / pom_names 格式' });
+          }
         }
       } catch (e) {
         invalid.push({ filename: file.name, reason: e.message || String(e) });
       }
     }));
 
-    if (!indexResults.length && !bucketResults.length) {
+    if (!indexResults.length && !bucketResults.length && !namesResult) {
       throw new Error(`全部失敗 — ${invalid.length ? invalid.map(x => `${x.filename}: ${x.reason}`).slice(0, 3).join('; ') : '無有效 JSON'}`);
+    }
+
+    // pom_names 寫到自己的 localStorage key + 更新 state (與 applyPomNamesOverride 同路徑)
+    if (namesResult) {
+      const nmStored = { filename: namesResult.filename, uploadedAt: now, data: namesResult.data };
+      try { localStorage.setItem('stytrix.override.pomNames', JSON.stringify(nmStored)); }
+      catch (e) { throw new Error('localStorage 寫入失敗 (pom_names):' + e.message); }
+      setPomNames(namesResult.data); window.POM_NAMES = namesResult.data;
+      setPomNamesOverride({ filename: namesResult.filename, uploadedAt: now, count: namesResult.count });
     }
 
     try { localStorage.setItem('stytrix.override.pomRules', JSON.stringify(existing)); }
@@ -1712,7 +1720,7 @@ function App() {
       if (d.garment_type) setGt(d.garment_type);
       if (d.gender) setGender(d.gender);
     }
-    return { indexCount: indexResults.length, bucketCount: bucketResults.length, invalidCount: invalid.length, skippedNonJson: skipped, invalid };
+    return { indexCount: indexResults.length, bucketCount: bucketResults.length, namesCount: namesResult ? 1 : 0, invalidCount: invalid.length, skippedNonJson: skipped, invalid };
   };
 
   const clearPomRulesOverride = () => {
