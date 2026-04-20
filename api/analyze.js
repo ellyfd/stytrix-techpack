@@ -6,7 +6,7 @@ const L1_CODES = {
   HD: "帽子", HL: "釦環", KH: "Keyhole", LB: "商標", LI: "裡布",
   LO: "褲口", LP: "帶絆", NK: "領", NP: "領襟", NT: "領貼條",
   OT: "其它", PD: "褶", PK: "口袋", PL: "門襟", PS: "褲合身",
-  QT: "行縫固定棉", RS: "褲襠", SA: "剪接線_上身類", SB: "剪接線_下身類",
+  QT: "行縫(固定棉)", RS: "褲襠", SA: "剪接線_上身類", SB: "剪接線_下身類",
   SH: "肩", SL: "袖口", SP: "袖叉", SR: "裙合身", SS: "脅邊",
   ST: "肩帶", TH: "拇指洞", WB: "腰頭", ZP: "拉鍊"
 };
@@ -29,14 +29,20 @@ export default async function handler(request) {
   const mediaType = m ? `image/${m[1]}` : "image/png";
   const b64 = m ? m[2] : image;
 
+  // Load visual guide once — both passes use it (Pass 1 for L1 sketch_def,
+  // Pass 2 for L2 features).
+  let guide = null;
+  try { guide = await loadGuide(request); }
+  catch (e) { /* non-fatal: Pass 1 falls back to bare code=name list */ }
+
   // ── Pass 1: identify which of the 38 L1 parts are in the sketch ──
-  const detected = await identifyL1(apiKey, mediaType, b64, { brand, fabric, gender, garment_type, item_type });
+  const detected = await identifyL1(apiKey, mediaType, b64, { brand, fabric, gender, garment_type, item_type }, guide);
   if (detected.error) return json(detected, 502);
 
   // ── Pass 2: for each detected L1, identify the most likely L2
   //    using its subset from data/l2_visual_guide.json (dynamic
   //    subset keeps the prompt cost bounded). ──
-  const l2Map = await identifyL2(apiKey, mediaType, b64, detected.list, request);
+  const l2Map = await identifyL2(apiKey, mediaType, b64, detected.list, guide);
   if (l2Map.error) {
     // Soft-fail: L2 couldn't be identified but L1 detection is still useful.
     return json({ detected: detected.list, l2_error: l2Map.error, usage: detected.usage });
@@ -57,8 +63,14 @@ export default async function handler(request) {
   return json({ detected: merged, usage_l1: detected.usage, usage_l2: l2Map.usage });
 }
 
-async function identifyL1(apiKey, mediaType, b64, ctxObj) {
-  const partList = Object.entries(L1_CODES).map(([k, v]) => `  ${k} = ${v}`).join("\n");
+async function identifyL1(apiKey, mediaType, b64, ctxObj, guide) {
+  // Each L1 line: "  CODE = 中文名 — sketch 視覺定義（含 ↔ 兄弟對比）"
+  // sketch_def 來自 L1_部位定義_Sketch視覺指引.md，給 VLM 做兄弟消歧用
+  // （AE/AH、BM/LO/BP、PL/FY/ZP 等位置/語意接近的組合最受益）。
+  const partList = Object.entries(L1_CODES).map(([k, v]) => {
+    const def = guide?.l1?.[k]?.sketch_def || "";
+    return def ? `  ${k} = ${v} — ${def}` : `  ${k} = ${v}`;
+  }).join("\n");
   const ctx = [
     ctxObj.brand && `Brand: ${ctxObj.brand}`,
     ctxObj.fabric && `Fabric: ${ctxObj.fabric}`,
@@ -69,7 +81,9 @@ async function identifyL1(apiKey, mediaType, b64, ctxObj) {
 
   const prompt = `You are a garment manufacturing expert. Analyze this clothing sketch and identify which of the 38 construction parts below are visible in the drawing.
 
-Part codes (code = Chinese name):
+Each entry below is "code = 中文名 — sketch visual definition with sibling contrasts (↔ marks comparisons against sibling L1s you must distinguish from)". Use the sketch definition to ground your judgment in what the artist actually drew, and use the ↔ contrasts to break ties between siblings (e.g. AE 無袖開口 vs AH 有袖接合線; BM 上衣底邊 vs LO 褲腳 vs BP 側邊開叉).
+
+Part codes:
 ${partList}
 
 ${ctx ? "Context:\n" + ctx + "\n" : ""}
@@ -82,6 +96,7 @@ Rules:
 - x, y: approximate position on the whole sketch as percentages 0-100 (x from left, y from top).
 - confidence: 0-100, your certainty that this part is actually in the sketch.
 - Include every part you can clearly see. Do NOT guess parts that are not drawn.
+- For parts marked "幾乎不可見" / "通常不可見" (BN, NT, LI, etc.), only include if a callout/text annotation in the sketch explicitly mentions them.
 - If the sketch shows both front and back views side-by-side, x for a back part should be in the right half.`;
 
   const data = await callClaude(apiKey, mediaType, b64, prompt, 2000);
@@ -102,15 +117,9 @@ async function loadGuide(request) {
   return _guideCache;
 }
 
-async function identifyL2(apiKey, mediaType, b64, detectedL1s, request) {
+async function identifyL2(apiKey, mediaType, b64, detectedL1s, guide) {
   if (!detectedL1s.length) return { byCode: {}, usage: null };
-
-  let guide;
-  try {
-    guide = await loadGuide(request);
-  } catch (e) {
-    return { error: `L2 guide load failed: ${e?.message || e}` };
-  }
+  if (!guide) return { error: "L2 guide not loaded (Pass 1 fallback path)" };
 
   // Build a compact subset: only the detected L1s' L2 options (+ features).
   const NO_SKETCH_RE = /非\s*sketch\s*可見|無圖片可參考/i;
@@ -123,13 +132,31 @@ async function identifyL2(apiKey, mediaType, b64, detectedL1s, request) {
     if (noSketch) cap = Math.min(cap ?? 30, 30);
     return cap;
   };
+  // L2 subset rule: keep prompt bounded but never drop visually distinctive L2s.
+  //   1. Top 20 by historical freq.
+  //   2. Union: any tier="green" L2 (AI-rankable cue).
+  //   3. Union: any L2 whose feature starts with "Sketch 上" (visual cue written).
+  // Rationale: a low-freq L2 (e.g. appeared 2 times) with a clear sketch
+  // signature should still be pickable — the old hard slice(0,25) dropped them.
+  const SKETCH_CUE_RE = /^\s*(?:\*+\s*)?Sketch\s*上/i;
+  const pickL2Subset = (l2Map) => {
+    const all = Object.entries(l2Map)
+      .sort((a, b) => (b[1].freq || 0) - (a[1].freq || 0));
+    const keep = new Map();
+    all.slice(0, 20).forEach(([k, v]) => keep.set(k, v));
+    for (const [k, v] of all) {
+      if (keep.has(k)) continue;
+      if (v.tier === "green" || SKETCH_CUE_RE.test(v.feature || "")) {
+        keep.set(k, v);
+      }
+    }
+    return Array.from(keep.entries());
+  };
   const subsetLines = [];
   for (const d of detectedL1s) {
     const section = guide.l1?.[d.code];
     if (!section || !section.l2) continue;
-    const opts = Object.entries(section.l2)
-      .sort((a, b) => (b[1].freq || 0) - (a[1].freq || 0))
-      .slice(0, 25); // cap at 25 L2s per L1 to keep prompt bounded
+    const opts = pickL2Subset(section.l2);
     if (!opts.length) continue;
     subsetLines.push(`${d.code} (${L1_CODES[d.code]}):`);
     for (const [key, v] of opts) {
@@ -162,7 +189,7 @@ Return ONLY valid JSON (no markdown fences, no prose) in this shape:
 Rules:
 - l2_code: must be an exact key from the options list for that L1.
 - confidence: 0-100, your certainty. Respect any [信心 ≤N] cap.
-- explanation: short string (<60 chars) citing the specific Sketch 上 cue you matched, e.g. "matched: 袖孔邊緣波浪狀荷葉邊". If you are guessing because no cue was visible, say so: "guess: sibling cues inconclusive".
+- explanation: short string (<80 chars) citing the specific Sketch 上 cue you matched, e.g. "matched: 袖孔邊緣波浪狀荷葉邊". If you are guessing because no cue was visible, say so: "guess: sibling cues inconclusive".
 - alternatives: up to 3 runner-ups with their confidence. Omit if none.`;
 
   const data = await callClaude(apiKey, mediaType, b64, prompt, 3000);
@@ -181,7 +208,7 @@ Rules:
       l2_code: v.l2_code,
       l2_name: entry?.name || v.l2_code,
       confidence: Number(v.confidence) || 0,
-      explanation: typeof v.explanation === "string" ? v.explanation.slice(0, 120) : null,
+      explanation: typeof v.explanation === "string" ? v.explanation.slice(0, 80) : null,
       alternatives: Array.isArray(v.alternatives) ? v.alternatives.slice(0, 3).map(a => ({
         l2_code: a.l2_code,
         l2_name: section?.l2?.[a.l2_code]?.name || a.l2_code,

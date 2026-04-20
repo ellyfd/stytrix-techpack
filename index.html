@@ -53,7 +53,7 @@ const BRANDS = [
    + l2_l3_ie/<code>.json (L2 shape / L5 step IE). Shape per card:
    { id, l1, l1_code, l2, ie, source, conf, matchCode, action,
      px, py, side, l3s: [{name, ie, auto, pick, opts:[{n,p}]}] }
-   source: ai = AI vision 偵測, struct = 結構推斷
+   source: ai = AI vision 偵測, struct = 結構推斷（l1_part_presence 歷史補位）
    action: auto_recommend | recommend_with_alternatives | user_select */
 
 /* L1 code → Chinese name, for mapping xlsx-side codes (what /api/analyze
@@ -80,16 +80,8 @@ const TAGS = [
   { l: "口袋", c: "#b45309" }, { l: "High Rise", c: "#065f46" }, { l: "褶", c: "#a21caf" }
 ];
 const SRC = {
-  ai:       { label: "AI 偵測", bg: "#e0f2fe", c: "#0369a1", icon: "👁" },
-  struct:   { label: "結構推斷", bg: "#d1fae5", c: "#065f46", icon: "⚙" },
-  presence: { label: "歷史資料", bg: "#fef3c7", c: "#92400e", icon: "📊" }
-};
-
-const TIER_BADGE = {
-  essential:  { label: "必備",  bg: "#dcfce7", c: "#15803d" },
-  common:     { label: "常見",  bg: "#dbeafe", c: "#1d4ed8" },
-  occasional: { label: "偶爾",  bg: "#f1f5f9", c: "#475569" },
-  rare:       { label: "少見",  bg: "#fee2e2", c: "#b91c1c" }
+  ai:     { label: "AI 偵測",   bg: "#e0f2fe", c: "#0369a1", icon: "👁" },
+  struct: { label: "結構推斷",   bg: "#d1fae5", c: "#065f46", icon: "⚙" }
 };
 
 /* ─── 長度相關 POM codes（PETITE / TALL 跟 MISSY 有差的） ─── */
@@ -711,6 +703,17 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
                 <div style={{ marginTop: "8px", maxHeight: "280px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "4px" }}>
                   {card.l2Variants.map((v, idx) => {
                     const active = idx === (card.l2Idx ?? 0);
+                    const isAiPick = card.ai_l2_code && v.code === card.ai_l2_code && !!card.ai_l2_explanation;
+                    let aiCue = null;
+                    if (isAiPick) {
+                      const raw = card.ai_l2_explanation.trim();
+                      if (/^guess:/i.test(raw)) {
+                        aiCue = { icon: "⚠", text: "AI 未鎖定線索", color: "#b45309" };
+                      } else {
+                        const body = raw.replace(/^matched:\s*/i, "");
+                        aiCue = { icon: "★", text: `AI 命中：${body}`, color: "#15803d" };
+                      }
+                    }
                     return (
                       <div key={v.code} onClick={() => onSwitchL2 && onSwitchL2(card.id, idx)}
                         style={{
@@ -1203,7 +1206,12 @@ function fmtTime(iso) {
   } catch { return iso; }
 }
 
-function AdminModal({ open, onClose, pomNamesOverride, onUploadPomNames, onClearPomNames }) {
+function AdminModal({
+  open, onClose,
+  pomNamesOverride, onUploadPomNames, onClearPomNames,
+  partPresenceOverride, onUploadPartPresence, onClearPartPresence,
+  pomRulesOverride, onUploadPomRules, onClearPomRules, onPushToGithub, currentBucketKey,
+}) {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -1226,14 +1234,47 @@ function AdminModal({ open, onClose, pomNamesOverride, onUploadPomNames, onClear
 
   const handleFile = async (file) => {
     if (!file) return;
-    setError(null); setSuccess(null); setUploading(true);
+    setError(null); setSuccess(null); setUploading('pom');
     try {
       const result = await onUploadPomNames(file);
-      setSuccess(`已套用 ${result.count} 個 POM 代碼${result.invalidCount > 0 ? `（跳過 ${result.invalidCount} 個無效）` : ''}`);
+      setSuccess(`POM 翻譯表：已套用 ${result.count} 個代碼${result.invalidCount > 0 ? `（跳過 ${result.invalidCount} 個無效）` : ''}`);
     } catch (e) {
-      setError(typeof e === 'string' ? e : (e?.message || String(e)));
+      setError('POM 翻譯表：' + (typeof e === 'string' ? e : (e?.message || String(e))));
     } finally {
-      setUploading(false);
+      setUploading(null);
+    }
+  };
+
+  const handlePartPresenceFile = async (file) => {
+    if (!file) return;
+    setError(null); setSuccess(null); setUploading('presence');
+    try {
+      const result = await onUploadPartPresence(file);
+      setSuccess(`部位出現率表：已套用 ${result.bucketsCount} 組分類 · ${result.partsCount} 筆部位紀錄${result.badParts > 0 ? `（跳過 ${result.badParts} 筆缺欄位）` : ''}`);
+    } catch (e) {
+      setError('部位出現率表：' + (typeof e === 'string' ? e : (e?.message || String(e))));
+    } finally {
+      setUploading(null);
+    }
+  };
+
+  const handleRulesFiles = async (files) => {
+    if (!files || !files.length) return;
+    setRulesError(null); setRulesSuccess(null); setRulesUploading(true);
+    try {
+      const result = await onUploadPomRules(files);
+      const parts = [];
+      if (result.indexCount) parts.push(`${result.indexCount} 個 _index`);
+      if (result.bucketCount) parts.push(`${result.bucketCount} 個 bucket`);
+      if (result.namesCount) parts.push(`1 個 pom_names (已路由到 POM 翻譯表)`);
+      let msg = `已套用 ${parts.join(' + ')}`;
+      if (result.invalidCount) msg += `(跳過 ${result.invalidCount} 個格式錯誤)`;
+      if (result.skippedNonJson) msg += `(跳過 ${result.skippedNonJson} 個非 .json)`;
+      setRulesSuccess(msg);
+    } catch (e) {
+      setRulesError(typeof e === 'string' ? e : (e?.message || String(e)));
+    } finally {
+      setRulesUploading(false);
     }
   };
 
@@ -1287,8 +1328,8 @@ function AdminModal({ open, onClose, pomNamesOverride, onUploadPomNames, onClear
               cursor: uploading ? 'not-allowed' : 'pointer',
               fontSize: '12px', fontWeight: 600,
             }}>
-              {uploading ? '處理中…' : '選擇 JSON 檔'}
-              <input type="file" accept=".json,application/json" hidden disabled={uploading}
+              {uploading === 'pom' ? '處理中…' : '選擇 JSON 檔'}
+              <input type="file" accept=".json,application/json" hidden disabled={!!uploading}
                 onChange={e => { handleFile(e.target.files?.[0]); e.target.value = ''; }} />
             </label>
             {pomNamesOverride && (
@@ -1305,10 +1346,128 @@ function AdminModal({ open, onClose, pomNamesOverride, onUploadPomNames, onClear
                 }}>{confirmingClear ? '再點一次確認清除' : '清除覆蓋 · 還原內建'}</button>
             )}
           </div>
-
-          {error && <div style={{ marginTop: '10px', padding: '8px 10px', background: '#fef2f2', color: '#b91c1c', fontSize: '11px', borderRadius: '6px' }}>⚠ {error}</div>}
-          {success && <div style={{ marginTop: '10px', padding: '8px 10px', background: '#ecfdf5', color: '#065f46', fontSize: '11px', borderRadius: '6px' }}>✓ {success}</div>}
         </div>
+
+        <div style={{ marginTop: '12px', border: '1px solid #e8e5e1', borderRadius: '10px', padding: '14px' }}>
+          <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '4px' }}>部位出現率表（結構推斷來源）</div>
+          <div style={{ fontSize: '11px', color: '#767676', marginBottom: '12px', lineHeight: 1.5 }}>
+            用途：依「服裝大類 × 款式細類」（例如 <code>PANT|LEGGINGS</code>、<code>OUTERWEAR|JACKET</code>）統計歷史款式每個 L1 部位的出現率。AI 漏畫但歷史 ≥80%（必備）的部位會自動補成「⚙ 結構推斷」卡片。
+            <br />
+            預期格式：<code style={{ background: '#f5f5f5', padding: '1px 4px', borderRadius: '3px' }}>{'{"by_gt_it":{"PANT|LEGGINGS":{"parts":[{"l1_code":"WB","presence_pct":95,"tier_en":"essential"}]}}}'}</code>
+            <br />
+            <span style={{ color: '#999' }}>資料會陸續補齊，上傳新版會覆蓋此瀏覽器的版本，不會影響其他人。</span>
+          </div>
+
+          <div style={{
+            padding: '8px 12px', borderRadius: '8px',
+            background: partPresenceOverride ? '#fef3c7' : '#f3f4f6',
+            fontSize: '12px', color: partPresenceOverride ? '#92400e' : '#6b7280',
+            marginBottom: '12px', lineHeight: 1.4,
+          }}>
+            {partPresenceOverride
+              ? <span><strong>已覆蓋</strong>：{partPresenceOverride.filename}（{partPresenceOverride.bucketsCount} 組分類 · {partPresenceOverride.partsCount} 筆部位{partPresenceOverride.uploadedAt ? ` · ${fmtTime(partPresenceOverride.uploadedAt)}` : ''}）</span>
+              : <span>目前用內建版 <code>l1_part_presence_v1.json</code></span>}
+          </div>
+
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <label style={{
+              display: 'inline-block', padding: '8px 14px',
+              background: uploading ? '#999' : '#1a1a1a', color: '#fff', borderRadius: '6px',
+              cursor: uploading ? 'not-allowed' : 'pointer',
+              fontSize: '12px', fontWeight: 600,
+            }}>
+              {uploading === 'presence' ? '處理中…' : '選擇 JSON 檔'}
+              <input type="file" accept=".json,application/json" hidden disabled={!!uploading}
+                onChange={e => { handlePartPresenceFile(e.target.files?.[0]); e.target.value = ''; }} />
+            </label>
+            {partPresenceOverride && (
+              <button onClick={() => { onClearPartPresence(); setSuccess(null); setError(null); }}
+                style={{
+                  padding: '8px 14px',
+                  background: '#fff', border: '1px solid #e8e5e1', borderRadius: '6px',
+                  cursor: 'pointer', fontSize: '12px', fontWeight: 600, color: '#dc2626',
+                  fontFamily: 'inherit',
+                }}>清除覆蓋 · 還原內建</button>
+            )}
+          </div>
+        </div>
+
+        {/* Push to GitHub 區塊 */}
+        {(() => {
+          const bucketCount = Object.keys(pomRulesOverride?.buckets || {}).length;
+          const hasIndex = !!pomRulesOverride?.index;
+          const hasNames = !!pomNamesOverride;
+          const totalFiles = (hasIndex ? 1 : 0) + bucketCount + (hasNames ? 1 : 0);
+          return (
+            <div style={{ marginTop: '12px', border: '1px solid #b45309', borderRadius: '10px', padding: '14px', background: '#fff7ed' }}>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#9a3412', marginBottom: '4px' }}>推送到 GitHub · Deploy 給所有人</div>
+              <div style={{ fontSize: '11px', color: '#9a3412', marginBottom: '12px', lineHeight: 1.5 }}>
+                把你目前的覆蓋直接 commit 到 <code>main</code> 分支,會觸發 Vercel 重新 deploy,**所有使用者**都會看到新資料。
+                推送成功後本機覆蓋會清空(main 已是新真相)。
+              </div>
+
+              <div style={{ marginBottom: '10px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: '#555', marginBottom: '4px' }}>Admin Token</div>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <input
+                    type={showToken ? 'text' : 'password'}
+                    value={adminToken}
+                    onChange={e => saveToken(e.target.value)}
+                    placeholder="Vercel env 裡設的 ADMIN_TOKEN"
+                    style={{ flex: 1, padding: '7px 9px', fontSize: '12px', fontFamily: 'monospace', border: '1px solid #e8e5e1', borderRadius: '5px' }}
+                  />
+                  <button onClick={() => setShowToken(v => !v)} style={{ padding: '7px 10px', fontSize: '11px', background: '#fff', border: '1px solid #e8e5e1', borderRadius: '5px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                    {showToken ? '隱藏' : '顯示'}
+                  </button>
+                </div>
+                <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '3px' }}>存在這台瀏覽器的 localStorage,不會傳到 GitHub。</div>
+              </div>
+
+              <div style={{ marginBottom: '10px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: '#555', marginBottom: '4px' }}>Commit message(可空)</div>
+                <input
+                  type="text" value={pushMessage} onChange={e => setPushMessage(e.target.value)}
+                  placeholder={`admin: 更新 pom_rules (${totalFiles} files)`}
+                  style={{ width: '100%', padding: '7px 9px', fontSize: '12px', border: '1px solid #e8e5e1', borderRadius: '5px' }}
+                />
+              </div>
+
+              <div style={{ padding: '8px 10px', borderRadius: '6px', background: '#fff', border: '1px solid #fed7aa', fontSize: '11px', color: '#555', marginBottom: '10px' }}>
+                將推送 <strong>{totalFiles}</strong> 個檔案:
+                {hasIndex && <> · 1 × <code>_index.json</code></>}
+                {bucketCount > 0 && <> · {bucketCount} × bucket</>}
+                {hasNames && <> · 1 × <code>pom_names.json</code></>}
+                {totalFiles === 0 && <span style={{ color: '#dc2626' }}>(沒有本機覆蓋,先在上方上傳檔案)</span>}
+              </div>
+
+              <button
+                onClick={handlePush}
+                disabled={pushing || totalFiles === 0 || !adminToken}
+                style={{
+                  width: '100%', padding: '10px 14px',
+                  background: (pushing || totalFiles === 0 || !adminToken) ? '#d1d5db' : '#9a3412',
+                  color: '#fff', border: 'none', borderRadius: '6px',
+                  cursor: (pushing || totalFiles === 0 || !adminToken) ? 'not-allowed' : 'pointer',
+                  fontSize: '13px', fontWeight: 700, fontFamily: 'inherit',
+                }}
+              >
+                {pushing ? '推送中…(可能需 10~30 秒)' : '⚠ 推送到 GitHub main'}
+              </button>
+
+              {pushError && <div style={{ marginTop: '10px', padding: '8px 10px', background: '#fef2f2', color: '#b91c1c', fontSize: '11px', borderRadius: '6px' }}>⚠ {pushError}</div>}
+              {pushResult && (
+                <div style={{ marginTop: '10px', padding: '8px 10px', background: '#ecfdf5', color: '#065f46', fontSize: '11px', borderRadius: '6px', lineHeight: 1.5 }}>
+                  ✓ 已推送 {pushResult.fileCount} 個檔案 · commit <code>{pushResult.sha?.slice(0, 7)}</code>
+                  {pushResult.url && <> · <a href={pushResult.url} target="_blank" rel="noopener" style={{ color: '#065f46', textDecoration: 'underline' }}>看 commit</a></>}
+                  <br />Vercel 通常 30 秒內 deploy 完,重新整理即可看到新資料。
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+        {error && <div style={{ marginTop: '10px', padding: '8px 10px', background: '#fef2f2', color: '#b91c1c', fontSize: '11px', borderRadius: '6px' }}>⚠ {error}</div>}
+        {success && <div style={{ marginTop: '10px', padding: '8px 10px', background: '#ecfdf5', color: '#065f46', fontSize: '11px', borderRadius: '6px' }}>✓ {success}</div>}
 
         <div style={{ marginTop: '12px', border: '1px dashed #e8e5e1', borderRadius: '10px', padding: '14px', background: '#fafafa' }}>
           <div style={{ fontSize: '13px', fontWeight: 700, color: '#767676' }}>L2 判別表</div>
@@ -1439,6 +1598,7 @@ function App() {
   const [sketchSrc, setSketchSrc] = useState(null);
   const [pomRules, setPomRules] = useState(null);
   const [pomNamesOverride, setPomNamesOverride] = useState(null); // {filename, uploadedAt, count} | null
+  const [partPresenceOverride, setPartPresenceOverride] = useState(null); // {filename, uploadedAt, bucketsCount, partsCount} | null
   const [adminOpen, setAdminOpen] = useState(false);
   const [fetchErrors, setFetchErrors] = useState([]); // [{key, label, retry}]
   const addFetchError = (key, label, retry) => {
@@ -1522,6 +1682,132 @@ function App() {
       .catch(err => console.error('重新載入 pom_names.json 失敗:', err));
   };
 
+  /* 部位出現率表（l1_part_presence）上傳覆蓋：同一個瀏覽器用 localStorage 覆寫 */
+  const applyPartPresenceOverride = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      let parsed;
+      try { parsed = JSON.parse(ev.target.result); }
+      catch (e) { return reject('JSON 解析失敗：' + e.message); }
+      if (!parsed || typeof parsed !== 'object' || !parsed.by_gt_it || typeof parsed.by_gt_it !== 'object') {
+        return reject('格式不符：缺少 by_gt_it 欄位');
+      }
+      const buckets = Object.keys(parsed.by_gt_it);
+      if (!buckets.length) return reject('格式不符：by_gt_it 為空');
+      let partsCount = 0, badParts = 0;
+      for (const key of buckets) {
+        const b = parsed.by_gt_it[key];
+        if (!Array.isArray(b?.parts)) return reject(`格式不符：${key} 缺少 parts array`);
+        for (const p of b.parts) {
+          if (!p?.l1_code || !p?.tier_en) { badParts++; continue; }
+          partsCount++;
+        }
+      }
+      const stored = { filename: file.name, uploadedAt: new Date().toISOString(), data: parsed };
+      try { localStorage.setItem('stytrix.override.partPresence', JSON.stringify(stored)); }
+      catch (e) { return reject('localStorage 寫入失敗（可能超出配額）：' + e.message); }
+      setPartPresence(parsed);
+      setPartPresenceOverride({
+        filename: file.name, uploadedAt: stored.uploadedAt,
+        bucketsCount: buckets.length, partsCount,
+      });
+      resolve({ bucketsCount: buckets.length, partsCount, badParts });
+    };
+    reader.onerror = () => reject('讀檔失敗');
+    reader.readAsText(file);
+  });
+
+  const clearPartPresenceOverride = () => {
+    try { localStorage.removeItem('stytrix.override.partPresence'); } catch {}
+    setPartPresenceOverride(null);
+    fetch('./l1_part_presence_v1.json')
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(setPartPresence)
+      .catch(err => console.error('重新載入 l1_part_presence 失敗:', err));
+  };
+
+  /* 把目前所有 localStorage 覆蓋(POM Rules + POM 翻譯表)打包推到
+     GitHub main,觸發 Vercel 重新 deploy。成功後本機 overrides 會
+     被清空,因為 main 已是新真相,不再需要 preview 層覆蓋。 */
+  const pushOverridesToGithub = async ({ token, message }) => {
+    if (!token) throw new Error('請先填 Admin Token');
+    const files = [];
+
+    // POM Rules index + buckets
+    let rulesStored = null;
+    try {
+      const raw = localStorage.getItem('stytrix.override.pomRules');
+      if (raw) rulesStored = JSON.parse(raw);
+    } catch (e) { throw new Error('讀 pomRules 覆蓋失敗:' + e.message); }
+
+    if (rulesStored?.index?.data) {
+      files.push({ path: 'pom_rules/_index.json', content: JSON.stringify(rulesStored.index.data, null, 2) });
+    }
+    // canonical filename resolution:內建 _index.buckets 有 file 欄位 → 用它;
+    // 否則用使用者上傳的檔名(若 .json 結尾)作為 fallback。
+    const canonicalByBucket = {};
+    if (rulesStored?.index?.data?.buckets) {
+      for (const b of rulesStored.index.data.buckets) {
+        if (b.bucket && b.file) canonicalByBucket[b.bucket] = b.file;
+      }
+    }
+    if (!Object.keys(canonicalByBucket).length && pomRules?.buckets) {
+      for (const b of pomRules.buckets) {
+        if (b.bucket && b.file) canonicalByBucket[b.bucket] = b.file;
+      }
+    }
+    for (const [bkey, entry] of Object.entries(rulesStored?.buckets || {})) {
+      if (!entry?.data) continue;
+      let fname = canonicalByBucket[bkey] || entry.filename;
+      if (!fname || !/\.json$/i.test(fname)) {
+        // derive:RTW_TOP|WOMENS → womens_rtw_top.json
+        const [left, gender] = bkey.split('|');
+        const parts = left?.split('_') || [];
+        fname = `${(gender || 'unknown').toLowerCase()}_${parts.join('_').toLowerCase()}.json`;
+      }
+      files.push({ path: `pom_rules/${fname}`, content: JSON.stringify(entry.data, null, 2) });
+    }
+
+    // POM 翻譯表
+    try {
+      const raw = localStorage.getItem('stytrix.override.pomNames');
+      if (raw) {
+        const p = JSON.parse(raw);
+        if (p?.data) {
+          files.push({ path: 'pom_rules/pom_names.json', content: JSON.stringify(p.data, null, 2) });
+        }
+      }
+    } catch {}
+
+    if (!files.length) throw new Error('目前沒有任何本機覆蓋可推送');
+
+    const res = await fetch('/api/push-pom-rules', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-admin-token': token },
+      body: JSON.stringify({ files, message: message || null }),
+    });
+    let data;
+    try { data = await res.json(); } catch { data = {}; }
+    if (!res.ok) throw new Error(data.error || `API 錯誤 ${res.status}`);
+
+    // 成功:清空本機覆蓋(main 已是新真相),重抓 built-in
+    try { localStorage.removeItem('stytrix.override.pomRules'); } catch {}
+    try { localStorage.removeItem('stytrix.override.pomNames'); } catch {}
+    setPomRulesOverride({ index: null, buckets: {} });
+    setPomNamesOverride(null);
+    // 稍微等一下讓 Vercel 的 deploy 能跑到,不然馬上 fetch 還會拿到舊版
+    // 這裡先重抓,使用者若看到舊資料過 30s 再重新整理即可
+    fetch('./pom_rules/_index.json?t=' + Date.now())
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(d => { setPomRules(d); window.POM_RULES = d; })
+      .catch(() => {});
+    fetch('./pom_rules/pom_names.json?t=' + Date.now())
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(d => { setPomNames(d); window.POM_NAMES = d; })
+      .catch(() => {});
+    return data;
+  };
+
   const [pomNames, setPomNames] = useState({});
   const [currentBucket, setCurrentBucket] = useState(null);
   const [bucketLoading, setBucketLoading] = useState(false);
@@ -1531,6 +1817,19 @@ function App() {
     return pomRules.buckets.find(b => b.bucket === bucketKey) || null;
   }, [bucketKey, pomRules]);
   useEffect(() => {
+    // 先看 localStorage 是否有針對此 bucketKey 的覆蓋 —
+    // 這樣即使使用者上傳的 bucket 不在內建 _index.json 裡,也能直接套用。
+    try {
+      const stored = localStorage.getItem('stytrix.override.pomRules');
+      if (stored && bucketKey) {
+        const parsed = JSON.parse(stored);
+        const bucketEntry = parsed?.buckets?.[bucketKey];
+        if (bucketEntry?.data) {
+          setCurrentBucket(bucketEntry.data); window.CURRENT_BUCKET = bucketEntry.data;
+          return;
+        }
+      }
+    } catch (e) { console.warn('讀取 bucket 覆蓋失敗:', e); }
     if (!bucketMeta) { setCurrentBucket(null); return; }
     const load = () => {
       clearFetchError('bucket');
@@ -1912,7 +2211,11 @@ function App() {
         for (const p of presenceBucket.parts || []) presenceByCode[p.l1_code] = p;
       }
       // Add essential parts the AI missed so they still render (tier_en === 'essential').
+      // Enforce the 38-L1 invariant: presence file uses a legacy schema that
+      // includes old codes (BT/EL/FC/FR/FU/GS/IL/LN/YK…) not in L1_CODE_TO_NAME.
+      // Skip anything outside the canonical 38 so UI never shows half-broken cards.
       for (const code of Object.keys(presenceByCode)) {
+        if (!L1_CODE_TO_NAME[code]) continue;
         if (byCode.has(code)) continue;
         if (presenceByCode[code].tier_en !== "essential") continue;
         byCode.set(code, { code, confidence: null, x: 50, y: 50, side: "front", _fromPresence: true });
@@ -1929,7 +2232,7 @@ function App() {
       // Normalize xlsx Chinese names to ISO-JSON Chinese names (different character choices).
       const ISO_NAME_ALIAS = {
         "帽子":"帽", "下襬":"下擺", "商標":"標",
-        "脅邊":"脇縫", "行縫(固定棉)":"行縫固定棉",
+        "脅邊":"脇縫",
         "袖孔":"袖襱", "袖圍":"袖襱"
       };
       const findIso = (name) => isoByName[name]
@@ -2081,7 +2384,7 @@ function App() {
             ? `${l2Base}${l4Short ? " · " + l4Short : ""}`
             : (rec ? `${rec.recommended_iso} ${isoRec?.iso_reference?.[rec.recommended_iso]?.zh || ""}` : "—"),
           l2Base,
-          source: d._fromPresence ? "presence" : "ai",
+          source: d._fromPresence ? "struct" : "ai",
           conf: Number.isFinite(d.confidence) ? d.confidence : null,
           matchCode: null,
           px: Number.isFinite(d.x) ? d.x : 50,
@@ -2100,6 +2403,7 @@ function App() {
           l3Variants: l3VariantsOut,
           ai_l2_code: d.l2_code || null,
           ai_l2_confidence: Number.isFinite(d.l2_confidence) ? d.l2_confidence : null,
+          ai_l2_explanation: typeof d.l2_explanation === "string" ? d.l2_explanation : null,
           l3s: stepList
         };
       });
@@ -2143,29 +2447,23 @@ function App() {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <button onClick={() => setAdminOpen(true)}
-            aria-label={pomNamesOverride ? "管理面板（已有覆蓋）" : "管理面板"}
-            title={pomNamesOverride ? `已覆蓋 POM 翻譯表：${pomNamesOverride.filename}` : "管理：餵入更新的尺寸翻譯表 / L2 判別"}
+            aria-label={(pomNamesOverride || partPresenceOverride) ? "開啟管理面板（已有覆蓋）" : "開啟管理面板"}
+            title={(() => {
+              const parts = [];
+              if (pomNamesOverride) parts.push(`POM 翻譯表：${pomNamesOverride.filename}`);
+              if (partPresenceOverride) parts.push(`部位出現率表：${partPresenceOverride.filename}`);
+              return parts.length ? `已覆蓋 — ${parts.join('、')}` : "管理：上傳 POM 翻譯表 / 部位出現率表";
+            })()}
             style={{
-              background: "#fff",
-              border: `1px solid ${pomNamesOverride ? "#f59e0b" : "#e8e5e1"}`,
-              borderRadius: "8px",
-              width: "32px", height: "32px",
-              padding: 0,
+              background: "#fff", border: "1px solid #e8e5e1", borderRadius: "6px",
+              padding: "4px 10px", fontSize: "11px", fontWeight: 600,
+              color: (pomNamesOverride || partPresenceOverride) ? "#b45309" : "#767676",
               cursor: "pointer", fontFamily: "inherit",
               display: "inline-flex", alignItems: "center", justifyContent: "center",
               position: "relative", transition: "border-color 0.15s",
             }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={pomNamesOverride ? "#b45309" : "#767676"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
-              <circle cx="12" cy="12" r="3"/>
-            </svg>
-            {pomNamesOverride && (
-              <span aria-hidden="true" style={{
-                position: "absolute", top: "-3px", right: "-3px",
-                width: "8px", height: "8px", borderRadius: "50%",
-                background: "#f59e0b", border: "1.5px solid #fff",
-              }} />
-            )}
+            {(pomNamesOverride || partPresenceOverride) && <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#f59e0b", display: "inline-block" }} />}
+            管理
           </button>
         </div>
       </div>
@@ -3369,7 +3667,7 @@ function App() {
                             <th style={{ padding: "8px 8px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#999", width: "70px" }}>公差</th>
                             <th style={{ padding: "8px 8px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#b45309", width: "70px" }}>跳碼<div style={{ fontSize: "8px", fontWeight: 400, color: "#b45309" }}>Grading</div></th>
                             {sizes.map(s => (
-                              <th key={s} style={{ padding: "8px 6px", textAlign: "center", fontWeight: 700, fontSize: "10px", color: s === "M" ? "#065f46" : "#666", fontFamily: "'JetBrains Mono',monospace", background: s === "M" ? "#ecfdf5" : "transparent", minWidth: "48px" }}>{s}{s === "M" && <div style={{ fontSize: "7px", color: "#065f46" }}>BASE</div>}</th>
+                              <th key={s} style={{ padding: "8px 6px", textAlign: "center", fontWeight: 700, fontSize: "10px", color: s === "M" ? "#065f46" : "#666", fontFamily: "'JetBrains Mono',monospace", background: s === "M" ? "#ecfdf5" : "transparent", minWidth: s === "M" ? (isMobile ? "84px" : "96px") : (isMobile ? "42px" : "48px") }}>{s}{s === "M" && <div style={{ fontSize: "7px", color: "#065f46" }}>BASE · 可編輯</div>}</th>
                             ))}
                           </tr>
                         </thead>
@@ -3396,8 +3694,41 @@ function App() {
                                 </td>
                                 {sizes.map(s => {
                                   const val = sizeValueFor(code, s);
+                                  if (s === "M") {
+                                    const baseMRaw = mv[code]?.size_medians?.M;
+                                    const ov = baseOverrides[code] ?? "";
+                                    const invalid = ov !== "" && parseInch(ov) == null;
+                                    const displayVal = ov !== "" ? ov : (baseMRaw != null ? frmt(baseMRaw) : "");
+                                    return (
+                                      <td key={s} style={{ padding: "4px 6px", textAlign: "center", background: "#ecfdf5" }}>
+                                        <input type="text" value={displayVal}
+                                          onChange={(e) => setBaseOverrides(prev => ({ ...prev, [code]: e.target.value }))}
+                                          onBlur={() => {
+                                            const raw = baseOverrides[code];
+                                            if (raw == null || raw === "") return;
+                                            const parsed = parseInch(raw);
+                                            if (parsed == null) return;
+                                            const normalized = frmt(parsed);
+                                            if (normalized !== "—" && normalized !== raw) {
+                                              setBaseOverrides(prev => ({ ...prev, [code]: normalized }));
+                                            }
+                                          }}
+                                          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); } }}
+                                          placeholder={baseMRaw != null ? frmt(baseMRaw) : "—"}
+                                          inputMode="text"
+                                          aria-label={`${code} Base M`}
+                                          style={{
+                                            width: isMobile ? "72px" : "84px", textAlign: "center", padding: "5px 6px",
+                                            fontFamily: "'JetBrains Mono',monospace", fontSize: "13px", fontWeight: 700,
+                                            color: invalid ? "#dc2626" : "#065f46",
+                                            border: `1px solid ${invalid ? "#dc2626" : "#a7f3d0"}`, borderRadius: "5px",
+                                            background: "#fff",
+                                          }} />
+                                      </td>
+                                    );
+                                  }
                                   return (
-                                    <td key={s} style={{ padding: "5px 6px", textAlign: "center", fontFamily: "'JetBrains Mono',monospace", color: s === "M" ? "#065f46" : "#1a1a1a", fontWeight: s === "M" ? 700 : 500, background: s === "M" ? "#ecfdf5" : "transparent" }}>
+                                    <td key={s} style={{ padding: "5px 6px", textAlign: "center", fontFamily: "'JetBrains Mono',monospace", color: "#1a1a1a", fontWeight: 500 }}>
                                       {val != null ? frmt(val) + '"' : "—"}
                                     </td>
                                   );
@@ -3441,6 +3772,14 @@ function App() {
         pomNamesOverride={pomNamesOverride}
         onUploadPomNames={applyPomNamesOverride}
         onClearPomNames={clearPomNamesOverride}
+        pomRulesOverride={pomRulesOverride}
+        onUploadPomRules={applyPomRulesOverride}
+        onClearPomRules={clearPomRulesOverride}
+        onPushToGithub={pushOverridesToGithub}
+        currentBucketKey={bucketKey}
+        partPresenceOverride={partPresenceOverride}
+        onUploadPartPresence={applyPartPresenceOverride}
+        onClearPartPresence={clearPartPresenceOverride}
       />
       <OnboardingModal open={onboardingOpen} onDismiss={dismissOnboarding} />
 
