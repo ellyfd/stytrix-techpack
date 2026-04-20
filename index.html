@@ -2720,12 +2720,24 @@ function App() {
                 return parseInch(ov) != null;
               };
               // 全碼 size 值：按使用者 M 覆寫整條曲線位移
+              // 全碼 size 值:missy (XXS/XS/S/M/L/XL/XXL) 用 M + 步進 × 跳碼
+              // 推導 — M 改,整條跟著走,且能濾掉 size_medians 的噪音 (歷史中位數
+              // 在小樣本 size 上常有壞值)。Plus (1X/2X/3X/4X) 有自己的 anchor,
+              // 沒有對應的 tiny-to-plus 線性關係,維持原本 "origS + ΔM" 位移。
+              const isPlus = s => /^\d+X$/.test(s);
+              const missySeq = sizes.filter(x => !isPlus(x));
+              const mIdxMissy = missySeq.indexOf("M");
               const sizeValueFor = (code, s) => {
                 const origM = mv[code]?.size_medians?.M;
                 const origS = mv[code]?.size_medians?.[s];
-                if (origS == null) return null;
                 const newM = effectiveBaseM(code);
-                if (newM == null || origM == null) return origS;
+                if (newM == null) return origS ?? null;
+                if (!isPlus(s) && mIdxMissy >= 0) {
+                  const sIdx = missySeq.indexOf(s);
+                  const inc = gr[code]?.typical_increment;
+                  if (sIdx >= 0 && inc != null) return newM + (sIdx - mIdxMissy) * inc;
+                }
+                if (origS == null || origM == null) return origS ?? null;
                 return origS + (newM - origM);
               };
               const toggleTier = tier => setCollapsedTiers(prev => {
@@ -3113,12 +3125,24 @@ function App() {
                 }
                 return mv[code]?.size_medians?.M;
               };
+              // 全碼 size 值:missy (XXS/XS/S/M/L/XL/XXL) 用 M + 步進 × 跳碼
+              // 推導 — M 改,整條跟著走,且能濾掉 size_medians 的噪音 (歷史中位數
+              // 在小樣本 size 上常有壞值)。Plus (1X/2X/3X/4X) 有自己的 anchor,
+              // 沒有對應的 tiny-to-plus 線性關係,維持原本 "origS + ΔM" 位移。
+              const isPlus = s => /^\d+X$/.test(s);
+              const missySeq = sizes.filter(x => !isPlus(x));
+              const mIdxMissy = missySeq.indexOf("M");
               const sizeValueFor = (code, s) => {
                 const origM = mv[code]?.size_medians?.M;
                 const origS = mv[code]?.size_medians?.[s];
-                if (origS == null) return null;
                 const newM = effectiveBaseM(code);
-                if (newM == null || origM == null) return origS;
+                if (newM == null) return origS ?? null;
+                if (!isPlus(s) && mIdxMissy >= 0) {
+                  const sIdx = missySeq.indexOf(s);
+                  const inc = gr[code]?.typical_increment;
+                  if (sIdx >= 0 && inc != null) return newM + (sIdx - mIdxMissy) * inc;
+                }
+                if (origS == null || origM == null) return origS ?? null;
                 return origS + (newM - origM);
               };
 
