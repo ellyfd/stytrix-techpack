@@ -250,7 +250,12 @@ function buildL2VariantsForL1(visualGuide, l1Code) {
     freq: info.freq || 0,
   })).filter(v => !String(v.xlsx_name).startsWith("**"));
   raw.sort((a, b) => (b.freq || 0) - (a.freq || 0));
-  return raw;
+  // 轉成該 L1 內部的歷史佔比,讓 UI 顯示跟 L1 的 "歷史 X%" 一致
+  const total = raw.reduce((s, v) => s + (v.freq || 0), 0);
+  return raw.map(v => ({
+    ...v,
+    freq_pct: total > 0 && v.freq > 0 ? +(v.freq / total * 100).toFixed(1) : null,
+  }));
 }
 
 /* ─── Mock Data ─── */
@@ -4025,7 +4030,7 @@ function App() {
                                 {l2List.length === 0 && <option>（此 L1 visualGuide 無 L2 資料）</option>}
                                 {l2List.map((v, i) => (
                                   <option key={v.code} value={i}>
-                                    {v.display_name || v.xlsx_name}{v.freq ? ` · freq ${v.freq}` : ""}
+                                    {v.display_name || v.xlsx_name}{v.freq_pct != null ? ` · 歷史 ${v.freq_pct}%` : ""}
                                   </option>
                                 ))}
                               </select>
@@ -4037,11 +4042,21 @@ function App() {
                                 disabled={!newIeData || l3List.length === 0}>
                                 {!newIeData && <option>載入中…</option>}
                                 {newIeData && l3List.length === 0 && <option>（此 L1 × L2 組合無 shape 資料）</option>}
-                                {l3List.map((sh, i) => (
-                                  <option key={i} value={i}>
-                                    {sh.l3}{sh.methods?.length ? ` · ${sh.methods.length} 方法` : ""}
-                                  </option>
-                                ))}
+                                {(() => {
+                                  // L3 freq = 該 shape 所有 method 的 steps 總和,轉該 L2 內部百分比
+                                  const shapeFreqs = l3List.map(sh =>
+                                    (sh.methods || []).reduce((n, m) => n + (m.steps || []).length, 0));
+                                  const total = shapeFreqs.reduce((s, n) => s + n, 0);
+                                  return l3List.map((sh, i) => {
+                                    const pct = total > 0 && shapeFreqs[i] > 0
+                                      ? +(shapeFreqs[i] / total * 100).toFixed(1) : null;
+                                    return (
+                                      <option key={i} value={i}>
+                                        {sh.l3}{pct != null ? ` · 歷史 ${pct}%` : ""}
+                                      </option>
+                                    );
+                                  });
+                                })()}
                               </select>
                             </div>
                             {l4List.length > 1 && (
