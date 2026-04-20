@@ -27,12 +27,11 @@ data/                                         ← 資料檔(分析產出 + Pass 
   ├─ l2_visual_guide.json                     ← 聚陽模型 Pass 2 用
   ├─ l2_decision_trees.json                   ← 聚陽模型 Pass 2 decision tree
   │   └─ 由 scripts/build_l2_visual_guide.py / build_l2_decision_trees.py 產生
-  ├─ gender_gt_pom_rules.json                 ← v6 Gender×GT POM 規則(38 combos / 71 median group)
-  ├─ grading_patterns.json                    ← v6 跳檔 pattern(33 combos / 1,016 POM families)
-  ├─ bodytype_variance.json                   ← v6 Body Type 差異(33 comparisons)
-  ├─ client_rules.json                        ← v6 跨品牌規則(5 cross-brand combos)
-  ├─ all_designs_gt_it_classification.json    ← v6 GT×IT 分類(1,328 designs)
-  └─ construction_bridge_v6.json              ← v6 construction bridge(10 GTs 全品類)
+  ├─ grading_patterns.json                    ← v6 跳檔 pattern(33 combos / 1,016 POM families,基碼頁用)
+  ├─ bodytype_variance.json                   ← v6 Body Type 差異(33 comparisons,內部參考)
+  ├─ client_rules.json                        ← v6 跨品牌規則(5 cross-brand combos,內部參考)
+  ├─ all_designs_gt_it_classification.json    ← v6 GT×IT 分類(1,328 designs,內部參考)
+  └─ construction_bridge_v6.json              ← v6 construction bridge(10 GTs 全品類,通用模式用)
 l1_part_presence_v1.json                      ← 聚陽模型：GT×IT 下每個部位出現率
 l1_iso_recommendations_v1.json                ← 聚陽模型：部位名 → ISO 建議
 l2_l3_ie/*.json                               ← 聚陽模型：38 個 L1 部位的 L2-L3-IE 規則

@@ -1,0 +1,1934 @@
+{
+  "version": "v4.3",
+  "created": "2026-04-20",
+  "key_schema": "Department × Gender × GT(fine) × L1",
+  "method": "Zone-specific ISO from 5 sources, fine GT via classification join",
+  "note": "GT uses original app UI values (PANTS/LEGGINGS/SHORTS/TOP/DRESS...), NOT canonical collapse",
+  "sources": [
+    "PPTX Chinese construction",
+    "PDF extracted txt",
+    "PDF JSONL iso_codes",
+    "Raw PDF pdfplumber",
+    "OCR callout"
+  ],
+  "total_entries": 130,
+  "total_designs": 292,
+  "gt_values": [
+    "DRESS",
+    "LEGGINGS",
+    "OUTERWEAR",
+    "PANTS",
+    "ROMPER_JUMPSUIT",
+    "SET",
+    "SHORTS",
+    "SKIRT",
+    "TOP"
+  ],
+  "confidence_rules": {
+    "strong": "Top ISO ≥60% & N≥5",
+    "likely": "Top ISO ≥40% & N≥3",
+    "mixed": "Top ISO <40% or diverse distribution",
+    "no_data": "N<3"
+  },
+  "entries": [
+    {
+      "department": "General",
+      "gender": "KIDS",
+      "gt": "DRESS",
+      "l1": "領",
+      "iso": "602",
+      "iso_pct": 100.0,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "602": 1
+      }
+    },
+    {
+      "department": "General",
+      "gender": "KIDS",
+      "gt": "PANTS",
+      "l1": "口袋",
+      "iso": "301",
+      "iso_pct": 50.0,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "301": 2,
+        "406": 2
+      }
+    },
+    {
+      "department": "General",
+      "gender": "KIDS",
+      "gt": "PANTS",
+      "l1": "腰頭",
+      "iso": "406",
+      "iso_pct": 40.0,
+      "confidence": "likely",
+      "n_designs": 3,
+      "iso_distribution": {
+        "406": 2,
+        "514": 2,
+        "602": 1
+      }
+    },
+    {
+      "department": "General",
+      "gender": "KIDS",
+      "gt": "PANTS",
+      "l1": "褲口",
+      "iso": "301",
+      "iso_pct": 50.0,
+      "confidence": "no_data",
+      "n_designs": 2,
+      "iso_distribution": {
+        "301": 2,
+        "514": 1,
+        "605": 1
+      }
+    },
+    {
+      "department": "General",
+      "gender": "KIDS",
+      "gt": "ROMPER_JUMPSUIT",
+      "l1": "袖",
+      "iso": "514",
+      "iso_pct": 100.0,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "514": 1
+      }
+    },
+    {
+      "department": "General",
+      "gender": "KIDS",
+      "gt": "SET",
+      "l1": "前片",
+      "iso": "602",
+      "iso_pct": 100.0,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "602": 1
+      }
+    },
+    {
+      "department": "General",
+      "gender": "KIDS",
+      "gt": "SET",
+      "l1": "前襠",
+      "iso": "514",
+      "iso_pct": 100.0,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "514": 3
+      }
+    },
+    {
+      "department": "General",
+      "gender": "KIDS",
+      "gt": "SET",
+      "l1": "口袋",
+      "iso": "406",
+      "iso_pct": 38.5,
+      "confidence": "mixed",
+      "n_designs": 4,
+      "iso_distribution": {
+        "406": 15,
+        "301": 13,
+        "514": 11
+      }
+    },
+    {
+      "department": "General",
+      "gender": "KIDS",
+      "gt": "SET",
+      "l1": "後片",
+      "iso": "602",
+      "iso_pct": 100.0,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "602": 1
+      }
+    },
+    {
+      "department": "General",
+      "gender": "KIDS",
+      "gt": "SET",
+      "l1": "肩",
+      "iso": "406",
+      "iso_pct": 81.8,
+      "confidence": "likely",
+      "n_designs": 4,
+      "iso_distribution": {
+        "406": 27,
+        "602": 6
+      }
+    },
+    {
+      "department": "General",
+      "gender": "KIDS",
+      "gt": "SET",
+      "l1": "腰頭",
+      "iso": "406",
+      "iso_pct": 60.0,
+      "confidence": "strong",
+      "n_designs": 12,
+      "iso_distribution": {
+        "406": 51,
+        "602": 19,
+        "514": 14,
+        "301": 1
+      }
+    },
+    {
+      "department": "General",
+      "gender": "KIDS",
+      "gt": "SET",
+      "l1": "袖",
+      "iso": "406",
+      "iso_pct": 73.6,
+      "confidence": "strong",
+      "n_designs": 12,
+      "iso_distribution": {
+        "406": 89,
+        "602": 28,
+        "514": 3,
+        "301": 1
+      }
+    },
+    {
+      "department": "General",
+      "gender": "KIDS",
+      "gt": "SET",
+      "l1": "褲口",
+      "iso": "406",
+      "iso_pct": 80.5,
+      "confidence": "strong",
+      "n_designs": 12,
+      "iso_distribution": {
+        "406": 136,
+        "605": 25,
+        "602": 6,
+        "301": 2
+      }
+    },
+    {
+      "department": "General",
+      "gender": "KIDS",
+      "gt": "SET",
+      "l1": "褲合身",
+      "iso": "406",
+      "iso_pct": 100.0,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "406": 1
+      }
+    },
+    {
+      "department": "General",
+      "gender": "KIDS",
+      "gt": "SET",
+      "l1": "領",
+      "iso": "602",
+      "iso_pct": 60.6,
+      "confidence": "strong",
+      "n_designs": 16,
+      "iso_distribution": {
+        "602": 151,
+        "406": 72,
+        "301": 23,
+        "607": 3
+      }
+    },
+    {
+      "department": "General",
+      "gender": "KIDS",
+      "gt": "SKIRT",
+      "l1": "腰頭",
+      "iso": "514",
+      "iso_pct": 100.0,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "514": 2
+      }
+    },
+    {
+      "department": "General",
+      "gender": "KIDS",
+      "gt": "TOP",
+      "l1": "袖",
+      "iso": "602",
+      "iso_pct": 100.0,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "602": 1
+      }
+    },
+    {
+      "department": "General",
+      "gender": "KIDS",
+      "gt": "TOP",
+      "l1": "褲口",
+      "iso": "406",
+      "iso_pct": 100.0,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "406": 1
+      }
+    },
+    {
+      "department": "General",
+      "gender": "KIDS",
+      "gt": "TOP",
+      "l1": "領",
+      "iso": "406",
+      "iso_pct": 66.7,
+      "confidence": "no_data",
+      "n_designs": 2,
+      "iso_distribution": {
+        "406": 2,
+        "602": 1
+      }
+    },
+    {
+      "department": "General",
+      "gender": "MENS",
+      "gt": "PANTS",
+      "l1": "口袋",
+      "iso": "406",
+      "iso_pct": 100.0,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "406": 5
+      }
+    },
+    {
+      "department": "General",
+      "gender": "MENS",
+      "gt": "PANTS",
+      "l1": "腰頭",
+      "iso": "406",
+      "iso_pct": 61.5,
+      "confidence": "no_data",
+      "n_designs": 2,
+      "iso_distribution": {
+        "406": 8,
+        "301": 5
+      }
+    },
+    {
+      "department": "General",
+      "gender": "MENS",
+      "gt": "TOP",
+      "l1": "口袋",
+      "iso": "514",
+      "iso_pct": 100.0,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "514": 6
+      }
+    },
+    {
+      "department": "General",
+      "gender": "UNKNOWN",
+      "gt": "TOP",
+      "l1": "前片",
+      "iso": "602",
+      "iso_pct": 100.0,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "602": 2
+      }
+    },
+    {
+      "department": "General",
+      "gender": "UNKNOWN",
+      "gt": "TOP",
+      "l1": "領",
+      "iso": "602",
+      "iso_pct": 97.1,
+      "confidence": "no_data",
+      "n_designs": 2,
+      "iso_distribution": {
+        "602": 34,
+        "401": 1
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "DRESS",
+      "l1": "側縫",
+      "iso": "602",
+      "iso_pct": 89.3,
+      "confidence": "likely",
+      "n_designs": 3,
+      "iso_distribution": {
+        "602": 25,
+        "401": 3
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "DRESS",
+      "l1": "前片",
+      "iso": "406",
+      "iso_pct": 50.0,
+      "confidence": "likely",
+      "n_designs": 3,
+      "iso_distribution": {
+        "406": 2,
+        "602": 1,
+        "605": 1
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "DRESS",
+      "l1": "口袋",
+      "iso": "301",
+      "iso_pct": 70.9,
+      "confidence": "likely",
+      "n_designs": 4,
+      "iso_distribution": {
+        "301": 39,
+        "514": 10,
+        "602": 3,
+        "406": 3
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "DRESS",
+      "l1": "後片",
+      "iso": "602",
+      "iso_pct": 33.3,
+      "confidence": "no_data",
+      "n_designs": 2,
+      "iso_distribution": {
+        "602": 1,
+        "406": 1,
+        "605": 1
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "DRESS",
+      "l1": "肩",
+      "iso": "602",
+      "iso_pct": 43.8,
+      "confidence": "likely",
+      "n_designs": 5,
+      "iso_distribution": {
+        "602": 46,
+        "514": 29,
+        "401": 23,
+        "406": 6,
+        "605": 1
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "DRESS",
+      "l1": "腰頭",
+      "iso": "301",
+      "iso_pct": 50.0,
+      "confidence": "likely",
+      "n_designs": 3,
+      "iso_distribution": {
+        "301": 4,
+        "514": 3,
+        "602": 1
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "DRESS",
+      "l1": "袖",
+      "iso": "602",
+      "iso_pct": 37.8,
+      "confidence": "mixed",
+      "n_designs": 10,
+      "iso_distribution": {
+        "602": 94,
+        "406": 77,
+        "514": 41,
+        "401": 23,
+        "301": 13,
+        "605": 1
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "DRESS",
+      "l1": "褲口",
+      "iso": "602",
+      "iso_pct": 48.4,
+      "confidence": "likely",
+      "n_designs": 4,
+      "iso_distribution": {
+        "602": 31,
+        "406": 20,
+        "605": 7,
+        "514": 6
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "DRESS",
+      "l1": "領",
+      "iso": "301",
+      "iso_pct": 46.3,
+      "confidence": "likely",
+      "n_designs": 13,
+      "iso_distribution": {
+        "301": 76,
+        "602": 41,
+        "406": 34,
+        "401": 12,
+        "605": 1
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "LEGGINGS",
+      "l1": "側縫",
+      "iso": "514",
+      "iso_pct": 45.2,
+      "confidence": "likely",
+      "n_designs": 6,
+      "iso_distribution": {
+        "514": 14,
+        "607": 12,
+        "602": 4,
+        "605": 1
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "LEGGINGS",
+      "l1": "前襠",
+      "iso": "607",
+      "iso_pct": 50.0,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "607": 1,
+        "514": 1
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "LEGGINGS",
+      "l1": "口袋",
+      "iso": "406",
+      "iso_pct": 61.3,
+      "confidence": "strong",
+      "n_designs": 11,
+      "iso_distribution": {
+        "406": 19,
+        "301": 5,
+        "514": 3,
+        "602": 3,
+        "401": 1
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "LEGGINGS",
+      "l1": "後襠",
+      "iso": "607",
+      "iso_pct": 57.1,
+      "confidence": "likely",
+      "n_designs": 6,
+      "iso_distribution": {
+        "607": 28,
+        "514": 10,
+        "602": 9,
+        "605": 2
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "LEGGINGS",
+      "l1": "腰頭",
+      "iso": "514",
+      "iso_pct": 39.8,
+      "confidence": "mixed",
+      "n_designs": 22,
+      "iso_distribution": {
+        "514": 104,
+        "605": 92,
+        "607": 30,
+        "401": 14,
+        "602": 13,
+        "406": 8
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "LEGGINGS",
+      "l1": "褲口",
+      "iso": "605",
+      "iso_pct": 63.5,
+      "confidence": "strong",
+      "n_designs": 8,
+      "iso_distribution": {
+        "605": 33,
+        "602": 12,
+        "607": 3,
+        "406": 3,
+        "514": 1
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "LEGGINGS",
+      "l1": "褲合身",
+      "iso": "607",
+      "iso_pct": 100.0,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "607": 8
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "OUTERWEAR",
+      "l1": "側縫",
+      "iso": "607",
+      "iso_pct": 100.0,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "607": 3
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "OUTERWEAR",
+      "l1": "口袋",
+      "iso": "301",
+      "iso_pct": 45.8,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "301": 22,
+        "514": 13,
+        "401": 13
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "OUTERWEAR",
+      "l1": "袖",
+      "iso": "301",
+      "iso_pct": 45.8,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "301": 22,
+        "514": 13,
+        "401": 13
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "OUTERWEAR",
+      "l1": "褲口",
+      "iso": "301",
+      "iso_pct": 45.8,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "301": 22,
+        "514": 13,
+        "401": 13
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "OUTERWEAR",
+      "l1": "領",
+      "iso": "301",
+      "iso_pct": 42.3,
+      "confidence": "no_data",
+      "n_designs": 2,
+      "iso_distribution": {
+        "301": 22,
+        "514": 13,
+        "401": 13,
+        "406": 4
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "PANTS",
+      "l1": "側縫",
+      "iso": "514",
+      "iso_pct": 54.0,
+      "confidence": "likely",
+      "n_designs": 14,
+      "iso_distribution": {
+        "514": 75,
+        "401": 27,
+        "607": 15,
+        "602": 13,
+        "406": 5,
+        "605": 4
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "PANTS",
+      "l1": "前襠",
+      "iso": "406",
+      "iso_pct": 100.0,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "406": 1
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "PANTS",
+      "l1": "口袋",
+      "iso": "406",
+      "iso_pct": 41.4,
+      "confidence": "likely",
+      "n_designs": 15,
+      "iso_distribution": {
+        "406": 58,
+        "401": 49,
+        "514": 15,
+        "301": 6,
+        "607": 6,
+        "605": 6
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "PANTS",
+      "l1": "後片",
+      "iso": "514",
+      "iso_pct": 60.0,
+      "confidence": "no_data",
+      "n_designs": 2,
+      "iso_distribution": {
+        "514": 6,
+        "607": 4
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "PANTS",
+      "l1": "後襠",
+      "iso": "607",
+      "iso_pct": 63.2,
+      "confidence": "strong",
+      "n_designs": 11,
+      "iso_distribution": {
+        "607": 72,
+        "514": 19,
+        "602": 12,
+        "605": 8,
+        "406": 3
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "PANTS",
+      "l1": "腰頭",
+      "iso": "514",
+      "iso_pct": 29.7,
+      "confidence": "mixed",
+      "n_designs": 38,
+      "iso_distribution": {
+        "514": 204,
+        "605": 201,
+        "406": 110,
+        "607": 104,
+        "602": 44,
+        "401": 14,
+        "301": 11
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "PANTS",
+      "l1": "袖",
+      "iso": "514",
+      "iso_pct": 100.0,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "514": 8
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "PANTS",
+      "l1": "褲口",
+      "iso": "406",
+      "iso_pct": 55.3,
+      "confidence": "likely",
+      "n_designs": 23,
+      "iso_distribution": {
+        "406": 140,
+        "605": 86,
+        "607": 22,
+        "602": 4,
+        "514": 1
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "PANTS",
+      "l1": "褲合身",
+      "iso": "607",
+      "iso_pct": 61.5,
+      "confidence": "likely",
+      "n_designs": 4,
+      "iso_distribution": {
+        "607": 16,
+        "514": 9,
+        "605": 1
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "ROMPER_JUMPSUIT",
+      "l1": "袖",
+      "iso": "602",
+      "iso_pct": 100.0,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "602": 1
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "ROMPER_JUMPSUIT",
+      "l1": "領",
+      "iso": "602",
+      "iso_pct": 100.0,
+      "confidence": "strong",
+      "n_designs": 5,
+      "iso_distribution": {
+        "602": 20
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "SET",
+      "l1": "袖",
+      "iso": "406",
+      "iso_pct": 100.0,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "406": 1
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "SET",
+      "l1": "褲口",
+      "iso": "406",
+      "iso_pct": 100.0,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "406": 2
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "SET",
+      "l1": "領",
+      "iso": "406",
+      "iso_pct": 100.0,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "406": 1
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "SHORTS",
+      "l1": "側縫",
+      "iso": "607",
+      "iso_pct": 50.0,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "607": 4,
+        "605": 4
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "SHORTS",
+      "l1": "口袋",
+      "iso": "406",
+      "iso_pct": 100.0,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "406": 2
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "SHORTS",
+      "l1": "後襠",
+      "iso": "607",
+      "iso_pct": 50.0,
+      "confidence": "likely",
+      "n_designs": 3,
+      "iso_distribution": {
+        "607": 10,
+        "605": 8,
+        "514": 2
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "SHORTS",
+      "l1": "腰頭",
+      "iso": "605",
+      "iso_pct": 28.6,
+      "confidence": "mixed",
+      "n_designs": 6,
+      "iso_distribution": {
+        "605": 14,
+        "514": 14,
+        "607": 10,
+        "406": 7,
+        "401": 4
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "SHORTS",
+      "l1": "褲口",
+      "iso": "605",
+      "iso_pct": 50.0,
+      "confidence": "likely",
+      "n_designs": 5,
+      "iso_distribution": {
+        "605": 8,
+        "406": 4,
+        "301": 4
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "SKIRT",
+      "l1": "口袋",
+      "iso": "406",
+      "iso_pct": 100.0,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "406": 3
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "SKIRT",
+      "l1": "腰頭",
+      "iso": "514",
+      "iso_pct": 100.0,
+      "confidence": "likely",
+      "n_designs": 3,
+      "iso_distribution": {
+        "514": 7
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "SKIRT",
+      "l1": "褲口",
+      "iso": "406",
+      "iso_pct": 50.0,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "406": 1,
+        "514": 1
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "TOP",
+      "l1": "側縫",
+      "iso": "401",
+      "iso_pct": 43.0,
+      "confidence": "likely",
+      "n_designs": 7,
+      "iso_distribution": {
+        "401": 37,
+        "514": 37,
+        "602": 8,
+        "406": 4
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "TOP",
+      "l1": "前片",
+      "iso": "602",
+      "iso_pct": 50.0,
+      "confidence": "likely",
+      "n_designs": 6,
+      "iso_distribution": {
+        "602": 10,
+        "514": 5,
+        "406": 5
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "TOP",
+      "l1": "口袋",
+      "iso": "406",
+      "iso_pct": 100.0,
+      "confidence": "likely",
+      "n_designs": 3,
+      "iso_distribution": {
+        "406": 65
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "TOP",
+      "l1": "後片",
+      "iso": "602",
+      "iso_pct": 54.2,
+      "confidence": "likely",
+      "n_designs": 8,
+      "iso_distribution": {
+        "602": 13,
+        "406": 6,
+        "514": 5
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "TOP",
+      "l1": "肩",
+      "iso": "401",
+      "iso_pct": 52.1,
+      "confidence": "likely",
+      "n_designs": 14,
+      "iso_distribution": {
+        "401": 211,
+        "514": 167,
+        "602": 16,
+        "406": 11
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "TOP",
+      "l1": "腰頭",
+      "iso": "406",
+      "iso_pct": 58.8,
+      "confidence": "no_data",
+      "n_designs": 2,
+      "iso_distribution": {
+        "406": 20,
+        "602": 14
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "TOP",
+      "l1": "袖",
+      "iso": "406",
+      "iso_pct": 36.7,
+      "confidence": "mixed",
+      "n_designs": 37,
+      "iso_distribution": {
+        "406": 239,
+        "602": 147,
+        "514": 139,
+        "401": 123,
+        "605": 4
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "TOP",
+      "l1": "褲口",
+      "iso": "406",
+      "iso_pct": 52.9,
+      "confidence": "likely",
+      "n_designs": 30,
+      "iso_distribution": {
+        "406": 228,
+        "602": 141,
+        "401": 37,
+        "514": 25
+      }
+    },
+    {
+      "department": "General",
+      "gender": "WOMENS",
+      "gt": "TOP",
+      "l1": "領",
+      "iso": "602",
+      "iso_pct": 45.2,
+      "confidence": "likely",
+      "n_designs": 50,
+      "iso_distribution": {
+        "602": 276,
+        "301": 145,
+        "401": 134,
+        "406": 36,
+        "605": 10,
+        "514": 10
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "KIDS",
+      "gt": "OUTERWEAR",
+      "l1": "領",
+      "iso": "401",
+      "iso_pct": 100.0,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "401": 1
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "KIDS",
+      "gt": "PANTS",
+      "l1": "口袋",
+      "iso": "605",
+      "iso_pct": 80.0,
+      "confidence": "strong",
+      "n_designs": 5,
+      "iso_distribution": {
+        "605": 12,
+        "406": 3
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "KIDS",
+      "gt": "PANTS",
+      "l1": "腰頭",
+      "iso": "406",
+      "iso_pct": 62.8,
+      "confidence": "strong",
+      "n_designs": 6,
+      "iso_distribution": {
+        "406": 27,
+        "605": 9,
+        "514": 5,
+        "301": 2
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "KIDS",
+      "gt": "SET",
+      "l1": "側縫",
+      "iso": "602",
+      "iso_pct": 33.3,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "602": 5,
+        "406": 5,
+        "301": 5
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "KIDS",
+      "gt": "SET",
+      "l1": "肩",
+      "iso": "406",
+      "iso_pct": 100.0,
+      "confidence": "likely",
+      "n_designs": 3,
+      "iso_distribution": {
+        "406": 23
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "KIDS",
+      "gt": "SET",
+      "l1": "腰頭",
+      "iso": "406",
+      "iso_pct": 57.8,
+      "confidence": "likely",
+      "n_designs": 3,
+      "iso_distribution": {
+        "406": 37,
+        "602": 27
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "KIDS",
+      "gt": "SET",
+      "l1": "袖",
+      "iso": "406",
+      "iso_pct": 92.9,
+      "confidence": "likely",
+      "n_designs": 3,
+      "iso_distribution": {
+        "406": 13,
+        "602": 1
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "KIDS",
+      "gt": "SET",
+      "l1": "褲口",
+      "iso": "406",
+      "iso_pct": 57.3,
+      "confidence": "likely",
+      "n_designs": 4,
+      "iso_distribution": {
+        "406": 43,
+        "514": 27,
+        "602": 5
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "KIDS",
+      "gt": "SET",
+      "l1": "領",
+      "iso": "514",
+      "iso_pct": 44.4,
+      "confidence": "likely",
+      "n_designs": 5,
+      "iso_distribution": {
+        "514": 8,
+        "406": 7,
+        "602": 3
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "KIDS",
+      "gt": "SHORTS",
+      "l1": "口袋",
+      "iso": "607",
+      "iso_pct": 33.3,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "607": 3,
+        "514": 3,
+        "605": 3
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "KIDS",
+      "gt": "SHORTS",
+      "l1": "腰頭",
+      "iso": "406",
+      "iso_pct": 59.1,
+      "confidence": "likely",
+      "n_designs": 3,
+      "iso_distribution": {
+        "406": 13,
+        "607": 3,
+        "514": 3,
+        "605": 3
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "KIDS",
+      "gt": "TOP",
+      "l1": "側縫",
+      "iso": "406",
+      "iso_pct": 100.0,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "406": 3
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "KIDS",
+      "gt": "TOP",
+      "l1": "後片",
+      "iso": "301",
+      "iso_pct": 50.0,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "301": 1,
+        "514": 1
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "KIDS",
+      "gt": "TOP",
+      "l1": "肩",
+      "iso": "406",
+      "iso_pct": 90.9,
+      "confidence": "likely",
+      "n_designs": 4,
+      "iso_distribution": {
+        "406": 10,
+        "514": 1
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "KIDS",
+      "gt": "TOP",
+      "l1": "腰頭",
+      "iso": "406",
+      "iso_pct": 100.0,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "406": 1
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "KIDS",
+      "gt": "TOP",
+      "l1": "袖",
+      "iso": "406",
+      "iso_pct": 29.4,
+      "confidence": "mixed",
+      "n_designs": 10,
+      "iso_distribution": {
+        "406": 10,
+        "514": 7,
+        "301": 6,
+        "401": 5,
+        "602": 4,
+        "607": 2
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "KIDS",
+      "gt": "TOP",
+      "l1": "褲口",
+      "iso": "406",
+      "iso_pct": 51.6,
+      "confidence": "likely",
+      "n_designs": 11,
+      "iso_distribution": {
+        "406": 33,
+        "514": 21,
+        "602": 8,
+        "607": 2
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "KIDS",
+      "gt": "TOP",
+      "l1": "領",
+      "iso": "602",
+      "iso_pct": 70.3,
+      "confidence": "strong",
+      "n_designs": 11,
+      "iso_distribution": {
+        "602": 83,
+        "514": 14,
+        "301": 9,
+        "406": 5,
+        "401": 5,
+        "607": 2
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "MENS",
+      "gt": "PANTS",
+      "l1": "側縫",
+      "iso": "605",
+      "iso_pct": 71.4,
+      "confidence": "likely",
+      "n_designs": 3,
+      "iso_distribution": {
+        "605": 10,
+        "406": 2,
+        "607": 2
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "MENS",
+      "gt": "PANTS",
+      "l1": "前襠",
+      "iso": "607",
+      "iso_pct": 100.0,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "607": 2
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "MENS",
+      "gt": "PANTS",
+      "l1": "口袋",
+      "iso": "406",
+      "iso_pct": 50.0,
+      "confidence": "likely",
+      "n_designs": 4,
+      "iso_distribution": {
+        "406": 7,
+        "607": 7
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "MENS",
+      "gt": "PANTS",
+      "l1": "後片",
+      "iso": "406",
+      "iso_pct": 100.0,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "406": 1
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "MENS",
+      "gt": "PANTS",
+      "l1": "後襠",
+      "iso": "605",
+      "iso_pct": 100.0,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "605": 1
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "MENS",
+      "gt": "PANTS",
+      "l1": "腰頭",
+      "iso": "406",
+      "iso_pct": 61.9,
+      "confidence": "strong",
+      "n_designs": 9,
+      "iso_distribution": {
+        "406": 26,
+        "301": 7,
+        "607": 6,
+        "401": 3
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "MENS",
+      "gt": "PANTS",
+      "l1": "褲口",
+      "iso": "406",
+      "iso_pct": 51.4,
+      "confidence": "likely",
+      "n_designs": 6,
+      "iso_distribution": {
+        "406": 18,
+        "605": 11,
+        "607": 6
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "MENS",
+      "gt": "PANTS",
+      "l1": "褲合身",
+      "iso": "607",
+      "iso_pct": 66.7,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "607": 2,
+        "514": 1
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "MENS",
+      "gt": "SHORTS",
+      "l1": "側縫",
+      "iso": "602",
+      "iso_pct": 100.0,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "602": 2
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "MENS",
+      "gt": "SHORTS",
+      "l1": "口袋",
+      "iso": "301",
+      "iso_pct": 66.7,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "301": 2,
+        "406": 1
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "MENS",
+      "gt": "SHORTS",
+      "l1": "腰頭",
+      "iso": "406",
+      "iso_pct": 82.4,
+      "confidence": "strong",
+      "n_designs": 6,
+      "iso_distribution": {
+        "406": 28,
+        "602": 4,
+        "401": 2
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "MENS",
+      "gt": "SHORTS",
+      "l1": "袖口",
+      "iso": "401",
+      "iso_pct": 100.0,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "401": 1
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "MENS",
+      "gt": "SHORTS",
+      "l1": "褲口",
+      "iso": "605",
+      "iso_pct": 40.0,
+      "confidence": "likely",
+      "n_designs": 3,
+      "iso_distribution": {
+        "605": 2,
+        "602": 2,
+        "406": 1
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "MENS",
+      "gt": "TOP",
+      "l1": "側縫",
+      "iso": "605",
+      "iso_pct": 33.3,
+      "confidence": "mixed",
+      "n_designs": 6,
+      "iso_distribution": {
+        "605": 12,
+        "406": 10,
+        "602": 8,
+        "607": 3,
+        "514": 3
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "MENS",
+      "gt": "TOP",
+      "l1": "前片",
+      "iso": "605",
+      "iso_pct": 100.0,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "605": 6
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "MENS",
+      "gt": "TOP",
+      "l1": "口袋",
+      "iso": "406",
+      "iso_pct": 45.3,
+      "confidence": "likely",
+      "n_designs": 11,
+      "iso_distribution": {
+        "406": 48,
+        "602": 37,
+        "605": 14,
+        "301": 7
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "MENS",
+      "gt": "TOP",
+      "l1": "後片",
+      "iso": "605",
+      "iso_pct": 66.7,
+      "confidence": "no_data",
+      "n_designs": 2,
+      "iso_distribution": {
+        "605": 2,
+        "602": 1
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "MENS",
+      "gt": "TOP",
+      "l1": "肩",
+      "iso": "406",
+      "iso_pct": 53.8,
+      "confidence": "likely",
+      "n_designs": 6,
+      "iso_distribution": {
+        "406": 35,
+        "605": 30
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "MENS",
+      "gt": "TOP",
+      "l1": "袖",
+      "iso": "605",
+      "iso_pct": 31.0,
+      "confidence": "mixed",
+      "n_designs": 12,
+      "iso_distribution": {
+        "605": 35,
+        "602": 35,
+        "406": 34,
+        "514": 6,
+        "607": 3
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "MENS",
+      "gt": "TOP",
+      "l1": "褲口",
+      "iso": "406",
+      "iso_pct": 50.0,
+      "confidence": "likely",
+      "n_designs": 8,
+      "iso_distribution": {
+        "406": 15,
+        "602": 13,
+        "605": 2
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "MENS",
+      "gt": "TOP",
+      "l1": "領",
+      "iso": "406",
+      "iso_pct": 37.3,
+      "confidence": "mixed",
+      "n_designs": 13,
+      "iso_distribution": {
+        "406": 25,
+        "301": 18,
+        "602": 17,
+        "501": 5,
+        "605": 2
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "WOMENS",
+      "gt": "SET",
+      "l1": "前片",
+      "iso": "602",
+      "iso_pct": 100.0,
+      "confidence": "no_data",
+      "n_designs": 2,
+      "iso_distribution": {
+        "602": 4
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "WOMENS",
+      "gt": "SET",
+      "l1": "後片",
+      "iso": "602",
+      "iso_pct": 100.0,
+      "confidence": "no_data",
+      "n_designs": 2,
+      "iso_distribution": {
+        "602": 4
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "WOMENS",
+      "gt": "SET",
+      "l1": "腰頭",
+      "iso": "401",
+      "iso_pct": 100.0,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "401": 1
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "WOMENS",
+      "gt": "SET",
+      "l1": "袖",
+      "iso": "602",
+      "iso_pct": 68.4,
+      "confidence": "likely",
+      "n_designs": 3,
+      "iso_distribution": {
+        "602": 13,
+        "406": 6
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "WOMENS",
+      "gt": "SET",
+      "l1": "褲口",
+      "iso": "406",
+      "iso_pct": 100.0,
+      "confidence": "no_data",
+      "n_designs": 2,
+      "iso_distribution": {
+        "406": 9
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "WOMENS",
+      "gt": "SET",
+      "l1": "領",
+      "iso": "602",
+      "iso_pct": 53.8,
+      "confidence": "likely",
+      "n_designs": 3,
+      "iso_distribution": {
+        "602": 7,
+        "406": 5,
+        "301": 1
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "WOMENS",
+      "gt": "SHORTS",
+      "l1": "腰頭",
+      "iso": "406",
+      "iso_pct": 100.0,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "406": 1
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "WOMENS",
+      "gt": "TOP",
+      "l1": "側縫",
+      "iso": "602",
+      "iso_pct": 100.0,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "602": 6
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "WOMENS",
+      "gt": "TOP",
+      "l1": "前片",
+      "iso": "602",
+      "iso_pct": 100.0,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "602": 2
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "WOMENS",
+      "gt": "TOP",
+      "l1": "後片",
+      "iso": "602",
+      "iso_pct": 100.0,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "602": 2
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "WOMENS",
+      "gt": "TOP",
+      "l1": "肩",
+      "iso": "602",
+      "iso_pct": 100.0,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "602": 5
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "WOMENS",
+      "gt": "TOP",
+      "l1": "腰頭",
+      "iso": "406",
+      "iso_pct": 100.0,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "406": 1
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "WOMENS",
+      "gt": "TOP",
+      "l1": "袖",
+      "iso": "602",
+      "iso_pct": 57.1,
+      "confidence": "no_data",
+      "n_designs": 1,
+      "iso_distribution": {
+        "602": 4,
+        "406": 3
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "WOMENS",
+      "gt": "TOP",
+      "l1": "褲口",
+      "iso": "406",
+      "iso_pct": 66.7,
+      "confidence": "likely",
+      "n_designs": 4,
+      "iso_distribution": {
+        "406": 6,
+        "602": 3
+      }
+    },
+    {
+      "department": "Swimwear",
+      "gender": "WOMENS",
+      "gt": "TOP",
+      "l1": "領",
+      "iso": "602",
+      "iso_pct": 99.3,
+      "confidence": "likely",
+      "n_designs": 3,
+      "iso_distribution": {
+        "602": 141,
+        "406": 1
+      }
+    }
+  ]
+}
