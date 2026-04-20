@@ -411,25 +411,74 @@ function Sel({ label, value, onChange, options, disabled, badgeMap, labelMap, lo
         {label}
       </div>
 
-      {/* Trigger：看起來跟原本 underline select 幾乎一樣 */}
-      <button onClick={() => !disabled && setOpen(o => !o)}
-        disabled={disabled}
-        aria-expanded={open}
-        aria-haspopup="listbox"
-        style={{
-          width: "100%", padding: "6px 0", fontSize: "14px", textAlign: "left",
-          background: "transparent", color: filled ? "#1a1a1a" : "#bbb",
-          fontWeight: filled ? 600 : 400,
-          border: "none", borderBottom: `1.5px solid ${borderColor}`,
-          fontFamily: "inherit", cursor: disabled ? "not-allowed" : "pointer",
-          borderRadius: 0, transition: "border-color 0.15s",
-          display: "flex", justifyContent: "space-between", alignItems: "center",
-        }}>
-        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {displayText}{displayBadge ? ` (${displayBadge})` : ""}
-        </span>
-        <span aria-hidden="true" style={{ fontSize: "10px", color: "#bbb", marginLeft: "6px", transform: open ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.15s" }}>▾</span>
-      </button>
+      <div style={{ position: "relative" }}>
+        {/* Trigger：看起來跟原本 underline select 幾乎一樣 */}
+        <button onClick={() => !disabled && setOpen(o => !o)}
+          disabled={disabled}
+          aria-expanded={open}
+          aria-haspopup="listbox"
+          style={{
+            width: "100%", padding: "6px 0", fontSize: "14px", textAlign: "left",
+            background: "transparent", color: filled ? "#1a1a1a" : "#bbb",
+            fontWeight: filled ? 600 : 400,
+            border: "none", borderBottom: `1.5px solid ${borderColor}`,
+            fontFamily: "inherit", cursor: disabled ? "not-allowed" : "pointer",
+            borderRadius: 0, transition: "border-color 0.15s",
+            display: "flex", justifyContent: "space-between", alignItems: "center",
+          }}>
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {displayText}{displayBadge ? ` (${displayBadge})` : ""}
+          </span>
+          <span aria-hidden="true" style={{ fontSize: "10px", color: "#bbb", marginLeft: "6px", transform: open ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.15s" }}>▾</span>
+        </button>
+
+        {/* 選項清單：附著在觸發按鈕正下方，不擠壓下方內容 */}
+        {open && !disabled && (
+          <div role="listbox" aria-label={label}
+            style={{
+              position: "absolute", top: "100%", left: 0, right: 0, zIndex: 30,
+              marginTop: "4px",
+              border: "1px solid #e8e5e1", borderRadius: "8px",
+              background: "#fff", maxHeight: "260px", overflowY: "auto",
+              boxShadow: "0 4px 14px rgba(0,0,0,0.06)",
+              animation: "fadeIn 0.12s ease",
+            }}>
+            <div role="option" aria-selected={!value}
+              onClick={() => selectOpt("")}
+              style={{ padding: "8px 12px", fontSize: "13px", color: "#bbb", cursor: "pointer", borderBottom: "1px solid #f5f5f5" }}
+              onMouseEnter={e => e.currentTarget.style.background = "#faf9f7"}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+              —
+            </div>
+            {options.map(o => {
+              const b = badgeMap && badgeMap[o];
+              const d = (labelMap && labelMap[o]) || o;
+              const sel = o === value;
+              return (
+                <div key={o} role="option" aria-selected={sel}
+                  onClick={() => selectOpt(o)}
+                  style={{
+                    padding: "8px 12px", fontSize: "13px",
+                    color: sel ? "#065f46" : "#1a1a1a",
+                    fontWeight: sel ? 700 : 400,
+                    background: sel ? "#ecfdf5" : "transparent",
+                    cursor: "pointer",
+                    display: "flex", justifyContent: "space-between", alignItems: "center",
+                    gap: "10px",
+                  }}
+                  onMouseEnter={e => { if (!sel) e.currentTarget.style.background = "#faf9f7"; }}
+                  onMouseLeave={e => { if (!sel) e.currentTarget.style.background = "transparent"; }}>
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d}</span>
+                  {b && <span style={{ fontSize: "11px", color: "#999", fontWeight: 400, fontFamily: "'JetBrains Mono',monospace" }}>{b}</span>}
+                </div>
+              );
+            })}
+            {options.length === 0 && (
+              <div style={{ padding: "10px 12px", fontSize: "12px", color: "#bbb" }}>無可選項目</div>
+            )}
+          </div>
+        )}
+      </div>
 
       {onToggleLock && (
         <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "4px", minHeight: "14px" }}>
@@ -441,7 +490,7 @@ function Sel({ label, value, onChange, options, disabled, badgeMap, labelMap, lo
               background: "none", border: "none", cursor: "pointer",
               padding: "0 2px", lineHeight: 0,
               color: locked ? "#065f46" : "#d4d4d4",
-              opacity: locked ? 1 : 0.55, transition: "opacity 0.15s, color 0.15s",
+              opacity: locked ? 1 : 0.55, transition: "opacity 0.15s",
               display: "inline-flex", alignItems: "center",
             }}
             onMouseEnter={e => e.currentTarget.style.opacity = "1"}
@@ -451,53 +500,6 @@ function Sel({ label, value, onChange, options, disabled, badgeMap, labelMap, lo
               {locked ? <path d="M7 11V7a5 5 0 0 1 10 0v4"/> : <path d="M7 11V7a5 5 0 0 1 9.9-1"/>}
             </svg>
           </button>
-        </div>
-      )}
-
-      {/* 選項清單：附著在觸發按鈕正下方，不擠壓下方內容 */}
-      {open && !disabled && (
-        <div role="listbox" aria-label={label}
-          style={{
-            position: "absolute", top: "100%", left: 0, right: 0, zIndex: 30,
-            marginTop: "4px",
-            border: "1px solid #e8e5e1", borderRadius: "8px",
-            background: "#fff", maxHeight: "260px", overflowY: "auto",
-            boxShadow: "0 4px 14px rgba(0,0,0,0.06)",
-            animation: "fadeIn 0.12s ease",
-          }}>
-          <div role="option" aria-selected={!value}
-            onClick={() => selectOpt("")}
-            style={{ padding: "8px 12px", fontSize: "13px", color: "#bbb", cursor: "pointer", borderBottom: "1px solid #f5f5f5" }}
-            onMouseEnter={e => e.currentTarget.style.background = "#faf9f7"}
-            onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-            —
-          </div>
-          {options.map(o => {
-            const b = badgeMap && badgeMap[o];
-            const d = (labelMap && labelMap[o]) || o;
-            const sel = o === value;
-            return (
-              <div key={o} role="option" aria-selected={sel}
-                onClick={() => selectOpt(o)}
-                style={{
-                  padding: "8px 12px", fontSize: "13px",
-                  color: sel ? "#065f46" : "#1a1a1a",
-                  fontWeight: sel ? 700 : 400,
-                  background: sel ? "#ecfdf5" : "transparent",
-                  cursor: "pointer",
-                  display: "flex", justifyContent: "space-between", alignItems: "center",
-                  gap: "10px",
-                }}
-                onMouseEnter={e => { if (!sel) e.currentTarget.style.background = "#faf9f7"; }}
-                onMouseLeave={e => { if (!sel) e.currentTarget.style.background = "transparent"; }}>
-                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d}</span>
-                {b && <span style={{ fontSize: "11px", color: "#999", fontWeight: 400, fontFamily: "'JetBrains Mono',monospace" }}>{b}</span>}
-              </div>
-            );
-          })}
-          {options.length === 0 && (
-            <div style={{ padding: "10px 12px", fontSize: "12px", color: "#bbb" }}>無可選項目</div>
-          )}
         </div>
       )}
     </div>
