@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "version": "5.3",
+    "version": "5.4",
     "source": "943 designs x mc_pom_2024/2025/2026",
     "date": "2026-04-17",
     "departments": [
@@ -39,13 +39,13 @@
         "N9"
       ],
       "combined_gts": [
+        "ROMPER_JUMPSUIT",
         "SET",
-        "BODYSUIT",
-        "ROMPER_JUMPSUIT"
+        "BODYSUIT"
       ],
       "rule": "Tier 1 POMs forced to must tier regardless of hit rate"
     },
-    "changelog_v53": "Fixed Centric 8 fraction parsing (1⁄ 17 2 = 17.5). Regenerated all median_values and grading_rules."
+    "changelog_v54": "MATERNITY as independent gender. TODDLER renamed to BABY/TODDLER. FUNZONE stays UNKNOWN. Canonical zone sort order."
   },
   "buckets": [
     {
@@ -192,12 +192,12 @@
       "size_kb": 27.0
     },
     {
-      "bucket": "Maternity_LEGGINGS|UNKNOWN",
-      "file": "unknown_maternity_leggings.json",
+      "bucket": "Maternity_LEGGINGS|MATERNITY",
+      "file": "maternity_maternity_leggings.json",
       "n": 16,
       "department": "Maternity",
       "garment_type": "LEGGINGS",
-      "gender": "UNKNOWN",
+      "gender": "MATERNITY",
       "pom_count": 40,
       "must_count": 12,
       "size_kb": 15.7
@@ -214,12 +214,12 @@
       "size_kb": 22.0
     },
     {
-      "bucket": "RTW_TOP|TODDLER",
-      "file": "toddler_rtw_top.json",
+      "bucket": "RTW_TOP|BABY/TODDLER",
+      "file": "baby_toddler_rtw_top.json",
       "n": 15,
       "department": "RTW",
       "garment_type": "TOP",
-      "gender": "TODDLER",
+      "gender": "BABY/TODDLER",
       "pom_count": 54,
       "must_count": 13,
       "size_kb": 16.5
@@ -258,12 +258,12 @@
       "size_kb": 17.1
     },
     {
-      "bucket": "Maternity_TOP|UNKNOWN",
-      "file": "unknown_maternity_top.json",
+      "bucket": "Maternity_TOP|MATERNITY",
+      "file": "maternity_maternity_top.json",
       "n": 13,
       "department": "Maternity",
       "garment_type": "TOP",
-      "gender": "UNKNOWN",
+      "gender": "MATERNITY",
       "pom_count": 78,
       "must_count": 4,
       "size_kb": 26.9
@@ -291,12 +291,12 @@
       "size_kb": 21.6
     },
     {
-      "bucket": "Sleepwear_SET|TODDLER",
-      "file": "toddler_sleepwear_set.json",
+      "bucket": "Sleepwear_SET|BABY/TODDLER",
+      "file": "baby_toddler_sleepwear_set.json",
       "n": 10,
       "department": "Sleepwear",
       "garment_type": "SET",
-      "gender": "TODDLER",
+      "gender": "BABY/TODDLER",
       "pom_count": 65,
       "must_count": 16,
       "size_kb": 25.2
@@ -357,6 +357,17 @@
       "size_kb": 16.5
     },
     {
+      "bucket": "Swimwear_TOP|BABY/TODDLER",
+      "file": "baby_toddler_swimwear_top.json",
+      "n": 9,
+      "department": "Swimwear",
+      "garment_type": "TOP",
+      "gender": "BABY/TODDLER",
+      "pom_count": 74,
+      "must_count": 6,
+      "size_kb": 25.1
+    },
+    {
       "bucket": "Active_LEGGINGS|GIRLS",
       "file": "girls_active_leggings.json",
       "n": 8,
@@ -412,12 +423,12 @@
       "size_kb": 21.0
     },
     {
-      "bucket": "RTW_DRESS|TODDLER",
-      "file": "toddler_rtw_dress.json",
+      "bucket": "RTW_DRESS|BABY/TODDLER",
+      "file": "baby_toddler_rtw_dress.json",
       "n": 8,
       "department": "RTW",
       "garment_type": "DRESS",
-      "gender": "TODDLER",
+      "gender": "BABY/TODDLER",
       "pom_count": 45,
       "must_count": 4,
       "size_kb": 16.7
@@ -434,15 +445,15 @@
       "size_kb": 15.6
     },
     {
-      "bucket": "RTW_OUTERWEAR|UNKNOWN",
-      "file": "unknown_rtw_outerwear.json",
+      "bucket": "Swimwear_ROMPER_JUMPSUIT|BABY/TODDLER",
+      "file": "baby_toddler_swimwear_romper_jumpsuit.json",
       "n": 8,
-      "department": "RTW",
-      "garment_type": "OUTERWEAR",
-      "gender": "UNKNOWN",
-      "pom_count": 50,
-      "must_count": 10,
-      "size_kb": 23.0
+      "department": "Swimwear",
+      "garment_type": "ROMPER_JUMPSUIT",
+      "gender": "BABY/TODDLER",
+      "pom_count": 41,
+      "must_count": 8,
+      "size_kb": 17.1
     },
     {
       "bucket": "RTW_ROMPER_JUMPSUIT|GIRLS",
@@ -478,12 +489,12 @@
       "size_kb": 18.4
     },
     {
-      "bucket": "RTW_SET|TODDLER",
-      "file": "toddler_rtw_set.json",
+      "bucket": "RTW_SET|BABY/TODDLER",
+      "file": "baby_toddler_rtw_set.json",
       "n": 7,
       "department": "RTW",
       "garment_type": "SET",
-      "gender": "TODDLER",
+      "gender": "BABY/TODDLER",
       "pom_count": 80,
       "must_count": 15,
       "size_kb": 24.8
@@ -500,6 +511,28 @@
       "size_kb": 27.2
     },
     {
+      "bucket": "RTW_OUTERWEAR|BABY/TODDLER",
+      "file": "baby_toddler_rtw_outerwear.json",
+      "n": 7,
+      "department": "RTW",
+      "garment_type": "OUTERWEAR",
+      "gender": "BABY/TODDLER",
+      "pom_count": 49,
+      "must_count": 25,
+      "size_kb": 18.6
+    },
+    {
+      "bucket": "RTW_OUTERWEAR|UNKNOWN",
+      "file": "unknown_rtw_outerwear.json",
+      "n": 7,
+      "department": "RTW",
+      "garment_type": "OUTERWEAR",
+      "gender": "UNKNOWN",
+      "pom_count": 44,
+      "must_count": 14,
+      "size_kb": 21.1
+    },
+    {
       "bucket": "Sleepwear_TOP|WOMENS",
       "file": "womens_sleepwear_top.json",
       "n": 6,
@@ -511,12 +544,12 @@
       "size_kb": 16.7
     },
     {
-      "bucket": "Maternity_ROMPER_JUMPSUIT|UNKNOWN",
-      "file": "unknown_maternity_romper_jumpsuit.json",
+      "bucket": "Maternity_ROMPER_JUMPSUIT|MATERNITY",
+      "file": "maternity_maternity_romper_jumpsuit.json",
       "n": 6,
       "department": "Maternity",
       "garment_type": "ROMPER_JUMPSUIT",
-      "gender": "UNKNOWN",
+      "gender": "MATERNITY",
       "pom_count": 63,
       "must_count": 3,
       "size_kb": 21.7
@@ -544,17 +577,6 @@
       "size_kb": 26.7
     },
     {
-      "bucket": "RTW_OUTERWEAR|TODDLER",
-      "file": "toddler_rtw_outerwear.json",
-      "n": 6,
-      "department": "RTW",
-      "garment_type": "OUTERWEAR",
-      "gender": "TODDLER",
-      "pom_count": 42,
-      "must_count": 14,
-      "size_kb": 17.5
-    },
-    {
       "bucket": "RTW_PANTS|MENS",
       "file": "mens_rtw_pants.json",
       "n": 5,
@@ -566,34 +588,23 @@
       "size_kb": 18.3
     },
     {
-      "bucket": "Maternity_SHORTS|UNKNOWN",
-      "file": "unknown_maternity_shorts.json",
+      "bucket": "Maternity_SHORTS|MATERNITY",
+      "file": "maternity_maternity_shorts.json",
       "n": 5,
       "department": "Maternity",
       "garment_type": "SHORTS",
-      "gender": "UNKNOWN",
+      "gender": "MATERNITY",
       "pom_count": 30,
       "must_count": 10,
       "size_kb": 11.6
     },
     {
-      "bucket": "Swimwear_TOP|TODDLER",
-      "file": "toddler_swimwear_top.json",
-      "n": 5,
-      "department": "Swimwear",
-      "garment_type": "TOP",
-      "gender": "TODDLER",
-      "pom_count": 50,
-      "must_count": 12,
-      "size_kb": 20.7
-    },
-    {
-      "bucket": "Maternity_DRESS|UNKNOWN",
-      "file": "unknown_maternity_dress.json",
+      "bucket": "Maternity_DRESS|MATERNITY",
+      "file": "maternity_maternity_dress.json",
       "n": 5,
       "department": "Maternity",
       "garment_type": "DRESS",
-      "gender": "UNKNOWN",
+      "gender": "MATERNITY",
       "pom_count": 70,
       "must_count": 4,
       "size_kb": 23.1
@@ -632,26 +643,15 @@
       "size_kb": 16.1
     },
     {
-      "bucket": "Swimwear_SET|TODDLER",
-      "file": "toddler_swimwear_set.json",
+      "bucket": "Swimwear_SET|BABY/TODDLER",
+      "file": "baby_toddler_swimwear_set.json",
       "n": 5,
       "department": "Swimwear",
       "garment_type": "SET",
-      "gender": "TODDLER",
+      "gender": "BABY/TODDLER",
       "pom_count": 48,
       "must_count": 26,
       "size_kb": 21.4
-    },
-    {
-      "bucket": "Swimwear_ROMPER_JUMPSUIT|TODDLER",
-      "file": "toddler_swimwear_romper_jumpsuit.json",
-      "n": 5,
-      "department": "Swimwear",
-      "garment_type": "ROMPER_JUMPSUIT",
-      "gender": "TODDLER",
-      "pom_count": 30,
-      "must_count": 12,
-      "size_kb": 13.4
     },
     {
       "bucket": "Active_SHORTS|BOYS",
@@ -709,15 +709,26 @@
       "size_kb": 28.2
     },
     {
-      "bucket": "Active_SHORTS|TODDLER",
-      "file": "toddler_active_shorts.json",
+      "bucket": "Active_SHORTS|BABY/TODDLER",
+      "file": "baby_toddler_active_shorts.json",
       "n": 4,
       "department": "Active",
       "garment_type": "SHORTS",
-      "gender": "TODDLER",
+      "gender": "BABY/TODDLER",
       "pom_count": 41,
       "must_count": 26,
       "size_kb": 18.4
+    },
+    {
+      "bucket": "Sleepwear_SHORTS|BOYS",
+      "file": "boys_sleepwear_shorts.json",
+      "n": 4,
+      "department": "Sleepwear",
+      "garment_type": "SHORTS",
+      "gender": "BOYS",
+      "pom_count": 21,
+      "must_count": 13,
+      "size_kb": 10.2
     },
     {
       "bucket": "Active_TOP|BOYS",
@@ -731,23 +742,23 @@
       "size_kb": 21.9
     },
     {
-      "bucket": "RTW_PANTS|TODDLER",
-      "file": "toddler_rtw_pants.json",
+      "bucket": "RTW_PANTS|BABY/TODDLER",
+      "file": "baby_toddler_rtw_pants.json",
       "n": 4,
       "department": "RTW",
       "garment_type": "PANTS",
-      "gender": "TODDLER",
+      "gender": "BABY/TODDLER",
       "pom_count": 26,
       "must_count": 13,
       "size_kb": 10.4
     },
     {
-      "bucket": "Maternity_PANTS|UNKNOWN",
-      "file": "unknown_maternity_pants.json",
+      "bucket": "Maternity_PANTS|MATERNITY",
+      "file": "maternity_maternity_pants.json",
       "n": 4,
       "department": "Maternity",
       "garment_type": "PANTS",
-      "gender": "UNKNOWN",
+      "gender": "MATERNITY",
       "pom_count": 22,
       "must_count": 13,
       "size_kb": 10.9
@@ -764,37 +775,15 @@
       "size_kb": 12.4
     },
     {
-      "bucket": "RTW_SHORTS|TODDLER",
-      "file": "toddler_rtw_shorts.json",
+      "bucket": "RTW_SHORTS|BABY/TODDLER",
+      "file": "baby_toddler_rtw_shorts.json",
       "n": 4,
       "department": "RTW",
       "garment_type": "SHORTS",
-      "gender": "TODDLER",
+      "gender": "BABY/TODDLER",
       "pom_count": 30,
       "must_count": 1,
       "size_kb": 12.2
-    },
-    {
-      "bucket": "Swimwear_TOP|UNKNOWN",
-      "file": "unknown_swimwear_top.json",
-      "n": 4,
-      "department": "Swimwear",
-      "garment_type": "TOP",
-      "gender": "UNKNOWN",
-      "pom_count": 47,
-      "must_count": 20,
-      "size_kb": 15.8
-    },
-    {
-      "bucket": "Swimwear_ROMPER_JUMPSUIT|UNKNOWN",
-      "file": "unknown_swimwear_romper_jumpsuit.json",
-      "n": 4,
-      "department": "Swimwear",
-      "garment_type": "ROMPER_JUMPSUIT",
-      "gender": "UNKNOWN",
-      "pom_count": 31,
-      "must_count": 21,
-      "size_kb": 11.7
     },
     {
       "bucket": "RTW_BODYSUIT|WOMENS",
@@ -808,17 +797,6 @@
       "size_kb": 16.3
     },
     {
-      "bucket": "Sleepwear_SHORTS|BOYS",
-      "file": "boys_sleepwear_shorts.json",
-      "n": 3,
-      "department": "Sleepwear",
-      "garment_type": "SHORTS",
-      "gender": "BOYS",
-      "pom_count": 18,
-      "must_count": 12,
-      "size_kb": 9.0
-    },
-    {
       "bucket": "Sleepwear_PANTS|WOMENS",
       "file": "womens_sleepwear_pants.json",
       "n": 3,
@@ -830,12 +808,12 @@
       "size_kb": 9.1
     },
     {
-      "bucket": "Maternity_OUTERWEAR|UNKNOWN",
-      "file": "unknown_maternity_outerwear.json",
+      "bucket": "Maternity_OUTERWEAR|MATERNITY",
+      "file": "maternity_maternity_outerwear.json",
       "n": 3,
       "department": "Maternity",
       "garment_type": "OUTERWEAR",
-      "gender": "UNKNOWN",
+      "gender": "MATERNITY",
       "pom_count": 44,
       "must_count": 5,
       "size_kb": 16.3
@@ -852,12 +830,12 @@
       "size_kb": 13.1
     },
     {
-      "bucket": "Sleepwear_DRESS|TODDLER",
-      "file": "toddler_sleepwear_dress.json",
+      "bucket": "Sleepwear_DRESS|BABY/TODDLER",
+      "file": "baby_toddler_sleepwear_dress.json",
       "n": 3,
       "department": "Sleepwear",
       "garment_type": "DRESS",
-      "gender": "TODDLER",
+      "gender": "BABY/TODDLER",
       "pom_count": 22,
       "must_count": 13,
       "size_kb": 10.4
