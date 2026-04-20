@@ -75,7 +75,8 @@ const TAGS = [
 ];
 const SRC = {
   ai:     { label: "AI 偵測",   bg: "#e0f2fe", c: "#0369a1", icon: "👁" },
-  struct: { label: "結構推斷",   bg: "#d1fae5", c: "#065f46", icon: "⚙" }
+  struct: { label: "結構推斷",   bg: "#d1fae5", c: "#065f46", icon: "⚙" },
+  manual: { label: "手動新增",   bg: "#faf9f7", c: "#767676", icon: "+" }
 };
 
 /* ─── 長度相關 POM codes（PETITE / TALL 跟 MISSY 有差的） ─── */
@@ -84,7 +85,7 @@ const LENGTH_POMS = new Set(["K1","K2","O4","N5","N7","L2"]);
 /* ─── rebuildCardFromL2: given a card + new L2 index (+ optional L3 index),
    fetches l2_l3_ie for that L1 and rebuilds l3Variants / methodVariants /
    l3s on the card. Used by onSwitchL2 and onSwitchL3. ─── */
-function rebuildCardFromL2(card, newL2Idx, newL3Idx, fabric, setCards) {
+function rebuildCardFromL2(card, newL2Idx, newL3Idx, fabric, setCards, newMethodIdx = 0) {
   const variant = card.l2Variants?.[newL2Idx];
   if (!variant) return;
   const isReal = (s) => s && !String(s).startsWith("**");
@@ -142,7 +143,8 @@ function rebuildCardFromL2(card, newL2Idx, newL3Idx, fabric, setCards) {
         freq_pct: methodFreqSum > 0 && raw > 0 ? +(raw / methodFreqSum * 100).toFixed(1) : null
       };
     });
-    const cur = methodVariants[0] || { l4: null, steps: [], totalSec: 0 };
+    const methodIdx = methodVariants[newMethodIdx] ? newMethodIdx : 0;
+    const cur = methodVariants[methodIdx] || { l4: null, steps: [], totalSec: 0 };
     const l2Base = chosenL2?.l2
       ? `${chosenL2.l2}${shape?.l3 ? " · " + shape.l3 : ""}`
       : null;
@@ -156,7 +158,7 @@ function rebuildCardFromL2(card, newL2Idx, newL3Idx, fabric, setCards) {
       l2Idx: newL2Idx,
       l3Idx,
       l3Variants,
-      methodIdx: 0,
+      methodIdx,
       methodVariants,
       l3s: cur.steps,
       ie: cur.totalSec,
@@ -164,6 +166,91 @@ function rebuildCardFromL2(card, newL2Idx, newL3Idx, fabric, setCards) {
       l2: l2Base ? `${l2Base}${l4Short ? " · " + l4Short : ""}` : pc.l2
     } : pc));
   }).catch(err => console.error('載入 l2_l3_ie 失敗:', err));
+}
+
+/* ─── L1 下拉:依 l1_part_presence (GT|IT 桶) 的歷史出現率排序
+   取 bucket 規則同 runConstruction:先 by_gt_it → 退回 by_gt。 ─── */
+function sortedL1sForBucket(partPresence, gt, it) {
+  const bucketKey = gt && it ? `${gt}|${it}` : null;
+  const bucket = (partPresence && bucketKey && partPresence.by_gt_it?.[bucketKey])
+    || (partPresence && gt && partPresence.by_gt?.[gt])
+    || null;
+  const pctByCode = {};
+  if (bucket && Array.isArray(bucket.parts)) {
+    for (const p of bucket.parts) {
+      if (p.l1_code) pctByCode[p.l1_code] = { pct: p.presence_pct ?? null, tier: p.tier_en || p.tier || null };
+    }
+  }
+  const codes = Object.keys(L1_CODE_TO_NAME);
+  return codes.map(code => ({
+    code,
+    name: L1_CODE_TO_NAME[code] || code,
+    pct: pctByCode[code]?.pct ?? null,
+    tier: pctByCode[code]?.tier ?? null,
+  })).sort((a, b) => {
+    const ap = a.pct == null ? -1 : a.pct;
+    const bp = b.pct == null ? -1 : b.pct;
+    if (bp !== ap) return bp - ap;
+    return a.name.localeCompare(b.name, 'zh-Hant');
+  });
+}
+
+/* ─── 通用模型:回傳目前 bucket 下該 L1 可選的 ISO 列表
+   格式:[{ iso, iso_zh, machine, pct, isPrimary }],依 pct 遞減 ─── */
+function isoOptionsFor(isoLookupV3, fabric, gt, it, l1Code) {
+  if (!isoLookupV3 || !l1Code) return [];
+  const fabricKey = (fabric || "Knit").toLowerCase() === "woven" ? "Woven" : "Knit";
+  const gtAliases = {
+    PANTS: ["PANT", "PANTS", "BOTTOM"],
+    SHORTS: ["SHORTS", "BOTTOM"],
+    SWIM_PIECE: ["SWIM"],
+    ROMPER_JUMPSUIT: ["ONE_PIECE"],
+  };
+  const gtCandidates = gtAliases[gt] ? gtAliases[gt] : (gt ? [gt] : []);
+  const entries = Array.isArray(isoLookupV3.entries) ? isoLookupV3.entries
+    : (isoLookupV3.entries && typeof isoLookupV3.entries === 'object' ? Object.values(isoLookupV3.entries) : []);
+  const matchBy = (filterFn) => entries.find(e => e.fabric === fabricKey && e.l1_code === l1Code && filterFn(e));
+  let entry = null;
+  for (const g of gtCandidates) {
+    entry = matchBy(e => e.gt === g && e.it === it);
+    if (entry) break;
+  }
+  if (!entry) {
+    for (const g of gtCandidates) {
+      entry = matchBy(e => e.gt === g);
+      if (entry) break;
+    }
+  }
+  if (!entry) {
+    entry = matchBy(() => true);
+  }
+  if (!entry) return [];
+  const primary = {
+    iso: entry.iso, iso_zh: entry.iso_zh || null,
+    machine: entry.machine || null, pct: entry.pct ?? null, isPrimary: true
+  };
+  const alts = Array.isArray(entry.alternatives) ? entry.alternatives.map(a => ({
+    iso: a.iso, iso_zh: a.iso_zh || null,
+    machine: a.machine || null, pct: a.pct ?? null, isPrimary: false
+  })) : [];
+  alts.sort((a, b) => (b.pct ?? 0) - (a.pct ?? 0));
+  return [primary, ...alts];
+}
+
+/* ─── 聚陽模型:從 visualGuide 組該 L1 的 L2 變體清單 ─── */
+function buildL2VariantsForL1(visualGuide, l1Code) {
+  const section = visualGuide?.l1?.[l1Code];
+  const l2Map = section?.l2 || {};
+  const raw = Object.entries(l2Map).map(([code, info]) => ({
+    code,
+    xlsx_name: info.name || code,
+    display_name: info.display_name || info.name || code,
+    feature: info.feature || null,
+    tier: info.tier || "unknown",
+    freq: info.freq || 0,
+  })).filter(v => !String(v.xlsx_name).startsWith("**"));
+  raw.sort((a, b) => (b.freq || 0) - (a.freq || 0));
+  return raw;
 }
 
 /* ─── Mock Data ─── */
@@ -2280,6 +2367,16 @@ function App() {
   const [addonSteps, setAddonSteps] = useState(new Set());
   const [showAddonSteps, setShowAddonSteps] = useState(false);
   const addonOn = addonSteps.size > 0;
+  // 手動新增部位的表單 state
+  const [adding, setAdding] = useState(false);
+  const [newL1, setNewL1] = useState("");
+  const [newL2Idx, setNewL2Idx] = useState(0);
+  const [newL3Idx, setNewL3Idx] = useState(0);
+  const [newL4Idx, setNewL4Idx] = useState(0);
+  const [newIsoIdx, setNewIsoIdx] = useState(0);
+  // 聚陽新增表單需要抓 l2_l3_ie/<L1>.json 取得 L3 shapes / L4 methods;按需快取
+  const [newIeData, setNewIeData] = useState(null);   // 目前已載入的 L1 的 ie 資料 {l1_code, knit, woven}
+  const newIeCacheRef = useRef({});                   // { L1_code: ieData }
   const [hintDismissed, setHintDismissed] = useState(() => {
     try { return localStorage.getItem("stytrix.hint.card.dismissed") === "1"; } catch { return false; }
   });
@@ -2654,10 +2751,85 @@ function App() {
     URL.revokeObjectURL(url);
   };
 
+  const resetAddForm = () => {
+    setAdding(false);
+    setNewL1(""); setNewL2Idx(0); setNewL3Idx(0); setNewL4Idx(0); setNewIsoIdx(0);
+    setNewIeData(null);
+  };
+
+  // 切換 appMode、重新 analyze 時關表單 & 清狀態
+  useEffect(() => { resetAddForm(); }, [appMode]);
+
+  // 選 L1 後,聚陽模型需抓 l2_l3_ie/<code>.json 以列出 L3/L4
+  useEffect(() => {
+    if (!adding || appMode !== "makalot" || !newL1) { setNewIeData(null); return; }
+    const cached = newIeCacheRef.current[newL1];
+    if (cached) { setNewIeData(cached); return; }
+    let cancelled = false;
+    fetch(`./l2_l3_ie/${newL1}.json`).then(r => r.ok ? r.json() : null).then(d => {
+      if (cancelled || !d) return;
+      newIeCacheRef.current[newL1] = d;
+      setNewIeData(d);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [adding, appMode, newL1]);
+
+  const addManualUniversalCard = () => {
+    const l1Code = newL1;
+    if (!l1Code) return;
+    const opts = isoOptionsFor(isoLookupV3, fabric, gt, it, l1Code);
+    const picked = opts[newIsoIdx] || opts[0];
+    if (!picked) return;
+    const nextId = Math.max(0, ...cards.map(c => c.id || 0)) + 1;
+    const l1Name = L1_CODE_TO_NAME[l1Code] || l1Code;
+    const label = `ISO ${picked.iso}${picked.iso_zh ? " · " + picked.iso_zh : ""}${picked.machine ? " · " + picked.machine : ""}`;
+    const alternatives = opts.filter((_, i) => i !== opts.indexOf(picked))
+      .map(o => ({ iso: o.iso, iso_zh: o.iso_zh, machine: o.machine, pct: o.pct }));
+    const card = {
+      id: nextId, code: l1Code, l1: l1Name, l1_code: l1Code,
+      source: "manual", ie: 0,
+      l2: label, l2Base: null,
+      l2Variants: [], l3Variants: [], methodVariants: [], l3s: [],
+      universal: {
+        iso: picked.iso, iso_zh: picked.iso_zh, machine: picked.machine,
+        confidence: null, action: "manual", alternatives,
+      },
+      presenceTier: null, presencePct: null,
+      conf: null, px: 50, py: 50, side: "left",
+    };
+    setCards(prev => [...prev, card]);
+    resetAddForm();
+  };
+
+  const addManualMakalotCard = () => {
+    const l1Code = newL1;
+    if (!l1Code || !visualGuide) return;
+    const l2Variants = buildL2VariantsForL1(visualGuide, l1Code);
+    if (!l2Variants[newL2Idx]) return;
+    const nextId = Math.max(0, ...cards.map(c => c.id || 0)) + 1;
+    const l1Name = L1_CODE_TO_NAME[l1Code] || l1Code;
+    const skeleton = {
+      id: nextId, code: l1Code, l1: l1Name, l1_code: l1Code,
+      source: "manual", ie: 0,
+      l2: l1Name, l2Base: null,
+      l2Variants, l2Idx: newL2Idx,
+      l3Variants: [], l3Idx: 0,
+      methodVariants: [], methodIdx: 0,
+      l3s: [],
+      presenceTier: null, presencePct: null,
+      conf: null, px: 50, py: 50, side: "left",
+    };
+    setCards(prev => [...prev, skeleton]);
+    // 骨架入列後交給 rebuildCardFromL2 填 L3/L4/L5
+    rebuildCardFromL2(skeleton, newL2Idx, newL3Idx, fabric, setCards, newL4Idx);
+    resetAddForm();
+  };
+
   const runConstruction = async () => {
     setCStep(1); setCAnalyzing(true); setCStage(0);
     setRemoved(new Set()); setOpenId(null);
     setCards([]); setAnalyzeErr(null); setAnalyzeUsage(null);
+    resetAddForm();
     const si = setInterval(() => setCStage(s => s < 5 ? s + 1 : s), 280);
     const analyzeStartedAt = performance.now();
     try {
@@ -3703,12 +3875,14 @@ function App() {
                       occasional: { label: "偶見",   hint: "20–49%" },
                       rare:       { label: "少見",   hint: "<20%" },
                       other:      { label: "AI 新偵測", hint: "歷史資料未涵蓋，AI 視覺辨識加入" },
+                      manual:     { label: "手動新增", hint: "使用者加入" },
                     };
-                    const TIER_ORDER = ["essential", "common", "occasional", "rare", "other"];
+                    const TIER_ORDER = ["essential", "common", "occasional", "rare", "other", "manual"];
                     const visWithIdx = vis.map((c, i) => ({ c, i }));
+                    const groupOf = (c) => c.source === "manual" ? "manual" : (c.presenceTier || "other");
                     const groups = Object.fromEntries(
                       TIER_ORDER.map(t => [t, visWithIdx
-                        .filter(x => (x.c.presenceTier || "other") === t)
+                        .filter(x => groupOf(x.c) === t)
                         .sort((a, b) => (b.c.presencePct ?? 0) - (a.c.presencePct ?? 0))])
                     );
                     const activeTiers = TIER_ORDER.filter(t => groups[t].length > 0);
@@ -3757,6 +3931,183 @@ function App() {
                         {groups[t].map(renderCard)}
                       </React.Fragment>
                     ));
+                  })()}
+
+                  {cDone && (() => {
+                    // ── 新增部位表單 ──
+                    const l1List = sortedL1sForBucket(partPresence, gt, it);
+                    const l2List = appMode === "makalot" && newL1 && visualGuide
+                      ? buildL2VariantsForL1(visualGuide, newL1) : [];
+                    const fabricKey = (fabric || "Knit").toLowerCase() === "woven" ? "woven" : "knit";
+                    const ieL2Arr = newIeData ? (newIeData[fabricKey] || []) : [];
+                    const pickedL2Name = l2List[newL2Idx]?.xlsx_name || null;
+                    const ieChosenL2 = pickedL2Name
+                      ? ieL2Arr.find(x => x.l2 === pickedL2Name) || null
+                      : null;
+                    const l3List = ieChosenL2?.shapes || [];
+                    const pickedShape = l3List[newL3Idx] || null;
+                    const l4List = pickedShape?.methods || [];
+                    const isoList = appMode === "universal" && newL1
+                      ? isoOptionsFor(isoLookupV3, fabric, gt, it, newL1) : [];
+
+                    const makalotReady = appMode === "makalot"
+                      && !!newL1 && l2List.length > 0 && l3List.length > 0
+                      && (l4List.length <= 1 || true); // L4 always has default idx 0
+                    const universalReady = appMode === "universal"
+                      && !!newL1 && isoList.length > 0;
+                    const canAdd = appMode === "makalot" ? makalotReady : universalReady;
+
+                    const rowStyle = {
+                      display: "grid", gridTemplateColumns: "80px 1fr",
+                      alignItems: "center", gap: "8px", marginBottom: "8px",
+                      fontSize: "12px",
+                    };
+                    const selectStyle = {
+                      width: "100%", padding: "6px 10px",
+                      border: "1px solid #e5e5e5", borderRadius: "6px",
+                      fontSize: "12px", fontFamily: "inherit",
+                      background: "#fff", cursor: "pointer",
+                    };
+
+                    if (!adding) {
+                      return (
+                        <button onClick={() => setAdding(true)}
+                          style={{
+                            width: "100%", marginTop: "16px",
+                            padding: "14px", background: "#fff",
+                            border: "1.5px dashed #d4d4d4", borderRadius: "10px",
+                            color: "#767676", fontSize: "13px", fontWeight: 600,
+                            cursor: "pointer", fontFamily: "inherit",
+                            transition: "all 0.15s",
+                          }}
+                          onMouseEnter={e => { e.currentTarget.style.borderColor = "#999"; e.currentTarget.style.color = "#1a1a1a"; }}
+                          onMouseLeave={e => { e.currentTarget.style.borderColor = "#d4d4d4"; e.currentTarget.style.color = "#767676"; }}
+                        >
+                          + 新增部位
+                        </button>
+                      );
+                    }
+
+                    return (
+                      <div style={{
+                        marginTop: "16px", padding: "14px 16px",
+                        border: "1.5px solid #1a1a1a", borderRadius: "10px", background: "#fff",
+                      }}>
+                        <div style={{ fontSize: "12px", fontWeight: 700, marginBottom: "10px", color: "#1a1a1a" }}>
+                          新增部位 {appMode === "universal"
+                            ? <span style={{ fontSize: "10px", fontWeight: 500, color: "#767676", marginLeft: "6px" }}>L1 → ISO</span>
+                            : <span style={{ fontSize: "10px", fontWeight: 500, color: "#767676", marginLeft: "6px" }}>L1 → L2 → L3{l4List.length > 1 ? " → L4" : ""}</span>
+                          }
+                        </div>
+
+                        {/* Row 1: L1 */}
+                        <div style={rowStyle}>
+                          <label style={{ color: "#767676" }}>L1 部位</label>
+                          <select value={newL1} style={selectStyle}
+                            onChange={e => { setNewL1(e.target.value); setNewL2Idx(0); setNewL3Idx(0); setNewL4Idx(0); setNewIsoIdx(0); }}>
+                            <option value="">— 請選擇 —</option>
+                            {l1List.map(l => (
+                              <option key={l.code} value={l.code} style={{ color: l.pct == null ? "#bbb" : "#1a1a1a" }}>
+                                {l.name} ({l.code}){l.pct != null ? ` · 歷史 ${l.pct}%` : " · —"}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Makalot: L2 → L3 → (L4 if >1) */}
+                        {appMode === "makalot" && newL1 && (
+                          <>
+                            <div style={rowStyle}>
+                              <label style={{ color: "#767676" }}>L2 零件</label>
+                              <select value={newL2Idx} style={selectStyle}
+                                onChange={e => { setNewL2Idx(Number(e.target.value)); setNewL3Idx(0); setNewL4Idx(0); }}
+                                disabled={l2List.length === 0}>
+                                {l2List.length === 0 && <option>（此 L1 visualGuide 無 L2 資料）</option>}
+                                {l2List.map((v, i) => (
+                                  <option key={v.code} value={i}>
+                                    {v.display_name || v.xlsx_name}{v.freq ? ` · freq ${v.freq}` : ""}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                            <div style={rowStyle}>
+                              <label style={{ color: "#767676" }}>L3 形狀</label>
+                              <select value={newL3Idx} style={selectStyle}
+                                onChange={e => { setNewL3Idx(Number(e.target.value)); setNewL4Idx(0); }}
+                                disabled={!newIeData || l3List.length === 0}>
+                                {!newIeData && <option>載入中…</option>}
+                                {newIeData && l3List.length === 0 && <option>（此 L1 × L2 組合無 shape 資料）</option>}
+                                {l3List.map((sh, i) => (
+                                  <option key={i} value={i}>
+                                    {sh.l3}{sh.methods?.length ? ` · ${sh.methods.length} 方法` : ""}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                            {l4List.length > 1 && (
+                              <div style={rowStyle}>
+                                <label style={{ color: "#767676" }}>L4 方法</label>
+                                <select value={newL4Idx} style={selectStyle}
+                                  onChange={e => setNewL4Idx(Number(e.target.value))}>
+                                  {l4List.map((m, i) => (
+                                    <option key={i} value={i}>
+                                      {m.l4 && m.l4.length > 60 ? m.l4.slice(0, 60) + "…" : (m.l4 || `方法 ${i + 1}`)}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            )}
+                            {newIeData && l3List.length === 0 && (
+                              <div style={{ fontSize: "11px", color: "#b45309", marginTop: "4px", marginLeft: "88px" }}>
+                                此 L1 × L2 組合目前無 L3 shape 資料,無法新增
+                              </div>
+                            )}
+                          </>
+                        )}
+
+                        {/* Universal: ISO */}
+                        {appMode === "universal" && newL1 && (
+                          <div style={rowStyle}>
+                            <label style={{ color: "#767676" }}>ISO</label>
+                            <select value={newIsoIdx} style={selectStyle}
+                              onChange={e => setNewIsoIdx(Number(e.target.value))}
+                              disabled={isoList.length === 0}>
+                              {isoList.length === 0 && <option>（此 Fabric × GT × IT × L1 無歷史 ISO）</option>}
+                              {isoList.map((o, i) => (
+                                <option key={i} value={i}>
+                                  ISO {o.iso}{o.iso_zh ? " · " + o.iso_zh : ""}{o.machine ? " · " + o.machine : ""}{o.pct != null ? ` · ${o.pct}%` : ""}{o.isPrimary ? " ★" : ""}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+                        {appMode === "universal" && newL1 && isoList.length === 0 && (
+                          <div style={{ fontSize: "11px", color: "#b45309", marginTop: "4px", marginLeft: "88px" }}>
+                            此 Fabric × GT × IT × L1 在歷史 ISO 資料中無對應,無法自動推薦
+                          </div>
+                        )}
+
+                        {/* Buttons */}
+                        <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "12px" }}>
+                          <button onClick={resetAddForm}
+                            style={{
+                              padding: "8px 16px", background: "#fff", color: "#767676",
+                              border: "1px solid #e5e5e5", borderRadius: "8px",
+                              fontSize: "12px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+                            }}>取消</button>
+                          <button
+                            onClick={appMode === "universal" ? addManualUniversalCard : addManualMakalotCard}
+                            disabled={!canAdd}
+                            style={{
+                              padding: "8px 18px", background: canAdd ? "#1a1a1a" : "#eee",
+                              color: canAdd ? "#fff" : "#bbb",
+                              border: "none", borderRadius: "8px",
+                              fontSize: "12px", fontWeight: 600,
+                              cursor: canAdd ? "pointer" : "not-allowed", fontFamily: "inherit",
+                            }}>新增</button>
+                        </div>
+                      </div>
+                    );
                   })()}
 
                   <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "20px" }}>
