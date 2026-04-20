@@ -3864,6 +3864,9 @@ function App() {
                             <th style={{ padding: isMobile ? "6px 6px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999" }}>Name</th>
                             <th style={{ padding: isMobile ? "6px 6px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#999", width: isMobile ? "64px" : "80px" }}>公差</th>
                             <th style={{ padding: isMobile ? "6px 6px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#065f46", width: isMobile ? "96px" : "110px" }}>Base (M)</th>
+                            {showPlus && hasPlus && (
+                              <th style={{ padding: isMobile ? "6px 6px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#be185d", width: isMobile ? "96px" : "110px" }}>Base ({plusAnchor})<div style={{ fontSize: "9px", fontWeight: 400, color: "#be185d" }}>Plus 獨立</div></th>
+                            )}
                           </tr>
                         </thead>
                         <tbody>
@@ -3888,7 +3891,7 @@ function App() {
                                       style={{ width: "16px", height: "16px", accentColor: tc.c, cursor: "pointer" }}
                                     />
                                   </td>
-                                  <td colSpan={4}
+                                  <td colSpan={showPlus && hasPlus ? 5 : 4}
                                     role="button"
                                     tabIndex={0}
                                     aria-expanded={!collapsed}
@@ -3958,6 +3961,41 @@ function App() {
                                           }} />
                                         <span style={{ fontSize: "13px", color: "#065f46", marginLeft: "3px" }}>"</span>
                                       </td>
+                                      {showPlus && hasPlus && (() => {
+                                        const base2X = mvRow?.size_medians?.[plusAnchor];
+                                        const ov2 = plusBaseOverrides[code] ?? "";
+                                        const invalid2 = ov2 !== "" && parseInch(ov2) == null;
+                                        const display2 = ov2 !== "" ? ov2 : (base2X != null ? frmt(base2X) : "");
+                                        return (
+                                          <td style={{ padding: isMobile ? "6px 8px" : "6px 12px", textAlign: "right", background: "#fdf2f8" }}>
+                                            <input type="text" value={display2}
+                                              onChange={(e) => setPlusBaseOverrides(prev => ({ ...prev, [code]: e.target.value }))}
+                                              onBlur={() => {
+                                                const raw = plusBaseOverrides[code];
+                                                if (raw == null || raw === "") return;
+                                                const parsed = parseInch(raw);
+                                                if (parsed == null) return;
+                                                const normalized = frmt(parsed);
+                                                if (normalized !== "—" && normalized !== raw) {
+                                                  setPlusBaseOverrides(prev => ({ ...prev, [code]: normalized }));
+                                                }
+                                              }}
+                                              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); } }}
+                                              disabled={!included}
+                                              placeholder={base2X != null ? frmt(base2X) : "—"}
+                                              inputMode="text"
+                                              aria-label={`${code} Base ${plusAnchor}`}
+                                              style={{
+                                                width: isMobile ? "92px" : "104px", textAlign: "right", padding: "7px 9px",
+                                                fontFamily: "'JetBrains Mono',monospace", fontSize: "14px", fontWeight: 700,
+                                                color: invalid2 ? "#dc2626" : "#be185d",
+                                                border: `1px solid ${invalid2 ? "#dc2626" : "#fbcfe8"}`, borderRadius: "6px",
+                                                background: "#fff",
+                                              }} />
+                                            <span style={{ fontSize: "13px", color: "#be185d", marginLeft: "3px" }}>"</span>
+                                          </td>
+                                        );
+                                      })()}
                                     </tr>
                                   );
                                 })}
