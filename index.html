@@ -346,7 +346,7 @@ const IT_LENGTH_POM = {
   LEGGINGS: { code: "O4", label: "內長" },
   SHORTS:   { code: "O4", label: "內長" },
   DRESS:    { code: "J9", label: "裙長" },
-  SKIRT:    { code: "J9", label: "裙長" },
+  SKIRT:    { code: "I6", label: "裙長" },
 };
 /* 依 GT 列出「會隨長度而變」的 POM 代碼集。未選 Item Type 時,這些 POM 的
    Base M 與全碼表格子一律留空,避免 BIKER(5"內長) 還顯示 28" inseam、
@@ -355,7 +355,7 @@ const IT_LENGTH_DEP_POMS = {
   LEGGINGS: new Set(["O4", "N5", "N7"]),
   SHORTS:   new Set(["O4", "N5"]),
   DRESS:    new Set(["J9", "J10", "J8", "J7", "I6", "I5"]),
-  SKIRT:    new Set(["J9", "J10", "I6"]),
+  SKIRT:    new Set(["I6", "J9", "J10"]),
 };
 /* 從 "~28\"" 之類的 hint 字串抽出英吋數值。沒有數字(如 "緊身"、"百褶")回傳 null。 */
 const parseHintInches = (hint) => {
