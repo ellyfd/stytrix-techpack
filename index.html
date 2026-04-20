@@ -1297,15 +1297,6 @@ function AdminModal({ open, onClose, pomNamesOverride, onUploadPomNames, onClear
                 directory=""
                 onChange={e => { handleRulesFiles(e.target.files); e.target.value = ''; }} />
             </label>
-            {(pomRulesOverride?.index || Object.keys(pomRulesOverride?.buckets || {}).length > 0) && (
-              <button onClick={() => { onClearPomRules(); setRulesSuccess(null); setRulesError(null); }}
-                style={{
-                  padding: '8px 14px',
-                  background: '#fff', border: '1px solid #e8e5e1', borderRadius: '6px',
-                  cursor: 'pointer', fontSize: '12px', fontWeight: 600, color: '#dc2626',
-                  fontFamily: 'inherit',
-                }}>清除全部覆蓋</button>
-            )}
           </div>
 
           {rulesError && <div style={{ marginTop: '10px', padding: '8px 10px', background: '#fef2f2', color: '#b91c1c', fontSize: '11px', borderRadius: '6px' }}>⚠ {rulesError}</div>}
