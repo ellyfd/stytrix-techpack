@@ -251,14 +251,14 @@ function isoOptionsFor(lookupV42, lookupV4, filters, l1Code) {
     const dist = v42Entry.iso_distribution || {};
     const total = Object.values(dist).reduce((s, n) => s + n, 0) || 1;
     const pctFor = (iso) => +((dist[iso] || 0) / total * 100).toFixed(1);
-    const primary = {
+    const v42Primary = {
       iso: v42Entry.iso,
       iso_zh: isoRef[v42Entry.iso]?.iso_zh || null,
       machine: isoRef[v42Entry.iso]?.machine || null,
       pct: v42Entry.iso_pct ?? pctFor(v42Entry.iso),
       isPrimary: true, source: "v4.2",
     };
-    const alts = Object.keys(dist)
+    const v42Alts = Object.keys(dist)
       .filter(iso => iso !== v42Entry.iso)
       .map(iso => ({
         iso,
@@ -267,7 +267,7 @@ function isoOptionsFor(lookupV42, lookupV4, filters, l1Code) {
         pct: pctFor(iso), isPrimary: false, source: "v4.2",
       }))
       .sort((a, b) => (b.pct ?? 0) - (a.pct ?? 0));
-    return [primary, ...alts];
+    return [v42Primary, ...v42Alts];
   }
 
   // ── v4 fallback(無性別、但 L1 覆蓋廣) ──
@@ -294,12 +294,12 @@ function isoOptionsFor(lookupV42, lookupV4, filters, l1Code) {
   if (!v4Entry || !v4Entry.iso) return [];
   const votes = v4Entry.pptx_2025_votes || {};
   const totalVotes = Object.values(votes).reduce((s, n) => s + n, 0) || 0;
-  const primary = {
+  const v4Primary = {
     iso: v4Entry.iso, iso_zh: v4Entry.iso_zh || null, machine: v4Entry.machine || null,
     pct: totalVotes > 0 && votes[v4Entry.iso] ? +(votes[v4Entry.iso] / totalVotes * 100).toFixed(1) : null,
     isPrimary: true, source: "v4",
   };
-  const alts = Object.keys(votes)
+  const v4Alts = Object.keys(votes)
     .filter(iso => iso !== v4Entry.iso)
     .map(iso => ({
       iso, iso_zh: isoRef[iso]?.iso_zh || null, machine: isoRef[iso]?.machine || null,
@@ -307,7 +307,7 @@ function isoOptionsFor(lookupV42, lookupV4, filters, l1Code) {
       isPrimary: false, source: "v4",
     }))
     .sort((a, b) => (b.pct ?? 0) - (a.pct ?? 0));
-  return [primary, ...alts];
+  return [v4Primary, ...v4Alts];
 }
 
 /* ─── 聚陽模型:從 visualGuide 組該 L1 的 L2 變體清單 ─── */
