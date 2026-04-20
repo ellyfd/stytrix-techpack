@@ -2159,6 +2159,23 @@ function App() {
   };
 
   const [pomNames, setPomNames] = useState({});
+  // 使用者對 pomNames 中文欄位的手動編輯(雙擊儲存格修改),存 localStorage
+  const [pomZhEdits, setPomZhEdits] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('stytrix.override.pomZhEdits') || '{}'); } catch { return {}; }
+  });
+  const [editingZhCode, setEditingZhCode] = useState(null);
+  const zhFor = (code) => pomZhEdits[code] ?? pomNames[code]?.zh ?? '';
+  const saveZh = (code, value) => {
+    const trimmed = (value || '').trim();
+    const baseline = pomNames[code]?.zh || '';
+    setPomZhEdits(prev => {
+      const next = { ...prev };
+      if (!trimmed || trimmed === baseline) delete next[code];
+      else next[code] = trimmed;
+      try { localStorage.setItem('stytrix.override.pomZhEdits', JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
   const [currentBucket, setCurrentBucket] = useState(null);
   const [bucketLoading, setBucketLoading] = useState(false);
   const bucketKey = (dept && gt && gender) ? `${dept}_${gt}|${gender}` : null;
@@ -3973,6 +3990,7 @@ function App() {
                             <th style={{ padding: isMobile ? "6px 6px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", width: "30px" }}>✓</th>
                             <th style={{ padding: isMobile ? "6px 6px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", width: "56px" }}>POM</th>
                             <th style={{ padding: isMobile ? "6px 6px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999" }}>Name</th>
+                            <th style={{ padding: isMobile ? "6px 6px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", minWidth: isMobile ? "100px" : "140px" }}>中文<span style={{ fontSize: "9px", fontWeight: 400, color: "#bbb", marginLeft: "4px" }}>(雙擊可改)</span></th>
                             <th style={{ padding: isMobile ? "6px 6px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#999", width: isMobile ? "64px" : "80px" }}>公差</th>
                             <th style={{ padding: isMobile ? "6px 6px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#065f46", width: isMobile ? "96px" : "110px" }}>Base (M)</th>
                             {showPlus && hasPlus && (
@@ -4002,7 +4020,7 @@ function App() {
                                       style={{ width: "16px", height: "16px", accentColor: tc.c, cursor: "pointer" }}
                                     />
                                   </td>
-                                  <td colSpan={showPlus && hasPlus ? 5 : 4}
+                                  <td colSpan={showPlus && hasPlus ? 6 : 5}
                                     role="button"
                                     tabIndex={0}
                                     aria-expanded={!collapsed}
@@ -4040,7 +4058,30 @@ function App() {
                                       <td style={{ padding: isMobile ? "8px 10px" : "9px 12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", fontSize: "14px", color: tc.c }}>{code}</td>
                                       <td style={{ padding: isMobile ? "8px 10px" : "9px 12px" }}>
                                         <div style={{ fontWeight: 600, color: "#1a1a1a", fontSize: "14px" }}>{pn.en || code}</div>
-                                        {pn.zh && <div style={{ fontSize: "12px", color: "#888", marginTop: "2px" }}>{pn.zh}</div>}
+                                      </td>
+                                      <td style={{ padding: isMobile ? "6px 10px" : "7px 12px" }}
+                                        onDoubleClick={() => setEditingZhCode(code)}
+                                        title={editingZhCode === code ? "" : "雙擊可修改"}
+                                      >
+                                        {editingZhCode === code ? (
+                                          <input type="text" autoFocus
+                                            defaultValue={zhFor(code)}
+                                            onBlur={(e) => { saveZh(code, e.target.value); setEditingZhCode(null); }}
+                                            onKeyDown={(e) => {
+                                              if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); }
+                                              else if (e.key === "Escape") { setEditingZhCode(null); }
+                                            }}
+                                            style={{
+                                              width: "100%", padding: "5px 7px",
+                                              fontSize: "13px", fontWeight: 500, fontFamily: "inherit",
+                                              border: "1px solid #1a1a1a", borderRadius: "5px", background: "#fff",
+                                            }} />
+                                        ) : (
+                                          <div style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "text", color: "#555", fontSize: "13px", padding: "4px 0" }}>
+                                            <span>{zhFor(code) || <span style={{ color: "#ccc" }}>(空)</span>}</span>
+                                            {pomZhEdits[code] && <span style={{ fontSize: "9px", color: "#7e22ce", background: "#f5f3ff", padding: "1px 5px", borderRadius: "3px", fontWeight: 600 }}>自訂</span>}
+                                          </div>
+                                        )}
                                       </td>
                                       <td style={{ padding: isMobile ? "8px 10px" : "9px 12px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", fontSize: "14px", color: "#7e22ce", fontWeight: 600, whiteSpace: "nowrap" }}>{tolStr(m)}</td>
                                       <td style={{ padding: isMobile ? "6px 8px" : "6px 12px", textAlign: "right", background: "#ecfdf5" }}>
@@ -4525,6 +4566,7 @@ function App() {
                           <tr style={{ background: "#faf9f7", borderBottom: "1.5px solid #e8e5e1" }}>
                             <th style={{ padding: "10px 12px", textAlign: "left", fontWeight: 600, fontSize: "12px", color: "#888", position: "sticky", left: 0, background: "#faf9f7", width: "60px" }}>POM</th>
                             <th style={{ padding: "10px 12px", textAlign: "left", fontWeight: 600, fontSize: "12px", color: "#888", minWidth: "120px" }}>Name</th>
+                            <th style={{ padding: "10px 12px", textAlign: "left", fontWeight: 600, fontSize: "12px", color: "#888", minWidth: "140px" }}>中文<span style={{ fontSize: "9px", fontWeight: 400, color: "#bbb", marginLeft: "4px" }}>(雙擊可改)</span></th>
                             <th style={{ padding: "10px 12px", textAlign: "right", fontWeight: 600, fontSize: "12px", color: "#7e22ce", width: "90px" }}>公差</th>
                             <th style={{ padding: "10px 12px", textAlign: "right", fontWeight: 600, fontSize: "12px", color: "#b45309", width: "90px" }}>跳碼<div style={{ fontSize: "10px", fontWeight: 400, color: "#b45309" }}>Grading</div></th>
                             {visibleSizes.map(s => {
@@ -4549,6 +4591,26 @@ function App() {
                                 <td style={{ padding: "9px 12px", fontSize: "14px", color: "#1a1a1a" }}>
                                   {pn.en || code}
                                   {edited && <span style={{ marginLeft: "6px", fontSize: "11px", color: "#7e22ce", background: "#f5f3ff", padding: "2px 6px", borderRadius: "4px", fontWeight: 600, whiteSpace: "nowrap" }}>已調整</span>}
+                                </td>
+                                <td style={{ padding: "7px 12px" }}
+                                  onDoubleClick={() => setEditingZhCode(code)}
+                                  title={editingZhCode === code ? "" : "雙擊可修改"}
+                                >
+                                  {editingZhCode === code ? (
+                                    <input type="text" autoFocus
+                                      defaultValue={zhFor(code)}
+                                      onBlur={(e) => { saveZh(code, e.target.value); setEditingZhCode(null); }}
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); }
+                                        else if (e.key === "Escape") { setEditingZhCode(null); }
+                                      }}
+                                      style={{ width: "100%", padding: "5px 7px", fontSize: "13px", fontFamily: "inherit", border: "1px solid #1a1a1a", borderRadius: "5px", background: "#fff" }} />
+                                  ) : (
+                                    <div style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "text", color: "#555", fontSize: "13px" }}>
+                                      <span>{zhFor(code) || <span style={{ color: "#ccc" }}>(空)</span>}</span>
+                                      {pomZhEdits[code] && <span style={{ fontSize: "9px", color: "#7e22ce", background: "#f5f3ff", padding: "1px 5px", borderRadius: "3px", fontWeight: 600 }}>自訂</span>}
+                                    </div>
+                                  )}
                                 </td>
                                 <td style={{ padding: "9px 12px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", fontSize: "14px", color: "#7e22ce", fontWeight: 600, whiteSpace: "nowrap" }}>
                                   {tolStr(m)}
