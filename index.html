@@ -297,8 +297,8 @@ const IT_OPTIONS = {
   SWIM_PIECE:       ["ONE-PIECE","TWO-PIECE","BIKINI","TANKINI"],
 };
 
-/* Item Type 長度提示:下拉會標註「(長度)」讓使用者一眼看出差異。
-   只標有明確長度的 GT(LEGGINGS / SHORTS / DRESS / SKIRT)。 */
+/* Item Type 提示:下拉會標註「(提示)」讓使用者一眼看出差異。
+   長度類以 inch 估值呈現,輪廓類用中文說明。 */
 const IT_LENGTH_HINTS = {
   LEGGINGS: {
     "FULL LENGTH": '~28"',
@@ -316,14 +316,32 @@ const IT_LENGTH_HINTS = {
     "DENIM":        '~5"',
   },
   DRESS: {
-    "MINI": '膝上',
-    "MIDI": '小腿',
-    "MAXI": '及地',
+    "MINI":        '~34", 膝上',
+    "MIDI":        '~42", 小腿',
+    "MAXI":        '~56", 及地',
+    "BODYCON":     '緊身',
+    "SHIRT DRESS": '襯衫款',
   },
   SKIRT: {
-    "MINI": '膝上',
-    "MIDI": '小腿',
-    "MAXI": '及地',
+    "MINI":    '~16", 膝上',
+    "MIDI":    '~26", 小腿',
+    "MAXI":    '~38", 及地',
+    "PLEATED": '百褶',
+    "A-LINE":  'A 字',
+  },
+  PANTS: {
+    "TRACK PANTS": '運動',
+    "JEANS":       '牛仔',
+    "JOGGERS":     '束口',
+    "WIDE LEG":    '寬褲',
+    "STRAIGHT":    '直筒',
+    "CARGO":       '工裝',
+    "FLARE":       '喇叭',
+  },
+  ROMPER_JUMPSUIT: {
+    "ROMPER":   '短褲連身',
+    "JUMPSUIT": '長褲連身',
+    "OVERALLS": '吊帶',
   },
 };
 
