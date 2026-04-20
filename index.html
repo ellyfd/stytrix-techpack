@@ -2447,11 +2447,11 @@ function App() {
     "✓ 完成"
   ];
   const M_STAGES = [
-    "① 載入 GT×Gender POM 規則表...",
-    "② 查 943 unique DNs → M 碼中位數...",
-    "③ 比對 984 Grading POM families...",
-    "④ 帶入 Body Type 差異（PETITE / TALL / PLUS）...",
-    "⑤ Tolerance 眾數推薦...",
+    "① 載入 bucket 規則表(measurement_rules / median_values)...",
+    "② 分級 POM(必備 / 建議 / 選配)...",
+    "③ 讀取 M 基碼中位數 + Tolerance...",
+    "④ 計算跳碼(grading 遞增量)...",
+    "⑤ 套用 Size Run / Plus 擴展(若該 bucket 有提供)...",
     "✓ 尺寸建議表生成完成"
   ];
 
