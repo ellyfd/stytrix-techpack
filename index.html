@@ -205,7 +205,7 @@ const V42_GENDER_ALIAS = {
   BOYS: "BOYS", GIRLS: "KIDS", "BABY/TODDLER": "KIDS",
 };
 const V42_GT_ALIAS = {
-  PANTS: "BOTTOM", SHORTS: "BOTTOM",
+  PANTS: "BOTTOM", SHORTS: "BOTTOM", LEGGINGS: "BOTTOM",
   TOP: "TOP", DRESS: "DRESS", SKIRT: "SKIRT",
   SET: "SET", OUTERWEAR: "OUTERWEAR",
   BODYSUIT: "TOP", ROMPER_JUMPSUIT: "DRESS", SWIM_PIECE: "TOP",
@@ -899,12 +899,14 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
                 </span>
               )}
             </div>
-            {/* Line 3: stats */}
-            <div style={{ fontSize: "11px", color: "#999", marginTop: "3px" }}>
-              {card.l3s.length} 工段
-              {autoN > 0 && <span style={{ color: "#065f46", marginLeft: "4px" }}>· {autoN} auto</span>}
-              {adjN > 0 && <span style={{ marginLeft: "4px" }}>· {adjN} 可調</span>}
-            </div>
+            {/* Line 3: stats — 通用模型無 5 階,工段永遠為 0,整行不顯示 */}
+            {card.l3s.length > 0 && (
+              <div style={{ fontSize: "11px", color: "#999", marginTop: "3px" }}>
+                {card.l3s.length} 工段
+                {autoN > 0 && <span style={{ color: "#065f46", marginLeft: "4px" }}>· {autoN} auto</span>}
+                {adjN > 0 && <span style={{ marginLeft: "4px" }}>· {adjN} 可調</span>}
+              </div>
+            )}
           </div>
         </div>
         {/* RIGHT: IE + controls */}
@@ -2917,20 +2919,26 @@ function App() {
     const l1Code = newL1;
     if (!l1Code) return;
     const opts = isoOptionsFor(isoLookupV42, isoLookupV4, { fabric, dept, gender, gt, it }, l1Code);
-    const picked = opts[newIsoIdx] || opts[0];
-    if (!picked) return;
+    // 歷史沒對應時 opts 可能為空 — 仍允許空白新增,ISO 欄位留 null,由人工後補。
+    const picked = opts.length ? (opts[newIsoIdx] || opts[0]) : null;
     const nextId = Math.max(0, ...cards.map(c => c.id || 0)) + 1;
     const l1Name = L1_CODE_TO_NAME[l1Code] || l1Code;
-    const label = `ISO ${picked.iso}${picked.iso_zh ? " · " + picked.iso_zh : ""}${picked.machine ? " · " + picked.machine : ""}`;
-    const alternatives = opts.filter((_, i) => i !== opts.indexOf(picked))
-      .map(o => ({ iso: o.iso, iso_zh: o.iso_zh, machine: o.machine, pct: o.pct }));
+    const label = picked
+      ? `ISO ${picked.iso}${picked.iso_zh ? " · " + picked.iso_zh : ""}${picked.machine ? " · " + picked.machine : ""}`
+      : `${l1Name} · —`;
+    const alternatives = picked
+      ? opts.filter((_, i) => i !== opts.indexOf(picked))
+          .map(o => ({ iso: o.iso, iso_zh: o.iso_zh, machine: o.machine, pct: o.pct }))
+      : [];
     const card = {
       id: nextId, code: l1Code, l1: l1Name, l1_code: l1Code,
       source: "manual", ie: 0,
       l2: label, l2Base: null,
       l2Variants: [], l3Variants: [], methodVariants: [], l3s: [],
       universal: {
-        iso: picked.iso, iso_zh: picked.iso_zh, machine: picked.machine,
+        iso: picked?.iso ?? null,
+        iso_zh: picked?.iso_zh ?? null,
+        machine: picked?.machine ?? null,
         confidence: null, action: "manual", alternatives,
       },
       presenceTier: null, presencePct: null,
@@ -3058,7 +3066,6 @@ function App() {
         byCode.set(code, { code, confidence: null, x: 50, y: 50, side: "front", _fromPresence: true });
       }
       const detected = Array.from(byCode.values());
-      console.log('[analyze] detected L1:', detected.length, detected.map(d => d.code));
 
       // ── Path 2 通用模型 — VLM(L1) → iso_lookup_factory_v4.2 + v4 fallback ──
       // v4.2 主查:Department × Gender × GT × L1_name,zone-specific parsing,含性別差異
@@ -3130,16 +3137,6 @@ function App() {
           return { d, primary, v4Entry };
         });
         const builtFiltered = builtAll.filter(x => x.primary && x.primary.iso);
-        console.log('[analyze] universal lookup:',
-          builtAll.map(x => ({
-            code: x.d.code,
-            iso: x.primary?.iso ?? null,
-            source: x.primary?.source ?? null,
-            v4HasEntry: !!x.v4Entry,
-            v4Iso: x.v4Entry?.iso ?? null,
-          })),
-          'kept:', builtFiltered.length, '/', builtAll.length
-        );
         const built = builtFiltered.map(({ d, primary, v4Entry }, i) => {
           const l1 = L1_CODE_TO_NAME[d.code] || d.code;
           const label = `ISO ${primary.iso}${primary.iso_zh ? " · " + primary.iso_zh : ""}${primary.machine ? " · " + primary.machine : ""}`;
@@ -4211,8 +4208,9 @@ function App() {
                     const makalotReady = appMode === "makalot"
                       && !!newL1 && l2List.length > 0 && l3List.length > 0
                       && (l4List.length <= 1 || true); // L4 always has default idx 0
-                    const universalReady = appMode === "universal"
-                      && !!newL1 && isoList.length > 0;
+                    // 通用模型:只要選了 L1 就能加卡。歷史沒 ISO 的情況允許空白新增,
+                    // 卡片仍會進列表但 ISO 欄位留 null,由人工後補。
+                    const universalReady = appMode === "universal" && !!newL1;
                     const canAdd = appMode === "makalot" ? makalotReady : universalReady;
 
                     const rowStyle = {
