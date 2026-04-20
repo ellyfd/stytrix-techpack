@@ -3751,6 +3751,10 @@ function App() {
               const runOffsets = currentBucket.size_run_offsets || {};
               const activeOffsets = sizeRunVariant === 'regular' ? null : (runOffsets[sizeRunVariant] || null);
               const hasRunData = !!activeOffsets && Object.keys(activeOffsets).length > 0;
+              // 只顯示有實際 offset 資料的 run 選項(regular 一律顯示)
+              const availableRuns = ['regular', ...['petite','tall'].filter(
+                r => runOffsets[r] && Object.keys(runOffsets[r]).length > 0
+              )];
               const tierOf = code => mr.must?.[code] ? "must" : mr.recommend?.[code] ? "recommend" : "optional";
               const tolStr = m => {
                 const t = m?.tolerance;
@@ -3828,10 +3832,11 @@ function App() {
                     </div>
                     {/* Size 擴展控制列(Run / Plus)— 跟全碼頁共用 state,兩邊同步 */}
                     <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap", marginTop: "14px", paddingTop: "12px", borderTop: "1px dashed #eee" }}>
+                      {availableRuns.length > 1 && (
                       <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                         <span style={{ fontSize: "11px", color: "#888", fontWeight: 500 }}>Run</span>
                         <div style={{ display: "inline-flex", border: "1px solid #e8e5e1", borderRadius: "6px", overflow: "hidden" }}>
-                          {['regular','petite','tall'].map(run => {
+                          {availableRuns.map((run, i) => {
                             const active = sizeRunVariant === run;
                             return (
                               <button key={run} onClick={() => setSizeRunVariant(run)}
@@ -3840,17 +3845,15 @@ function App() {
                                   background: active ? "#1a1a1a" : "#fff",
                                   color: active ? "#fff" : "#555",
                                   border: "none", cursor: "pointer", fontFamily: "inherit",
-                                  borderRight: run !== 'tall' ? "1px solid #e8e5e1" : "none",
+                                  borderRight: i !== availableRuns.length - 1 ? "1px solid #e8e5e1" : "none",
                                 }}>
                                 {run === 'regular' ? 'Regular' : run === 'petite' ? 'Petite' : 'Tall'}
                               </button>
                             );
                           })}
                         </div>
-                        {sizeRunVariant !== 'regular' && !hasRunData && (
-                          <span style={{ fontSize: "10px", color: "#b45309" }}>(此 bucket 無 {sizeRunVariant === 'petite' ? 'Petite' : 'Tall'} 資料)</span>
-                        )}
                       </div>
+                      )}
                       {hasPlus && (
                         <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "#555", cursor: "pointer", userSelect: "none" }}>
                           <input type="checkbox" checked={showPlus} onChange={e => setShowPlus(e.target.checked)}
@@ -4364,6 +4367,10 @@ function App() {
               const runOffsets = currentBucket.size_run_offsets || {};
               const activeOffsets = sizeRunVariant === 'regular' ? null : (runOffsets[sizeRunVariant] || null);
               const hasRunData = !!activeOffsets && Object.keys(activeOffsets).length > 0;
+              // 只顯示有實際 offset 資料的 run 選項(regular 一律顯示)
+              const availableRuns = ['regular', ...['petite','tall'].filter(
+                r => runOffsets[r] && Object.keys(runOffsets[r]).length > 0
+              )];
               const applyRunOffset = (code, v) => {
                 if (v == null || !activeOffsets) return v;
                 const d = activeOffsets[code];
@@ -4407,10 +4414,11 @@ function App() {
                     </div>
                     {/* Size 擴展控制列(Run / Plus)— 跟基碼頁共用 state,兩邊同步 */}
                     <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap", marginTop: "14px", paddingTop: "12px", borderTop: "1px dashed #eee" }}>
+                      {availableRuns.length > 1 && (
                       <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                         <span style={{ fontSize: "11px", color: "#888", fontWeight: 500 }}>Run</span>
                         <div style={{ display: "inline-flex", border: "1px solid #e8e5e1", borderRadius: "6px", overflow: "hidden" }}>
-                          {['regular','petite','tall'].map(run => {
+                          {availableRuns.map((run, i) => {
                             const active = sizeRunVariant === run;
                             return (
                               <button key={run} onClick={() => setSizeRunVariant(run)}
@@ -4419,17 +4427,15 @@ function App() {
                                   background: active ? "#1a1a1a" : "#fff",
                                   color: active ? "#fff" : "#555",
                                   border: "none", cursor: "pointer", fontFamily: "inherit",
-                                  borderRight: run !== 'tall' ? "1px solid #e8e5e1" : "none",
+                                  borderRight: i !== availableRuns.length - 1 ? "1px solid #e8e5e1" : "none",
                                 }}>
                                 {run === 'regular' ? 'Regular' : run === 'petite' ? 'Petite' : 'Tall'}
                               </button>
                             );
                           })}
                         </div>
-                        {sizeRunVariant !== 'regular' && !hasRunData && (
-                          <span style={{ fontSize: "10px", color: "#b45309" }}>(此 bucket 無 {sizeRunVariant === 'petite' ? 'Petite' : 'Tall'} 資料)</span>
-                        )}
                       </div>
+                      )}
                       {hasPlus && (
                         <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "#555", cursor: "pointer", userSelect: "none" }}>
                           <input type="checkbox" checked={showPlus} onChange={e => setShowPlus(e.target.checked)}
