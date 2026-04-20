@@ -2054,6 +2054,22 @@ function App() {
                         <span key={v} style={{ fontSize: "11px", padding: "2px 8px", background: i === 0 ? "#1a1a1a" : "#f5f5f5", borderRadius: "4px", color: i === 0 ? "#fff" : "#777", fontWeight: i === 0 ? 600 : 400 }}>{v}</span>
                       ))}
                     </div>}
+                    {cDone && <div style={{
+                      padding: "10px 16px", borderTop: "1px solid #f0f0f0",
+                      display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px",
+                    }}>
+                      <div>
+                        <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
+                          <span style={{ fontSize: "18px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{vis.length}</span>
+                          <span style={{ fontSize: "11px", color: "#999" }}>/ {cards.length} 部位</span>
+                          {addonOn && <span style={{ fontSize: "10px", color: "#767676" }}>+ 套組</span>}
+                        </div>
+                        <div style={{ fontSize: "10px", color: "#767676", marginTop: "2px" }}>
+                          {aiCount} AI 偵測 · {structCount} 結構推斷
+                        </div>
+                      </div>
+                      <span style={{ fontSize: "10px", color: "#065f46", fontWeight: 600, background: "#ecfdf5", padding: "4px 10px", borderRadius: "4px", whiteSpace: "nowrap" }}>已自動選好</span>
+                    </div>}
                   </>
                 )}
               </div>
@@ -2088,27 +2104,6 @@ function App() {
                 </div>}
 
                 {cDone && <div style={{ animation: "slideUp 0.3s ease" }}>
-                  {/* Summary */}
-                  <div style={{
-                    background: "#fff", border: "1px solid #eee", borderRadius: "10px",
-                    padding: "14px 18px", marginBottom: "12px",
-                    display: "flex", justifyContent: "space-between", alignItems: "center"
-                  }}>
-                    <div>
-                      <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
-                        <span style={{ fontSize: "20px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{vis.length}</span>
-                        <span style={{ fontSize: "12px", color: "#bbb" }}>/ {cards.length} 部位</span>
-                        {addonOn && <span style={{ fontSize: "11px", color: "#888" }}>+ 套組</span>}
-                      </div>
-                      <div style={{ display: "flex", gap: "6px", marginTop: "4px" }}>
-                        <span style={{ fontSize: "11px", color: "#888" }}>{aiCount} AI 偵測</span>
-                        <span style={{ fontSize: "11px", color: "#888" }}>·</span>
-                        <span style={{ fontSize: "11px", color: "#888" }}>{structCount} 結構推斷</span>
-                      </div>
-                    </div>
-                    <span style={{ fontSize: "11px", color: "#065f46", fontWeight: 600 }}>已自動選好</span>
-                  </div>
-
                   {removed.size > 0 && <div style={{
                     padding: "10px 14px", marginBottom: "10px", borderRadius: "8px",
                     background: "#fef9f9", border: "1px solid #f5e0e0",
@@ -2205,16 +2200,11 @@ function App() {
                     <span style={{ fontSize: "16px", color: addonOn ? "#1a1a1a" : "#ccc", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{ADDON.ie}<span style={{ fontSize: "11px", color: "#aaa", marginLeft: "3px", fontWeight: 500 }}>秒</span></span>
                   </div>
 
-                  <div style={{ display: "flex", gap: "8px", marginTop: "20px" }}>
-                    <button onClick={() => setActiveTab("measurement")} style={{
-                      flex: 1, padding: "12px", background: "#1a1a1a", color: "#fff",
-                      border: "none", borderRadius: "8px", fontSize: "13px", fontWeight: 600,
-                      cursor: "pointer", fontFamily: "inherit",
-                    }}>Next — 尺寸表</button>
+                  <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "20px" }}>
                     <button style={{
-                      padding: "12px 18px", background: "#fff", color: "#999",
-                      border: "1px solid #eee", borderRadius: "8px",
-                      fontSize: "12px", cursor: "pointer", fontFamily: "inherit"
+                      padding: "10px 20px", background: "#fff", color: "#767676",
+                      border: "1px solid #e8e5e1", borderRadius: "8px",
+                      fontSize: "12px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit"
                     }}>Export</button>
                   </div>
                 </div>}
