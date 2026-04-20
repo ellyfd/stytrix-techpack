@@ -197,8 +197,8 @@ function sortedL1sForBucket(partPresence, gt, it) {
 
 /* ─── 通用模型:回傳目前 bucket 下該 L1 可選的 ISO 列表
    格式:[{ iso, iso_zh, machine, pct, isPrimary }],依 pct 遞減 ─── */
-function isoOptionsFor(isoLookupV3, fabric, gt, it, l1Code) {
-  if (!isoLookupV3 || !l1Code) return [];
+function isoOptionsFor(lookup, fabric, gt, it, l1Code) {
+  if (!lookup || !l1Code) return [];
   const fabricKey = (fabric || "Knit").toLowerCase() === "woven" ? "Woven" : "Knit";
   const gtAliases = {
     PANTS: ["PANT", "PANTS", "BOTTOM"],
@@ -207,8 +207,9 @@ function isoOptionsFor(isoLookupV3, fabric, gt, it, l1Code) {
     ROMPER_JUMPSUIT: ["ONE_PIECE"],
   };
   const gtCandidates = gtAliases[gt] ? gtAliases[gt] : (gt ? [gt] : []);
-  const entries = Array.isArray(isoLookupV3.entries) ? isoLookupV3.entries
-    : (isoLookupV3.entries && typeof isoLookupV3.entries === 'object' ? Object.values(isoLookupV3.entries) : []);
+  const rawEntries = lookup.entries;
+  const entries = Array.isArray(rawEntries) ? rawEntries
+    : (rawEntries && typeof rawEntries === 'object' ? Object.values(rawEntries) : []);
   const matchBy = (filterFn) => entries.find(e => e.fabric === fabricKey && e.l1_code === l1Code && filterFn(e));
   let entry = null;
   for (const g of gtCandidates) {
@@ -3939,6 +3940,7 @@ function App() {
                   })()}
 
                   {cDone && (() => {
+                    try {
                     // ── 新增部位表單 ──
                     const l1List = sortedL1sForBucket(partPresence, gt, it);
                     const l2List = appMode === "makalot" && newL1 && visualGuide
@@ -4123,6 +4125,18 @@ function App() {
                         </div>
                       </div>
                     );
+                    } catch (err) {
+                      console.error("[add-part form] render failed:", err);
+                      return (
+                        <div style={{
+                          marginTop: "16px", padding: "12px 14px",
+                          border: "1px solid #fecaca", background: "#fef2f2",
+                          borderRadius: "8px", fontSize: "12px", color: "#b91c1c",
+                        }}>
+                          新增部位表單載入失敗:{String(err?.message || err)}
+                        </div>
+                      );
+                    }
                   })()}
 
                   <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "20px" }}>
