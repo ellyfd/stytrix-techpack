@@ -3236,7 +3236,7 @@ function App() {
                             <th style={{ padding: "8px 8px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#999", width: "70px" }}>公差</th>
                             <th style={{ padding: "8px 8px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#b45309", width: "70px" }}>跳碼<div style={{ fontSize: "8px", fontWeight: 400, color: "#b45309" }}>Grading</div></th>
                             {sizes.map(s => (
-                              <th key={s} style={{ padding: "8px 6px", textAlign: "center", fontWeight: 700, fontSize: "10px", color: s === "M" ? "#065f46" : "#666", fontFamily: "'JetBrains Mono',monospace", background: s === "M" ? "#ecfdf5" : "transparent", minWidth: "48px" }}>{s}{s === "M" && <div style={{ fontSize: "7px", color: "#065f46" }}>BASE</div>}</th>
+                              <th key={s} style={{ padding: "8px 6px", textAlign: "center", fontWeight: 700, fontSize: "10px", color: s === "M" ? "#065f46" : "#666", fontFamily: "'JetBrains Mono',monospace", background: s === "M" ? "#ecfdf5" : "transparent", minWidth: s === "M" ? (isMobile ? "84px" : "96px") : (isMobile ? "42px" : "48px") }}>{s}{s === "M" && <div style={{ fontSize: "7px", color: "#065f46" }}>BASE · 可編輯</div>}</th>
                             ))}
                           </tr>
                         </thead>
@@ -3263,8 +3263,41 @@ function App() {
                                 </td>
                                 {sizes.map(s => {
                                   const val = sizeValueFor(code, s);
+                                  if (s === "M") {
+                                    const baseMRaw = mv[code]?.size_medians?.M;
+                                    const ov = baseOverrides[code] ?? "";
+                                    const invalid = ov !== "" && parseInch(ov) == null;
+                                    const displayVal = ov !== "" ? ov : (baseMRaw != null ? frmt(baseMRaw) : "");
+                                    return (
+                                      <td key={s} style={{ padding: "4px 6px", textAlign: "center", background: "#ecfdf5" }}>
+                                        <input type="text" value={displayVal}
+                                          onChange={(e) => setBaseOverrides(prev => ({ ...prev, [code]: e.target.value }))}
+                                          onBlur={() => {
+                                            const raw = baseOverrides[code];
+                                            if (raw == null || raw === "") return;
+                                            const parsed = parseInch(raw);
+                                            if (parsed == null) return;
+                                            const normalized = frmt(parsed);
+                                            if (normalized !== "—" && normalized !== raw) {
+                                              setBaseOverrides(prev => ({ ...prev, [code]: normalized }));
+                                            }
+                                          }}
+                                          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); } }}
+                                          placeholder={baseMRaw != null ? frmt(baseMRaw) : "—"}
+                                          inputMode="text"
+                                          aria-label={`${code} Base M`}
+                                          style={{
+                                            width: isMobile ? "72px" : "84px", textAlign: "center", padding: "5px 6px",
+                                            fontFamily: "'JetBrains Mono',monospace", fontSize: "13px", fontWeight: 700,
+                                            color: invalid ? "#dc2626" : "#065f46",
+                                            border: `1px solid ${invalid ? "#dc2626" : "#a7f3d0"}`, borderRadius: "5px",
+                                            background: "#fff",
+                                          }} />
+                                      </td>
+                                    );
+                                  }
                                   return (
-                                    <td key={s} style={{ padding: "5px 6px", textAlign: "center", fontFamily: "'JetBrains Mono',monospace", color: s === "M" ? "#065f46" : "#1a1a1a", fontWeight: s === "M" ? 700 : 500, background: s === "M" ? "#ecfdf5" : "transparent" }}>
+                                    <td key={s} style={{ padding: "5px 6px", textAlign: "center", fontFamily: "'JetBrains Mono',monospace", color: "#1a1a1a", fontWeight: 500 }}>
                                       {val != null ? frmt(val) + '"' : "—"}
                                     </td>
                                   );
