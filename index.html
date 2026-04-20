@@ -1204,10 +1204,15 @@ function fmtTime(iso) {
   } catch { return iso; }
 }
 
-function AdminModal({ open, onClose, pomNamesOverride, onUploadPomNames, onClearPomNames, pomRulesOverride, onUploadPomRules, onClearPomRules, onPushToGithub, currentBucketKey }) {
+function AdminModal({
+  open, onClose,
+  pomNamesOverride, onUploadPomNames, onClearPomNames,
+  partPresenceOverride, onUploadPartPresence, onClearPartPresence,
+  pomRulesOverride, onUploadPomRules, onClearPomRules, onPushToGithub, currentBucketKey,
+}) {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-  const [uploading, setUploading] = useState(false);
+  const [uploading, setUploading] = useState(null); // null | 'pom' | 'presence'
   const [rulesError, setRulesError] = useState(null);
   const [rulesSuccess, setRulesSuccess] = useState(null);
   const [rulesUploading, setRulesUploading] = useState(false);
@@ -1464,6 +1469,9 @@ function AdminModal({ open, onClose, pomNamesOverride, onUploadPomNames, onClear
             </div>
           );
         })()}
+
+        {error && <div style={{ marginTop: '10px', padding: '8px 10px', background: '#fef2f2', color: '#b91c1c', fontSize: '11px', borderRadius: '6px' }}>⚠ {error}</div>}
+        {success && <div style={{ marginTop: '10px', padding: '8px 10px', background: '#ecfdf5', color: '#065f46', fontSize: '11px', borderRadius: '6px' }}>✓ {success}</div>}
 
         <div style={{ marginTop: '12px', border: '1px dashed #e8e5e1', borderRadius: '10px', padding: '14px', background: '#fafafa' }}>
           <div style={{ fontSize: '13px', fontWeight: 700, color: '#767676' }}>L2 判別表</div>
@@ -3732,6 +3740,9 @@ function App() {
         onClearPomRules={clearPomRulesOverride}
         onPushToGithub={pushOverridesToGithub}
         currentBucketKey={bucketKey}
+        partPresenceOverride={partPresenceOverride}
+        onUploadPartPresence={applyPartPresenceOverride}
+        onClearPartPresence={clearPartPresenceOverride}
       />
       <OnboardingModal open={onboardingOpen} onDismiss={dismissOnboarding} />
 
