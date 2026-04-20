@@ -1,4 +1,7 @@
-export const config = { runtime: "nodejs", maxDuration: 60 };
+export const config = { runtime: "nodejs", maxDuration: 300 };
+
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 const L1_CODES = {
   AE: "袖孔", AH: "袖圍", BM: "下襬", BN: "貼合", BP: "襬叉",
@@ -11,19 +14,34 @@ const L1_CODES = {
   ST: "肩帶", TH: "拇指洞", WB: "腰頭", ZP: "拉鍊"
 };
 
-export default async function handler(request) {
-  if (request.method !== "POST") {
-    return json({ error: "method not allowed" }, 405);
+// Load L2 guide + decision trees from deployment filesystem at module init.
+// Previous version used fetch("/data/*.json") against request.url, which on
+// Vercel Node.js runtime + Fluid Compute caused the handler to hang for the
+// full maxDuration without issuing a single outgoing request (log showed
+// "External APIs: No outgoing requests" + FUNCTION_INVOCATION_TIMEOUT).
+// vercel.json includeFiles bundles data/*.json into the function so fs works.
+const DATA_DIR = join(process.cwd(), "data");
+let GUIDE = null, TREES = null;
+try { GUIDE = JSON.parse(readFileSync(join(DATA_DIR, "l2_visual_guide.json"), "utf8")); }
+catch (e) { console.warn("[analyze] guide not loaded:", e.message); }
+try { TREES = JSON.parse(readFileSync(join(DATA_DIR, "l2_decision_trees.json"), "utf8")); }
+catch (e) { console.warn("[analyze] trees not loaded:", e.message); }
+
+export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "method not allowed" });
   }
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return json({ error: "Server missing ANTHROPIC_API_KEY env var" }, 500);
+  if (!apiKey) return res.status(500).json({ error: "Server missing ANTHROPIC_API_KEY env var" });
 
-  let body;
-  try { body = await request.json(); }
-  catch { return json({ error: "invalid JSON body" }, 400); }
+  // Vercel Node.js runtime auto-parses application/json into req.body.
+  const body = req.body;
+  if (!body || typeof body !== "object") {
+    return res.status(400).json({ error: "invalid JSON body" });
+  }
 
   const { image, brand, fabric, gender, garment_type, item_type, mode } = body;
-  if (!image) return json({ error: "missing image" }, 400);
+  if (!image) return res.status(400).json({ error: "missing image" });
   // mode=universal → Path 2: 只跑 Pass 1 (L1)，前端走 iso_lookup_factory_v3 查表，不需 L2。
   const skipPass2 = mode === "universal";
 
@@ -31,31 +49,20 @@ export default async function handler(request) {
   const mediaType = m ? `image/${m[1]}` : "image/png";
   const b64 = m ? m[2] : image;
 
-  // Load visual guide + decision trees once — both passes use them.
-  // guide: L1 sketch_def (Pass 1) + L2 metadata (l2_name lookup).
-  // trees: §0 common prompt + per-L1 decision tree (Pass 2).
-  let guide = null, trees = null;
-  try { guide = await loadGuide(request); }
-  catch (e) { /* Pass 1 falls back to bare code=name list */ }
-  try { trees = await loadTrees(request); }
-  catch (e) { /* Pass 2 will hard-fail below if trees missing */ }
-
   // ── Pass 1: identify which of the 38 L1 parts are in the sketch ──
-  const detected = await identifyL1(apiKey, mediaType, b64, { brand, fabric, gender, garment_type, item_type }, guide);
-  if (detected.error) return json(detected, 502);
+  const detected = await identifyL1(apiKey, mediaType, b64, { brand, fabric, gender, garment_type, item_type }, GUIDE);
+  if (detected.error) return res.status(502).json(detected);
 
   // Path 2 通用模型只需要 L1 偵測結果即可；省掉 Pass 2 的 decision-tree 推論。
   if (skipPass2) {
-    return json({ detected: detected.list, usage_l1: detected.usage, model: detected.model, mode: "universal" });
+    return res.status(200).json({ detected: detected.list, usage_l1: detected.usage, model: detected.model, mode: "universal" });
   }
 
-  // ── Pass 2: for each detected L1, walk the decision tree to identify L2.
-  //    Output may mark needs_text=true with merged_candidates for L2s that
-  //    the VLM cannot distinguish from the sketch alone (hard-negative pairs). ──
-  const l2Map = await identifyL2(apiKey, mediaType, b64, detected.list, guide, trees);
+  // ── Pass 2: for each detected L1, walk the decision tree to identify L2. ──
+  const l2Map = await identifyL2(apiKey, mediaType, b64, detected.list, GUIDE, TREES);
   if (l2Map.error) {
     // Soft-fail: L2 couldn't be identified but L1 detection is still useful.
-    return json({ detected: detected.list, l2_error: l2Map.error, usage: detected.usage });
+    return res.status(200).json({ detected: detected.list, l2_error: l2Map.error, usage: detected.usage });
   }
 
   const merged = detected.list.map(d => {
@@ -72,7 +79,7 @@ export default async function handler(request) {
       l2_alternatives: l2info.alternatives || []
     };
   });
-  return json({
+  return res.status(200).json({
     detected: merged,
     usage_l1: detected.usage,
     usage_l2: l2Map.usage,
@@ -82,8 +89,6 @@ export default async function handler(request) {
 
 async function identifyL1(apiKey, mediaType, b64, ctxObj, guide) {
   // Each L1 line: "  CODE = 中文名 — sketch 視覺定義（含 ↔ 兄弟對比）"
-  // sketch_def 來自 L1_部位定義_Sketch視覺指引.md，給 VLM 做兄弟消歧用
-  // （AE/AH、BM/LO/BP、PL/FY/ZP 等位置/語意接近的組合最受益）。
   const partList = Object.entries(L1_CODES).map(([k, v]) => {
     const def = guide?.l1?.[k]?.sketch_def || "";
     return def ? `  ${k} = ${v} — ${def}` : `  ${k} = ${v}`;
@@ -96,8 +101,6 @@ async function identifyL1(apiKey, mediaType, b64, ctxObj, guide) {
     ctxObj.item_type && `Item Type: ${ctxObj.item_type}`
   ].filter(Boolean).join("\n");
 
-  // System block: stable across every call (same 38 L1 list + sketch defs).
-  // Gets cache_control=ephemeral so repeat calls hit prompt cache.
   const system = `You are a garment manufacturing expert. Analyze a clothing sketch and identify which of the 38 construction parts are visible in the drawing.
 
 Each entry below is "code = 中文名 — sketch visual definition with sibling contrasts (↔ marks comparisons against sibling L1s you must distinguish from)". Use the sketch definition to ground your judgment in what the artist actually drew, and use the ↔ contrasts to break ties between siblings (e.g. AE 無袖開口 vs AH 有袖接合線; BM 上衣底邊 vs LO 褲腳 vs BP 側邊開叉).
@@ -114,7 +117,6 @@ Rules:
 - For parts marked "幾乎不可見" / "通常不可見" (BN, NT, LI, etc.), only include if a callout/text annotation in the sketch explicitly mentions them.
 - If the sketch shows both front and back views side-by-side, x for a back part should be in the right half.`;
 
-  // User block: per-call (context + return-format reminder).
   const userText = `${ctx ? "Context:\n" + ctx + "\n\n" : ""}Return ONLY valid JSON (no markdown fences, no prose) in this exact shape:
 {"detected":[{"code":"WB","side":"front","x":50,"y":10,"confidence":92}]}`;
 
@@ -125,24 +127,6 @@ Rules:
   if (!parsed) return { error: "non-JSON response from Claude (L1)", raw: data.text };
   const list = (parsed.detected || []).filter(d => d && L1_CODES[d.code]);
   return { list, usage: data.usage, model: data.model };
-}
-
-let _guideCache = null;
-async function loadGuide(request) {
-  if (_guideCache) return _guideCache;
-  const res = await fetch(new URL("/data/l2_visual_guide.json", request.url));
-  if (!res.ok) throw new Error(`L2 guide fetch ${res.status}`);
-  _guideCache = await res.json();
-  return _guideCache;
-}
-
-let _treesCache = null;
-async function loadTrees(request) {
-  if (_treesCache) return _treesCache;
-  const res = await fetch(new URL("/data/l2_decision_trees.json", request.url));
-  if (!res.ok) throw new Error(`L2 decision trees fetch ${res.status}`);
-  _treesCache = await res.json();
-  return _treesCache;
 }
 
 // Accept 0-100 integer OR 0.0-1.0 float; normalize to 0-100 clamped integer.
@@ -159,8 +143,6 @@ async function identifyL2(apiKey, mediaType, b64, detectedL1s, guide, trees) {
     return { error: "L2 decision trees not loaded (data/l2_decision_trees.json)" };
   }
 
-  // Concat only the decision-tree blocks for L1s actually detected in Pass 1.
-  // Keeps prompt bounded on small sketches; full tree set is 38 blocks.
   const blocks = [];
   for (const d of detectedL1s) {
     const entry = trees.l1[d.code];
@@ -169,9 +151,6 @@ async function identifyL2(apiKey, mediaType, b64, detectedL1s, guide, trees) {
   }
   if (!blocks.length) return { error: "no decision tree matched any detected L1" };
 
-  // System block: §0 通用 prompt is invariant across every call, so caching it gives
-  // the biggest savings. The per-L1 tree blocks vary per sketch (based on Pass 1
-  // output) so they stay in user content.
   const system = trees.common;
 
   const detectedCodes = detectedL1s.map(d => d.code).join(", ");
@@ -213,23 +192,21 @@ Rules:
       l2_code: v.l2_code,
       l2_name: entry?.name || v.l2_code,
       confidence: clampConfidence(v.confidence),
-      // Accept either "reasoning" (new) or "explanation" (legacy prompt); prefer reasoning.
       explanation: typeof v.reasoning === "string"
         ? v.reasoning.slice(0, 80)
         : (typeof v.explanation === "string" ? v.explanation.slice(0, 80) : null),
       needs_text: !!v.needs_text,
       merged_candidates: mergedCandidates,
-      alternatives: [], // legacy field kept empty; merged_candidates supersedes it
+      alternatives: [],
     };
   }
   return { byCode, usage: data.usage, model: data.model };
 }
 
-const CLAUDE_MODEL = "claude-opus-4-7";
+// Sonnet 4.6 — ~2-3× faster and 5× cheaper than Opus 4.7 for this vision task.
+// Sketch part identification isn't deep-reasoning; Sonnet handles it well.
+const CLAUDE_MODEL = "claude-sonnet-4-6";
 
-// system + image + user text: system holds the stable, cache-hittable prompt block;
-// user holds image + per-call varying context. Image gets ephemeral cache too so
-// Pass 1 and Pass 2 on the same sketch share the image tokenization.
 async function callClaude(apiKey, mediaType, b64, { system, userText }, maxTokens = 2000) {
   const body = {
     model: CLAUDE_MODEL,
@@ -247,8 +224,6 @@ async function callClaude(apiKey, mediaType, b64, { system, userText }, maxToken
     }]
   };
   if (system) {
-    // Array form lets us attach cache_control to the stable block so repeated
-    // analyses across different sketches share the system-prompt cache.
     body.system = [{ type: "text", text: system, cache_control: { type: "ephemeral" } }];
   }
   const resp = await fetch("https://api.anthropic.com/v1/messages", {
@@ -272,11 +247,4 @@ async function callClaude(apiKey, mediaType, b64, { system, userText }, maxToken
 function parseJson(text) {
   const clean = (text || "").replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim();
   try { return JSON.parse(clean); } catch { return null; }
-}
-
-function json(body, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "content-type": "application/json; charset=utf-8" }
-  });
 }
