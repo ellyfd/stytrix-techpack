@@ -1,5 +1,5 @@
 """
-Parse L2_Visual_Differentiation_FullAnalysis.md → data/l2_visual_guide.json
+Parse L2_Visual_Differentiation_FullAnalysis_修正版.md → data/l2_visual_guide.json
 
 Goal: give /api/analyze and the UI a structured JSON of every L2's
 visual feature + AI-ability tier, grouped by L1 code. Also join with
@@ -175,7 +175,7 @@ out = {
     "created": "2026-04-17",
     "sources": {
         "registry": "L2_代號中文對照表.xlsx (283 L2s, authoritative)",
-        "markdown": "L2_Visual_Differentiation_FullAnalysis.md (visual features overlay)",
+        "markdown": "L2_Visual_Differentiation_FullAnalysis_修正版.md (visual features overlay)",
         "freq": "l2_l3_ie/*.json row counts (historical frequency)"
     },
     "tier_rules": {
