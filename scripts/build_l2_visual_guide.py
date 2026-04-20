@@ -38,7 +38,7 @@ Tier markers in the markdown:
   🔴 → red    (AI 無法分,需 IE)
 """
 
-import json, re, os, zipfile
+import json, re, os, zipfile, datetime
 from collections import OrderedDict
 from xml.etree import ElementTree as ET
 
@@ -172,7 +172,7 @@ for l1_code, info in l1_data.items():
 # ------------------------------------------------------------
 out = {
     "version": "v2",
-    "created": "2026-04-17",
+    "created": datetime.date.today().isoformat(),
     "sources": {
         "registry": "L2_代號中文對照表.xlsx (283 L2s, authoritative)",
         "markdown": "L2_Visual_Differentiation_FullAnalysis_修正版.md (visual features overlay)",
