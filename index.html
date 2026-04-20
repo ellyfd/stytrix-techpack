@@ -339,6 +339,22 @@ const IT_LENGTH_HINTS = {
   },
 };
 
+/* ─── 長度敏感 GT → 主要長度 POM code + 中文提示詞 ───
+   當該 GT 有 IT_LENGTH_HINTS、但使用者未選 Item Type 時,會跳提示請先選長度;
+   選完會自動把 POM 值設成 hint 的英吋(如 FULL LENGTH → O4=28")。 */
+const IT_LENGTH_POM = {
+  LEGGINGS: { code: "O4", label: "內長" },
+  SHORTS:   { code: "O4", label: "內長" },
+  DRESS:    { code: "J9", label: "裙長" },
+  SKIRT:    { code: "J9", label: "裙長" },
+};
+/* 從 "~28\"" 之類的 hint 字串抽出英吋數值。沒有數字(如 "緊身"、"百褶")回傳 null。 */
+const parseHintInches = (hint) => {
+  if (!hint) return null;
+  const m = String(hint).match(/(\d+(?:\.\d+)?)/);
+  return m ? Number(m[1]) : null;
+};
+
 /* ─── Helpers ─── */
 /* 英吋顯示:slash 分數格式(與公差欄一致),例 "3/4"、"16 1/2"、"1/8"。
    四捨五入到 1/8",與原本的 unicode frmt 同等精度,避免語意改變。 */
@@ -3832,6 +3848,53 @@ function App() {
                       <span style={{ fontSize: "10px", color: "#999", marginLeft: "auto" }}>切換會同時套用到「全碼」表</span>
                     </div>
                   </div>
+
+                    {/* 長度提示 Banner:GT 有多種長度(如 LEGGINGS 有 FULL/7-8/CAPRI/BIKER)
+                        但使用者未選 Item Type 時,要求先選長度。選完會自動帶入對應的 Base M。 */}
+                    {!it && IT_LENGTH_HINTS[gt] && IT_LENGTH_POM[gt] && (() => {
+                      const hints = IT_LENGTH_HINTS[gt];
+                      const lengthCode = IT_LENGTH_POM[gt].code;
+                      const lengthLabel = IT_LENGTH_POM[gt].label;
+                      const pickLength = (opt) => {
+                        setIt(opt);
+                        const inches = parseHintInches(hints[opt]);
+                        if (inches != null && mv[lengthCode]) {
+                          setBaseOverrides(prev => ({ ...prev, [lengthCode]: frmt(inches) }));
+                        }
+                      };
+                      return (
+                        <div style={{
+                          background: "#fff7ed", border: "1.5px solid #f59e0b", borderRadius: "10px",
+                          padding: isMobile ? "12px 14px" : "16px 20px", marginBottom: "12px",
+                        }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+                            <span style={{ fontSize: "16px" }} aria-hidden="true">⚠️</span>
+                            <span style={{ fontSize: isMobile ? "13px" : "14px", fontWeight: 700, color: "#b45309" }}>
+                              請先選擇{lengthLabel}長度
+                            </span>
+                          </div>
+                          <div style={{ fontSize: isMobile ? "11px" : "12px", color: "#78350f", marginBottom: "10px", lineHeight: 1.5 }}>
+                            {gt} 有多種長度版本,目前 Item Type 未選,{lengthCode} 會使用全體中位數 ({mv[lengthCode]?.size_medians?.M != null ? frmt(mv[lengthCode].size_medians.M) + '"' : "—"})。
+                            選好後會自動帶入正確的尺寸表。
+                          </div>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                            {(IT_OPTIONS[gt] || []).map(opt => {
+                              const hint = hints[opt];
+                              return (
+                                <button key={opt} onClick={() => pickLength(opt)} style={{
+                                  padding: "7px 12px", background: "#fff", color: "#b45309",
+                                  border: "1px solid #f59e0b", borderRadius: "6px",
+                                  fontSize: "12px", fontWeight: 600, cursor: "pointer",
+                                  fontFamily: "inherit",
+                                }}>
+                                  {opt}{hint ? <span style={{ color: "#92400e", fontWeight: 400, marginLeft: "4px" }}>{hint}</span> : null}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })()}
 
                     {/* 基碼 (Base M) table — 分區：必備 → 建議 → 選配（可折疊 / 全選 / 取消） */}
                     <div style={{ fontSize: isMobile ? "14px" : "15px", fontWeight: 700, color: "#1a1a1a", marginTop: "4px", marginBottom: "8px" }}>
