@@ -4547,41 +4547,43 @@ function App() {
                   {/* Header:title + 計數明細 + bucket + Re-generate + Size controls(Run/Plus) */}
                   <div style={{
                     background: "#fff", border: "1px solid #eee", borderRadius: "10px",
-                    padding: isMobile ? "14px 16px" : "18px 22px",
-                    marginBottom: isMobile ? "12px" : "16px",
+                    padding: isMobile ? "10px 12px" : "18px 22px",
+                    marginBottom: isMobile ? "8px" : "16px",
                   }}>
                     <div style={{
                       display: "flex",
                       flexDirection: isMobile ? "column" : "row",
                       justifyContent: "space-between",
                       alignItems: isMobile ? "stretch" : "center",
-                      gap: isMobile ? "12px" : "16px"
+                      gap: isMobile ? "6px" : "16px"
                     }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: isMobile ? "16px" : "18px", fontWeight: 700, color: "#1a1a1a" }}>基碼 / POM 確認</div>
-                        <div style={{ fontSize: isMobile ? "12px" : "13px", color: "#888", marginTop: "3px" }}>POM 建議 × 公差 × Base (M)</div>
-                        <div style={{ display: "flex", alignItems: "baseline", gap: "8px", marginTop: "12px", flexWrap: "wrap" }}>
-                          <span style={{ fontSize: isMobile ? "24px" : "30px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: "#1a1a1a", lineHeight: 1 }}>{bucketIncluded}</span>
-                          <span style={{ fontSize: isMobile ? "14px" : "16px", color: "#888" }}>/ {totalPoms} POMs</span>
-                          <span style={{ fontSize: isMobile ? "13px" : "14px", color: "#666", marginLeft: "8px" }}>
+                        <div style={{ display: "flex", alignItems: "baseline", gap: "8px", flexWrap: "wrap" }}>
+                          <div style={{ fontSize: isMobile ? "14px" : "18px", fontWeight: 700, color: "#1a1a1a" }}>基碼 / POM 確認</div>
+                          {!isMobile && <div style={{ fontSize: "13px", color: "#888" }}>POM 建議 × 公差 × Base (M)</div>}
+                        </div>
+                        <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginTop: isMobile ? "4px" : "12px", flexWrap: "wrap" }}>
+                          <span style={{ fontSize: isMobile ? "16px" : "30px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: "#1a1a1a", lineHeight: 1 }}>{bucketIncluded}</span>
+                          <span style={{ fontSize: isMobile ? "12px" : "16px", color: "#888" }}>/ {totalPoms} POMs</span>
+                          <span style={{ fontSize: isMobile ? "11px" : "14px", color: "#666", marginLeft: isMobile ? "4px" : "8px" }}>
                             {codesByTier.must.length} 必備 · {codesByTier.recommend.length} 建議 · {codesByTier.optional.length} 選配
                           </span>
                         </div>
                       </div>
-                      <div style={{ display: "flex", flexDirection: isMobile ? "row" : "column", alignItems: isMobile ? "center" : "flex-end", justifyContent: "space-between", gap: "10px" }}>
+                      <div style={{ display: "flex", flexDirection: isMobile ? "row" : "column", alignItems: isMobile ? "center" : "flex-end", justifyContent: "space-between", gap: isMobile ? "6px" : "10px" }}>
                         <div style={{ textAlign: isMobile ? "left" : "right" }}>
-                          <div style={{ fontSize: isMobile ? "13px" : "14px", color: "#065f46", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{currentBucket.bucket}</div>
-                          <div style={{ fontSize: isMobile ? "11px" : "12px", color: "#999", marginTop: "2px" }}>n={currentBucket.n} · inches (fractions)</div>
+                          <div style={{ fontSize: isMobile ? "12px" : "14px", color: "#065f46", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{currentBucket.bucket}</div>
+                          <div style={{ fontSize: isMobile ? "10px" : "12px", color: "#999", marginTop: "2px" }}>n={currentBucket.n} · inches (fractions)</div>
                         </div>
                         <button onClick={runMeasurement} style={{
-                          padding: "8px 16px", background: "#fff", color: "#666",
-                          border: "1px solid #ddd", borderRadius: "8px", fontSize: "13px", fontWeight: 500,
+                          padding: isMobile ? "5px 10px" : "8px 16px", background: "#fff", color: "#666",
+                          border: "1px solid #ddd", borderRadius: "6px", fontSize: isMobile ? "11px" : "13px", fontWeight: 500,
                           cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap"
                         }}>Re-generate</button>
                       </div>
                     </div>
                     {/* Size 擴展控制列(Run / Plus)— 跟全碼頁共用 state,兩邊同步 */}
-                    <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap", marginTop: "14px", paddingTop: "12px", borderTop: "1px dashed #eee" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: isMobile ? "10px" : "14px", flexWrap: "wrap", marginTop: isMobile ? "8px" : "14px", paddingTop: isMobile ? "6px" : "12px", borderTop: "1px dashed #eee" }}>
                       {availableRuns.length > 1 && (
                       <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                         <span style={{ fontSize: "11px", color: "#888", fontWeight: 500 }}>Run</span>
@@ -4663,21 +4665,23 @@ function App() {
                     })()}
 
                     {/* 基碼 (Base M) table — 分區：必備 → 建議 → 選配（可折疊 / 全選 / 取消） */}
-                    <div style={{ fontSize: isMobile ? "14px" : "15px", fontWeight: 700, color: "#1a1a1a", marginTop: "4px", marginBottom: "8px" }}>
-                      基碼 <span style={{ fontSize: isMobile ? "12px" : "13px", color: "#888", fontWeight: 400 }}>M size 基本尺寸 · 勾選要納入的 POM，並可手動調整尺寸</span>
+                    <div style={{ fontSize: isMobile ? "12px" : "15px", fontWeight: 700, color: "#1a1a1a", marginTop: isMobile ? "2px" : "4px", marginBottom: isMobile ? "6px" : "8px" }}>
+                      基碼 <span style={{ fontSize: isMobile ? "10px" : "13px", color: "#888", fontWeight: 400 }}>{isMobile ? "M size · 勾選 POM" : "M size 基本尺寸 · 勾選要納入的 POM，並可手動調整尺寸"}</span>
                     </div>
                     <div style={{ background: "#fff", border: "1px solid #e8e5e1", borderRadius: "10px", overflow: "auto", marginBottom: "12px" }}>
-                      <table style={{ width: "100%", minWidth: isMobile ? "680px" : "auto", borderCollapse: "collapse", fontSize: "14px" }}>
+                      <table style={{ width: "100%", minWidth: isMobile ? (showPlus && hasPlus ? "500px" : "420px") : "auto", borderCollapse: "collapse", fontSize: isMobile ? "12px" : "14px" }}>
                         <thead>
                           <tr style={{ background: "#faf9f7", borderBottom: "1.5px solid #e8e5e1" }}>
-                            <th style={{ padding: isMobile ? "6px 6px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", width: "30px" }}>✓</th>
-                            <th style={{ padding: isMobile ? "6px 6px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", width: "56px" }}>POM</th>
-                            <th style={{ padding: isMobile ? "6px 6px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999" }}>Name</th>
-                            <th style={{ padding: isMobile ? "6px 6px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", minWidth: isMobile ? "100px" : "140px" }}>中文<span style={{ fontSize: "9px", fontWeight: 400, color: "#bbb", marginLeft: "4px" }}>(雙擊可改)</span></th>
-                            <th style={{ padding: isMobile ? "6px 6px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#999", width: isMobile ? "64px" : "80px" }}>公差</th>
-                            <th style={{ padding: isMobile ? "6px 6px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#065f46", width: isMobile ? "96px" : "110px" }}>Base (M)</th>
+                            <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", width: isMobile ? "24px" : "30px" }}>✓</th>
+                            <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", width: isMobile ? "38px" : "56px" }}>POM</th>
+                            {!isMobile && (
+                              <th style={{ padding: "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999" }}>Name</th>
+                            )}
+                            <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", minWidth: isMobile ? "80px" : "140px" }}>中文{!isMobile && <span style={{ fontSize: "9px", fontWeight: 400, color: "#bbb", marginLeft: "4px" }}>(雙擊可改)</span>}</th>
+                            <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#999", width: isMobile ? "52px" : "80px" }}>公差</th>
+                            <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#065f46", width: isMobile ? "80px" : "110px" }}>Base (M)</th>
                             {showPlus && hasPlus && (
-                              <th style={{ padding: isMobile ? "6px 6px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#be185d", width: isMobile ? "96px" : "110px" }}>Base ({plusAnchor})<div style={{ fontSize: "9px", fontWeight: 400, color: "#be185d" }}>Plus 獨立</div></th>
+                              <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#be185d", width: isMobile ? "80px" : "110px" }}>Base ({plusAnchor}){!isMobile && <div style={{ fontSize: "9px", fontWeight: 400, color: "#be185d" }}>Plus 獨立</div>}</th>
                             )}
                           </tr>
                         </thead>
@@ -4689,10 +4693,11 @@ function App() {
                             const collapsed = collapsedTiers.has(tier);
                             const selectedCount = codes.filter(c => !excluded.has(c)).length;
                             const allOn = selectedCount === codes.length;
+                            const tierColspan = (isMobile ? 4 : 5) + (showPlus && hasPlus ? 1 : 0);
                             return (
                               <React.Fragment key={tier}>
                                 <tr style={{ background: tc.bg, cursor: "pointer" }}>
-                                  <td style={{ padding: isMobile ? "9px 10px" : "10px 12px" }}>
+                                  <td style={{ padding: isMobile ? "7px 4px" : "10px 12px" }}>
                                     <input
                                       type="checkbox"
                                       checked={allOn}
@@ -4703,14 +4708,14 @@ function App() {
                                       style={{ width: "16px", height: "16px", accentColor: tc.c, cursor: "pointer" }}
                                     />
                                   </td>
-                                  <td colSpan={showPlus && hasPlus ? 6 : 5}
+                                  <td colSpan={tierColspan}
                                     role="button"
                                     tabIndex={0}
                                     aria-expanded={!collapsed}
                                     aria-label={`${tc.label} 區,共 ${codes.length} 項,${collapsed ? "已折疊" : "已展開"}`}
                                     onClick={() => toggleTier(tier)}
                                     onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleTier(tier); } }}
-                                    style={{ padding: isMobile ? "9px 10px" : "10px 12px", fontSize: isMobile ? "12px" : "13px", fontWeight: 700, color: tc.c, letterSpacing: "0.03em" }}>
+                                    style={{ padding: isMobile ? "7px 6px" : "10px 12px", fontSize: isMobile ? "11px" : "13px", fontWeight: 700, color: tc.c, letterSpacing: "0.03em" }}>
                                     <span style={{ display: "inline-block", width: "14px", transform: collapsed ? "rotate(-90deg)" : "rotate(0)", transition: "transform 0.15s" }} aria-hidden="true">▾</span>
                                     {" "}{tc.icon} {tc.label} · {codes.length} 項 · 已選 {selectedCount}/{codes.length}
                                   </td>
@@ -4734,16 +4739,18 @@ function App() {
                                   const cellBg      = isChanged ? "#fffbeb" : "#ecfdf5";
                                   return (
                                     <tr key={code} style={{ borderBottom: "1px solid #f0eeeb", opacity: included ? 1 : 0.35, transition: "opacity 0.15s" }}>
-                                      <td style={{ padding: isMobile ? "7px 8px" : "9px 12px" }}>
+                                      <td style={{ padding: isMobile ? "5px 4px" : "9px 12px" }}>
                                         <input type="checkbox" checked={included}
                                           onChange={() => setExcluded(prev => { const n = new Set(prev); n.has(code) ? n.delete(code) : n.add(code); return n; })}
                                           style={{ width: "16px", height: "16px", accentColor: tc.c, cursor: "pointer" }} />
                                       </td>
-                                      <td style={{ padding: isMobile ? "8px 10px" : "9px 12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", fontSize: "14px", color: tc.c }}>{code}</td>
-                                      <td style={{ padding: isMobile ? "8px 10px" : "9px 12px" }}>
-                                        <div style={{ fontWeight: 600, color: "#1a1a1a", fontSize: "14px" }}>{pn.en || code}</div>
-                                      </td>
-                                      <td style={{ padding: isMobile ? "6px 10px" : "7px 12px" }}
+                                      <td style={{ padding: isMobile ? "5px 4px" : "9px 12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "14px", color: tc.c }}>{code}</td>
+                                      {!isMobile && (
+                                        <td style={{ padding: "9px 12px" }}>
+                                          <div style={{ fontWeight: 600, color: "#1a1a1a", fontSize: "14px" }}>{pn.en || code}</div>
+                                        </td>
+                                      )}
+                                      <td style={{ padding: isMobile ? "4px 4px" : "7px 12px" }}
                                         onDoubleClick={() => setEditingZhCode(code)}
                                         title={editingZhCode === code ? "" : "雙擊可修改"}
                                       >
@@ -4761,14 +4768,14 @@ function App() {
                                               border: "1px solid #1a1a1a", borderRadius: "5px", background: "#fff",
                                             }} />
                                         ) : (
-                                          <div style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "text", color: "#555", fontSize: "13px", padding: "4px 0" }}>
+                                          <div style={{ display: "flex", alignItems: "center", gap: "4px", cursor: "text", color: "#555", fontSize: isMobile ? "12px" : "13px", padding: isMobile ? "2px 0" : "4px 0" }}>
                                             <span>{zhFor(code) || <span style={{ color: "#ccc" }}>(空)</span>}</span>
                                             {pomZhEdits[code] && <span style={{ fontSize: "9px", color: "#7e22ce", background: "#f5f3ff", padding: "1px 5px", borderRadius: "3px", fontWeight: 600 }}>自訂</span>}
                                           </div>
                                         )}
                                       </td>
-                                      <td style={{ padding: isMobile ? "8px 10px" : "9px 12px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", fontSize: "14px", color: "#7e22ce", fontWeight: 600, whiteSpace: "nowrap" }}>{tolStr(m)}</td>
-                                      <td style={{ padding: isMobile ? "6px 8px" : "6px 12px", textAlign: "right", background: "#ecfdf5" }}>
+                                      <td style={{ padding: isMobile ? "5px 4px" : "9px 12px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "14px", color: "#7e22ce", fontWeight: 600, whiteSpace: "nowrap" }}>{tolStr(m)}</td>
+                                      <td style={{ padding: isMobile ? "4px 4px" : "6px 12px", textAlign: "right", background: "#ecfdf5" }}>
                                         <input type="text" value={displayVal}
                                           onChange={(e) => setBaseOverrides(prev => ({ ...prev, [code]: e.target.value }))}
                                           onBlur={() => {
@@ -4789,13 +4796,13 @@ function App() {
                                           inputMode="text"
                                           title={isChanged ? `${originalTip} · 雙擊還原` : (pending ? "請先在上方選擇長度" : undefined)}
                                           style={{
-                                            width: isMobile ? "92px" : "104px", textAlign: "right", padding: "7px 9px",
-                                            fontFamily: "'JetBrains Mono',monospace", fontSize: "14px", fontWeight: 700,
+                                            width: isMobile ? "66px" : "104px", textAlign: "right", padding: isMobile ? "5px 6px" : "7px 9px",
+                                            fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "14px", fontWeight: 700,
                                             color: invalid ? "#dc2626" : "#065f46",
                                             border: `1px solid ${invalid ? "#dc2626" : "#a7f3d0"}`, borderRadius: "6px",
                                             background: "#fff",
                                           }} />
-                                        <span style={{ fontSize: "13px", color: "#065f46", marginLeft: "3px" }}>"</span>
+                                        <span style={{ fontSize: isMobile ? "11px" : "13px", color: "#065f46", marginLeft: "2px" }}>"</span>
                                       </td>
                                       {showPlus && hasPlus && (() => {
                                         const base2X = pending ? null : mvRow?.size_medians?.[plusAnchor];
@@ -4803,7 +4810,7 @@ function App() {
                                         const invalid2 = ov2 !== "" && parseInch(ov2) == null;
                                         const display2 = ov2 !== "" ? ov2 : (base2X != null ? frmt(base2X) : "");
                                         return (
-                                          <td style={{ padding: isMobile ? "6px 8px" : "6px 12px", textAlign: "right", background: "#fdf2f8" }}>
+                                          <td style={{ padding: isMobile ? "4px 4px" : "6px 12px", textAlign: "right", background: "#fdf2f8" }}>
                                             <input type="text" value={display2}
                                               onChange={(e) => setPlusBaseOverrides(prev => ({ ...prev, [code]: e.target.value }))}
                                               onBlur={() => {
@@ -4822,13 +4829,13 @@ function App() {
                                               inputMode="text"
                                               aria-label={`${code} Base ${plusAnchor}`}
                                               style={{
-                                                width: isMobile ? "92px" : "104px", textAlign: "right", padding: "7px 9px",
-                                                fontFamily: "'JetBrains Mono',monospace", fontSize: "14px", fontWeight: 700,
+                                                width: isMobile ? "66px" : "104px", textAlign: "right", padding: isMobile ? "5px 6px" : "7px 9px",
+                                                fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "14px", fontWeight: 700,
                                                 color: invalid2 ? "#dc2626" : "#be185d",
                                                 border: `1px solid ${invalid2 ? "#dc2626" : "#fbcfe8"}`, borderRadius: "6px",
                                                 background: "#fff",
                                               }} />
-                                            <span style={{ fontSize: "13px", color: "#be185d", marginLeft: "3px" }}>"</span>
+                                            <span style={{ fontSize: isMobile ? "11px" : "13px", color: "#be185d", marginLeft: "2px" }}>"</span>
                                           </td>
                                         );
                                       })()}
@@ -5192,30 +5199,32 @@ function App() {
                   {/* Header:跟基碼同一形式(title + 計數 + bucket + Size controls)*/}
                   <div style={{
                     background: "#fff", border: "1px solid #eee", borderRadius: "10px",
-                    padding: isMobile ? "14px 16px" : "18px 22px",
-                    marginBottom: isMobile ? "12px" : "16px",
+                    padding: isMobile ? "10px 12px" : "18px 22px",
+                    marginBottom: isMobile ? "8px" : "16px",
                   }}>
                     <div style={{
                       display: "flex",
                       flexDirection: isMobile ? "column" : "row",
                       justifyContent: "space-between",
                       alignItems: isMobile ? "stretch" : "center",
-                      gap: isMobile ? "12px" : "16px"
+                      gap: isMobile ? "6px" : "16px"
                     }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: isMobile ? "16px" : "18px", fontWeight: 700, color: "#1a1a1a" }}>全碼 / 尺寸表</div>
-                        <div style={{ fontSize: isMobile ? "12px" : "13px", color: "#888", marginTop: "3px" }}>各 size 中位數 · 公差 · 跳碼 · Grading 由 Base 推導</div>
-                        <div style={{ display: "flex", alignItems: "baseline", gap: "8px", marginTop: "12px", flexWrap: "wrap" }}>
-                          <span style={{ fontSize: isMobile ? "24px" : "30px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: "#1a1a1a", lineHeight: 1 }}>{gradingCodes.length}</span>
-                          <span style={{ fontSize: isMobile ? "14px" : "16px", color: "#888" }}>POMs · {visibleSizes.length} sizes</span>
+                        <div style={{ display: "flex", alignItems: "baseline", gap: "8px", flexWrap: "wrap" }}>
+                          <div style={{ fontSize: isMobile ? "14px" : "18px", fontWeight: 700, color: "#1a1a1a" }}>全碼 / 尺寸表</div>
+                          {!isMobile && <div style={{ fontSize: "13px", color: "#888" }}>各 size 中位數 · 公差 · 跳碼 · Grading 由 Base 推導</div>}
+                        </div>
+                        <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginTop: isMobile ? "4px" : "12px", flexWrap: "wrap" }}>
+                          <span style={{ fontSize: isMobile ? "16px" : "30px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: "#1a1a1a", lineHeight: 1 }}>{gradingCodes.length}</span>
+                          <span style={{ fontSize: isMobile ? "12px" : "16px", color: "#888" }}>POMs · {visibleSizes.length} sizes</span>
                           {hasPlus && !showPlus && (
-                            <span style={{ fontSize: isMobile ? "12px" : "13px", color: "#b45309", marginLeft: "4px" }}>(+{plusSeq.length} Plus 未顯示)</span>
+                            <span style={{ fontSize: isMobile ? "11px" : "13px", color: "#b45309", marginLeft: "4px" }}>(+{plusSeq.length} Plus)</span>
                           )}
                         </div>
                       </div>
                       <div style={{ textAlign: isMobile ? "left" : "right" }}>
-                        <div style={{ fontSize: isMobile ? "13px" : "14px", color: "#065f46", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{currentBucket.bucket}</div>
-                        <div style={{ fontSize: isMobile ? "11px" : "12px", color: "#999", marginTop: "2px" }}>
+                        <div style={{ fontSize: isMobile ? "12px" : "14px", color: "#065f46", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{currentBucket.bucket}</div>
+                        <div style={{ fontSize: isMobile ? "10px" : "12px", color: "#999", marginTop: "2px" }}>
                           Base: <span style={{ fontWeight: 700, color: "#065f46" }}>M</span>
                           {showPlus && <> + <span style={{ fontWeight: 700, color: "#065f46" }}>{plusAnchor}</span></>}
                           {" · inches (fractions)"}
@@ -5223,7 +5232,7 @@ function App() {
                       </div>
                     </div>
                     {/* Size 擴展控制列(Run / Plus)— 跟基碼頁共用 state,兩邊同步 */}
-                    <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap", marginTop: "14px", paddingTop: "12px", borderTop: "1px dashed #eee" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: isMobile ? "10px" : "14px", flexWrap: "wrap", marginTop: isMobile ? "8px" : "14px", paddingTop: isMobile ? "6px" : "12px", borderTop: "1px dashed #eee" }}>
                       {availableRuns.length > 1 && (
                       <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                         <span style={{ fontSize: "11px", color: "#888", fontWeight: 500 }}>Run</span>
@@ -5261,76 +5270,23 @@ function App() {
                     <div style={{ background: "#fff", border: "1px dashed #e8e5e1", borderRadius: "10px", padding: "20px", textAlign: "center", fontSize: "12px", color: "#999" }}>
                       尚未勾選任何 POM — 回「基碼確認」勾選
                     </div>
-                  ) : isMobile ? (
-                    /* 手機版：每個 POM 一張卡片，size 值用 4 欄 grid 呈現（避免水平捲動） */
-                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                      {gradingCodes.map(code => {
-                        const tier = tierOf(code);
-                        const tc = TIER[tier];
-                        const grRow = gr[code];
-                        const m = mr[tier]?.[code];
-                        const pn = pomNames[code] || {};
-                        const edited = baseOverrides[code] != null && baseOverrides[code] !== "" && parseInch(baseOverrides[code]) != null;
-                        const incText = grRow?.typical_increment != null ? (grRow.typical_increment >= 0 ? "+" : "") + frmt(grRow.typical_increment) + '"' : "—";
-                        return (
-                          <div key={code} style={{
-                            background: "#fff", border: "1px solid #e8e5e1", borderRadius: "10px",
-                            padding: "10px 12px",
-                          }}>
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "8px", marginBottom: "6px" }}>
-                              <div style={{ display: "flex", alignItems: "baseline", gap: "8px", flex: 1, minWidth: 0 }}>
-                                <span style={{ fontFamily: "'JetBrains Mono',monospace", fontWeight: 700, color: tc.c, fontSize: "13px" }}>{code}</span>
-                                <span style={{ fontSize: "12px", color: "#1a1a1a", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis" }}>{pn.en || code}</span>
-                              </div>
-                              {edited && <span style={{ fontSize: "9px", color: "#7e22ce", background: "#f5f3ff", padding: "2px 6px", borderRadius: "4px", fontWeight: 600, whiteSpace: "nowrap" }}>已調整</span>}
-                            </div>
-                            <div style={{ display: "flex", gap: "14px", fontSize: "10px", color: "#888", marginBottom: "8px", paddingBottom: "8px", borderBottom: "1px solid #f5f5f5", alignItems: "center", flexWrap: "wrap" }}>
-                              <span>公差 <span style={{ fontFamily: "'JetBrains Mono',monospace", color: "#525252", fontWeight: 600 }}>{tolStr(m)}</span></span>
-                              <span>跳碼 <span style={{ fontFamily: "'JetBrains Mono',monospace", color: "#b45309", fontWeight: 600 }}>{incText}</span></span>
-                              {hasInflection(code) && (
-                                <span title="grading_patterns: S→M 與 M→L 的跳碼不同" style={{ fontSize: "9px", color: "#7e22ce", background: "#f5f3ff", padding: "2px 6px", borderRadius: "4px", fontWeight: 700, cursor: "help" }}>⟿ 非線性</span>
-                              )}
-                            </div>
-                            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "5px" }}>
-                              {visibleSizes.map(s => {
-                                const val = sizeValueFor(code, s);
-                                const isBase = (s === "M") || (isPlus(s) && s === plusAnchor);
-                                return (
-                                  <div key={s} style={{
-                                    padding: "5px 4px",
-                                    background: isBase ? "#ecfdf5" : "#fafafa",
-                                    border: isBase ? "1px solid #a7f3d0" : "1px solid transparent",
-                                    borderRadius: "6px", textAlign: "center",
-                                  }}>
-                                    <div style={{ fontSize: "9px", color: isBase ? "#065f46" : "#888", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", letterSpacing: "0.02em" }}>
-                                      {s}{isBase && " · BASE"}
-                                    </div>
-                                    <div style={{ fontSize: "12px", color: isBase ? "#065f46" : "#1a1a1a", fontWeight: isBase ? 700 : 600, fontFamily: "'JetBrains Mono',monospace", marginTop: "1px" }}>
-                                      {val != null ? frmt(val) + '"' : "—"}
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
                   ) : (
-                    /* 桌機：保留寬表格 */
-                    <div style={{ background: "#fff", border: "1px solid #e8e5e1", borderRadius: "10px", overflow: "auto" }}>
-                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
+                    /* 全碼表格:手機與桌機共用寬表格,手機橫向捲動(不折疊) */
+                    <div style={{ background: "#fff", border: "1px solid #e8e5e1", borderRadius: "10px", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+                      <table style={{ width: "100%", minWidth: isMobile ? `${260 + visibleSizes.length * 62}px` : "auto", borderCollapse: "collapse", fontSize: isMobile ? "12px" : "14px" }}>
                         <thead>
                           <tr style={{ background: "#faf9f7", borderBottom: "1.5px solid #e8e5e1" }}>
-                            <th style={{ padding: "10px 12px", textAlign: "left", fontWeight: 600, fontSize: "12px", color: "#888", position: "sticky", left: 0, background: "#faf9f7", width: "60px" }}>POM</th>
-                            <th style={{ padding: "10px 12px", textAlign: "left", fontWeight: 600, fontSize: "12px", color: "#888", minWidth: "120px" }}>Name</th>
-                            <th style={{ padding: "10px 12px", textAlign: "left", fontWeight: 600, fontSize: "12px", color: "#888", minWidth: "140px" }}>中文<span style={{ fontSize: "9px", fontWeight: 400, color: "#bbb", marginLeft: "4px" }}>(雙擊可改)</span></th>
-                            <th style={{ padding: "10px 12px", textAlign: "right", fontWeight: 600, fontSize: "12px", color: "#7e22ce", width: "90px" }}>公差</th>
-                            <th style={{ padding: "10px 12px", textAlign: "right", fontWeight: 600, fontSize: "12px", color: "#b45309", width: "90px" }}>跳碼<div style={{ fontSize: "10px", fontWeight: 400, color: "#b45309" }}>Grading</div></th>
+                            <th style={{ padding: isMobile ? "6px 6px" : "10px 12px", textAlign: "left", fontWeight: 600, fontSize: isMobile ? "10px" : "12px", color: "#888", position: "sticky", left: 0, background: "#faf9f7", width: isMobile ? "42px" : "60px" }}>POM</th>
+                            {!isMobile && (
+                              <th style={{ padding: "10px 12px", textAlign: "left", fontWeight: 600, fontSize: "12px", color: "#888", minWidth: "120px" }}>Name</th>
+                            )}
+                            <th style={{ padding: isMobile ? "6px 6px" : "10px 12px", textAlign: "left", fontWeight: 600, fontSize: isMobile ? "10px" : "12px", color: "#888", minWidth: isMobile ? "90px" : "140px" }}>中文{!isMobile && <span style={{ fontSize: "9px", fontWeight: 400, color: "#bbb", marginLeft: "4px" }}>(雙擊可改)</span>}</th>
+                            <th style={{ padding: isMobile ? "6px 6px" : "10px 12px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? "10px" : "12px", color: "#7e22ce", width: isMobile ? "58px" : "90px" }}>公差</th>
+                            <th style={{ padding: isMobile ? "6px 6px" : "10px 12px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? "10px" : "12px", color: "#b45309", width: isMobile ? "54px" : "90px" }}>跳碼{!isMobile && <div style={{ fontSize: "10px", fontWeight: 400, color: "#b45309" }}>Grading</div>}</th>
                             {visibleSizes.map(s => {
                               const isBase = (s === "M") || (isPlus(s) && s === plusAnchor);
                               return (
-                                <th key={s} style={{ padding: "10px 8px", textAlign: "center", fontWeight: 700, fontSize: "12px", color: isBase ? "#065f46" : "#666", fontFamily: "'JetBrains Mono',monospace", background: isBase ? "#ecfdf5" : "transparent", minWidth: isBase ? (isMobile ? "84px" : "100px") : (isMobile ? "48px" : "56px") }}>{s}{isBase && <div style={{ fontSize: "9px", color: "#065f46" }}>BASE · 可編輯</div>}</th>
+                                <th key={s} style={{ padding: isMobile ? "6px 4px" : "10px 8px", textAlign: "center", fontWeight: 700, fontSize: isMobile ? "10px" : "12px", color: isBase ? "#065f46" : "#666", fontFamily: "'JetBrains Mono',monospace", background: isBase ? "#ecfdf5" : "transparent", minWidth: isBase ? (isMobile ? "70px" : "100px") : (isMobile ? "48px" : "56px") }}>{s}{isBase && <div style={{ fontSize: "9px", color: "#065f46" }}>BASE{!isMobile && " · 可編輯"}</div>}</th>
                               );
                             })}
                           </tr>
@@ -5345,12 +5301,17 @@ function App() {
                             const edited = baseOverrides[code] != null && baseOverrides[code] !== "" && parseInch(baseOverrides[code]) != null;
                             return (
                               <tr key={code} style={{ borderBottom: "1px solid #f0eeeb" }}>
-                                <td style={{ padding: "9px 12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", fontSize: "14px", color: tc.c, position: "sticky", left: 0, background: "#fff" }}>{code}</td>
-                                <td style={{ padding: "9px 12px", fontSize: "14px", color: "#1a1a1a" }}>
-                                  {pn.en || code}
-                                  {edited && <span style={{ marginLeft: "6px", fontSize: "11px", color: "#7e22ce", background: "#f5f3ff", padding: "2px 6px", borderRadius: "4px", fontWeight: 600, whiteSpace: "nowrap" }}>已調整</span>}
+                                <td style={{ padding: isMobile ? "7px 6px" : "9px 12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "14px", color: tc.c, position: "sticky", left: 0, background: "#fff" }}>
+                                  {code}
+                                  {isMobile && edited && <span style={{ marginLeft: "3px", fontSize: "8px", color: "#7e22ce", fontWeight: 600 }}>●</span>}
                                 </td>
-                                <td style={{ padding: "7px 12px" }}
+                                {!isMobile && (
+                                  <td style={{ padding: "9px 12px", fontSize: "14px", color: "#1a1a1a" }}>
+                                    {pn.en || code}
+                                    {edited && <span style={{ marginLeft: "6px", fontSize: "11px", color: "#7e22ce", background: "#f5f3ff", padding: "2px 6px", borderRadius: "4px", fontWeight: 600, whiteSpace: "nowrap" }}>已調整</span>}
+                                  </td>
+                                )}
+                                <td style={{ padding: isMobile ? "6px 6px" : "7px 12px" }}
                                   onDoubleClick={() => setEditingZhCode(code)}
                                   title={editingZhCode === code ? "" : "雙擊可修改"}
                                 >
@@ -5364,19 +5325,19 @@ function App() {
                                       }}
                                       style={{ width: "100%", padding: "5px 7px", fontSize: "13px", fontFamily: "inherit", border: "1px solid #1a1a1a", borderRadius: "5px", background: "#fff" }} />
                                   ) : (
-                                    <div style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "text", color: "#555", fontSize: "13px" }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: "4px", cursor: "text", color: "#555", fontSize: isMobile ? "12px" : "13px" }}>
                                       <span>{zhFor(code) || <span style={{ color: "#ccc" }}>(空)</span>}</span>
                                       {pomZhEdits[code] && <span style={{ fontSize: "9px", color: "#7e22ce", background: "#f5f3ff", padding: "1px 5px", borderRadius: "3px", fontWeight: 600 }}>自訂</span>}
                                     </div>
                                   )}
                                 </td>
-                                <td style={{ padding: "9px 12px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", fontSize: "14px", color: "#7e22ce", fontWeight: 600, whiteSpace: "nowrap" }}>
+                                <td style={{ padding: isMobile ? "7px 6px" : "9px 12px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "14px", color: "#7e22ce", fontWeight: 600, whiteSpace: "nowrap" }}>
                                   {tolStr(m)}
                                 </td>
-                                <td style={{ padding: "9px 12px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", fontSize: "14px", color: "#b45309", fontWeight: 600, whiteSpace: "nowrap" }}>
+                                <td style={{ padding: isMobile ? "7px 6px" : "9px 12px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "14px", color: "#b45309", fontWeight: 600, whiteSpace: "nowrap" }}>
                                   {grRow?.typical_increment != null ? (grRow.typical_increment >= 0 ? "+" : "") + frmt(grRow.typical_increment) + '"' : "—"}
                                   {hasInflection(code) && (
-                                    <span title="grading_patterns: S→M 與 M→L 的跳碼不同,已改用非線性推導" style={{ marginLeft: "5px", fontSize: "9px", color: "#7e22ce", background: "#f5f3ff", padding: "1px 5px", borderRadius: "3px", fontWeight: 700, cursor: "help" }}>⟿</span>
+                                    <span title="grading_patterns: S→M 與 M→L 的跳碼不同,已改用非線性推導" style={{ marginLeft: "4px", fontSize: "9px", color: "#7e22ce", background: "#f5f3ff", padding: "1px 5px", borderRadius: "3px", fontWeight: 700, cursor: "help" }}>⟿</span>
                                   )}
                                 </td>
                                 {visibleSizes.map(s => {
@@ -5391,7 +5352,7 @@ function App() {
                                     const invalid = ov !== "" && parseInch(ov) == null;
                                     const displayVal = ov !== "" ? ov : (rawBase != null ? frmt(rawBase) : "");
                                     return (
-                                      <td key={s} style={{ padding: "6px 8px", textAlign: "center", background: "#ecfdf5" }}>
+                                      <td key={s} style={{ padding: isMobile ? "4px 4px" : "6px 8px", textAlign: "center", background: "#ecfdf5" }}>
                                         <input type="text" value={displayVal}
                                           onChange={(e) => setStore(prev => ({ ...prev, [code]: e.target.value }))}
                                           onBlur={() => {
@@ -5409,8 +5370,8 @@ function App() {
                                           inputMode="text"
                                           aria-label={`${code} Base ${s}`}
                                           style={{
-                                            width: isMobile ? "84px" : "96px", textAlign: "center", padding: "7px 9px",
-                                            fontFamily: "'JetBrains Mono',monospace", fontSize: "14px", fontWeight: 700,
+                                            width: isMobile ? "62px" : "96px", textAlign: "center", padding: isMobile ? "5px 4px" : "7px 9px",
+                                            fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "14px", fontWeight: 700,
                                             color: invalid ? "#dc2626" : "#065f46",
                                             border: `1px solid ${invalid ? "#dc2626" : "#a7f3d0"}`, borderRadius: "5px",
                                             background: "#fff",
@@ -5419,7 +5380,7 @@ function App() {
                                     );
                                   }
                                   return (
-                                    <td key={s} style={{ padding: "9px 8px", textAlign: "center", fontFamily: "'JetBrains Mono',monospace", fontSize: "14px", color: "#1a1a1a", fontWeight: 500 }}>
+                                    <td key={s} style={{ padding: isMobile ? "6px 4px" : "9px 8px", textAlign: "center", fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "14px", color: "#1a1a1a", fontWeight: 500 }}>
                                       {val != null ? frmt(val) + '"' : "—"}
                                     </td>
                                   );
