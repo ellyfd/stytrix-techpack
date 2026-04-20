@@ -992,7 +992,7 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
                         <button
                           key={idx}
                           onClick={(e) => { e.stopPropagation(); onPickUniversalIso && onPickUniversalIso(card.id, a.iso); }}
-                          title={a.count != null ? `歷史資料出現 ${a.count} 次 · 點擊切換為此 ISO` : "點擊切換為此 ISO"}
+                          title={a.count != null ? `歷史資料 ${a.count} / ${u.bridgeN ?? "?"} · 點擊切換為此 ISO` : "點擊切換為此 ISO"}
                           style={{
                             fontSize: "11px", padding: "3px 8px", borderRadius: "6px",
                             background: "#fff", border: "1px solid #e8e5e1", color: "#525252",
@@ -1003,7 +1003,7 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
                           onMouseLeave={e => { e.currentTarget.style.borderColor = "#e8e5e1"; e.currentTarget.style.color = "#525252"; }}
                         >
                           ISO {a.iso}
-                          {a.count != null && <span style={{ marginLeft: "6px", color: "#b45309" }}>{a.count}票</span>}
+                          {a.pct != null && <span style={{ marginLeft: "6px", color: "#b45309" }}>{a.pct}%</span>}
                         </button>
                       ))}
                     </div>
@@ -3124,11 +3124,16 @@ function App() {
           const isoDist = bridgeZone?.iso_distribution
             || entry.pptx_2025_votes
             || {};
+          const isoTotal = Object.values(isoDist).reduce((s, n) => s + (Number(n) || 0), 0) || 1;
           const alternatives = Object.entries(isoDist)
             .filter(([iso]) => iso !== entry.iso)
             .sort((a, b) => b[1] - a[1])
             .slice(0, 5)
-            .map(([iso, count]) => ({ iso, count }));
+            .map(([iso, count]) => ({
+              iso,
+              count,
+              pct: Math.round(count / isoTotal * 100),
+            }));
           // 常見工法(只有 bridge 有):method_distribution 前 3 名
           const methods = bridgeZone
             ? Object.entries(bridgeZone.method_distribution || {})
