@@ -2613,12 +2613,20 @@ function App() {
           mode: appMode,
         })
       });
-      const data = await resp.json();
+      // Read as text first — on Vercel function crash, the response is HTML,
+      // not JSON, so resp.json() would throw "Unexpected token '<'" and hide
+      // the real HTTP status. Parse JSON best-effort; fall back to raw text
+      // so the error surfaces upstream.
+      const rawText = await resp.text();
+      let data = null;
+      try { data = rawText ? JSON.parse(rawText) : null; } catch {}
       if (!resp.ok) {
-        const err = new Error(data.error || `HTTP ${resp.status}`);
-        err.detail = data.detail || null;
+        const err = new Error(data?.error || `HTTP ${resp.status}${resp.statusText ? " " + resp.statusText : ""}`);
+        err.status = resp.status;
+        err.detail = data?.detail ?? (data ? null : rawText || null);
         throw err;
       }
+      if (!data) throw new Error(`HTTP ${resp.status}: response 不是 JSON`);
       // Capture Claude usage stats for display; shape per-pass:
       //   { input_tokens, output_tokens, cache_creation_input_tokens, cache_read_input_tokens }
       // Pricing table by model (USD / M tokens).
@@ -3464,29 +3472,15 @@ function App() {
                       }}>⚠</div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: "14px", fontWeight: 700, color: "#b91c1c", marginBottom: "4px" }}>
-                          Analyze 失敗
+                          Analyze 失敗{analyzeErr.status ? ` · HTTP ${analyzeErr.status}` : ""}
                         </div>
                         <div style={{ fontSize: "12px", color: "#7f1d1d", lineHeight: 1.5, wordBreak: "break-word" }}>
                           {analyzeErr.message}
                         </div>
-                        {(() => {
-                          const msg = analyzeErr.message || "";
-                          let hint = "";
-                          if (/403/.test(msg)) hint = "403 = 權限被拒。此 API key 的 workspace 沒開該模型的存取權（不是 credit 用盡）。到 Anthropic Console 的 workspace settings 確認模型存取清單，或換成已啟用的模型。";
-                          else if (/401/.test(msg)) hint = "401 = API key 無效或未設定。檢查 ANTHROPIC_API_KEY 環境變數。";
-                          else if (/429/.test(msg)) hint = "429 = 超過 rate limit 或 credit 用盡。等幾分鐘再試，或到 Anthropic Console 確認餘額。";
-                          else if (/5\d\d/.test(msg)) hint = "5xx = Anthropic 伺服器端或網路問題，稍後重試。";
-                          else hint = "檢查環境變數 ANTHROPIC_API_KEY 與 workspace 模型存取權。";
-                          return (
-                            <div style={{ fontSize: "11px", color: "#991b1b", marginTop: "8px", lineHeight: 1.5 }}>
-                              {hint}
-                            </div>
-                          );
-                        })()}
                         {analyzeErr.detail && (
                           <details style={{ marginTop: "8px" }}>
                             <summary style={{ fontSize: "11px", color: "#7f1d1d", cursor: "pointer", userSelect: "none" }}>
-                              詳細錯誤訊息（Anthropic 回應）
+                              詳細錯誤訊息（後端回應）
                             </summary>
                             <pre style={{
                               marginTop: "6px", padding: "8px 10px",
