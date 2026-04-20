@@ -2255,6 +2255,15 @@ function App() {
     return map;
   }, [gt]);
 
+  // 清掉 stale 的 Item Type（例如 gt 改了、IT_OPTIONS 變動，之前鎖的 it 已不存在）
+  useEffect(() => {
+    if (it && gt && !curItOptions.includes(it)) {
+      setIt("");
+      setLocks(prev => prev.it ? { ...prev, it: false } : prev);
+    }
+    return map;
+  }, [gt]);
+
   const ptCount = useMemo(() => {
     let p = 0, t = 0;
     [...MISSY_POMS.must, ...MISSY_POMS.recommend, ...MISSY_POMS.optional].forEach(pom => {
