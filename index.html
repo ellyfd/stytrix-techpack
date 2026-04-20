@@ -1208,6 +1208,7 @@ function AdminModal({ open, onClose, pomNamesOverride, onUploadPomNames, onClear
   const [rulesError, setRulesError] = useState(null);
   const [rulesSuccess, setRulesSuccess] = useState(null);
   const [rulesUploading, setRulesUploading] = useState(false);
+  const [rulesMerge, setRulesMerge] = useState(false); // 預設 replace 整個 overrides
 
   const handleFile = async (file) => {
     if (!file) return;
@@ -1222,17 +1223,18 @@ function AdminModal({ open, onClose, pomNamesOverride, onUploadPomNames, onClear
     }
   };
 
-  const handleRulesFile = async (file) => {
-    if (!file) return;
+  const handleRulesFiles = async (files) => {
+    if (!files || !files.length) return;
     setRulesError(null); setRulesSuccess(null); setRulesUploading(true);
     try {
-      const result = await onUploadPomRules(file);
-      if (result.kind === 'index') {
-        setRulesSuccess(`已套用 _index 覆蓋(${result.count} 個 bucket)`);
-      } else {
-        const note = result.bucketName === currentBucketKey ? '已立即套用到目前檢視' : `切換到 ${result.bucketName} 時才會套用`;
-        setRulesSuccess(`已儲存 bucket ${result.bucketName} 覆蓋(${result.count} 項 POM)· ${note}`);
-      }
+      const result = await onUploadPomRules(files, { merge: rulesMerge });
+      const parts = [];
+      if (result.indexCount) parts.push(`${result.indexCount} 個 _index`);
+      if (result.bucketCount) parts.push(`${result.bucketCount} 個 bucket`);
+      let msg = `已套用 ${parts.join(' + ')}`;
+      if (result.invalidCount) msg += `(跳過 ${result.invalidCount} 個格式錯誤)`;
+      if (result.skippedNonJson) msg += `(跳過 ${result.skippedNonJson} 個非 .json)`;
+      setRulesSuccess(msg);
     } catch (e) {
       setRulesError(typeof e === 'string' ? e : (e?.message || String(e)));
     } finally {
@@ -1312,26 +1314,47 @@ function AdminModal({ open, onClose, pomNamesOverride, onUploadPomNames, onClear
         <div style={{ marginTop: '12px', border: '1px solid #e8e5e1', borderRadius: '10px', padding: '14px' }}>
           <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '4px' }}>POM Rules</div>
           <div style={{ fontSize: '11px', color: '#767676', marginBottom: '12px', lineHeight: 1.5 }}>
-            可上傳:
-            <br />• <code style={{ background: '#f5f5f5', padding: '1px 4px', borderRadius: '3px' }}>_index.json</code>(含 <code>buckets</code> 陣列)→ 換掉 bucket 清單
-            <br />• 單一 bucket 檔(含 <code>bucket</code> + <code>measurement_rules</code>)→ 換掉該 bucket 的規則 / 中位數 / 跳碼
+            支援一次多選或選整個資料夾,自動分類:
+            <br />• <code style={{ background: '#f5f5f5', padding: '1px 4px', borderRadius: '3px' }}>_index.json</code>(含 <code>buckets</code>)→ 換掉 bucket 清單
+            <br />• 單一 bucket 檔(含 <code>bucket</code> + <code>measurement_rules</code>)→ 換掉該 bucket 的規則/中位數/跳碼
           </div>
 
-          <div style={{
-            padding: '8px 12px', borderRadius: '8px',
-            background: pomRulesOverride ? '#fef3c7' : '#f3f4f6',
-            fontSize: '12px', color: pomRulesOverride ? '#92400e' : '#6b7280',
-            marginBottom: '12px', lineHeight: 1.4,
-          }}>
-            {pomRulesOverride
-              ? <span><strong>已覆蓋</strong>:{pomRulesOverride.filename}
-                  {pomRulesOverride.kind === 'bucket'
-                    ? <> · bucket <code>{pomRulesOverride.bucketName}</code>({pomRulesOverride.count} 項 POM)</>
-                    : <> · _index({pomRulesOverride.count} bucket)</>}
-                  {pomRulesOverride.uploadedAt ? ` · ${fmtTime(pomRulesOverride.uploadedAt)}` : ''}
-                </span>
-              : <span>目前用內建 <code>pom_rules/</code></span>}
-          </div>
+          {(() => {
+            const bucketCount = Object.keys(pomRulesOverride?.buckets || {}).length;
+            const hasIndex = !!pomRulesOverride?.index;
+            const hasAny = hasIndex || bucketCount > 0;
+            return (
+              <div style={{
+                padding: '8px 12px', borderRadius: '8px',
+                background: hasAny ? '#fef3c7' : '#f3f4f6',
+                fontSize: '12px', color: hasAny ? '#92400e' : '#6b7280',
+                marginBottom: '12px', lineHeight: 1.5,
+              }}>
+                {hasAny ? (
+                  <>
+                    <div><strong>已覆蓋</strong>:
+                      {hasIndex && <> _index × 1({pomRulesOverride.index.count} bucket)</>}
+                      {hasIndex && bucketCount > 0 && <> · </>}
+                      {bucketCount > 0 && <>bucket × {bucketCount}</>}
+                    </div>
+                    {bucketCount > 0 && (
+                      <div style={{ marginTop: '4px', fontSize: '11px', opacity: 0.85, maxHeight: '72px', overflowY: 'auto' }}>
+                        {Object.entries(pomRulesOverride.buckets).slice(0, 6).map(([k, v]) =>
+                          <div key={k}><code>{k}</code> · {v.count} POM{currentBucketKey === k ? ' ← 目前檢視' : ''}</div>
+                        )}
+                        {bucketCount > 6 && <div>…其餘 {bucketCount - 6} 個</div>}
+                      </div>
+                    )}
+                  </>
+                ) : <span>目前用內建 <code>pom_rules/</code></span>}
+              </div>
+            );
+          })()}
+
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#555', marginBottom: '8px', cursor: 'pointer' }}>
+            <input type="checkbox" checked={rulesMerge} onChange={e => setRulesMerge(e.target.checked)} style={{ width: '14px', height: '14px', cursor: 'pointer' }} />
+            <span>累加模式(保留前一次上傳,同 bucket 以新的為準)。不勾則每次上傳都先清空既有覆蓋 — 建議「上傳整個資料夾」時保持不勾。</span>
+          </label>
 
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <label style={{
@@ -1340,18 +1363,31 @@ function AdminModal({ open, onClose, pomNamesOverride, onUploadPomNames, onClear
               cursor: rulesUploading ? 'not-allowed' : 'pointer',
               fontSize: '12px', fontWeight: 600,
             }}>
-              {rulesUploading ? '處理中…' : '選擇 JSON 檔'}
-              <input type="file" accept=".json,application/json" hidden disabled={rulesUploading}
-                onChange={e => { handleRulesFile(e.target.files?.[0]); e.target.value = ''; }} />
+              {rulesUploading ? '處理中…' : '選多個 JSON'}
+              <input type="file" accept=".json,application/json" hidden multiple disabled={rulesUploading}
+                onChange={e => { handleRulesFiles(e.target.files); e.target.value = ''; }} />
             </label>
-            {pomRulesOverride && (
+            <label style={{
+              display: 'inline-block', padding: '8px 14px',
+              background: rulesUploading ? '#999' : '#fff', color: rulesUploading ? '#fff' : '#1a1a1a',
+              border: '1px solid #1a1a1a', borderRadius: '6px',
+              cursor: rulesUploading ? 'not-allowed' : 'pointer',
+              fontSize: '12px', fontWeight: 600,
+            }}>
+              選整個資料夾
+              <input type="file" hidden disabled={rulesUploading}
+                webkitdirectory=""
+                directory=""
+                onChange={e => { handleRulesFiles(e.target.files); e.target.value = ''; }} />
+            </label>
+            {(pomRulesOverride?.index || Object.keys(pomRulesOverride?.buckets || {}).length > 0) && (
               <button onClick={() => { onClearPomRules(); setRulesSuccess(null); setRulesError(null); }}
                 style={{
                   padding: '8px 14px',
                   background: '#fff', border: '1px solid #e8e5e1', borderRadius: '6px',
                   cursor: 'pointer', fontSize: '12px', fontWeight: 600, color: '#dc2626',
                   fontFamily: 'inherit',
-                }}>清除覆蓋 · 還原內建</button>
+                }}>清除全部覆蓋</button>
             )}
           </div>
 
@@ -1468,7 +1504,9 @@ function App() {
   const [sketchSrc, setSketchSrc] = useState(null);
   const [pomRules, setPomRules] = useState(null);
   const [pomNamesOverride, setPomNamesOverride] = useState(null); // {filename, uploadedAt, count} | null
-  const [pomRulesOverride, setPomRulesOverride] = useState(null); // {kind, filename, uploadedAt, bucketName?, count}
+  // POM Rules 覆蓋:index 單一槽位 + buckets map(一個 bucketKey 對應一個覆蓋)
+  // shape: { index: {filename, uploadedAt, count} | null, buckets: { [bucketKey]: {filename, uploadedAt, count} } }
+  const [pomRulesOverride, setPomRulesOverride] = useState({ index: null, buckets: {} });
   const [adminOpen, setAdminOpen] = useState(false);
   useEffect(() => {
     // _index.json:先看覆蓋,沒有才抓內建
@@ -1477,14 +1515,15 @@ function App() {
       const stored = localStorage.getItem('stytrix.override.pomRules');
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (parsed && parsed.data) {
-          setPomRulesOverride({
-            kind: parsed.kind, filename: parsed.filename || '(unnamed)',
-            uploadedAt: parsed.uploadedAt || null,
-            bucketName: parsed.bucketName, count: parsed.count,
-          });
-          if (parsed.kind === 'index' && Array.isArray(parsed.data.buckets)) {
-            setPomRules(parsed.data); window.POM_RULES = parsed.data;
+        // 新格式 { index: {meta, data?}, buckets: { [bucketKey]: {meta, data} } }
+        if (parsed && (parsed.index || parsed.buckets)) {
+          const meta = {
+            index: parsed.index ? { filename: parsed.index.filename, uploadedAt: parsed.index.uploadedAt, count: parsed.index.count } : null,
+            buckets: Object.fromEntries(Object.entries(parsed.buckets || {}).map(([k, v]) => [k, { filename: v.filename, uploadedAt: v.uploadedAt, count: v.count }])),
+          };
+          setPomRulesOverride(meta);
+          if (parsed.index?.data && Array.isArray(parsed.index.data.buckets)) {
+            setPomRules(parsed.index.data); window.POM_RULES = parsed.index.data;
             usedRulesIndex = true;
           }
         }
@@ -1493,8 +1532,18 @@ function App() {
     if (!usedRulesIndex) {
       fetch('./pom_rules/_index.json')
         .then(r => r.ok ? r.json() : Promise.reject(r.status))
-        .then(data => { setPomRules(data); window.POM_RULES = data; })
+        .then(data => {
+          const merged = mergeBucketOverridesIntoIndex(data);
+          setPomRules(merged); window.POM_RULES = merged;
+        })
         .catch(err => console.error('載入 pom_rules/_index.json 失敗:', err));
+    } else {
+      // 用了 index override,也要把 bucket overrides 裡的新 category 合進來
+      setPomRules(prev => {
+        const merged = mergeBucketOverridesIntoIndex(prev);
+        window.POM_RULES = merged;
+        return merged;
+      });
     }
     // POM 翻譯表：先看 localStorage 覆蓋，沒有才抓內建
     let usedOverride = false;
@@ -1552,52 +1601,129 @@ function App() {
       .catch(err => console.error('重新載入 pom_names.json 失敗:', err));
   };
 
-  /* POM Rules 覆蓋:自動判斷是 _index.json (含 buckets) 還是單一 bucket 檔。
-     _index 覆蓋 → 換掉整個 filter 可用的 bucket 清單;
-     bucket 覆蓋 → 換掉對應 bucketKey 的 measurement_rules / median_values /
-     grading_rules / size_range。一個槽位 (單一 localStorage key),再次上傳
-     會取代前一次。 */
-  const applyPomRulesOverride = (file) => new Promise((resolve, reject) => {
+  /* 把 localStorage 裡的 bucket overrides 合成的 synthetic index entry
+     merge 進 pomRules,讓全新分類 (不在內建 _index.json 裡的 bucket)
+     也能自動出現在 filter 下拉選單。file 欄位留 null,實際資料走 override。 */
+  const mergeBucketOverridesIntoIndex = (basePomRules) => {
+    if (!basePomRules) return basePomRules;
+    try {
+      const stored = localStorage.getItem('stytrix.override.pomRules');
+      if (!stored) return basePomRules;
+      const parsed = JSON.parse(stored);
+      const overrides = parsed?.buckets || {};
+      const existing = new Set((basePomRules.buckets || []).map(b => b.bucket));
+      const extras = [];
+      for (const [key, entry] of Object.entries(overrides)) {
+        if (existing.has(key)) continue;
+        const d = entry?.data;
+        if (!d?.department || !d?.garment_type || !d?.gender) continue;
+        extras.push({ bucket: key, department: d.department, garment_type: d.garment_type, gender: d.gender, file: null });
+      }
+      if (!extras.length) return basePomRules;
+      return { ...basePomRules, buckets: [...basePomRules.buckets, ...extras] };
+    } catch { return basePomRules; }
+  };
+
+  /* POM Rules 覆蓋 — 支援一次上傳多個檔 (可選資料夾):
+     - _index.json (含 buckets 陣列) → 換掉 bucket 清單
+     - bucket 檔 (含 bucket + measurement_rules) → 換掉對應 bucketKey 的規則
+     結構:{ index: {meta, data}|null, buckets: { [bucketKey]: {meta, data} } }
+     同個 bucket 若在這次上傳中出現多次,以最後一個為準。 */
+  const readFileAsText = (file) => new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      let parsed;
-      try { parsed = JSON.parse(ev.target.result); }
-      catch (e) { return reject('JSON 解析失敗:' + e.message); }
-      let kind, bucketName, count;
-      if (Array.isArray(parsed.buckets)) {
-        kind = 'index';
-        count = parsed.buckets.length;
-      } else if (parsed.bucket && parsed.measurement_rules) {
-        kind = 'bucket';
-        bucketName = parsed.bucket;
-        const mr = parsed.measurement_rules || {};
-        count = Object.keys(mr.must || {}).length + Object.keys(mr.recommend || {}).length + Object.keys(mr.optional || {}).length;
-      } else {
-        return reject('無法辨識格式:需要 _index.json (含 buckets 陣列) 或 bucket 檔 (含 bucket + measurement_rules)');
-      }
-      const stored = { kind, filename: file.name, uploadedAt: new Date().toISOString(), bucketName, count, data: parsed };
-      try { localStorage.setItem('stytrix.override.pomRules', JSON.stringify(stored)); }
-      catch (e) { return reject('localStorage 寫入失敗(可能超出配額):' + e.message); }
-      if (kind === 'index') {
-        setPomRules(parsed); window.POM_RULES = parsed;
-      } else if (kind === 'bucket') {
-        // 立即套用:先把 bucket 寫進 state,再把 filter 切到對應的 dept/gt/gender,
-        // 讓使用者上傳後馬上看到規則在 UI 上生效。
-        setCurrentBucket(parsed); window.CURRENT_BUCKET = parsed;
-        if (parsed.department) setDept(parsed.department);
-        if (parsed.garment_type) setGt(parsed.garment_type);
-        if (parsed.gender) setGender(parsed.gender);
-      }
-      setPomRulesOverride({ kind, filename: file.name, uploadedAt: stored.uploadedAt, bucketName, count });
-      resolve({ kind, bucketName, count });
-    };
-    reader.onerror = () => reject('讀檔失敗');
+    reader.onload = (ev) => resolve(ev.target.result);
+    reader.onerror = () => reject(new Error(`讀取 ${file.name} 失敗`));
     reader.readAsText(file);
   });
 
+  const applyPomRulesOverride = async (files, opts = {}) => {
+    // 允許傳入單一 File (舊呼叫) 或 FileList / Array
+    const list = files instanceof File ? [files] : Array.from(files || []);
+    if (!list.length) throw new Error('沒有檔案');
+    // 預設 clean-slate (replace 整個 overrides) — 用 opts.merge=true 可切成累加
+    let existing = { index: null, buckets: {} };
+    if (opts.merge) {
+      try {
+        const stored = localStorage.getItem('stytrix.override.pomRules');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed?.index || parsed?.buckets) existing = { index: parsed.index || null, buckets: parsed.buckets || {} };
+        }
+      } catch {}
+    }
+
+    // 僅收 .json 檔
+    const jsonFiles = list.filter(f => /\.json$/i.test(f.name));
+    const skipped = list.length - jsonFiles.length;
+    const indexResults = [];
+    const bucketResults = [];
+    const invalid = [];
+    const now = new Date().toISOString();
+
+    await Promise.all(jsonFiles.map(async (file) => {
+      try {
+        const text = await readFileAsText(file);
+        const parsed = JSON.parse(text);
+        if (Array.isArray(parsed.buckets)) {
+          // _index.json
+          existing.index = { filename: file.name, uploadedAt: now, count: parsed.buckets.length, data: parsed };
+          indexResults.push({ filename: file.name, count: parsed.buckets.length });
+        } else if (parsed.bucket && parsed.measurement_rules) {
+          const mr = parsed.measurement_rules || {};
+          const count = Object.keys(mr.must || {}).length + Object.keys(mr.recommend || {}).length + Object.keys(mr.optional || {}).length;
+          existing.buckets[parsed.bucket] = { filename: file.name, uploadedAt: now, count, data: parsed };
+          bucketResults.push({ filename: file.name, bucketName: parsed.bucket, count });
+        } else {
+          invalid.push({ filename: file.name, reason: '非 _index 也非 bucket 格式' });
+        }
+      } catch (e) {
+        invalid.push({ filename: file.name, reason: e.message || String(e) });
+      }
+    }));
+
+    if (!indexResults.length && !bucketResults.length) {
+      throw new Error(`全部失敗 — ${invalid.length ? invalid.map(x => `${x.filename}: ${x.reason}`).slice(0, 3).join('; ') : '無有效 JSON'}`);
+    }
+
+    try { localStorage.setItem('stytrix.override.pomRules', JSON.stringify(existing)); }
+    catch (e) { throw new Error('localStorage 寫入失敗(可能超出配額):' + e.message); }
+
+    // 套用 _index (若有),同時把 bucket overrides 裡的新 category 合進 buckets 清單
+    if (indexResults.length) {
+      const merged = mergeBucketOverridesIntoIndex(existing.index.data);
+      setPomRules(merged); window.POM_RULES = merged;
+    } else if (bucketResults.length) {
+      // 沒傳 _index,也要把新 bucket 合進目前 pomRules,讓 filter UI 能列出新分類
+      setPomRules(prev => {
+        const merged = mergeBucketOverridesIntoIndex(prev);
+        window.POM_RULES = merged;
+        return merged;
+      });
+    }
+    // 更新 overrideState metadata
+    setPomRulesOverride({
+      index: existing.index ? { filename: existing.index.filename, uploadedAt: existing.index.uploadedAt, count: existing.index.count } : null,
+      buckets: Object.fromEntries(Object.entries(existing.buckets).map(([k, v]) => [k, { filename: v.filename, uploadedAt: v.uploadedAt, count: v.count }])),
+    });
+    // 若目前 bucketKey 在這次上傳裡,立即套用;否則 filter 切到最後一個上傳的 bucket
+    const matched = bucketResults.find(b => b.bucketName === bucketKey);
+    if (matched) {
+      const d = existing.buckets[matched.bucketName].data;
+      setCurrentBucket(d); window.CURRENT_BUCKET = d;
+    } else if (bucketResults.length) {
+      const last = bucketResults[bucketResults.length - 1];
+      const d = existing.buckets[last.bucketName].data;
+      setCurrentBucket(d); window.CURRENT_BUCKET = d;
+      if (d.department) setDept(d.department);
+      if (d.garment_type) setGt(d.garment_type);
+      if (d.gender) setGender(d.gender);
+    }
+    return { indexCount: indexResults.length, bucketCount: bucketResults.length, invalidCount: invalid.length, skippedNonJson: skipped, invalid };
+  };
+
   const clearPomRulesOverride = () => {
     try { localStorage.removeItem('stytrix.override.pomRules'); } catch {}
-    setPomRulesOverride(null);
+    setPomRulesOverride({ index: null, buckets: {} });
     fetch('./pom_rules/_index.json')
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(data => { setPomRules(data); window.POM_RULES = data; })
@@ -1623,10 +1749,11 @@ function App() {
     // 這樣即使使用者上傳的 bucket 不在內建 _index.json 裡,也能直接套用。
     try {
       const stored = localStorage.getItem('stytrix.override.pomRules');
-      if (stored) {
+      if (stored && bucketKey) {
         const parsed = JSON.parse(stored);
-        if (parsed?.kind === 'bucket' && parsed?.data?.bucket === bucketKey) {
-          setCurrentBucket(parsed.data); window.CURRENT_BUCKET = parsed.data;
+        const bucketEntry = parsed?.buckets?.[bucketKey];
+        if (bucketEntry?.data) {
+          setCurrentBucket(bucketEntry.data); window.CURRENT_BUCKET = bucketEntry.data;
           return;
         }
       }
