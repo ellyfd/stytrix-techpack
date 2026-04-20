@@ -692,6 +692,17 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
                 <div style={{ marginTop: "8px", maxHeight: "280px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "4px" }}>
                   {card.l2Variants.map((v, idx) => {
                     const active = idx === (card.l2Idx ?? 0);
+                    const isAiPick = card.ai_l2_code && v.code === card.ai_l2_code && !!card.ai_l2_explanation;
+                    let aiCue = null;
+                    if (isAiPick) {
+                      const raw = card.ai_l2_explanation.trim();
+                      if (/^guess:/i.test(raw)) {
+                        aiCue = { icon: "⚠", text: "AI 未鎖定線索", color: "#b45309" };
+                      } else {
+                        const body = raw.replace(/^matched:\s*/i, "");
+                        aiCue = { icon: "★", text: `AI 命中：${body}`, color: "#15803d" };
+                      }
+                    }
                     return (
                       <div key={v.code} onClick={() => onSwitchL2 && onSwitchL2(card.id, idx)}
                         style={{
@@ -709,6 +720,11 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
                             </span>
                           )}
                         </div>
+                        {aiCue && (
+                          <div style={{ fontSize: "10px", color: aiCue.color, marginTop: "3px", lineHeight: 1.35, fontWeight: 600 }}>
+                            {aiCue.icon} {aiCue.text}
+                          </div>
+                        )}
                         {v.feature && <div style={{ fontSize: "11px", color: "#777", marginTop: "2px", lineHeight: 1.35 }}>{v.feature}</div>}
                       </div>
                     );
@@ -1637,7 +1653,11 @@ function App() {
         for (const p of presenceBucket.parts || []) presenceByCode[p.l1_code] = p;
       }
       // Add essential parts the AI missed so they still render (tier_en === 'essential').
+      // Enforce the 38-L1 invariant: presence file uses a legacy schema that
+      // includes old codes (BT/EL/FC/FR/FU/GS/IL/LN/YK…) not in L1_CODE_TO_NAME.
+      // Skip anything outside the canonical 38 so UI never shows half-broken cards.
       for (const code of Object.keys(presenceByCode)) {
+        if (!L1_CODE_TO_NAME[code]) continue;
         if (byCode.has(code)) continue;
         if (presenceByCode[code].tier_en !== "essential") continue;
         byCode.set(code, { code, confidence: null, x: 50, y: 50, side: "front", _fromPresence: true });
@@ -1825,6 +1845,7 @@ function App() {
           l3Variants: l3VariantsOut,
           ai_l2_code: d.l2_code || null,
           ai_l2_confidence: Number.isFinite(d.l2_confidence) ? d.l2_confidence : null,
+          ai_l2_explanation: typeof d.l2_explanation === "string" ? d.l2_explanation : null,
           l3s: stepList
         };
       });
