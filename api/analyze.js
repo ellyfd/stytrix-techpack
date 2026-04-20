@@ -42,7 +42,7 @@ export default async function handler(req, res) {
 
   const { image, brand, fabric, gender, department, garment_type, mode } = body;
   if (!image) return res.status(400).json({ error: "missing image" });
-  // mode=universal → Path 2: 只跑 Pass 1 (L1)，前端走 v4_lookup_index 查表,不需 L2。
+  // mode=universal → Path 2: 只跑 Pass 1 (L1)，前端用 iso_lookup_factory_v4.2 + v4 雙表查 ISO，不需 L2。
   const skipPass2 = mode === "universal";
 
   const m = image.match(/^data:image\/(\w+);base64,(.+)$/);

@@ -41,28 +41,25 @@ pom_rules/*.json                              ← POM 規則(12,038 全量 v6.0,
 pom_rules_v55_classification_logic.md         ← v5.5.1 分類邏輯完整文件（團隊參考）
 pom_rules_pipeline_guide.md                   ← pom_rules 產線操作指南(run/rebuild/驗證)
 General Model_Path2_Construction Suggestion/  ← 通用模型 Path 2 資料
-  ├─ iso_lookup_factory_v3.json               ← v3 四維查表：Fabric × GT × IT × L1(舊,已不使用)
   ├─ iso_lookup_factory_v4.json               ← v4 查表(Fabric × Dept × GT × L1_code)— 前端 fallback,提供 iso_zh/機種
-  ├─ iso_lookup_factory_v4.1.json             ← v4.1:加入 Gender,但 ISO 仍為 document-level broadcast(信心偏低,備用)
   ├─ iso_lookup_factory_v4.2.json             ← v4.2(primary):Department × Gender × GT × L1_name,zone-specific parsing(信心最高)
-  ├─ v4_lookup_index.json                     ← v4 索引(同 l1_code 多筆會挑錯,前端改讀 entries)
   ├─ full_analysis_20260420.json              ← 14,225 JSONL + 928 PPTX 全量分析報告
-  ├─ l1_code_to_v3_mapping.json               ← L1 code ↔ v3 部位名對照
   ├─ L1_部位定義_Sketch視覺指引.md               ← VLM Pass 1 system prompt 資料來源
   ├─ PATH2_通用模型_做工推薦Pipeline.md          ← Pipeline 總說明書
-  └─ woven_*.json                              ← Woven 原始資料 + ISO 推論
+  ├─ knit_pptx_construction_context.json      ← 47 款 Knit PPTX(2026/5)zone 做工紀錄(regen 備用)
+  └─ woven_*.json                              ← Woven 原始資料 + ISO 推論(v4 woven 側來源)
 ```
 
 ### ISO 查表版本演進
 
 | 版本 | Key | Entries | 特性 | 使用狀態 |
 |---|---|---|---|---|
-| v3 | Fabric × GT × IT × L1 | 282 | 無 Gender;含 iso_zh/machine | 棄用 |
 | v4 | Fabric × Department × GT × L1_code | 282 | 無 Gender;GT/IT 對齊 pom_rules v5.5;含 iso_zh/machine/votes | **fallback** |
-| v4.1 | Fabric × Department × Gender × GT × L1 | 206 | document-level ISO broadcast → 信心偏低(0 strong, 36 likely) | 備用,未使用 |
 | v4.2 | Department × Gender × GT × L1 | 63 | zone-specific parsing(從 PPTX 按部位抽 ISO) → 信心最高(7 strong, 19 likely, 235 designs) | **primary** |
 
 v4.2 的 key 拿掉 Fabric 維度(ONY 資料幾乎全是 knit)並僅覆蓋 5 個 L1(腰頭/褲口/褲合身/口袋/繩類),其他 L1 由 v4 fallback 補齊。前端 `isoOptionsFor(v42, v4, filters, l1Code)` 先試 v4.2(性別差異),查無對應則退 v4;v4 的 iso_zh/machine 表順便用在 v4.2 的 ISO 顯示。
+
+v4.2 目前 GT 聚合到粗桶(`BOTTOM`/`TOP`/…),前端用 `V42_{DEPT,GENDER,GT}_ALIAS` 把 UI 的細 GT 翻譯進去。下次 regen 若 join `data/all_designs_gt_it_classification.json` 取細 GT,alias 就可以拿掉。歷史版本(v3 / v4.1 / v4_lookup_index)已於 2026-04-20 移除。
 
 ## 資料管線 (`scripts/`)
 
