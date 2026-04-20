@@ -13,12 +13,6 @@
       outline: 2px solid #065f46;
       outline-offset: 2px;
     }
-    /* Design tokens（文件用；inline style 若要使用可寫 color: "var(--text-muted)"）
-       Text: #1a1a1a 主要 / #525252 強調次要 / #767676 次要 / #999 弱 / #bbb 微弱
-       Border: #e8e5e1 主 / #eee 次 / #ddd 分隔線
-       Bg hover: #faf9f7 溫灰
-       Radius: 4px 小 chip / 6px input / 8px button / 10px card / 999px pill
-       Accent: #065f46 綠（完成、locked） */
   </style>
 </head>
 <body>
@@ -675,7 +669,7 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
             width: "30px", height: "30px", borderRadius: "8px",
             background: isOpen ? col : "#fff",
             color: isOpen ? "#fff" : "#767676",
-            border: isOpen ? "none" : "1.5px solid #e5e5e5",
+            border: isOpen ? "none" : "1.5px solid #eee",
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: "14px", fontWeight: 800, flexShrink: 0,
             marginTop: "1px", transition: "all 0.15s"
@@ -758,15 +752,26 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
                 <div style={{ marginTop: "8px", maxHeight: "280px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "4px" }}>
                   {card.l2Variants.map((v, idx) => {
                     const active = idx === (card.l2Idx ?? 0);
-                    const isAiPick = card.ai_l2_code && v.code === card.ai_l2_code && !!card.ai_l2_explanation;
+                    const isAiPick = card.ai_l2_code && v.code === card.ai_l2_code;
                     let aiCue = null;
                     if (isAiPick) {
-                      const raw = card.ai_l2_explanation.trim();
-                      if (/^guess:/i.test(raw)) {
-                        aiCue = { icon: "⚠", text: "AI 未鎖定線索", color: "#b45309" };
-                      } else {
-                        const body = raw.replace(/^matched:\s*/i, "");
-                        aiCue = { icon: "★", text: `AI 命中：${body}`, color: "#15803d" };
+                      // needs_text takes priority: AI explicitly admits it can't decide from sketch.
+                      if (card.ai_l2_needs_text && card.ai_l2_merged_candidates?.length > 0) {
+                        const cands = card.ai_l2_merged_candidates
+                          .map(c => {
+                            const mv = card.l2Variants?.find(x => x.code === c);
+                            return mv ? `${c} ${mv.display_name}` : c;
+                          })
+                          .join("、");
+                        aiCue = { icon: "⚠", text: `需 callout 文字判定 · 候選：${cands}`, color: "#b45309" };
+                      } else if (card.ai_l2_explanation) {
+                        const raw = card.ai_l2_explanation.trim();
+                        if (/^guess:/i.test(raw)) {
+                          aiCue = { icon: "⚠", text: "AI 未鎖定線索", color: "#b45309" };
+                        } else {
+                          const body = raw.replace(/^matched:\s*/i, "");
+                          aiCue = { icon: "★", text: `AI 命中：${body}`, color: "#15803d" };
+                        }
                       }
                     }
                     return (
@@ -1266,14 +1271,11 @@ function AdminModal({
   pomNamesOverride, onUploadPomNames, onClearPomNames,
   pomRulesOverride, onUploadPomRules, onClearPomRules, currentBucketKey,
   partPresenceOverride, onUploadPartPresence, onClearPartPresence,
-  pomRulesOverride, onUploadPomRules, onClearPomRules, onPushToGithub, currentBucketKey,
+  onPushToGithub,
 }) {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-  const [uploading, setUploading] = useState(null); // null | 'pom' | 'presence'
-  const [rulesError, setRulesError] = useState(null);
-  const [rulesSuccess, setRulesSuccess] = useState(null);
-  const [rulesUploading, setRulesUploading] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const handleFile = async (file) => {
     if (!file) return;
@@ -1376,17 +1378,13 @@ function AdminModal({
                 onChange={e => { handleFile(e.target.files?.[0]); e.target.value = ''; }} />
             </label>
             {pomNamesOverride && (
-              <button onClick={confirmingClear ? doClear : armClear}
-                aria-label={confirmingClear ? "再點一次確認清除覆蓋" : "清除覆蓋並還原內建翻譯表"}
+              <button onClick={() => { onClearPomNames(); setSuccess(null); setError(null); }}
                 style={{
                   padding: '8px 16px',
-                  background: confirmingClear ? '#dc2626' : '#fff',
-                  border: `1px solid ${confirmingClear ? '#dc2626' : '#e8e5e1'}`,
-                  borderRadius: '6px',
-                  cursor: 'pointer', fontSize: '12px', fontWeight: 600,
-                  color: confirmingClear ? '#fff' : '#dc2626',
-                  fontFamily: 'inherit', transition: 'background 0.15s, color 0.15s, border-color 0.15s',
-                }}>{confirmingClear ? '再點一次確認清除' : '清除覆蓋 · 還原內建'}</button>
+                  background: '#fff', border: '1px solid #e8e5e1', borderRadius: '6px',
+                  cursor: 'pointer', fontSize: '12px', fontWeight: 600, color: '#dc2626',
+                  fontFamily: 'inherit',
+                }}>清除覆蓋 · 還原內建</button>
             )}
           </div>
         </div>
@@ -1663,29 +1661,9 @@ function App() {
     try {
       const locks = JSON.parse(localStorage.getItem("stytrix_locks") || "{}");
       const values = JSON.parse(localStorage.getItem("stytrix_values") || "{}");
-      // 用可同步判斷的選項驗證 stale value；it 之後等 pomRules 載入再驗
-      const validators = {
-        brand: v => BRANDS.some(b => b.code === v),
-        fabric: v => v === "Woven" || v === "Knit",
-        gender: v => GENDER_OPTIONS.some(g => g.value === v),
-        dept: v => DEPT_OPTIONS.includes(v),
-        gt: v => GT_OPTIONS.includes(v),
-      };
       const restored = {};
-      const validLocks = { ...locks };
-      Object.keys(locks).forEach(k => {
-        if (!locks[k]) return;
-        const v = values[k];
-        if (!v) return;
-        const check = validators[k];
-        if (check && !check(v)) {
-          // stale 值：清掉 lock 與 value
-          delete validLocks[k];
-          return;
-        }
-        restored[k] = v;
-      });
-      return { locks: validLocks, values: restored };
+      Object.keys(locks).forEach(k => { if (locks[k] && values[k]) restored[k] = values[k]; });
+      return { locks, values: restored };
     } catch { return { locks: {}, values: {} }; }
   };
   const _saved = loadSaved();
@@ -1723,37 +1701,11 @@ function App() {
   // shape: { index: {filename, uploadedAt, count} | null, buckets: { [bucketKey]: {filename, uploadedAt, count} } }
   const [pomRulesOverride, setPomRulesOverride] = useState({ index: null, buckets: {} });
   const [adminOpen, setAdminOpen] = useState(false);
-  const [fetchErrors, setFetchErrors] = useState([]); // [{key, label, retry}]
-  const addFetchError = (key, label, retry) => {
-    setFetchErrors(prev => prev.some(e => e.key === key) ? prev : [...prev, { key, label, retry }]);
-  };
-  const clearFetchError = (key) => {
-    setFetchErrors(prev => prev.filter(e => e.key !== key));
-  };
-
-  const loadPomIndex = () => {
-    clearFetchError('pom_rules');
+  useEffect(() => {
     fetch('./pom_rules/_index.json')
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(data => { setPomRules(data); window.POM_RULES = data; })
-      .catch(err => {
-        console.error('載入 pom_rules/_index.json 失敗:', err);
-        addFetchError('pom_rules', '基礎 POM 規則表', loadPomIndex);
-      });
-  };
-  const loadPomNames = () => {
-    clearFetchError('pom_names');
-    fetch('./pom_rules/pom_names.json')
-      .then(r => r.ok ? r.json() : Promise.reject(r.status))
-      .then(data => { setPomNames(data); window.POM_NAMES = data; })
-      .catch(err => {
-        console.error('載入 pom_rules/pom_names.json 失敗:', err);
-        addFetchError('pom_names', 'POM 名稱翻譯表', loadPomNames);
-      });
-  };
-
-  useEffect(() => {
-    loadPomIndex();
+      .catch(err => console.error('載入 pom_rules/_index.json 失敗:', err));
     // POM 翻譯表：先看 localStorage 覆蓋，沒有才抓內建
     let usedOverride = false;
     try {
@@ -1772,7 +1724,12 @@ function App() {
         }
       }
     } catch (e) { console.warn('讀取 pomNames 覆蓋失敗:', e); }
-    if (!usedOverride) loadPomNames();
+    if (!usedOverride) {
+      fetch('./pom_rules/pom_names.json')
+        .then(r => r.ok ? r.json() : Promise.reject(r.status))
+        .then(data => { setPomNames(data); window.POM_NAMES = data; })
+        .catch(err => console.error('載入 pom_rules/pom_names.json 失敗:', err));
+    }
   }, []);
 
   /* ── Admin override handlers ── */
@@ -2085,20 +2042,12 @@ function App() {
       }
     } catch (e) { console.warn('讀取 bucket 覆蓋失敗:', e); }
     if (!bucketMeta) { setCurrentBucket(null); return; }
-    const load = () => {
-      clearFetchError('bucket');
-      setBucketLoading(true);
-      fetch(`./pom_rules/${bucketMeta.file}`)
-        .then(r => r.ok ? r.json() : Promise.reject(r.status))
-        .then(data => { setCurrentBucket(data); window.CURRENT_BUCKET = data; })
-        .catch(err => {
-          console.error('載入 bucket 失敗:', err);
-          setCurrentBucket(null);
-          addFetchError('bucket', `${bucketMeta.file}（基碼表）`, load);
-        })
-        .finally(() => setBucketLoading(false));
-    };
-    load();
+    setBucketLoading(true);
+    fetch(`./pom_rules/${bucketMeta.file}`)
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(data => { setCurrentBucket(data); window.CURRENT_BUCKET = data; })
+      .catch(err => { console.error('載入 bucket 失敗:', err); setCurrentBucket(null); })
+      .finally(() => setBucketLoading(false));
   }, [bucketMeta]);
   const handleSketchUpload = (e) => {
     const file = e.target.files?.[0];
@@ -2122,7 +2071,8 @@ function App() {
   const [cStage, setCStage] = useState(0);
   const [removed, setRemoved] = useState(new Set());
   const [openId, setOpenId] = useState(null);
-  const [addonOn, setAddonOn] = useState(true);
+  // 品牌套組（商標 Labels）AI 無法從 sketch 判定是否需要，預設不勾，由使用者自行加上
+  const [addonOn, setAddonOn] = useState(false);
   const [hintDismissed, setHintDismissed] = useState(() => {
     try { return localStorage.getItem("stytrix.hint.card.dismissed") === "1"; } catch { return false; }
   });
@@ -2151,35 +2101,31 @@ function App() {
   const [partPresence, setPartPresence] = useState(null);
   const [visualGuide, setVisualGuide] = useState(null);
   const [analyzeErr, setAnalyzeErr] = useState(null);
+  // { model, pass1: {input, output, cache_read, cache_write}, pass2: {...}, cost_est } | null
+  const [analyzeUsage, setAnalyzeUsage] = useState(null);
 
   // 大 JSON 懶載：只在用戶上傳 sketch 後才抓。首屏省 ~900KB，
   // 純用尺寸表的流程完全不下載這三個檔。
-  const loadIsoRec = () => {
-    clearFetchError('iso_rec');
-    fetch('./l1_iso_recommendations_v1.json')
-      .then(r => r.ok ? r.json() : Promise.reject(r.status))
-      .then(setIsoRec)
-      .catch(err => { console.error('載入 l1_iso_recommendations 失敗:', err); addFetchError('iso_rec', 'ISO 推薦表', loadIsoRec); });
-  };
-  const loadPartPresence = () => {
-    clearFetchError('part_presence');
-    fetch('./l1_part_presence_v1.json')
-      .then(r => r.ok ? r.json() : Promise.reject(r.status))
-      .then(setPartPresence)
-      .catch(err => { console.error('載入 l1_part_presence 失敗:', err); addFetchError('part_presence', '部位存在檢查表', loadPartPresence); });
-  };
-  const loadVisualGuide = () => {
-    clearFetchError('visual_guide');
-    fetch('./data/l2_visual_guide.json')
-      .then(r => r.ok ? r.json() : Promise.reject(r.status))
-      .then(setVisualGuide)
-      .catch(err => { console.error('載入 l2_visual_guide 失敗:', err); addFetchError('visual_guide', 'L2 視覺指引', loadVisualGuide); });
-  };
   useEffect(() => {
     if (!sketchSrc) return;
-    if (!isoRec) loadIsoRec();
-    if (!partPresence) loadPartPresence();
-    if (!visualGuide) loadVisualGuide();
+    if (!isoRec) {
+      fetch('./l1_iso_recommendations_v1.json')
+        .then(r => r.ok ? r.json() : Promise.reject(r.status))
+        .then(setIsoRec)
+        .catch(err => console.error('載入 l1_iso_recommendations 失敗:', err));
+    }
+    if (!partPresence) {
+      fetch('./l1_part_presence_v1.json')
+        .then(r => r.ok ? r.json() : Promise.reject(r.status))
+        .then(setPartPresence)
+        .catch(err => console.error('載入 l1_part_presence 失敗:', err));
+    }
+    if (!visualGuide) {
+      fetch('./data/l2_visual_guide.json')
+        .then(r => r.ok ? r.json() : Promise.reject(r.status))
+        .then(setVisualGuide)
+        .catch(err => console.error('載入 l2_visual_guide 失敗:', err));
+    }
   }, [sketchSrc]);
 
   /* ── 尺寸表 tab state ── */
@@ -2333,7 +2279,8 @@ function App() {
       setIt("");
       setLocks(prev => prev.it ? { ...prev, it: false } : prev);
     }
-  }, [it, gt, curItOptions]);
+    return map;
+  }, [gt]);
 
   const ptCount = useMemo(() => {
     let p = 0, t = 0;
@@ -2448,8 +2395,8 @@ function App() {
 
   const runConstruction = async () => {
     setCStep(1); setCAnalyzing(true); setCStage(0);
-    setRemoved(new Set()); setOpenId(null); setAddonOn(true);
-    setCards([]); setAnalyzeErr(null);
+    setRemoved(new Set()); setOpenId(null);
+    setCards([]); setAnalyzeErr(null); setAnalyzeUsage(null);
     const si = setInterval(() => setCStage(s => s < 5 ? s + 1 : s), 280);
     try {
       const resp = await fetch('/api/analyze', {
@@ -2462,6 +2409,26 @@ function App() {
       });
       const data = await resp.json();
       if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+      // Capture Claude usage stats for display; shape per-pass:
+      //   { input_tokens, output_tokens, cache_creation_input_tokens, cache_read_input_tokens }
+      // Sonnet 4.6 rough pricing (USD/M tokens): input $3, output $15, cache_read $0.30, cache_write $3.75
+      const PRICE = { input: 3, output: 15, cache_read: 0.30, cache_write: 3.75 };
+      const centsFor = (u) => {
+        if (!u) return 0;
+        const i = u.input_tokens || 0;
+        const o = u.output_tokens || 0;
+        const cr = u.cache_read_input_tokens || 0;
+        const cw = u.cache_creation_input_tokens || 0;
+        return ((i * PRICE.input + o * PRICE.output + cr * PRICE.cache_read + cw * PRICE.cache_write) / 1e6) * 100;
+      };
+      const usageSummary = {
+        model: data.model || null,
+        pass1: data.usage_l1 || null,
+        pass2: data.usage_l2 || null,
+        cents_est: +(centsFor(data.usage_l1) + centsFor(data.usage_l2)).toFixed(3),
+      };
+      console.log('[analyze] usage:', usageSummary);
+      setAnalyzeUsage(usageSummary);
       // Deduplicate AI detections by L1 code (front + back views collapse into one).
       const raw = Array.isArray(data.detected) ? data.detected : [];
       const byCode = new Map();
@@ -2678,6 +2645,8 @@ function App() {
           ai_l2_code: d.l2_code || null,
           ai_l2_confidence: Number.isFinite(d.l2_confidence) ? d.l2_confidence : null,
           ai_l2_explanation: typeof d.l2_explanation === "string" ? d.l2_explanation : null,
+          ai_l2_needs_text: !!d.l2_needs_text,
+          ai_l2_merged_candidates: Array.isArray(d.l2_merged_candidates) ? d.l2_merged_candidates : [],
           l3s: stepList
         };
       });
@@ -2753,27 +2722,6 @@ function App() {
           })()}
         </div>
       </div>
-
-      {fetchErrors.length > 0 && (
-        <div role="alert" aria-live="polite" style={{
-          position: "sticky", top: 0, zIndex: 80,
-          background: "#fef2f2", borderBottom: "1px solid #fecaca",
-          padding: isMobile ? "8px 14px" : "10px 28px",
-          display: "flex", flexDirection: isMobile ? "column" : "row",
-          alignItems: isMobile ? "stretch" : "center", gap: "8px",
-          fontSize: "12px", color: "#991b1b", fontFamily: "inherit",
-        }}>
-          <span style={{ fontWeight: 600 }}>⚠ 資料載入失敗：</span>
-          <span style={{ flex: 1 }}>{fetchErrors.map(e => e.label).join("、")}。部分功能可能不可用。</span>
-          <button onClick={() => fetchErrors.forEach(e => e.retry && e.retry())}
-            style={{
-              padding: "4px 12px", background: "#fff", color: "#b91c1c",
-              border: "1px solid #fca5a5", borderRadius: "6px",
-              fontSize: "11px", fontWeight: 600, cursor: "pointer",
-              fontFamily: "inherit", whiteSpace: "nowrap",
-            }}>重試</button>
-        </div>
-      )}
 
       <div style={{ maxWidth: "1280px", margin: "0 auto", padding: isMobile ? "14px 14px" : "24px 28px" }}>
         {/* ─── Filter (v10: flush underline selects) ─── */}
@@ -3008,6 +2956,29 @@ function App() {
               )}
               {cDone && (
                 <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  {analyzeUsage && (() => {
+                    const p1In = analyzeUsage.pass1?.input_tokens || 0;
+                    const p1Out = analyzeUsage.pass1?.output_tokens || 0;
+                    const p1Cache = analyzeUsage.pass1?.cache_read_input_tokens || 0;
+                    const p2In = analyzeUsage.pass2?.input_tokens || 0;
+                    const p2Out = analyzeUsage.pass2?.output_tokens || 0;
+                    const p2Cache = analyzeUsage.pass2?.cache_read_input_tokens || 0;
+                    const fmtK = (n) => n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n);
+                    const title =
+                      `Model: ${analyzeUsage.model || '?'}\n` +
+                      `Pass 1 (L1): ${p1In} in (cache read ${p1Cache}) / ${p1Out} out\n` +
+                      `Pass 2 (L2): ${p2In} in (cache read ${p2Cache}) / ${p2Out} out\n` +
+                      `預估成本: ≈ ${analyzeUsage.cents_est.toFixed(2)}¢ USD`;
+                    return (
+                      <div title={title} style={{
+                        textAlign: "right", fontSize: "10px", color: "#999", fontFamily: "'JetBrains Mono',monospace",
+                        lineHeight: 1.3, cursor: "help", userSelect: "none",
+                      }}>
+                        <div>{fmtK(p1In + p2In)} in · {fmtK(p1Out + p2Out)} out</div>
+                        <div style={{ color: "#059669" }}>≈{analyzeUsage.cents_est.toFixed(2)}¢</div>
+                      </div>
+                    );
+                  })()}
                   <div style={{ textAlign: "right" }}>
                     <div style={{ fontSize: "10px", color: "#999" }}>Sewing 秒</div>
                     <div style={{ fontSize: "18px", color: "#065f46", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{Math.round(totalIE)}</div>
@@ -3501,8 +3472,7 @@ function App() {
                     <div style={{ fontSize: isMobile ? "14px" : "15px", fontWeight: 700, color: "#1a1a1a", marginTop: "4px", marginBottom: "8px" }}>
                       基碼 <span style={{ fontSize: isMobile ? "12px" : "13px", color: "#888", fontWeight: 400 }}>M size 基本尺寸 · 勾選要納入的 POM，並可手動調整尺寸</span>
                     </div>
-                    <div style={{ position: "relative", marginBottom: "12px" }}>
-                    <div className="stytrix-scroll-x" style={{ background: "#fff", border: "1px solid #e8e5e1", borderRadius: "10px", overflowX: "auto", overflowY: "visible", WebkitOverflowScrolling: "touch" }}>
+                    <div style={{ background: "#fff", border: "1px solid #e8e5e1", borderRadius: "10px", overflow: "auto", marginBottom: "12px" }}>
                       <table style={{ width: "100%", minWidth: isMobile ? "680px" : "auto", borderCollapse: "collapse", fontSize: "14px" }}>
                         <thead>
                           <tr style={{ background: "#faf9f7", borderBottom: "1.5px solid #e8e5e1" }}>
@@ -3613,15 +3583,6 @@ function App() {
                           })}
                         </tbody>
                       </table>
-                    </div>
-                    {isMobile && (
-                      <div aria-hidden="true" style={{
-                        position: "absolute", top: 0, right: 0, bottom: 0,
-                        width: "28px", pointerEvents: "none",
-                        background: "linear-gradient(to left, rgba(255,255,255,0.95), rgba(255,255,255,0))",
-                        borderTopRightRadius: "10px", borderBottomRightRadius: "10px",
-                      }} />
-                    )}
                     </div>
 
                   {/* 底部狀態列 — 只顯示狀態資訊,切頁用上方 tabs */}
