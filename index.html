@@ -2138,54 +2138,51 @@ function App() {
               </div>
             );
           }
+          const keys = ["brand", "fabric", "gender", "dept", "gt", "it"];
+          const anyLocked = keys.some(k => locks[k]);
           return (
             <div style={{
-              display: "grid",
-              gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(6, 1fr)",
-              gap: isMobile ? "12px 14px" : "20px",
-              alignItems: "start",
               marginBottom: isMobile ? "18px" : "28px",
               paddingBottom: isMobile ? "14px" : "24px",
               borderBottom: "1px solid #eee",
-              position: "relative",
             }}>
               <div style={{
-                position: "absolute", top: "-4px", right: 0,
-                display: "flex", gap: "6px",
+                display: "flex", justifyContent: "flex-end",
+                gap: "6px", marginBottom: isMobile ? "10px" : "12px",
               }}>
-                {(() => {
-                  const keys = ["brand", "fabric", "gender", "dept", "gt", "it"];
-                  const anyLocked = keys.some(k => locks[k]);
-                  return (
-                    <button onClick={toggleAllLocks}
-                      aria-label={anyLocked ? "全部解鎖" : "全部鎖住"}
-                      title={anyLocked ? "全部解鎖" : "鎖住全部（refresh 不重設）"}
-                      style={{
-                        fontSize: "11px", padding: "2px 8px",
-                        background: "#fff",
-                        color: anyLocked ? "#065f46" : "#767676",
-                        border: `1px solid ${anyLocked ? "#a7f3d0" : "#e8e5e1"}`,
-                        borderRadius: "6px",
-                        cursor: "pointer", fontWeight: 600, fontFamily: "inherit",
-                        display: "inline-flex", alignItems: "center", gap: "4px",
-                      }}>
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                        {anyLocked ? <path d="M7 11V7a5 5 0 0 1 10 0v4"/> : <path d="M7 11V7a5 5 0 0 1 9.9-1"/>}
-                      </svg>
-                      {anyLocked ? "全解" : "全鎖"}
-                    </button>
-                  );
-                })()}
+                <button onClick={toggleAllLocks}
+                  aria-label={anyLocked ? "全部解鎖" : "全部鎖住"}
+                  title={anyLocked ? "全部解鎖" : "鎖住全部（refresh 不重設）"}
+                  style={{
+                    fontSize: "11px", padding: "3px 10px",
+                    background: "#fff",
+                    color: anyLocked ? "#065f46" : "#767676",
+                    border: `1px solid ${anyLocked ? "#a7f3d0" : "#e8e5e1"}`,
+                    borderRadius: "6px",
+                    cursor: "pointer", fontWeight: 600, fontFamily: "inherit",
+                    display: "inline-flex", alignItems: "center", gap: "5px",
+                  }}>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                    {anyLocked ? <path d="M7 11V7a5 5 0 0 1 10 0v4"/> : <path d="M7 11V7a5 5 0 0 1 9.9-1"/>}
+                  </svg>
+                  {anyLocked ? "全部解鎖" : "全部鎖住"}
+                </button>
                 {isMobile && selectedFilters.length >= 2 && (
                   <button onClick={() => setFilterExpanded(false)} aria-label="收合 filter" style={{
-                    fontSize: "11px", padding: "2px 8px",
+                    fontSize: "11px", padding: "3px 10px",
                     background: "#fff", color: "#767676",
                     border: "1px solid #e8e5e1", borderRadius: "6px",
                     cursor: "pointer", fontWeight: 600, fontFamily: "inherit",
                   }}>收合</button>
                 )}
               </div>
+              <div style={{
+                display: "grid",
+                gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(6, 1fr)",
+                gap: isMobile ? "12px 14px" : "20px",
+                alignItems: "start",
+              }}>
               <Sel label="Brand" value={brand} onChange={setBrand}
                 options={BRANDS.map(b => b.code)} badgeMap={brandBadgeMap}
                 locked={!!locks.brand} onToggleLock={() => toggleLock("brand")} />
@@ -2211,6 +2208,7 @@ function App() {
                 options={curItOptions}
                 disabled={curItOptions.length === 0}
                 locked={!!locks.it} onToggleLock={() => toggleLock("it")} />
+              </div>
             </div>
           );
         })()}
