@@ -1,12 +1,11 @@
 {
   "_meta": {
-    "version": "5.4",
+    "version": "5.2",
     "source": "943 designs x mc_pom_2024/2025/2026",
     "date": "2026-04-17",
     "departments": [
       "Active",
       "Fleece",
-      "Maternity",
       "RTW",
       "Sleepwear",
       "Swimwear"
@@ -39,13 +38,12 @@
         "N9"
       ],
       "combined_gts": [
-        "ROMPER_JUMPSUIT",
         "SET",
+        "ROMPER_JUMPSUIT",
         "BODYSUIT"
       ],
       "rule": "Tier 1 POMs forced to must tier regardless of hit rate"
-    },
-    "changelog_v54": "MATERNITY as independent gender. TODDLER renamed to BABY/TODDLER. FUNZONE stays UNKNOWN. Canonical zone sort order."
+    }
   },
   "buckets": [
     {
@@ -192,10 +190,10 @@
       "size_kb": 27.0
     },
     {
-      "bucket": "Maternity_LEGGINGS|MATERNITY",
-      "file": "maternity_maternity_leggings.json",
+      "bucket": "RTW_LEGGINGS|MATERNITY",
+      "file": "maternity_rtw_leggings.json",
       "n": 16,
-      "department": "Maternity",
+      "department": "RTW",
       "garment_type": "LEGGINGS",
       "gender": "MATERNITY",
       "pom_count": 40,
@@ -258,17 +256,6 @@
       "size_kb": 17.1
     },
     {
-      "bucket": "Maternity_TOP|MATERNITY",
-      "file": "maternity_maternity_top.json",
-      "n": 13,
-      "department": "Maternity",
-      "garment_type": "TOP",
-      "gender": "MATERNITY",
-      "pom_count": 78,
-      "must_count": 4,
-      "size_kb": 26.9
-    },
-    {
       "bucket": "Active_TOP|GIRLS",
       "file": "girls_active_top.json",
       "n": 13,
@@ -289,6 +276,17 @@
       "pom_count": 58,
       "must_count": 11,
       "size_kb": 21.6
+    },
+    {
+      "bucket": "RTW_TOP|MATERNITY",
+      "file": "maternity_rtw_top.json",
+      "n": 11,
+      "department": "RTW",
+      "garment_type": "TOP",
+      "gender": "MATERNITY",
+      "pom_count": 59,
+      "must_count": 9,
+      "size_kb": 22.7
     },
     {
       "bucket": "Sleepwear_SET|BABY/TODDLER",
@@ -544,17 +542,6 @@
       "size_kb": 16.7
     },
     {
-      "bucket": "Maternity_ROMPER_JUMPSUIT|MATERNITY",
-      "file": "maternity_maternity_romper_jumpsuit.json",
-      "n": 6,
-      "department": "Maternity",
-      "garment_type": "ROMPER_JUMPSUIT",
-      "gender": "MATERNITY",
-      "pom_count": 63,
-      "must_count": 3,
-      "size_kb": 21.7
-    },
-    {
       "bucket": "Active_ROMPER_JUMPSUIT|WOMENS",
       "file": "womens_active_romper_jumpsuit.json",
       "n": 6,
@@ -577,6 +564,17 @@
       "size_kb": 26.7
     },
     {
+      "bucket": "RTW_ROMPER_JUMPSUIT|MATERNITY",
+      "file": "maternity_rtw_romper_jumpsuit.json",
+      "n": 5,
+      "department": "RTW",
+      "garment_type": "ROMPER_JUMPSUIT",
+      "gender": "MATERNITY",
+      "pom_count": 49,
+      "must_count": 9,
+      "size_kb": 18.2
+    },
+    {
       "bucket": "RTW_PANTS|MENS",
       "file": "mens_rtw_pants.json",
       "n": 5,
@@ -588,10 +586,10 @@
       "size_kb": 18.3
     },
     {
-      "bucket": "Maternity_SHORTS|MATERNITY",
-      "file": "maternity_maternity_shorts.json",
+      "bucket": "RTW_SHORTS|MATERNITY",
+      "file": "maternity_rtw_shorts.json",
       "n": 5,
-      "department": "Maternity",
+      "department": "RTW",
       "garment_type": "SHORTS",
       "gender": "MATERNITY",
       "pom_count": 30,
@@ -599,10 +597,10 @@
       "size_kb": 11.6
     },
     {
-      "bucket": "Maternity_DRESS|MATERNITY",
-      "file": "maternity_maternity_dress.json",
+      "bucket": "RTW_DRESS|MATERNITY",
+      "file": "maternity_rtw_dress.json",
       "n": 5,
-      "department": "Maternity",
+      "department": "RTW",
       "garment_type": "DRESS",
       "gender": "MATERNITY",
       "pom_count": 70,
@@ -753,17 +751,6 @@
       "size_kb": 10.4
     },
     {
-      "bucket": "Maternity_PANTS|MATERNITY",
-      "file": "maternity_maternity_pants.json",
-      "n": 4,
-      "department": "Maternity",
-      "garment_type": "PANTS",
-      "gender": "MATERNITY",
-      "pom_count": 22,
-      "must_count": 13,
-      "size_kb": 10.9
-    },
-    {
       "bucket": "Fleece_SHORTS|WOMENS",
       "file": "womens_fleece_shorts.json",
       "n": 4,
@@ -808,17 +795,6 @@
       "size_kb": 9.1
     },
     {
-      "bucket": "Maternity_OUTERWEAR|MATERNITY",
-      "file": "maternity_maternity_outerwear.json",
-      "n": 3,
-      "department": "Maternity",
-      "garment_type": "OUTERWEAR",
-      "gender": "MATERNITY",
-      "pom_count": 44,
-      "must_count": 5,
-      "size_kb": 16.3
-    },
-    {
       "bucket": "Fleece_PANTS|WOMENS",
       "file": "womens_fleece_pants.json",
       "n": 3,
@@ -828,6 +804,17 @@
       "pom_count": 29,
       "must_count": 12,
       "size_kb": 13.1
+    },
+    {
+      "bucket": "RTW_PANTS|MATERNITY",
+      "file": "maternity_rtw_pants.json",
+      "n": 3,
+      "department": "RTW",
+      "garment_type": "PANTS",
+      "gender": "MATERNITY",
+      "pom_count": 22,
+      "must_count": 11,
+      "size_kb": 10.2
     },
     {
       "bucket": "Sleepwear_DRESS|BABY/TODDLER",
