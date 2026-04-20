@@ -226,10 +226,11 @@ Rules:
 }
 
 // Production-tunable knob.
-//   claude-opus-4-7   — ~76% L2 accuracy, 預設可用（所有 workspace key 都能跑）
-//   claude-sonnet-4-6 — ~5× 便宜，但需要 workspace 啟用 Sonnet 4.6 access；
-//                       未開通會回 403 (permission denied，不是 credit 用盡)。
-const CLAUDE_MODEL = "claude-opus-4-7";
+//   claude-opus-4-7             — ~76% L2 accuracy（最準，成本最高）
+//   claude-sonnet-4-6           — ~5× 便宜，Workbench 可選；此 key 若 403 會在 UI
+//                                  顯示 Anthropic 原始錯誤訊息，可據以排查
+//   claude-haiku-4-5-20251001   — ~15× 便宜，最寬鬆（準確率較低）
+const CLAUDE_MODEL = "claude-sonnet-4-6";
 
 // system + image + user text: system holds the stable, cache-hittable prompt block;
 // user holds image + per-call varying context. Image gets ephemeral cache too so
