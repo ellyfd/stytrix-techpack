@@ -1192,21 +1192,38 @@ function fmtTime(iso) {
   } catch { return iso; }
 }
 
-function AdminModal({ open, onClose, pomNamesOverride, onUploadPomNames, onClearPomNames }) {
+function AdminModal({
+  open, onClose,
+  pomNamesOverride, onUploadPomNames, onClearPomNames,
+  partPresenceOverride, onUploadPartPresence, onClearPartPresence,
+}) {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-  const [uploading, setUploading] = useState(false);
+  const [uploading, setUploading] = useState(null); // null | 'pom' | 'presence'
 
   const handleFile = async (file) => {
     if (!file) return;
-    setError(null); setSuccess(null); setUploading(true);
+    setError(null); setSuccess(null); setUploading('pom');
     try {
       const result = await onUploadPomNames(file);
-      setSuccess(`已套用 ${result.count} 個 POM 代碼${result.invalidCount > 0 ? `（跳過 ${result.invalidCount} 個無效）` : ''}`);
+      setSuccess(`POM 翻譯表：已套用 ${result.count} 個代碼${result.invalidCount > 0 ? `（跳過 ${result.invalidCount} 個無效）` : ''}`);
     } catch (e) {
-      setError(typeof e === 'string' ? e : (e?.message || String(e)));
+      setError('POM 翻譯表：' + (typeof e === 'string' ? e : (e?.message || String(e))));
     } finally {
-      setUploading(false);
+      setUploading(null);
+    }
+  };
+
+  const handlePartPresenceFile = async (file) => {
+    if (!file) return;
+    setError(null); setSuccess(null); setUploading('presence');
+    try {
+      const result = await onUploadPartPresence(file);
+      setSuccess(`部位出現率表：已套用 ${result.bucketsCount} 組分類 · ${result.partsCount} 筆部位紀錄${result.badParts > 0 ? `（跳過 ${result.badParts} 筆缺欄位）` : ''}`);
+    } catch (e) {
+      setError('部位出現率表：' + (typeof e === 'string' ? e : (e?.message || String(e))));
+    } finally {
+      setUploading(null);
     }
   };
 
@@ -1260,8 +1277,8 @@ function AdminModal({ open, onClose, pomNamesOverride, onUploadPomNames, onClear
               cursor: uploading ? 'not-allowed' : 'pointer',
               fontSize: '12px', fontWeight: 600,
             }}>
-              {uploading ? '處理中…' : '選擇 JSON 檔'}
-              <input type="file" accept=".json,application/json" hidden disabled={uploading}
+              {uploading === 'pom' ? '處理中…' : '選擇 JSON 檔'}
+              <input type="file" accept=".json,application/json" hidden disabled={!!uploading}
                 onChange={e => { handleFile(e.target.files?.[0]); e.target.value = ''; }} />
             </label>
             {pomNamesOverride && (
@@ -1274,10 +1291,54 @@ function AdminModal({ open, onClose, pomNamesOverride, onUploadPomNames, onClear
                 }}>清除覆蓋 · 還原內建</button>
             )}
           </div>
-
-          {error && <div style={{ marginTop: '10px', padding: '8px 10px', background: '#fef2f2', color: '#b91c1c', fontSize: '11px', borderRadius: '6px' }}>⚠ {error}</div>}
-          {success && <div style={{ marginTop: '10px', padding: '8px 10px', background: '#ecfdf5', color: '#065f46', fontSize: '11px', borderRadius: '6px' }}>✓ {success}</div>}
         </div>
+
+        <div style={{ marginTop: '12px', border: '1px solid #e8e5e1', borderRadius: '10px', padding: '14px' }}>
+          <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '4px' }}>部位出現率表（結構推斷來源）</div>
+          <div style={{ fontSize: '11px', color: '#767676', marginBottom: '12px', lineHeight: 1.5 }}>
+            用途：依「服裝大類 × 款式細類」（例如 <code>PANT|LEGGINGS</code>、<code>OUTERWEAR|JACKET</code>）統計歷史款式每個 L1 部位的出現率。AI 漏畫但歷史 ≥80%（必備）的部位會自動補成「⚙ 結構推斷」卡片。
+            <br />
+            預期格式：<code style={{ background: '#f5f5f5', padding: '1px 4px', borderRadius: '3px' }}>{'{"by_gt_it":{"PANT|LEGGINGS":{"parts":[{"l1_code":"WB","presence_pct":95,"tier_en":"essential"}]}}}'}</code>
+            <br />
+            <span style={{ color: '#999' }}>資料會陸續補齊，上傳新版會覆蓋此瀏覽器的版本，不會影響其他人。</span>
+          </div>
+
+          <div style={{
+            padding: '8px 12px', borderRadius: '8px',
+            background: partPresenceOverride ? '#fef3c7' : '#f3f4f6',
+            fontSize: '12px', color: partPresenceOverride ? '#92400e' : '#6b7280',
+            marginBottom: '12px', lineHeight: 1.4,
+          }}>
+            {partPresenceOverride
+              ? <span><strong>已覆蓋</strong>：{partPresenceOverride.filename}（{partPresenceOverride.bucketsCount} 組分類 · {partPresenceOverride.partsCount} 筆部位{partPresenceOverride.uploadedAt ? ` · ${fmtTime(partPresenceOverride.uploadedAt)}` : ''}）</span>
+              : <span>目前用內建版 <code>l1_part_presence_v1.json</code></span>}
+          </div>
+
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <label style={{
+              display: 'inline-block', padding: '8px 14px',
+              background: uploading ? '#999' : '#1a1a1a', color: '#fff', borderRadius: '6px',
+              cursor: uploading ? 'not-allowed' : 'pointer',
+              fontSize: '12px', fontWeight: 600,
+            }}>
+              {uploading === 'presence' ? '處理中…' : '選擇 JSON 檔'}
+              <input type="file" accept=".json,application/json" hidden disabled={!!uploading}
+                onChange={e => { handlePartPresenceFile(e.target.files?.[0]); e.target.value = ''; }} />
+            </label>
+            {partPresenceOverride && (
+              <button onClick={() => { onClearPartPresence(); setSuccess(null); setError(null); }}
+                style={{
+                  padding: '8px 14px',
+                  background: '#fff', border: '1px solid #e8e5e1', borderRadius: '6px',
+                  cursor: 'pointer', fontSize: '12px', fontWeight: 600, color: '#dc2626',
+                  fontFamily: 'inherit',
+                }}>清除覆蓋 · 還原內建</button>
+            )}
+          </div>
+        </div>
+
+        {error && <div style={{ marginTop: '10px', padding: '8px 10px', background: '#fef2f2', color: '#b91c1c', fontSize: '11px', borderRadius: '6px' }}>⚠ {error}</div>}
+        {success && <div style={{ marginTop: '10px', padding: '8px 10px', background: '#ecfdf5', color: '#065f46', fontSize: '11px', borderRadius: '6px' }}>✓ {success}</div>}
 
         <div style={{ marginTop: '12px', border: '1px dashed #e8e5e1', borderRadius: '10px', padding: '14px', background: '#fafafa' }}>
           <div style={{ fontSize: '13px', fontWeight: 700, color: '#767676' }}>L2 判別表</div>
@@ -1323,6 +1384,7 @@ function App() {
   const [sketchSrc, setSketchSrc] = useState(null);
   const [pomRules, setPomRules] = useState(null);
   const [pomNamesOverride, setPomNamesOverride] = useState(null); // {filename, uploadedAt, count} | null
+  const [partPresenceOverride, setPartPresenceOverride] = useState(null); // {filename, uploadedAt, bucketsCount, partsCount} | null
   const [adminOpen, setAdminOpen] = useState(false);
   useEffect(() => {
     fetch('./pom_rules/_index.json')
@@ -1385,6 +1447,50 @@ function App() {
       .catch(err => console.error('重新載入 pom_names.json 失敗:', err));
   };
 
+  /* 部位出現率表（l1_part_presence）上傳覆蓋：同一個瀏覽器用 localStorage 覆寫 */
+  const applyPartPresenceOverride = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      let parsed;
+      try { parsed = JSON.parse(ev.target.result); }
+      catch (e) { return reject('JSON 解析失敗：' + e.message); }
+      if (!parsed || typeof parsed !== 'object' || !parsed.by_gt_it || typeof parsed.by_gt_it !== 'object') {
+        return reject('格式不符：缺少 by_gt_it 欄位');
+      }
+      const buckets = Object.keys(parsed.by_gt_it);
+      if (!buckets.length) return reject('格式不符：by_gt_it 為空');
+      let partsCount = 0, badParts = 0;
+      for (const key of buckets) {
+        const b = parsed.by_gt_it[key];
+        if (!Array.isArray(b?.parts)) return reject(`格式不符：${key} 缺少 parts array`);
+        for (const p of b.parts) {
+          if (!p?.l1_code || !p?.tier_en) { badParts++; continue; }
+          partsCount++;
+        }
+      }
+      const stored = { filename: file.name, uploadedAt: new Date().toISOString(), data: parsed };
+      try { localStorage.setItem('stytrix.override.partPresence', JSON.stringify(stored)); }
+      catch (e) { return reject('localStorage 寫入失敗（可能超出配額）：' + e.message); }
+      setPartPresence(parsed);
+      setPartPresenceOverride({
+        filename: file.name, uploadedAt: stored.uploadedAt,
+        bucketsCount: buckets.length, partsCount,
+      });
+      resolve({ bucketsCount: buckets.length, partsCount, badParts });
+    };
+    reader.onerror = () => reject('讀檔失敗');
+    reader.readAsText(file);
+  });
+
+  const clearPartPresenceOverride = () => {
+    try { localStorage.removeItem('stytrix.override.partPresence'); } catch {}
+    setPartPresenceOverride(null);
+    fetch('./l1_part_presence_v1.json')
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(setPartPresence)
+      .catch(err => console.error('重新載入 l1_part_presence 失敗:', err));
+  };
+
   const [pomNames, setPomNames] = useState({});
   const [currentBucket, setCurrentBucket] = useState(null);
   const [bucketLoading, setBucketLoading] = useState(false);
@@ -1442,10 +1548,31 @@ function App() {
         .catch(err => console.error('載入 l1_iso_recommendations 失敗:', err));
     }
     if (!partPresence) {
-      fetch('./l1_part_presence_v1.json')
-        .then(r => r.ok ? r.json() : Promise.reject(r.status))
-        .then(setPartPresence)
-        .catch(err => console.error('載入 l1_part_presence 失敗:', err));
+      // 先看 localStorage 是否有使用者上傳的覆蓋版；沒有才抓內建
+      let usedOverride = false;
+      try {
+        const stored = localStorage.getItem('stytrix.override.partPresence');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed?.data?.by_gt_it) {
+            setPartPresence(parsed.data);
+            setPartPresenceOverride({
+              filename: parsed.filename || '(unnamed)',
+              uploadedAt: parsed.uploadedAt || null,
+              bucketsCount: Object.keys(parsed.data.by_gt_it).length,
+              partsCount: Object.values(parsed.data.by_gt_it)
+                .reduce((n, b) => n + (Array.isArray(b?.parts) ? b.parts.length : 0), 0),
+            });
+            usedOverride = true;
+          }
+        }
+      } catch (e) { console.warn('讀取 partPresence 覆蓋失敗:', e); }
+      if (!usedOverride) {
+        fetch('./l1_part_presence_v1.json')
+          .then(r => r.ok ? r.json() : Promise.reject(r.status))
+          .then(setPartPresence)
+          .catch(err => console.error('載入 l1_part_presence 失敗:', err));
+      }
     }
     if (!visualGuide) {
       fetch('./data/l2_visual_guide.json')
@@ -1881,16 +2008,21 @@ function App() {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <button onClick={() => setAdminOpen(true)}
-            aria-label={pomNamesOverride ? "開啟管理面板（已有覆蓋）" : "開啟管理面板"}
-            title={pomNamesOverride ? `已覆蓋 POM 翻譯表：${pomNamesOverride.filename}` : "管理：餵入更新的尺寸翻譯表 / L2 判別"}
+            aria-label={(pomNamesOverride || partPresenceOverride) ? "開啟管理面板（已有覆蓋）" : "開啟管理面板"}
+            title={(() => {
+              const parts = [];
+              if (pomNamesOverride) parts.push(`POM 翻譯表：${pomNamesOverride.filename}`);
+              if (partPresenceOverride) parts.push(`部位出現率表：${partPresenceOverride.filename}`);
+              return parts.length ? `已覆蓋 — ${parts.join('、')}` : "管理：上傳 POM 翻譯表 / 部位出現率表";
+            })()}
             style={{
               background: "#fff", border: "1px solid #e8e5e1", borderRadius: "6px",
               padding: "4px 10px", fontSize: "11px", fontWeight: 600,
-              color: pomNamesOverride ? "#b45309" : "#767676",
+              color: (pomNamesOverride || partPresenceOverride) ? "#b45309" : "#767676",
               cursor: "pointer", fontFamily: "inherit",
               display: "inline-flex", alignItems: "center", gap: "5px",
             }}>
-            {pomNamesOverride && <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#f59e0b", display: "inline-block" }} />}
+            {(pomNamesOverride || partPresenceOverride) && <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#f59e0b", display: "inline-block" }} />}
             管理
           </button>
         </div>
@@ -2827,6 +2959,9 @@ function App() {
         pomNamesOverride={pomNamesOverride}
         onUploadPomNames={applyPomNamesOverride}
         onClearPomNames={clearPomNamesOverride}
+        partPresenceOverride={partPresenceOverride}
+        onUploadPartPresence={applyPartPresenceOverride}
+        onClearPartPresence={clearPartPresenceOverride}
       />
     </div>
   );
