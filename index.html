@@ -195,45 +195,118 @@ function sortedL1sForBucket(partPresence, gt, it) {
   });
 }
 
-/* ─── 通用模型:回傳目前 bucket 下該 L1 可選的 ISO 列表
-   格式:[{ iso, iso_zh, machine, pct, isPrimary }],依 pct 遞減 ─── */
-function isoOptionsFor(isoLookupV3, fabric, gt, it, l1Code) {
-  if (!isoLookupV3 || !l1Code) return [];
-  const fabricKey = (fabric || "Knit").toLowerCase() === "woven" ? "Woven" : "Knit";
-  const gtAliases = {
-    PANTS: ["PANT", "PANTS", "BOTTOM"],
-    SHORTS: ["SHORTS", "BOTTOM"],
-    SWIM_PIECE: ["SWIM"],
-    ROMPER_JUMPSUIT: ["ONE_PIECE"],
-  };
-  const gtCandidates = gtAliases[gt] ? gtAliases[gt] : (gt ? [gt] : []);
-  const entries = Array.isArray(isoLookupV3.entries) ? isoLookupV3.entries
-    : (isoLookupV3.entries && typeof isoLookupV3.entries === 'object' ? Object.values(isoLookupV3.entries) : []);
-  const matchBy = (filterFn) => entries.find(e => e.fabric === fabricKey && e.l1_code === l1Code && filterFn(e));
-  let entry = null;
-  for (const g of gtCandidates) {
-    entry = matchBy(e => e.gt === g && e.it === it);
-    if (entry) break;
-  }
-  if (!entry) {
-    for (const g of gtCandidates) {
-      entry = matchBy(e => e.gt === g);
-      if (entry) break;
+/* ─── app 的 dept / gender / gt 值正規化到 v4.2 桶用的 key ─── */
+const V42_DEPT_ALIAS = {
+  Active: "General", RTW: "General", Fleece: "General",
+  Sleepwear: "Sleepwear", Swimwear: "Swimwear",
+};
+const V42_GENDER_ALIAS = {
+  MENS: "MENS", WOMENS: "WOMENS", MATERNITY: "WOMENS",
+  BOYS: "BOYS", GIRLS: "KIDS", "BABY/TODDLER": "KIDS",
+};
+const V42_GT_ALIAS = {
+  PANTS: "BOTTOM", SHORTS: "BOTTOM",
+  TOP: "TOP", DRESS: "DRESS", SKIRT: "SKIRT",
+  SET: "SET", OUTERWEAR: "OUTERWEAR",
+  BODYSUIT: "TOP", ROMPER_JUMPSUIT: "DRESS", SWIM_PIECE: "TOP",
+};
+
+/* ─── ISO 代碼 → {iso_zh, machine} 顯示對照(從 v4 / v3 entries 動態建出來)
+   v4.2 沒有 iso_zh / machine,需要用這個表補充顯示資訊 ─── */
+function buildIsoRef(lookupV4) {
+  const ref = {};
+  const entries = lookupV4?.entries || [];
+  for (const e of entries) {
+    if (e.iso && !ref[e.iso]) {
+      ref[e.iso] = { iso_zh: e.iso_zh || null, machine: e.machine || null };
     }
   }
-  if (!entry) {
-    entry = matchBy(() => true);
+  return ref;
+}
+
+/* ─── 通用模型:回傳目前 bucket 下該 L1 可選的 ISO 列表
+   先查 v4.2(Dept × Gender × GT × L1_name,含性別),再 fallback 到 v4
+   (Fabric × Dept × GT × L1_code,沒有性別但段項齊全)。
+   格式:[{ iso, iso_zh, machine, pct, isPrimary, source: "v4.2"|"v4" }] ─── */
+function isoOptionsFor(lookupV42, lookupV4, filters, l1Code) {
+  if (!l1Code) return [];
+  const { fabric, dept, gender, gt, it } = filters || {};
+  const l1Name = L1_CODE_TO_NAME[l1Code];
+  const isoRef = buildIsoRef(lookupV4);
+
+  // ── v4.2 查詢 ──
+  const v42Entries = lookupV42?.entries || [];
+  const deptKey = V42_DEPT_ALIAS[dept] || "General";
+  const genderKey = V42_GENDER_ALIAS[gender] || "UNISEX";
+  const gtKey42 = V42_GT_ALIAS[gt] || gt;
+  const findV42 = (pred) => v42Entries.find(e => e.l1 === l1Name && pred(e));
+  let v42Entry = null;
+  if (l1Name) {
+    v42Entry = findV42(e => e.department === deptKey && e.gender === genderKey && e.gt === gtKey42)
+      || findV42(e => e.department === deptKey && e.gender === "UNISEX"   && e.gt === gtKey42)
+      || findV42(e => e.department === "General" && e.gender === genderKey && e.gt === gtKey42)
+      || findV42(e => e.department === "General" && e.gt === gtKey42);
   }
-  if (!entry) return [];
+  if (v42Entry && v42Entry.iso) {
+    const dist = v42Entry.iso_distribution || {};
+    const total = Object.values(dist).reduce((s, n) => s + n, 0) || 1;
+    const pctFor = (iso) => +((dist[iso] || 0) / total * 100).toFixed(1);
+    const primary = {
+      iso: v42Entry.iso,
+      iso_zh: isoRef[v42Entry.iso]?.iso_zh || null,
+      machine: isoRef[v42Entry.iso]?.machine || null,
+      pct: v42Entry.iso_pct ?? pctFor(v42Entry.iso),
+      isPrimary: true, source: "v4.2",
+    };
+    const alts = Object.keys(dist)
+      .filter(iso => iso !== v42Entry.iso)
+      .map(iso => ({
+        iso,
+        iso_zh: isoRef[iso]?.iso_zh || null,
+        machine: isoRef[iso]?.machine || null,
+        pct: pctFor(iso), isPrimary: false, source: "v4.2",
+      }))
+      .sort((a, b) => (b.pct ?? 0) - (a.pct ?? 0));
+    return [primary, ...alts];
+  }
+
+  // ── v4 fallback(無性別、但 L1 覆蓋廣) ──
+  const v4Entries = lookupV4?.entries || [];
+  const fabricV4 = (fabric || "Knit").toLowerCase() === "woven" ? "Woven" : "Knit";
+  const V4_DEPTS = ["Active", "RTW", "Swimwear", "Sleepwear"];
+  const deptV4 = V4_DEPTS.find(d => d.toUpperCase() === String(dept || "").toUpperCase()) || null;
+  const GT_V4_ALIAS = { SWIM_PIECE: ["TOP", "PANTS"] };
+  const gtCandidates = GT_V4_ALIAS[gt] || [gt];
+  const CONF_RANK = { strong: 4, likely: 3, mixed: 2, no_dominant: 1, no_data: 0 };
+  const rank = (e) => ((e.iso ? 1000 : 0) + (CONF_RANK[e.confidence] || 0) * 10 + (e.expect === "yes" ? 1 : 0));
+  const pickBest = (list) => list.reduce((best, e) => (best == null || rank(e) > rank(best)) ? e : best, null);
+  const tiers = [
+    (e) => e.fabric === fabricV4 && e.department === deptV4 && gtCandidates.includes(e.gt) && e.l1_code === l1Code,
+    (e) => e.fabric === fabricV4 && gtCandidates.includes(e.gt) && e.l1_code === l1Code,
+    (e) => e.fabric === fabricV4 && e.department === deptV4 && e.l1_code === l1Code,
+    (e) => e.fabric === fabricV4 && e.l1_code === l1Code,
+  ];
+  let v4Entry = null;
+  for (const pred of tiers) {
+    const best = pickBest(v4Entries.filter(pred));
+    if (best && best.iso) { v4Entry = best; break; }
+  }
+  if (!v4Entry || !v4Entry.iso) return [];
+  const votes = v4Entry.pptx_2025_votes || {};
+  const totalVotes = Object.values(votes).reduce((s, n) => s + n, 0) || 0;
   const primary = {
-    iso: entry.iso, iso_zh: entry.iso_zh || null,
-    machine: entry.machine || null, pct: entry.pct ?? null, isPrimary: true
+    iso: v4Entry.iso, iso_zh: v4Entry.iso_zh || null, machine: v4Entry.machine || null,
+    pct: totalVotes > 0 && votes[v4Entry.iso] ? +(votes[v4Entry.iso] / totalVotes * 100).toFixed(1) : null,
+    isPrimary: true, source: "v4",
   };
-  const alts = Array.isArray(entry.alternatives) ? entry.alternatives.map(a => ({
-    iso: a.iso, iso_zh: a.iso_zh || null,
-    machine: a.machine || null, pct: a.pct ?? null, isPrimary: false
-  })) : [];
-  alts.sort((a, b) => (b.pct ?? 0) - (a.pct ?? 0));
+  const alts = Object.keys(votes)
+    .filter(iso => iso !== v4Entry.iso)
+    .map(iso => ({
+      iso, iso_zh: isoRef[iso]?.iso_zh || null, machine: isoRef[iso]?.machine || null,
+      pct: totalVotes > 0 ? +(votes[iso] / totalVotes * 100).toFixed(1) : null,
+      isPrimary: false, source: "v4",
+    }))
+    .sort((a, b) => (b.pct ?? 0) - (a.pct ?? 0));
   return [primary, ...alts];
 }
 
@@ -250,7 +323,12 @@ function buildL2VariantsForL1(visualGuide, l1Code) {
     freq: info.freq || 0,
   })).filter(v => !String(v.xlsx_name).startsWith("**"));
   raw.sort((a, b) => (b.freq || 0) - (a.freq || 0));
-  return raw;
+  // 轉成該 L1 內部的歷史佔比,讓 UI 顯示跟 L1 的 "歷史 X%" 一致
+  const total = raw.reduce((s, v) => s + (v.freq || 0), 0);
+  return raw.map(v => ({
+    ...v,
+    freq_pct: total > 0 && v.freq > 0 ? +(v.freq / total * 100).toFixed(1) : null,
+  }));
 }
 
 /* ─── Mock Data ─── */
@@ -2434,11 +2512,12 @@ function App() {
   const [isoRec, setIsoRec] = useState(null);
   const [partPresence, setPartPresence] = useState(null);
   const [visualGuide, setVisualGuide] = useState(null);
-  // 通用模型 Path 2 — iso_lookup_factory_v4.json(Fabric × Department × GT × L1_code → ISO)
-  // v4 把 LEGGINGS 升為 GT、拿掉 IT 維度、加入 Department 對齊 pom_rules v5.5。
-  // 讀 entries 陣列(282 筆,輕量)而不是 v4_lookup_index —— 因為 index 聚合時
-  // 遇到同 L1_code 的多筆(如 PS=褲合身/前褲身/後褲身)有可能挑到 no_data 的那筆,
-  // 前端自己排序(iso 非 null > confidence 高 > expect=yes)才能挑到正確的一筆。
+  // 通用模型 Path 2 — 雙表查詢:
+  //   v4.2 (primary, Department × Gender × GT × L1_name → ISO,zone-specific,含性別)
+  //   v4   (fallback, Fabric × Department × GT × L1_code → ISO,段項齊全、有 iso_zh/machine)
+  // v4.2 僅 5 個 L1(腰頭/褲口/褲合身/口袋/繩類)但有 Gender;v4 有 38 L1 但沒 Gender,
+  // 也提供 iso_zh 與 machine 中英雙語顯示用的對照。
+  const [isoLookupV42, setIsoLookupV42] = useState(null);
   const [isoLookupV4, setIsoLookupV4] = useState(null);
   // v6 construction bridge(data/construction_bridge_v6.json):
   // 每 GT 的 zone → L1 → iso_distribution + method_distribution。
@@ -2501,6 +2580,12 @@ function App() {
         .then(r => r.ok ? r.json() : Promise.reject(r.status))
         .then(setVisualGuide)
         .catch(err => console.error('載入 l2_visual_guide 失敗:', err));
+    }
+    if (!isoLookupV42 && appMode === "universal") {
+      fetch('./General%20Model_Path2_Construction%20Suggestion/iso_lookup_factory_v4.2.json')
+        .then(r => r.ok ? r.json() : Promise.reject(r.status))
+        .then(setIsoLookupV42)
+        .catch(err => console.error('載入 iso_lookup_factory_v4.2 失敗:', err));
     }
     if (!isoLookupV4 && appMode === "universal") {
       fetch('./General%20Model_Path2_Construction%20Suggestion/iso_lookup_factory_v4.json')
@@ -2822,7 +2907,7 @@ function App() {
   const addManualUniversalCard = () => {
     const l1Code = newL1;
     if (!l1Code) return;
-    const opts = isoOptionsFor(isoLookupV3, fabric, gt, it, l1Code);
+    const opts = isoOptionsFor(isoLookupV42, isoLookupV4, { fabric, dept, gender, gt, it }, l1Code);
     const picked = opts[newIsoIdx] || opts[0];
     if (!picked) return;
     const nextId = Math.max(0, ...cards.map(c => c.id || 0)) + 1;
@@ -2965,15 +3050,10 @@ function App() {
       }
       const detected = Array.from(byCode.values());
 
-      // ── Path 2 通用模型 — VLM(L1) → iso_lookup_factory_v4 entries 陣列 ──
-      // 走 ISO 查表輸出,不走 L2/L3/L4 五階層。v4 對齊 pom_rules v5.5:
-      //   - LEGGINGS 升為 GT(原 v3 是 IT under PANT)
-      //   - 拿掉 IT 維度(CAPRI / BIKER 不影響做工 ISO)
-      //   - 加入 Department(Active / RTW / Swimwear / Sleepwear)
-      // 直接 filter entries 陣列(282 筆小)而不讀 v4_lookup_index —— index 聚合
-      // 時遇到同 l1_code 多筆(如 PS=褲合身/前褲身/後褲身)會挑到 no_data 那筆,
-      // 導致「資料有但查不到」。這裡自己依 (非 null iso > confidence > expect=yes)
-      // 排序。282 筆 × 一次請求 7 個 L1 的規模完全不用擔心效能。
+      // ── Path 2 通用模型 — VLM(L1) → iso_lookup_factory_v4.2 + v4 fallback ──
+      // v4.2 主查:Department × Gender × GT × L1_name,zone-specific parsing,含性別差異
+      // v4 次查:Fabric × Department × GT × L1_code,L1 覆蓋更廣、含 iso_zh / machine
+      // 兩表透過共同的 isoOptionsFor 合併:先試 v4.2(信心高 + 性別),找不到再退 v4。
       if (appMode === "universal") {
         const fabricV4 = (fabric || "Knit").toLowerCase() === "woven" ? "Woven" : "Knit";
         const V4_DEPTS = ["Active", "RTW", "Swimwear", "Sleepwear"];
@@ -3070,16 +3150,17 @@ function App() {
             side: d.side === "back" ? "right" : "left",
             ie: 0,
             action: "manual",
-            isoConfidence: entry.confidence || "no_data",
+            isoConfidence: null,
             presenceTier: presenceByCode[d.code]?.tier_en || null,
             presencePct: presenceByCode[d.code]?.presence_pct ?? null,
-            // Path 2 專屬:ISO 資訊
+            // Path 2 專屬:ISO 資訊 + 來源標記(v4.2 / v4)
             universal: {
-              iso: entry.iso,
-              iso_zh: entry.iso_zh || null,
-              machine: entry.machine || null,
-              confidence: entry.confidence || null,
+              iso: primary.iso,
+              iso_zh: primary.iso_zh || null,
+              machine: primary.machine || null,
+              confidence: null,
               action: null,
+              source: primary.source,
               alternatives,
               methods,
               bridgeN: bridgeZone?.n_designs ?? null,
@@ -4080,6 +4161,7 @@ function App() {
                   })()}
 
                   {cDone && (() => {
+                    try {
                     // ── 新增部位表單 ──
                     const l1List = sortedL1sForBucket(partPresence, gt, it);
                     const l2List = appMode === "makalot" && newL1 && visualGuide
@@ -4094,7 +4176,7 @@ function App() {
                     const pickedShape = l3List[newL3Idx] || null;
                     const l4List = pickedShape?.methods || [];
                     const isoList = appMode === "universal" && newL1
-                      ? isoOptionsFor(isoLookupV3, fabric, gt, it, newL1) : [];
+                      ? isoOptionsFor(isoLookupV42, isoLookupV4, { fabric, dept, gender, gt, it }, newL1) : [];
 
                     const makalotReady = appMode === "makalot"
                       && !!newL1 && l2List.length > 0 && l3List.length > 0
@@ -4171,7 +4253,7 @@ function App() {
                                 {l2List.length === 0 && <option>（此 L1 visualGuide 無 L2 資料）</option>}
                                 {l2List.map((v, i) => (
                                   <option key={v.code} value={i}>
-                                    {v.display_name || v.xlsx_name}{v.freq ? ` · freq ${v.freq}` : ""}
+                                    {v.display_name || v.xlsx_name}{v.freq_pct != null ? ` · 歷史 ${v.freq_pct}%` : ""}
                                   </option>
                                 ))}
                               </select>
@@ -4183,11 +4265,21 @@ function App() {
                                 disabled={!newIeData || l3List.length === 0}>
                                 {!newIeData && <option>載入中…</option>}
                                 {newIeData && l3List.length === 0 && <option>（此 L1 × L2 組合無 shape 資料）</option>}
-                                {l3List.map((sh, i) => (
-                                  <option key={i} value={i}>
-                                    {sh.l3}{sh.methods?.length ? ` · ${sh.methods.length} 方法` : ""}
-                                  </option>
-                                ))}
+                                {(() => {
+                                  // L3 freq = 該 shape 所有 method 的 steps 總和,轉該 L2 內部百分比
+                                  const shapeFreqs = l3List.map(sh =>
+                                    (sh.methods || []).reduce((n, m) => n + (m.steps || []).length, 0));
+                                  const total = shapeFreqs.reduce((s, n) => s + n, 0);
+                                  return l3List.map((sh, i) => {
+                                    const pct = total > 0 && shapeFreqs[i] > 0
+                                      ? +(shapeFreqs[i] / total * 100).toFixed(1) : null;
+                                    return (
+                                      <option key={i} value={i}>
+                                        {sh.l3}{pct != null ? ` · 歷史 ${pct}%` : ""}
+                                      </option>
+                                    );
+                                  });
+                                })()}
                               </select>
                             </div>
                             {l4List.length > 1 && (
@@ -4254,6 +4346,18 @@ function App() {
                         </div>
                       </div>
                     );
+                    } catch (err) {
+                      console.error("[add-part form] render failed:", err);
+                      return (
+                        <div style={{
+                          marginTop: "16px", padding: "12px 14px",
+                          border: "1px solid #fecaca", background: "#fef2f2",
+                          borderRadius: "8px", fontSize: "12px", color: "#b91c1c",
+                        }}>
+                          新增部位表單載入失敗:{String(err?.message || err)}
+                        </div>
+                      );
+                    }
                   })()}
 
                   <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "20px" }}>
