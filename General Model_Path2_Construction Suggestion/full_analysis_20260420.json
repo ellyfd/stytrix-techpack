@@ -1,0 +1,303 @@
+{
+  "generated": "2026-04-20",
+  "data_sources": {
+    "jsonl": 14225,
+    "pptx": 928,
+    "v3": 282
+  },
+  "part1": {
+    "gt_distribution": {
+      "UNKNOWN": 8887,
+      "TOP": 1870,
+      "PANT": 620,
+      "OUTERWEAR": 479,
+      "DRESS": 477,
+      "LEGGING": 472,
+      "SWIM": 433,
+      "SHORTS": 387,
+      "SKORT": 184,
+      "JOGGER": 171,
+      "SKIRT": 80,
+      "ROMPER_JUMPSUIT": 63,
+      "SLEEPWEAR": 61,
+      "SET": 22,
+      "BODYSUIT": 19
+    },
+    "unique_designs": 903,
+    "unique_designs_by_gt": {
+      "TOP": 298,
+      "UNKNOWN": 151,
+      "DRESS": 105,
+      "OUTERWEAR": 98,
+      "PANT": 92,
+      "LEGGING": 88,
+      "SHORTS": 73,
+      "SWIM": 65,
+      "SKORT": 42,
+      "JOGGER": 36,
+      "SKIRT": 21,
+      "ROMPER_JUMPSUIT": 16,
+      "SLEEPWEAR": 13,
+      "SET": 7,
+      "BODYSUIT": 5
+    },
+    "unknown_total": 865,
+    "unknown_with_dn": 647,
+    "unknown_without_dn": 218
+  },
+  "part2": {
+    "pptx_types": {
+      "sizing": 164,
+      "other": 172,
+      "design": 362,
+      "fit_sample": 110,
+      "translation": 62,
+      "3d_proto": 58
+    },
+    "with_zones": 456,
+    "zone_frequency": {
+      "SV": {
+        "count": 298,
+        "iso": {
+          "514": 9
+        }
+      },
+      "肩": {
+        "count": 218,
+        "iso": {}
+      },
+      "SC": {
+        "count": 203,
+        "iso": {}
+      },
+      "PK": {
+        "count": 159,
+        "iso": {
+          "514": 21
+        }
+      },
+      "WB": {
+        "count": 155,
+        "iso": {
+          "514": 8,
+          "406": 1
+        }
+      },
+      "BD": {
+        "count": 142,
+        "iso": {
+          "514": 5,
+          "607": 1
+        }
+      },
+      "NK": {
+        "count": 134,
+        "iso": {
+          "514": 2,
+          "301": 1
+        }
+      },
+      "PL": {
+        "count": 73,
+        "iso": {}
+      },
+      "BM": {
+        "count": 45,
+        "iso": {
+          "301": 10,
+          "514": 1
+        }
+      },
+      "EB": {
+        "count": 25,
+        "iso": {}
+      },
+      "脇邊": {
+        "count": 13,
+        "iso": {}
+      },
+      "吊耳": {
+        "count": 10,
+        "iso": {}
+      },
+      "袖襱": {
+        "count": 10,
+        "iso": {}
+      },
+      "拉鏈": {
+        "count": 3,
+        "iso": {}
+      },
+      "HM": {
+        "count": 2,
+        "iso": {
+          "406": 1
+        }
+      },
+      "鈕扣": {
+        "count": 1,
+        "iso": {}
+      },
+      "前立": {
+        "count": 1,
+        "iso": {}
+      }
+    },
+    "sub_folders": {
+      "Chambray": 8,
+      "MWD": 2,
+      "VDD": 30,
+      "WWD": 299,
+      "WWS": 153,
+      "WWT": 407,
+      "GWI": 4,
+      "NBG": 3,
+      "TGW": 21,
+      "WWD MAT": 1
+    },
+    "chinese_count": 704,
+    "pptx_gt": {
+      "UNKNOWN": 792,
+      "SKIRT": 19,
+      "DRESS": 23,
+      "TOP": 66,
+      "OUTERWEAR": 10,
+      "SHORTS": 2,
+      "ROMPER_JUMPSUIT": 4,
+      "LEGGING": 6,
+      "SKORT": 6
+    }
+  },
+  "part3": {
+    "corroborated": [
+      {
+        "zone": "BD",
+        "iso": "514",
+        "votes": 5
+      },
+      {
+        "zone": "WB",
+        "iso": "514",
+        "votes": 8
+      },
+      {
+        "zone": "BM",
+        "iso": "301",
+        "votes": 10
+      },
+      {
+        "zone": "NK",
+        "iso": "514",
+        "votes": 2
+      }
+    ],
+    "contradicted": [
+      {
+        "zone": "PK",
+        "pptx_top": "514",
+        "pptx_votes": {
+          "514": 21
+        },
+        "v3_isos": [
+          "301",
+          "406",
+          "605"
+        ]
+      }
+    ],
+    "new_zones": [
+      {
+        "zone": "HM",
+        "top_iso": "406",
+        "votes": 1,
+        "all": {
+          "406": 1
+        }
+      },
+      {
+        "zone": "SV",
+        "top_iso": "514",
+        "votes": 9,
+        "all": {
+          "514": 9
+        }
+      }
+    ],
+    "note": "PPTX aggregates L1 across all GT×IT; v3 is per Fabric×GT×IT×L1. High contradiction count expected."
+  },
+  "part4": {
+    "woven_count": 867,
+    "knit_count": 61,
+    "key_zone_comparison": {
+      "WB": {
+        "woven": {
+          "514": 8,
+          "406": 1
+        },
+        "knit": {}
+      },
+      "BM": {
+        "woven": {
+          "301": 10,
+          "514": 1
+        },
+        "knit": {}
+      },
+      "PK": {
+        "woven": {
+          "514": 20
+        },
+        "knit": {
+          "514": 1
+        }
+      },
+      "HM": {
+        "woven": {
+          "406": 1
+        },
+        "knit": {}
+      },
+      "BD": {
+        "woven": {
+          "514": 5,
+          "607": 1
+        },
+        "knit": {}
+      }
+    },
+    "key_findings": [
+      "BM(下襬): Woven→301 lockstitch vs Knit→406 coverstitch",
+      "PK(口袋): Woven→514 overlock only vs Knit→301+406 mixed",
+      "WB(腰頭): Knit has much more ISO diversity (514,406,301,401,605) vs Woven (514 dominant)",
+      "BD(大身): Woven→301 lockstitch vs Knit→607/514 overlock family",
+      "Fabric must be FIRST dimension in filter chain"
+    ]
+  },
+  "part5": {
+    "v3_total": 282,
+    "v3_fabric": {
+      "Knit": 266,
+      "Woven": 16
+    },
+    "v3_gt": {
+      "TOP": 28,
+      "PANT": 34,
+      "SWIM": 44,
+      "SLEEPWEAR": 21,
+      "SHORTS": 33,
+      "DRESS": 27,
+      "SET": 49,
+      "ONE_PIECE": 23,
+      "OUTERWEAR": 22,
+      "BOTTOM": 1
+    },
+    "v3_with_pptx": 78,
+    "recommendations": [
+      "1. Expand Woven: 16 entries vs 266 Knit",
+      "2. GT×IT filtered PPTX analysis for v4 (current L1-only aggregation is too coarse)",
+      "3. 865 UNKNOWN records (6.1%) — low priority, mostly empty metadata",
+      "4. Add Department dimension (Swimwear/Sleepwear have distinct ISO patterns)",
+      "5. 2025 seasonal PPTX = best source for Woven expansion (WWT/WWD/WWS sub-folders)"
+    ]
+  }
+}
