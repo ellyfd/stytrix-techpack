@@ -230,7 +230,7 @@ Rules:
 //   claude-sonnet-4-6           — ~5× 便宜，Workbench 可選；此 key 若 403 會在 UI
 //                                  顯示 Anthropic 原始錯誤訊息，可據以排查
 //   claude-haiku-4-5-20251001   — ~15× 便宜，最寬鬆（準確率較低）
-const CLAUDE_MODEL = "claude-sonnet-4-6";
+const CLAUDE_MODEL = "claude-opus-4-7";
 
 // system + image + user text: system holds the stable, cache-hittable prompt block;
 // user holds image + per-call varying context. Image gets ephemeral cache too so
