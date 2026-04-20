@@ -734,17 +734,81 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
       </div>
       <div style={{ maxHeight: isOpen ? "1800px" : "0", overflow: "hidden", transition: "max-height 0.35s ease" }}>
         <div style={{ padding: "0 14px 14px" }}>
-          {appMode === "universal" && (
-            <div style={{
-              marginTop: "10px", padding: "8px 12px",
-              background: "#eff6ff", border: "1px dashed #93c5fd",
-              borderRadius: "8px", fontSize: "11px", color: "#1e40af",
-              display: "flex", alignItems: "center", gap: "6px",
-            }}>
-              <span style={{ fontWeight: 700 }}>通用模型</span>
-              <span style={{ color: "#1e3a8a" }}>· AI 視覺判讀 → 建議 ISO，略過五階層細節</span>
-            </div>
-          )}
+          {appMode === "universal" && (() => {
+            const u = card.universal;
+            const CONF_META = {
+              strong:     { label: "strong",     bg: "#ecfdf5", c: "#065f46", hint: "第一名 ≥60% · 自動推薦" },
+              likely:     { label: "likely",     bg: "#eff6ff", c: "#1e40af", hint: "40-59% · 推薦附替代" },
+              mixed:      { label: "mixed",      bg: "#fffbeb", c: "#b45309", hint: "25-39% · 需選擇" },
+              no_dominant:{ label: "no_dominant",bg: "#fef2f2", c: "#b91c1c", hint: "<25% · 手動" },
+              no_data:    { label: "no_data",    bg: "#f5f5f4", c: "#57534e", hint: "查表無對應" },
+            };
+            const ACTION_META = {
+              recommend: { label: "推薦", c: "#065f46", bg: "#ecfdf5", icon: "✓" },
+              select:    { label: "請選",  c: "#b45309", bg: "#fffbeb", icon: "◐" },
+              manual:    { label: "手動",  c: "#57534e", bg: "#f5f5f4", icon: "✎" },
+            };
+            const conf = CONF_META[u?.confidence] || CONF_META.no_data;
+            const act = ACTION_META[u?.action] || ACTION_META.manual;
+            return (
+              <div style={{
+                marginTop: "10px", padding: "10px 12px",
+                background: "#fafaf9", border: "1px solid #e8e5e1",
+                borderRadius: "8px",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                  <span style={{
+                    fontSize: "10px", fontWeight: 700, letterSpacing: "0.05em",
+                    padding: "2px 8px", borderRadius: "999px",
+                    background: "#eff6ff", color: "#1e40af",
+                  }}>PATH 2</span>
+                  <span style={{
+                    fontSize: "10px", fontWeight: 700,
+                    padding: "2px 8px", borderRadius: "4px",
+                    background: act.bg, color: act.c,
+                  }}>{act.icon} {act.label}</span>
+                  {u && (
+                    <span title={conf.hint} style={{
+                      fontSize: "10px", fontWeight: 600,
+                      padding: "2px 8px", borderRadius: "4px",
+                      background: conf.bg, color: conf.c, cursor: "help",
+                    }}>conf: {conf.label}</span>
+                  )}
+                </div>
+                {u ? (
+                  <div style={{ marginTop: "8px", display: "flex", alignItems: "baseline", gap: "8px", flexWrap: "wrap" }}>
+                    <span style={{ fontSize: "20px", fontWeight: 800, fontFamily: "'JetBrains Mono',monospace", color: "#1a1a1a" }}>
+                      ISO {u.iso}
+                    </span>
+                    {u.iso_zh && <span style={{ fontSize: "13px", color: "#525252", fontWeight: 600 }}>{u.iso_zh}</span>}
+                    {u.machine && <span style={{ fontSize: "12px", color: "#767676" }}>· {u.machine}</span>}
+                  </div>
+                ) : (
+                  <div style={{ marginTop: "8px", fontSize: "12px", color: "#b91c1c" }}>
+                    此 Fabric × GT × IT × L1 組合查表無對應資料，請手動決定 ISO。
+                  </div>
+                )}
+                {u?.alternatives?.length > 0 && (
+                  <div style={{ marginTop: "10px", borderTop: "1px dashed #e8e5e1", paddingTop: "8px" }}>
+                    <div style={{ fontSize: "10px", color: "#767676", fontWeight: 600, marginBottom: "4px", letterSpacing: "0.05em" }}>替代方案</div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                      {u.alternatives.map((a, idx) => (
+                        <span key={idx} style={{
+                          fontSize: "11px", padding: "3px 8px", borderRadius: "6px",
+                          background: "#fff", border: "1px solid #e8e5e1", color: "#525252",
+                          fontFamily: "'JetBrains Mono',monospace", fontWeight: 600,
+                        }}>
+                          ISO {a.iso}
+                          {a.machine && <span style={{ marginLeft: "4px", color: "#999", fontWeight: 500, fontFamily: "'Outfit',sans-serif" }}>{a.machine}</span>}
+                          {a.pct != null && <span style={{ marginLeft: "6px", color: "#b45309" }}>{a.pct}%</span>}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
           {appMode !== "universal" && card.l2Variants && card.l2Variants.length > 1 && (
             <div style={{ marginTop: "10px", border: "1px solid #eee", borderRadius: "8px", background: "#f8fafc", padding: "8px 10px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
@@ -2176,6 +2240,8 @@ function App() {
   const [isoRec, setIsoRec] = useState(null);
   const [partPresence, setPartPresence] = useState(null);
   const [visualGuide, setVisualGuide] = useState(null);
+  // 通用模型 Path 2 — iso_lookup_factory_v3.json（Fabric × GT × IT × L1 → ISO + 機種）
+  const [isoLookupV3, setIsoLookupV3] = useState(null);
   const [analyzeErr, setAnalyzeErr] = useState(null);
   // { model, pass1: {input, output, cache_read, cache_write}, pass2: {...}, cost_est } | null
   const [analyzeUsage, setAnalyzeUsage] = useState(null);
@@ -2202,7 +2268,13 @@ function App() {
         .then(setVisualGuide)
         .catch(err => console.error('載入 l2_visual_guide 失敗:', err));
     }
-  }, [sketchSrc]);
+    if (!isoLookupV3 && appMode === "universal") {
+      fetch('./General%20Model_Path2_Construction%20Suggestion/iso_lookup_factory_v3.json')
+        .then(r => r.ok ? r.json() : Promise.reject(r.status))
+        .then(setIsoLookupV3)
+        .catch(err => console.error('載入 iso_lookup_factory_v3 失敗:', err));
+    }
+  }, [sketchSrc, appMode]);
 
   /* ── 尺寸表 tab state ── */
   const [mStep, setMStep] = useState(0);
@@ -2479,7 +2551,8 @@ function App() {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           image: sketchSrc, brand, fabric, gender,
-          garment_type: gt, item_type: it
+          garment_type: gt, item_type: it,
+          mode: appMode,
         })
       });
       const data = await resp.json();
@@ -2537,6 +2610,76 @@ function App() {
         byCode.set(code, { code, confidence: null, x: 50, y: 50, side: "front", _fromPresence: true });
       }
       const detected = Array.from(byCode.values());
+
+      // ── Path 2 通用模型 — VLM(L1) → iso_lookup_factory_v3(Fabric×GT×IT×L1) ──
+      // 走 ISO 查表輸出，不走 L2/L3/L4 五階層。v3 表 gt/it 與 app 選項命名略有
+      // 差異（PANTS vs PANT / SWIM_PIECE vs SWIM / ROMPER_JUMPSUIT vs ONE_PIECE）
+      // 需做一次 alias 並在逐級 fallback：(exact) → (same gt) → (any gt).
+      if (appMode === "universal") {
+        const fabricV3 = (fabric || "Knit").toLowerCase() === "woven" ? "Woven" : "Knit";
+        const GT_V3_ALIAS = { PANTS: ["PANT", "PANTS", "BOTTOM"], SHORTS: ["SHORTS", "BOTTOM"], SWIM_PIECE: ["SWIM"], ROMPER_JUMPSUIT: ["ONE_PIECE"] };
+        const gtCandidates = GT_V3_ALIAS[gt] || [gt];
+        const entries = isoLookupV3?.entries || [];
+        const lookupV3 = (l1_code) => {
+          for (const g of gtCandidates) {
+            const hit = entries.find(e => e.fabric === fabricV3 && e.gt === g && e.it === it && e.l1_code === l1_code);
+            if (hit) return hit;
+          }
+          for (const g of gtCandidates) {
+            const hit = entries.find(e => e.fabric === fabricV3 && e.gt === g && e.l1_code === l1_code);
+            if (hit) return hit;
+          }
+          return entries.find(e => e.fabric === fabricV3 && e.l1_code === l1_code) || null;
+        };
+        const built = detected.map((d, i) => {
+          const l1 = L1_CODE_TO_NAME[d.code] || d.code;
+          const entry = lookupV3(d.code);
+          const alts = Array.isArray(entry?.alternatives) ? entry.alternatives : [];
+          const label = entry
+            ? `ISO ${entry.iso}${entry.iso_zh ? " · " + entry.iso_zh : ""}${entry.machine ? " · " + entry.machine : ""}`
+            : "—";
+          return {
+            id: i + 1,
+            l1,
+            l1_code: d.code,
+            l2: label,
+            l2Base: null,
+            source: d._fromPresence ? "struct" : "ai",
+            conf: Number.isFinite(d.confidence) ? d.confidence : null,
+            matchCode: null,
+            px: Number.isFinite(d.x) ? d.x : 50,
+            py: Number.isFinite(d.y) ? d.y : 50,
+            side: d.side === "back" ? "right" : "left",
+            ie: 0,
+            action: entry?.action || "manual",
+            isoConfidence: entry?.confidence || "no_data",
+            presenceTier: presenceByCode[d.code]?.tier_en || null,
+            presencePct: presenceByCode[d.code]?.presence_pct ?? null,
+            // Path 2 專屬：ISO 資訊
+            universal: entry ? {
+              iso: entry.iso,
+              iso_zh: entry.iso_zh || null,
+              machine: entry.machine || null,
+              confidence: entry.confidence || null,
+              action: entry.action || null,
+              alternatives: alts.map(a => ({ iso: a.iso, pct: a.pct, machine: a.machine })),
+            } : null,
+            // 留空：universal mode 不使用五階層 drill-down
+            methodIdx: 0, methodVariants: [],
+            l2Idx: 0, l2Variants: [],
+            l3Idx: 0, l3Variants: [],
+            ai_l2_code: null, ai_l2_confidence: null, ai_l2_explanation: null,
+            ai_l2_needs_text: false, ai_l2_merged_candidates: [],
+            l3s: [],
+          };
+        });
+        clearInterval(si);
+        setCards(built);
+        setCStage(5);
+        setCAnalyzing(false);
+        setCStep(2);
+        return;
+      }
 
       // Build ISO lookup: prefer GT|IT bucket, fallback to GT bucket, index by Chinese L1 name.
       const isoBucket = (isoRec && bucketKey && isoRec.by_gt_it[bucketKey])

@@ -22,8 +22,10 @@ export default async function handler(request) {
   try { body = await request.json(); }
   catch { return json({ error: "invalid JSON body" }, 400); }
 
-  const { image, brand, fabric, gender, garment_type, item_type } = body;
+  const { image, brand, fabric, gender, garment_type, item_type, mode } = body;
   if (!image) return json({ error: "missing image" }, 400);
+  // mode=universal → Path 2: 只跑 Pass 1 (L1)，前端走 iso_lookup_factory_v3 查表，不需 L2。
+  const skipPass2 = mode === "universal";
 
   const m = image.match(/^data:image\/(\w+);base64,(.+)$/);
   const mediaType = m ? `image/${m[1]}` : "image/png";
@@ -41,6 +43,11 @@ export default async function handler(request) {
   // ── Pass 1: identify which of the 38 L1 parts are in the sketch ──
   const detected = await identifyL1(apiKey, mediaType, b64, { brand, fabric, gender, garment_type, item_type }, guide);
   if (detected.error) return json(detected, 502);
+
+  // Path 2 通用模型只需要 L1 偵測結果即可；省掉 Pass 2 的 decision-tree 推論。
+  if (skipPass2) {
+    return json({ detected: detected.list, usage_l1: detected.usage, model: CLAUDE_MODEL, mode: "universal" });
+  }
 
   // ── Pass 2: for each detected L1, walk the decision tree to identify L2.
   //    Output may mark needs_text=true with merged_candidates for L2s that
