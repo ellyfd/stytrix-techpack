@@ -1427,6 +1427,19 @@ function App() {
   const [hintDismissed, setHintDismissed] = useState(() => {
     try { return localStorage.getItem("stytrix.hint.card.dismissed") === "1"; } catch { return false; }
   });
+  const [undoToast, setUndoToast] = useState(null); // { message, onUndo, expires }
+  const undoTimerRef = useRef(null);
+  const showUndo = (message, onUndo) => {
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    setUndoToast({ message, onUndo, at: Date.now() });
+    undoTimerRef.current = setTimeout(() => setUndoToast(null), 5000);
+  };
+  const runUndo = () => {
+    if (!undoToast) return;
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    undoToast.onUndo();
+    setUndoToast(null);
+  };
   const [cards, setCards] = useState([]);
   const [isoRec, setIsoRec] = useState(null);
   const [partPresence, setPartPresence] = useState(null);
@@ -1878,17 +1891,29 @@ function App() {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <button onClick={() => setAdminOpen(true)}
-            aria-label={pomNamesOverride ? "開啟管理面板（已有覆蓋）" : "開啟管理面板"}
+            aria-label={pomNamesOverride ? "管理面板（已有覆蓋）" : "管理面板"}
             title={pomNamesOverride ? `已覆蓋 POM 翻譯表：${pomNamesOverride.filename}` : "管理：餵入更新的尺寸翻譯表 / L2 判別"}
             style={{
-              background: "#fff", border: "1px solid #e8e5e1", borderRadius: "6px",
-              padding: "4px 10px", fontSize: "11px", fontWeight: 600,
-              color: pomNamesOverride ? "#b45309" : "#767676",
+              background: "#fff",
+              border: `1px solid ${pomNamesOverride ? "#f59e0b" : "#e8e5e1"}`,
+              borderRadius: "8px",
+              width: "32px", height: "32px",
+              padding: 0,
               cursor: "pointer", fontFamily: "inherit",
-              display: "inline-flex", alignItems: "center", gap: "5px",
+              display: "inline-flex", alignItems: "center", justifyContent: "center",
+              position: "relative", transition: "border-color 0.15s",
             }}>
-            {pomNamesOverride && <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#f59e0b", display: "inline-block" }} />}
-            管理
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={pomNamesOverride ? "#b45309" : "#767676"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            {pomNamesOverride && (
+              <span aria-hidden="true" style={{
+                position: "absolute", top: "-3px", right: "-3px",
+                width: "8px", height: "8px", borderRadius: "50%",
+                background: "#f59e0b", border: "1.5px solid #fff",
+              }} />
+            )}
           </button>
         </div>
       </div>
@@ -2004,62 +2029,92 @@ function App() {
         })()}
 
         {/* ─── Tabs：線性步驟樣式 ① ▸ ② ▸ ③ ─── */}
-        <div style={{
-          display: "flex", alignItems: "center", borderBottom: "1px solid #eee",
-          marginBottom: isMobile ? "16px" : "24px",
-          overflowX: "auto",
-          WebkitOverflowScrolling: "touch",
-        }}>
-          {[
+        {(() => {
+          const tabs = [
             { key: "construction", label: "作工建議", done: cDone, disabled: false },
             { key: "measurement", label: "基碼確認", done: mDone, disabled: false },
             { key: "grading", label: "全碼",
               done: mDone && displayIncludedCount > 0,
               disabled: !(mDone && currentBucket && displayIncludedCount > 0) },
-          ].map((t, idx, arr) => {
-            const active = activeTab === t.key;
-            const dis = !!t.disabled;
-            const stepColor = active ? "#065f46" : (t.done ? "#065f46" : (dis ? "#e5e5e5" : "#bbb"));
-            const stepBg = active ? "#065f46" : (t.done ? "#ecfdf5" : "transparent");
-            const stepTextColor = active ? "#fff" : (t.done ? "#065f46" : (dis ? "#ccc" : "#999"));
-            return (
-              <React.Fragment key={t.key}>
-                <button onClick={() => !dis && setActiveTab(t.key)}
-                  disabled={dis}
-                  title={dis ? "請先於基碼確認勾選至少一項" : ""}
-                  style={{
-                    padding: "12px 0", background: "none", border: "none",
-                    borderBottom: active ? "2px solid #065f46" : "2px solid transparent",
-                    cursor: dis ? "not-allowed" : "pointer",
-                    color: active ? "#1a1a1a" : (dis ? "#ddd" : "#555"),
-                    fontSize: isMobile ? "13px" : "14px",
-                    fontWeight: active ? 700 : 500,
-                    marginBottom: "-1px", transition: "all 0.15s", fontFamily: "inherit",
-                    display: "inline-flex", alignItems: "center", gap: "8px",
-                    whiteSpace: "nowrap",
-                  }}>
-                  <span aria-hidden="true" style={{
-                    display: "inline-flex", alignItems: "center", justifyContent: "center",
-                    width: "20px", height: "20px", borderRadius: "50%",
-                    border: `1.5px solid ${stepColor}`,
-                    background: stepBg, color: stepTextColor,
-                    fontSize: "11px", fontWeight: 700, lineHeight: 1,
-                    transition: "all 0.15s",
-                  }}>
-                    {t.done && !active ? "✓" : (idx + 1)}
-                  </span>
-                  <span>{t.label}</span>
-                </button>
-                {idx < arr.length - 1 && (
-                  <span aria-hidden="true" style={{
-                    margin: "0 14px",
-                    fontSize: "12px", color: "#d4d4d4", userSelect: "none",
-                  }}>▸</span>
-                )}
-              </React.Fragment>
-            );
-          })}
-        </div>
+          ];
+          const onTabKey = (e, idx) => {
+            if (e.key !== "ArrowLeft" && e.key !== "ArrowRight" && e.key !== "Home" && e.key !== "End") return;
+            e.preventDefault();
+            const enabledIdx = tabs.map((t, i) => t.disabled ? null : i).filter(i => i !== null);
+            let nextIdx;
+            if (e.key === "Home") nextIdx = enabledIdx[0];
+            else if (e.key === "End") nextIdx = enabledIdx[enabledIdx.length - 1];
+            else {
+              const cur = enabledIdx.indexOf(idx);
+              const dir = e.key === "ArrowRight" ? 1 : -1;
+              nextIdx = enabledIdx[(cur + dir + enabledIdx.length) % enabledIdx.length];
+            }
+            if (nextIdx == null) return;
+            setActiveTab(tabs[nextIdx].key);
+            const el = document.querySelector(`[data-tab-key="${tabs[nextIdx].key}"]`);
+            if (el) el.focus();
+          };
+          return (
+            <div role="tablist" aria-label="步驟" style={{
+              display: "flex", alignItems: "center", borderBottom: "1px solid #eee",
+              marginBottom: isMobile ? "16px" : "24px",
+              overflowX: "auto",
+              WebkitOverflowScrolling: "touch",
+            }}>
+              {tabs.map((t, idx, arr) => {
+                const active = activeTab === t.key;
+                const dis = !!t.disabled;
+                const stepColor = active ? "#065f46" : (t.done ? "#065f46" : (dis ? "#e5e5e5" : "#bbb"));
+                const stepBg = active ? "#065f46" : (t.done ? "#ecfdf5" : "transparent");
+                const stepTextColor = active ? "#fff" : (t.done ? "#065f46" : (dis ? "#ccc" : "#999"));
+                return (
+                  <React.Fragment key={t.key}>
+                    <button role="tab"
+                      data-tab-key={t.key}
+                      id={`tab-${t.key}`}
+                      aria-selected={active}
+                      aria-controls={`tabpanel-${t.key}`}
+                      aria-disabled={dis}
+                      tabIndex={active ? 0 : -1}
+                      onClick={() => !dis && setActiveTab(t.key)}
+                      onKeyDown={(e) => onTabKey(e, idx)}
+                      disabled={dis}
+                      title={dis ? "請先於基碼確認勾選至少一項" : ""}
+                      style={{
+                        padding: "12px 0", background: "none", border: "none",
+                        borderBottom: active ? "2px solid #065f46" : "2px solid transparent",
+                        cursor: dis ? "not-allowed" : "pointer",
+                        color: active ? "#1a1a1a" : (dis ? "#ddd" : "#555"),
+                        fontSize: isMobile ? "13px" : "14px",
+                        fontWeight: active ? 700 : 500,
+                        marginBottom: "-1px", transition: "all 0.15s", fontFamily: "inherit",
+                        display: "inline-flex", alignItems: "center", gap: "8px",
+                        whiteSpace: "nowrap",
+                      }}>
+                      <span aria-hidden="true" style={{
+                        display: "inline-flex", alignItems: "center", justifyContent: "center",
+                        width: "20px", height: "20px", borderRadius: "50%",
+                        border: `1.5px solid ${stepColor}`,
+                        background: stepBg, color: stepTextColor,
+                        fontSize: "11px", fontWeight: 700, lineHeight: 1,
+                        transition: "all 0.15s",
+                      }}>
+                        {t.done && !active ? "✓" : (idx + 1)}
+                      </span>
+                      <span>{t.label}</span>
+                    </button>
+                    {idx < arr.length - 1 && (
+                      <span aria-hidden="true" style={{
+                        margin: "0 14px",
+                        fontSize: "12px", color: "#d4d4d4", userSelect: "none",
+                      }}>▸</span>
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </div>
+          );
+        })()}
 
         {/* ═══ Construction Tab Panel ═══ */}
         {activeTab === "construction" && (
@@ -2088,7 +2143,6 @@ function App() {
                   fontFamily: "inherit",
                 }}>{cAnalyzing ? "分析中…" : "Analyze"}</button>
               )}
-              {analyzeErr && <span style={{ fontSize: "11px", color: "#dc2626" }}>分析失敗: {analyzeErr}</span>}
               {cDone && (
                 <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                   <div style={{ textAlign: "right" }}>
@@ -2142,7 +2196,17 @@ function App() {
                           更換
                         </label>
                         <button
-                          onClick={() => { setSketchSrc(null); setCStep(0); setRemoved(new Set()); setOpenId(null); }}
+                          onClick={() => {
+                            const snap = { sketchSrc, cStep, removed, openId, cards };
+                            setSketchSrc(null); setCStep(0); setRemoved(new Set()); setOpenId(null);
+                            showUndo("草圖已刪除", () => {
+                              setSketchSrc(snap.sketchSrc);
+                              setCStep(snap.cStep);
+                              setRemoved(snap.removed);
+                              setOpenId(snap.openId);
+                              setCards(snap.cards);
+                            });
+                          }}
                           style={{ fontSize: "11px", color: "#dc2626", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline", textUnderlineOffset: "2px", fontFamily: "inherit" }}
                         >刪除</button>
                       </div>
@@ -2167,21 +2231,96 @@ function App() {
                         <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
                           <span style={{ fontSize: "18px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{vis.length}</span>
                           <span style={{ fontSize: "11px", color: "#999" }}>/ {cards.length} 部位</span>
-                          {addonOn && <span style={{ fontSize: "10px", color: "#767676" }}>+ 套組</span>}
                         </div>
                         <div style={{ fontSize: "10px", color: "#767676", marginTop: "2px" }}>
                           {aiCount} AI 偵測 · {structCount} 結構推斷
                         </div>
                       </div>
-                      <span style={{ fontSize: "10px", color: "#065f46", fontWeight: 600, background: "#ecfdf5", padding: "4px 10px", borderRadius: "4px", whiteSpace: "nowrap" }}>已自動選好</span>
+                      <span
+                        title="根據 AI 偵測與歷史資料自動勾選 · 可手動刪除或新增部位"
+                        style={{ fontSize: "10px", color: "#065f46", fontWeight: 600, background: "#ecfdf5", padding: "4px 10px", borderRadius: "4px", whiteSpace: "nowrap", cursor: "help" }}>
+                        已自動選好
+                      </span>
                     </div>}
+                    {cDone && (
+                      <label style={{
+                        padding: "10px 16px", borderTop: "1px solid #f0f0f0",
+                        display: "flex", alignItems: "center", gap: "10px",
+                        cursor: "pointer",
+                      }}
+                        title={`${brand} 品牌套組 · ${ADDON.steps.length} 工段`}>
+                        <input type="checkbox" checked={addonOn}
+                          onChange={() => setAddonOn(!addonOn)}
+                          style={{ width: "15px", height: "15px", accentColor: "#1a1a1a", cursor: "pointer" }} />
+                        <span style={{ fontSize: "12px", fontWeight: 600, color: addonOn ? "#1a1a1a" : "#999" }}>
+                          {brand} 品牌套組
+                        </span>
+                        <span style={{ fontSize: "10px", color: "#999" }}>
+                          {ADDON.steps.length} 工段
+                        </span>
+                        <span style={{
+                          marginLeft: "auto",
+                          fontSize: "13px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace",
+                          color: addonOn ? "#065f46" : "#ccc",
+                        }}>
+                          {addonOn ? "+" : ""}{ADDON.ie}<span style={{ fontSize: "10px", color: "#aaa", marginLeft: "3px", fontWeight: 500 }}>秒</span>
+                        </span>
+                      </label>
+                    )}
                   </>
                 )}
               </div>
 
               {/* Cards area */}
               <div style={{ alignSelf: "start" }}>
-                {!cDone && !cAnalyzing && <div style={{
+                {analyzeErr && !cAnalyzing && (
+                  <div role="alert" style={{
+                    minHeight: "200px",
+                    padding: "22px 24px",
+                    border: "1px solid #fecaca", background: "#fef2f2", borderRadius: "10px",
+                    display: "flex", flexDirection: "column", gap: "14px",
+                    marginBottom: "10px", animation: "fadeIn 0.2s ease",
+                  }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
+                      <div aria-hidden="true" style={{
+                        flexShrink: 0, width: "28px", height: "28px",
+                        borderRadius: "50%", background: "#fee2e2",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: "15px", color: "#b91c1c",
+                      }}>⚠</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: "14px", fontWeight: 700, color: "#b91c1c", marginBottom: "4px" }}>
+                          Analyze 失敗
+                        </div>
+                        <div style={{ fontSize: "12px", color: "#7f1d1d", lineHeight: 1.5, wordBreak: "break-word" }}>
+                          {analyzeErr}
+                        </div>
+                        <div style={{ fontSize: "11px", color: "#991b1b", marginTop: "8px", lineHeight: 1.5 }}>
+                          可能原因：Claude API 配額用盡、網路中斷、或圖檔格式不支援。檢查環境變數 <code style={{ background: "#fee2e2", padding: "0 4px", borderRadius: "3px" }}>ANTHROPIC_API_KEY</code>
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <button onClick={runConstruction}
+                        disabled={!canAnalyze}
+                        style={{
+                          padding: "8px 16px",
+                          background: canAnalyze ? "#b91c1c" : "#fca5a5",
+                          color: "#fff", border: "none", borderRadius: "6px",
+                          fontSize: "12px", fontWeight: 600,
+                          cursor: canAnalyze ? "pointer" : "not-allowed", fontFamily: "inherit",
+                        }}>重試</button>
+                      <button onClick={() => setAnalyzeErr(null)} style={{
+                        padding: "8px 14px",
+                        background: "#fff", color: "#991b1b",
+                        border: "1px solid #fecaca", borderRadius: "6px",
+                        fontSize: "12px", fontWeight: 600,
+                        cursor: "pointer", fontFamily: "inherit",
+                      }}>關閉</button>
+                    </div>
+                  </div>
+                )}
+                {!cDone && !cAnalyzing && !analyzeErr && <div style={{
                   minHeight: "300px", display: "flex", alignItems: "center", justifyContent: "center",
                   flexDirection: "column", gap: "8px", color: "#bbb",
                   border: "1px solid #eee", borderRadius: "10px", background: "#fff"
@@ -2303,23 +2442,6 @@ function App() {
                       </React.Fragment>
                     ));
                   })()}
-
-                  <div style={{ fontSize: "12px", color: "#888", fontWeight: 600, marginTop: "16px", marginBottom: "6px" }}>{brand} 品牌套組</div>
-                  <div style={{
-                    background: "#fff", border: `1px solid ${addonOn ? "#ddd" : "#eee"}`,
-                    borderRadius: "10px", padding: "14px 16px",
-                    display: "flex", justifyContent: "space-between", alignItems: "center",
-                  }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                      <input type="checkbox" checked={addonOn} onChange={() => setAddonOn(!addonOn)}
-                        style={{ width: "16px", height: "16px", accentColor: "#1a1a1a", cursor: "pointer" }} />
-                      <div>
-                        <div style={{ fontSize: "14px", fontWeight: 600 }}>{ADDON.name}</div>
-                        <div style={{ fontSize: "11px", color: "#999" }}>{ADDON.steps.length} 工段</div>
-                      </div>
-                    </div>
-                    <span style={{ fontSize: "16px", color: addonOn ? "#1a1a1a" : "#ccc", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{ADDON.ie}<span style={{ fontSize: "11px", color: "#aaa", marginLeft: "3px", fontWeight: 500 }}>秒</span></span>
-                  </div>
 
                   <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "20px" }}>
                     <button style={{
@@ -3007,6 +3129,33 @@ function App() {
         onUploadPomNames={applyPomNamesOverride}
         onClearPomNames={clearPomNamesOverride}
       />
+
+      {undoToast && (
+        <div role="status" aria-live="polite" style={{
+          position: "fixed", left: "50%", bottom: "24px",
+          transform: "translateX(-50%)",
+          background: "#1a1a1a", color: "#fff",
+          padding: "10px 14px 10px 16px", borderRadius: "10px",
+          fontSize: "13px", fontWeight: 500,
+          display: "flex", alignItems: "center", gap: "14px",
+          boxShadow: "0 8px 24px rgba(0,0,0,0.22)",
+          zIndex: 200, animation: "slideUp 0.2s ease",
+        }}>
+          <span>{undoToast.message}</span>
+          <button onClick={runUndo} style={{
+            background: "none", border: "none", color: "#86efac",
+            fontSize: "13px", fontWeight: 700, cursor: "pointer",
+            fontFamily: "inherit", padding: "2px 4px",
+          }}>復原</button>
+          <button onClick={() => { if (undoTimerRef.current) clearTimeout(undoTimerRef.current); setUndoToast(null); }}
+            aria-label="關閉"
+            style={{
+              background: "none", border: "none", color: "#999",
+              fontSize: "18px", cursor: "pointer", padding: "0 2px", lineHeight: 1,
+              fontFamily: "inherit",
+            }}>×</button>
+        </div>
+      )}
     </div>
   );
 }
