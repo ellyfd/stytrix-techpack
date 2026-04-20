@@ -3058,6 +3058,7 @@ function App() {
         byCode.set(code, { code, confidence: null, x: 50, y: 50, side: "front", _fromPresence: true });
       }
       const detected = Array.from(byCode.values());
+      console.log('[analyze] detected L1:', detected.length, detected.map(d => d.code));
 
       // ── Path 2 通用模型 — VLM(L1) → iso_lookup_factory_v4.2 + v4 fallback ──
       // v4.2 主查:Department × Gender × GT × L1_name,zone-specific parsing,含性別差異
@@ -3129,6 +3130,16 @@ function App() {
           return { d, primary, v4Entry };
         });
         const builtFiltered = builtAll.filter(x => x.primary && x.primary.iso);
+        console.log('[analyze] universal lookup:',
+          builtAll.map(x => ({
+            code: x.d.code,
+            iso: x.primary?.iso ?? null,
+            source: x.primary?.source ?? null,
+            v4HasEntry: !!x.v4Entry,
+            v4Iso: x.v4Entry?.iso ?? null,
+          })),
+          'kept:', builtFiltered.length, '/', builtAll.length
+        );
         const built = builtFiltered.map(({ d, primary, v4Entry }, i) => {
           const l1 = L1_CODE_TO_NAME[d.code] || d.code;
           const label = `ISO ${primary.iso}${primary.iso_zh ? " · " + primary.iso_zh : ""}${primary.machine ? " · " + primary.machine : ""}`;
