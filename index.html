@@ -22,7 +22,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
   <script type="text/babel" data-presets="react">
-const { useState, useMemo, useEffect } = React;
+const { useState, useMemo, useEffect, useRef } = React;
 
 /* ═══════════════════════════════════════════════════════════════════
    StyTrix — Techpack Creation + Measurement Spec v10
@@ -48,7 +48,7 @@ const BRANDS = [
    + l2_l3_ie/<code>.json (L2 shape / L5 step IE). Shape per card:
    { id, l1, l1_code, l2, ie, source, conf, matchCode, action,
      px, py, side, l3s: [{name, ie, auto, pick, opts:[{n,p}]}] }
-   source: ai = AI vision 偵測, struct = 結構推斷
+   source: ai = AI vision 偵測, struct = 結構推斷（l1_part_presence 歷史補位）
    action: auto_recommend | recommend_with_alternatives | user_select */
 
 /* L1 code → Chinese name, for mapping xlsx-side codes (what /api/analyze
@@ -75,16 +75,8 @@ const TAGS = [
   { l: "口袋", c: "#b45309" }, { l: "High Rise", c: "#065f46" }, { l: "褶", c: "#a21caf" }
 ];
 const SRC = {
-  ai:       { label: "AI 偵測", bg: "#e0f2fe", c: "#0369a1", icon: "👁" },
-  struct:   { label: "結構推斷", bg: "#d1fae5", c: "#065f46", icon: "⚙" },
-  presence: { label: "歷史資料", bg: "#fef3c7", c: "#92400e", icon: "📊" }
-};
-
-const TIER_BADGE = {
-  essential:  { label: "必備",  bg: "#dcfce7", c: "#15803d" },
-  common:     { label: "常見",  bg: "#dbeafe", c: "#1d4ed8" },
-  occasional: { label: "偶爾",  bg: "#f1f5f9", c: "#475569" },
-  rare:       { label: "少見",  bg: "#fee2e2", c: "#b91c1c" }
+  ai:     { label: "AI 偵測",   bg: "#e0f2fe", c: "#0369a1", icon: "👁" },
+  struct: { label: "結構推斷",   bg: "#d1fae5", c: "#065f46", icon: "⚙" }
 };
 
 /* ─── 長度相關 POM codes（PETITE / TALL 跟 MISSY 有差的） ─── */
@@ -346,7 +338,9 @@ const parseInch = (s) => {
 };
 
 /* ─── POM 排序：身體部位從上到下、從前到後 ───
-   優先用 bucket.pom_sort_order（若資料有）；否則 fallback 用 code 前綴字母。
+   以 prefix 為主序（依解剖順序：腰→臀→浪→襠→腿→…），bucket.pom_sort_order
+   只做「同 prefix 內」的二次排序。這樣歷史資料若把某類放錯位（例 K 前後浪
+   被塞到最後）也會被正規化。
    前綴對應部位：
    A 帽 → B 領 → C 肩 → D 袖籠/肩帶 → E 袖 → F 胸 → G 育克
    → H 腰 → I 下擺/側縫 → J 身長 → K 前後檔 → L 臀
@@ -356,71 +350,148 @@ const parseInch = (s) => {
 */
 const POM_PREFIX_ORDER = {
   A: 1, B: 2, C: 3, D: 4, E: 5, F: 6, G: 7,
-  H: 8, I: 9, J: 10, K: 11, L: 12, M: 13, N: 14, O: 15,
+  H: 8, I: 9, J: 10, L: 11, K: 12, M: 13, N: 14, O: 15,
   Q: 16, R: 17, S: 18, T: 19, Z: 20, P: 21,
   U: 22, V: 23, W: 24, X: 25, Y: 26,
 };
 const sortPomCodes = (codes, bucketSortOrder) => {
-  if (bucketSortOrder && bucketSortOrder.length) {
-    const idx = {};
-    bucketSortOrder.forEach((c, i) => { idx[c] = i; });
-    return [...codes].sort((a, b) => {
-      const ia = idx[a] !== undefined ? idx[a] : 9999;
-      const ib = idx[b] !== undefined ? idx[b] : 9999;
-      if (ia !== ib) return ia - ib;
-      return a.localeCompare(b);
-    });
-  }
+  const bucketIdx = {};
+  (bucketSortOrder || []).forEach((c, i) => { bucketIdx[c] = i; });
   return [...codes].sort((a, b) => {
     const pa = POM_PREFIX_ORDER[a[0]] || 99;
     const pb = POM_PREFIX_ORDER[b[0]] || 99;
     if (pa !== pb) return pa - pb;
+    // 同 prefix：優先用 bucket 歷史順序，否則數字 + 字典序
+    const ba = bucketIdx[a] !== undefined ? bucketIdx[a] : 9999;
+    const bb = bucketIdx[b] !== undefined ? bucketIdx[b] : 9999;
+    if (ba !== bb) return ba - bb;
     const na = parseInt(a.slice(1), 10) || 0;
     const nb = parseInt(b.slice(1), 10) || 0;
-    return na - nb;
+    if (na !== nb) return na - nb;
+    return a.localeCompare(b);
   });
 };
 
 /* ─── Sel（v10 enterprise utility） ─── */
 function Sel({ label, value, onChange, options, disabled, badgeMap, labelMap, locked, onToggleLock }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
   const filled = !!value;
+
+  // 點外面或按 Escape 關閉
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    const onKey = (e) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const displayText = value ? ((labelMap && labelMap[value]) || value) : "—";
+  const displayBadge = value && badgeMap && badgeMap[value];
+  const borderColor = disabled ? "#eee" : (filled ? (locked ? "#065f46" : "#1a1a1a") : "#d4d4d4");
+
+  const selectOpt = (v) => { onChange(v); setOpen(false); };
+
   return (
-    <div>
-      <div style={{ fontSize: "11px", color: "#888", marginBottom: "6px", fontWeight: 500, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span>{label}</span>
-        {onToggleLock && (
+    <div ref={ref} style={{ position: "relative" }}>
+      <div style={{ fontSize: "11px", color: "#888", marginBottom: "6px", fontWeight: 500 }}>
+        {label}
+      </div>
+
+      {/* Trigger：看起來跟原本 underline select 幾乎一樣 */}
+      <button onClick={() => !disabled && setOpen(o => !o)}
+        disabled={disabled}
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        style={{
+          width: "100%", padding: "6px 0", fontSize: "14px", textAlign: "left",
+          background: "transparent", color: filled ? "#1a1a1a" : "#bbb",
+          fontWeight: filled ? 600 : 400,
+          border: "none", borderBottom: `1.5px solid ${borderColor}`,
+          fontFamily: "inherit", cursor: disabled ? "not-allowed" : "pointer",
+          borderRadius: 0, transition: "border-color 0.15s",
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+        }}>
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {displayText}{displayBadge ? ` (${displayBadge})` : ""}
+        </span>
+        <span aria-hidden="true" style={{ fontSize: "10px", color: "#bbb", marginLeft: "6px", transform: open ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.15s" }}>▾</span>
+      </button>
+
+      {onToggleLock && (
+        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "4px", minHeight: "14px" }}>
           <button onClick={onToggleLock}
             title={locked ? "已鎖 — refresh 不會重設" : "按一下鎖住，refresh 不會重設"}
             aria-label={`${label} ${locked ? "解鎖" : "鎖住"}`}
             aria-pressed={locked}
             style={{
               background: "none", border: "none", cursor: "pointer",
-              fontSize: "11px", padding: "0 2px", lineHeight: 1,
-              color: locked ? "#065f46" : "#ccc", fontWeight: locked ? 700 : 400,
-              opacity: locked ? 1 : 0.6, transition: "opacity 0.15s"
+              padding: "0 2px", lineHeight: 0,
+              color: locked ? "#065f46" : "#d4d4d4",
+              opacity: locked ? 1 : 0.55, transition: "opacity 0.15s, color 0.15s",
+              display: "inline-flex", alignItems: "center",
             }}
             onMouseEnter={e => e.currentTarget.style.opacity = "1"}
-            onMouseLeave={e => e.currentTarget.style.opacity = locked ? "1" : "0.6"}>
-            {locked ? "🔒" : "🔓"}
+            onMouseLeave={e => e.currentTarget.style.opacity = locked ? "1" : "0.55"}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              {locked ? <path d="M7 11V7a5 5 0 0 1 10 0v4"/> : <path d="M7 11V7a5 5 0 0 1 9.9-1"/>}
+            </svg>
           </button>
-        )}
-      </div>
-      <select value={value} onChange={e => onChange(e.target.value)} disabled={disabled}
-        style={{
-          width: "100%", padding: "6px 0", fontSize: "14px",
-          background: "transparent", color: filled ? "#1a1a1a" : "#bbb",
-          fontWeight: filled ? 600 : 400,
-          border: "none", borderBottom: `1.5px solid ${disabled ? "#eee" : (filled ? (locked ? "#065f46" : "#1a1a1a") : "#d4d4d4")}`,
-          outline: "none", fontFamily: "inherit", cursor: disabled ? "not-allowed" : "pointer",
-          borderRadius: 0, transition: "border-color 0.15s",
-        }}>
-        <option value="">—</option>
-        {options.map(o => {
-          const badge = badgeMap && badgeMap[o];
-          const display = (labelMap && labelMap[o]) || o;
-          return <option key={o} value={o}>{display}{badge ? ` (${badge})` : ""}</option>;
-        })}
-      </select>
+        </div>
+      )}
+
+      {/* 選項清單：附著在觸發按鈕正下方，不擠壓下方內容 */}
+      {open && !disabled && (
+        <div role="listbox" aria-label={label}
+          style={{
+            position: "absolute", top: "100%", left: 0, right: 0, zIndex: 30,
+            marginTop: "4px",
+            border: "1px solid #e8e5e1", borderRadius: "8px",
+            background: "#fff", maxHeight: "260px", overflowY: "auto",
+            boxShadow: "0 4px 14px rgba(0,0,0,0.06)",
+            animation: "fadeIn 0.12s ease",
+          }}>
+          <div role="option" aria-selected={!value}
+            onClick={() => selectOpt("")}
+            style={{ padding: "8px 12px", fontSize: "13px", color: "#bbb", cursor: "pointer", borderBottom: "1px solid #f5f5f5" }}
+            onMouseEnter={e => e.currentTarget.style.background = "#faf9f7"}
+            onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+            —
+          </div>
+          {options.map(o => {
+            const b = badgeMap && badgeMap[o];
+            const d = (labelMap && labelMap[o]) || o;
+            const sel = o === value;
+            return (
+              <div key={o} role="option" aria-selected={sel}
+                onClick={() => selectOpt(o)}
+                style={{
+                  padding: "8px 12px", fontSize: "13px",
+                  color: sel ? "#065f46" : "#1a1a1a",
+                  fontWeight: sel ? 700 : 400,
+                  background: sel ? "#ecfdf5" : "transparent",
+                  cursor: "pointer",
+                  display: "flex", justifyContent: "space-between", alignItems: "center",
+                  gap: "10px",
+                }}
+                onMouseEnter={e => { if (!sel) e.currentTarget.style.background = "#faf9f7"; }}
+                onMouseLeave={e => { if (!sel) e.currentTarget.style.background = "transparent"; }}>
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d}</span>
+                {b && <span style={{ fontSize: "11px", color: "#999", fontWeight: 400, fontFamily: "'JetBrains Mono',monospace" }}>{b}</span>}
+              </div>
+            );
+          })}
+          {options.length === 0 && (
+            <div style={{ padding: "10px 12px", fontSize: "12px", color: "#bbb" }}>無可選項目</div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -540,8 +611,9 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
         <div style={{ display: "flex", alignItems: "flex-start", gap: "10px", flex: 1, minWidth: 0 }}>
           <div style={{
             width: "30px", height: "30px", borderRadius: "9px",
-            background: isOpen ? col : "#fff", color: isOpen ? "#fff" : col,
-            border: isOpen ? "none" : `2.5px solid ${col}`,
+            background: isOpen ? col : "#fff",
+            color: isOpen ? "#fff" : "#767676",
+            border: isOpen ? "none" : "1.5px solid #e5e5e5",
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: "14px", fontWeight: 800, flexShrink: 0,
             marginTop: "1px", transition: "all 0.15s"
@@ -551,7 +623,7 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
             <div style={{ fontSize: "15px", color: "#1a1a1a", fontWeight: 700, lineHeight: 1.3, display: "flex", alignItems: "baseline", gap: "6px", flexWrap: "wrap" }}>
               <span>{card.l1}</span>
               <span style={{ color: "#ccc", fontWeight: 400, fontSize: "13px" }}>›</span>
-              <span style={{ color: col }}>{card.l2}</span>
+              <span style={{ color: isOpen ? col : "#525252" }}>{card.l2}</span>
             </div>
             {/* Line 2: source badge only — per-level confidence moves into the
                 L2/L3/L4 switcher panels and is driven by historical freq, not
@@ -624,6 +696,17 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
                 <div style={{ marginTop: "8px", maxHeight: "280px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "4px" }}>
                   {card.l2Variants.map((v, idx) => {
                     const active = idx === (card.l2Idx ?? 0);
+                    const isAiPick = card.ai_l2_code && v.code === card.ai_l2_code && !!card.ai_l2_explanation;
+                    let aiCue = null;
+                    if (isAiPick) {
+                      const raw = card.ai_l2_explanation.trim();
+                      if (/^guess:/i.test(raw)) {
+                        aiCue = { icon: "⚠", text: "AI 未鎖定線索", color: "#b45309" };
+                      } else {
+                        const body = raw.replace(/^matched:\s*/i, "");
+                        aiCue = { icon: "★", text: `AI 命中：${body}`, color: "#15803d" };
+                      }
+                    }
                     return (
                       <div key={v.code} onClick={() => onSwitchL2 && onSwitchL2(card.id, idx)}
                         style={{
@@ -641,6 +724,11 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
                             </span>
                           )}
                         </div>
+                        {aiCue && (
+                          <div style={{ fontSize: "10px", color: aiCue.color, marginTop: "3px", lineHeight: 1.35, fontWeight: 600 }}>
+                            {aiCue.icon} {aiCue.text}
+                          </div>
+                        )}
                         {v.feature && <div style={{ fontSize: "11px", color: "#777", marginTop: "2px", lineHeight: 1.35 }}>{v.feature}</div>}
                       </div>
                     );
@@ -1038,7 +1126,7 @@ function BucketPomRow({ code, tier, measurement, median, grading, pomName, isOpe
         <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
           <span style={{ fontSize: "10px", color: tc.c, background: tc.bg, padding: "2px 7px", borderRadius: "5px", fontWeight: 600 }}>{tc.icon} {tc.label}</span>
           <span title={`${measurement?.count || 0} designs`} style={{ fontSize: "10px", color: "#666", fontFamily: "'JetBrains Mono',monospace" }}>{Math.round((measurement?.rate || 0) * 100)}%</span>
-          {tolDisplay && <span style={{ fontSize: "10px", color: "#7e22ce", background: "#f5f3ff", padding: "2px 6px", borderRadius: "4px", fontWeight: 600, fontFamily: "'JetBrains Mono',monospace" }}>±{tolDisplay}"</span>}
+          {tolDisplay && <span style={{ fontSize: "10px", color: "#525252", background: "#f3f4f6", padding: "2px 6px", borderRadius: "4px", fontWeight: 600, fontFamily: "'JetBrains Mono',monospace" }}>±{tolDisplay}"</span>}
           <span style={{ fontSize: "15px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: "#1a1a1a" }}>{medianM != null ? frmt(medianM) + '"' : "—"}</span>
           <div style={{ fontSize: "13px", color: "#ccc", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.25s" }}>▾</div>
         </div>
@@ -1116,10 +1204,15 @@ function fmtTime(iso) {
   } catch { return iso; }
 }
 
-function AdminModal({ open, onClose, pomNamesOverride, onUploadPomNames, onClearPomNames, pomRulesOverride, onUploadPomRules, onClearPomRules, onPushToGithub, currentBucketKey }) {
+function AdminModal({
+  open, onClose,
+  pomNamesOverride, onUploadPomNames, onClearPomNames,
+  partPresenceOverride, onUploadPartPresence, onClearPartPresence,
+  pomRulesOverride, onUploadPomRules, onClearPomRules, onPushToGithub, currentBucketKey,
+}) {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-  const [uploading, setUploading] = useState(false);
+  const [uploading, setUploading] = useState(null); // null | 'pom' | 'presence'
   const [rulesError, setRulesError] = useState(null);
   const [rulesSuccess, setRulesSuccess] = useState(null);
   const [rulesUploading, setRulesUploading] = useState(false);
@@ -1149,14 +1242,27 @@ function AdminModal({ open, onClose, pomNamesOverride, onUploadPomNames, onClear
 
   const handleFile = async (file) => {
     if (!file) return;
-    setError(null); setSuccess(null); setUploading(true);
+    setError(null); setSuccess(null); setUploading('pom');
     try {
       const result = await onUploadPomNames(file);
-      setSuccess(`已套用 ${result.count} 個 POM 代碼${result.invalidCount > 0 ? `（跳過 ${result.invalidCount} 個無效）` : ''}`);
+      setSuccess(`POM 翻譯表：已套用 ${result.count} 個代碼${result.invalidCount > 0 ? `（跳過 ${result.invalidCount} 個無效）` : ''}`);
     } catch (e) {
-      setError(typeof e === 'string' ? e : (e?.message || String(e)));
+      setError('POM 翻譯表：' + (typeof e === 'string' ? e : (e?.message || String(e))));
     } finally {
-      setUploading(false);
+      setUploading(null);
+    }
+  };
+
+  const handlePartPresenceFile = async (file) => {
+    if (!file) return;
+    setError(null); setSuccess(null); setUploading('presence');
+    try {
+      const result = await onUploadPartPresence(file);
+      setSuccess(`部位出現率表：已套用 ${result.bucketsCount} 組分類 · ${result.partsCount} 筆部位紀錄${result.badParts > 0 ? `（跳過 ${result.badParts} 筆缺欄位）` : ''}`);
+    } catch (e) {
+      setError('部位出現率表：' + (typeof e === 'string' ? e : (e?.message || String(e))));
+    } finally {
+      setUploading(null);
     }
   };
 
@@ -1230,8 +1336,8 @@ function AdminModal({ open, onClose, pomNamesOverride, onUploadPomNames, onClear
               cursor: uploading ? 'not-allowed' : 'pointer',
               fontSize: '12px', fontWeight: 600,
             }}>
-              {uploading ? '處理中…' : '選擇 JSON 檔'}
-              <input type="file" accept=".json,application/json" hidden disabled={uploading}
+              {uploading === 'pom' ? '處理中…' : '選擇 JSON 檔'}
+              <input type="file" accept=".json,application/json" hidden disabled={!!uploading}
                 onChange={e => { handleFile(e.target.files?.[0]); e.target.value = ''; }} />
             </label>
             {pomNamesOverride && (
@@ -1244,86 +1350,50 @@ function AdminModal({ open, onClose, pomNamesOverride, onUploadPomNames, onClear
                 }}>清除覆蓋 · 還原內建</button>
             )}
           </div>
-
-          {error && <div style={{ marginTop: '10px', padding: '8px 10px', background: '#fef2f2', color: '#b91c1c', fontSize: '11px', borderRadius: '6px' }}>⚠ {error}</div>}
-          {success && <div style={{ marginTop: '10px', padding: '8px 10px', background: '#ecfdf5', color: '#065f46', fontSize: '11px', borderRadius: '6px' }}>✓ {success}</div>}
         </div>
 
         <div style={{ marginTop: '12px', border: '1px solid #e8e5e1', borderRadius: '10px', padding: '14px' }}>
-          <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '4px' }}>POM Rules</div>
+          <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '4px' }}>部位出現率表（結構推斷來源）</div>
           <div style={{ fontSize: '11px', color: '#767676', marginBottom: '12px', lineHeight: 1.5 }}>
-            支援一次多選或選整個資料夾,自動分類:
-            <br />• <code style={{ background: '#f5f5f5', padding: '1px 4px', borderRadius: '3px' }}>_index.json</code>(含 <code>buckets</code>)→ 換掉 bucket 清單
-            <br />• 單一 bucket 檔(含 <code>bucket</code> + <code>measurement_rules</code>)→ 換掉該 bucket 的規則/中位數/跳碼
-            <br />• <code style={{ background: '#f5f5f5', padding: '1px 4px', borderRadius: '3px' }}>pom_names.json</code> → 自動路由到「POM 翻譯表」
+            用途：依「服裝大類 × 款式細類」（例如 <code>PANT|LEGGINGS</code>、<code>OUTERWEAR|JACKET</code>）統計歷史款式每個 L1 部位的出現率。AI 漏畫但歷史 ≥80%（必備）的部位會自動補成「⚙ 結構推斷」卡片。
+            <br />
+            預期格式：<code style={{ background: '#f5f5f5', padding: '1px 4px', borderRadius: '3px' }}>{'{"by_gt_it":{"PANT|LEGGINGS":{"parts":[{"l1_code":"WB","presence_pct":95,"tier_en":"essential"}]}}}'}</code>
+            <br />
+            <span style={{ color: '#999' }}>資料會陸續補齊，上傳新版會覆蓋此瀏覽器的版本，不會影響其他人。</span>
           </div>
 
-          {(() => {
-            const bucketCount = Object.keys(pomRulesOverride?.buckets || {}).length;
-            const hasIndex = !!pomRulesOverride?.index;
-            const hasAny = hasIndex || bucketCount > 0;
-            return (
-              <div style={{
-                padding: '8px 12px', borderRadius: '8px',
-                background: hasAny ? '#fef3c7' : '#f3f4f6',
-                fontSize: '12px', color: hasAny ? '#92400e' : '#6b7280',
-                marginBottom: '12px', lineHeight: 1.5,
-              }}>
-                {hasAny ? (
-                  <>
-                    <div><strong>已覆蓋</strong>:
-                      {hasIndex && <> _index × 1({pomRulesOverride.index.count} bucket)</>}
-                      {hasIndex && bucketCount > 0 && <> · </>}
-                      {bucketCount > 0 && <>bucket × {bucketCount}</>}
-                    </div>
-                    {bucketCount > 0 && (
-                      <div style={{ marginTop: '4px', fontSize: '11px', opacity: 0.85, maxHeight: '72px', overflowY: 'auto' }}>
-                        {Object.entries(pomRulesOverride.buckets).slice(0, 6).map(([k, v]) =>
-                          <div key={k}><code>{k}</code> · {v.count} POM{currentBucketKey === k ? ' ← 目前檢視' : ''}</div>
-                        )}
-                        {bucketCount > 6 && <div>…其餘 {bucketCount - 6} 個</div>}
-                      </div>
-                    )}
-                  </>
-                ) : <span>目前用內建 <code>pom_rules/</code></span>}
-              </div>
-            );
-          })()}
-
-          {(pomRulesOverride?.index || Object.keys(pomRulesOverride?.buckets || {}).length > 0) && (
-            <div style={{ padding: '8px 10px', borderRadius: '6px', background: '#fff7ed', border: '1px solid #fed7aa', fontSize: '11px', color: '#9a3412', marginBottom: '10px', lineHeight: 1.5 }}>
-              ⚠ 再次上傳會<strong>完全取代</strong>現有覆蓋(上一次的上傳內容會被清掉,以這次為準)。
-            </div>
-          )}
+          <div style={{
+            padding: '8px 12px', borderRadius: '8px',
+            background: partPresenceOverride ? '#fef3c7' : '#f3f4f6',
+            fontSize: '12px', color: partPresenceOverride ? '#92400e' : '#6b7280',
+            marginBottom: '12px', lineHeight: 1.4,
+          }}>
+            {partPresenceOverride
+              ? <span><strong>已覆蓋</strong>：{partPresenceOverride.filename}（{partPresenceOverride.bucketsCount} 組分類 · {partPresenceOverride.partsCount} 筆部位{partPresenceOverride.uploadedAt ? ` · ${fmtTime(partPresenceOverride.uploadedAt)}` : ''}）</span>
+              : <span>目前用內建版 <code>l1_part_presence_v1.json</code></span>}
+          </div>
 
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <label style={{
               display: 'inline-block', padding: '8px 14px',
-              background: rulesUploading ? '#999' : '#1a1a1a', color: '#fff', borderRadius: '6px',
-              cursor: rulesUploading ? 'not-allowed' : 'pointer',
+              background: uploading ? '#999' : '#1a1a1a', color: '#fff', borderRadius: '6px',
+              cursor: uploading ? 'not-allowed' : 'pointer',
               fontSize: '12px', fontWeight: 600,
             }}>
-              {rulesUploading ? '處理中…' : '選多個 JSON'}
-              <input type="file" accept=".json,application/json" hidden multiple disabled={rulesUploading}
-                onChange={e => { handleRulesFiles(e.target.files); e.target.value = ''; }} />
+              {uploading === 'presence' ? '處理中…' : '選擇 JSON 檔'}
+              <input type="file" accept=".json,application/json" hidden disabled={!!uploading}
+                onChange={e => { handlePartPresenceFile(e.target.files?.[0]); e.target.value = ''; }} />
             </label>
-            <label style={{
-              display: 'inline-block', padding: '8px 14px',
-              background: rulesUploading ? '#999' : '#fff', color: rulesUploading ? '#fff' : '#1a1a1a',
-              border: '1px solid #1a1a1a', borderRadius: '6px',
-              cursor: rulesUploading ? 'not-allowed' : 'pointer',
-              fontSize: '12px', fontWeight: 600,
-            }}>
-              選整個資料夾
-              <input type="file" hidden disabled={rulesUploading}
-                webkitdirectory=""
-                directory=""
-                onChange={e => { handleRulesFiles(e.target.files); e.target.value = ''; }} />
-            </label>
+            {partPresenceOverride && (
+              <button onClick={() => { onClearPartPresence(); setSuccess(null); setError(null); }}
+                style={{
+                  padding: '8px 14px',
+                  background: '#fff', border: '1px solid #e8e5e1', borderRadius: '6px',
+                  cursor: 'pointer', fontSize: '12px', fontWeight: 600, color: '#dc2626',
+                  fontFamily: 'inherit',
+                }}>清除覆蓋 · 還原內建</button>
+            )}
           </div>
-
-          {rulesError && <div style={{ marginTop: '10px', padding: '8px 10px', background: '#fef2f2', color: '#b91c1c', fontSize: '11px', borderRadius: '6px' }}>⚠ {rulesError}</div>}
-          {rulesSuccess && <div style={{ marginTop: '10px', padding: '8px 10px', background: '#ecfdf5', color: '#065f46', fontSize: '11px', borderRadius: '6px' }}>✓ {rulesSuccess}</div>}
         </div>
 
         {/* Push to GitHub 區塊 */}
@@ -1400,10 +1470,72 @@ function AdminModal({ open, onClose, pomNamesOverride, onUploadPomNames, onClear
           );
         })()}
 
+        {error && <div style={{ marginTop: '10px', padding: '8px 10px', background: '#fef2f2', color: '#b91c1c', fontSize: '11px', borderRadius: '6px' }}>⚠ {error}</div>}
+        {success && <div style={{ marginTop: '10px', padding: '8px 10px', background: '#ecfdf5', color: '#065f46', fontSize: '11px', borderRadius: '6px' }}>✓ {success}</div>}
+
         <div style={{ marginTop: '12px', border: '1px dashed #e8e5e1', borderRadius: '10px', padding: '14px', background: '#fafafa' }}>
           <div style={{ fontSize: '13px', fontWeight: 700, color: '#767676' }}>L2 判別表</div>
           <div style={{ fontSize: '11px', color: '#999', marginTop: '4px' }}>規劃中</div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function OnboardingModal({ open, onDismiss }) {
+  if (!open) return null;
+  const steps = [
+    { n: 1, title: "選 Filter", body: "從 Brand / Fabric / Gender / Dept / Garment Type 篩選歷史資料。Item Type 是選填。" },
+    { n: 2, title: "上傳草圖並 Analyze", body: "拖放或點擊上傳草圖 → 按 Analyze，AI 辨識工法部位並自動推薦 ISO 縫法。" },
+    { n: 3, title: "三步驟流程", body: "① 作工建議 → ② 基碼確認 → ③ 全碼。tab 會依完成度亮起綠色 ✓。" },
+  ];
+  return (
+    <div onClick={onDismiss} role="dialog" aria-modal="true" aria-labelledby="onboarding-title" style={{
+      position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      zIndex: 150, padding: "20px", animation: "fadeIn 0.15s ease",
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background: "#fff", borderRadius: "14px", padding: "26px 28px",
+        maxWidth: "440px", width: "100%",
+        boxShadow: "0 12px 36px rgba(0,0,0,0.2)",
+      }}>
+        <div style={{ fontSize: "11px", color: "#065f46", fontWeight: 700, letterSpacing: "0.1em", marginBottom: "4px" }}>
+          STYTRIX · TECHPACK
+        </div>
+        <h2 id="onboarding-title" style={{ margin: "0 0 18px 0", fontSize: "19px", fontWeight: 700, color: "#1a1a1a" }}>
+          歡迎！3 步驟完成一份 techpack
+        </h2>
+        <div style={{ display: "flex", flexDirection: "column", gap: "14px", marginBottom: "22px" }}>
+          {steps.map(s => (
+            <div key={s.n} style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
+              <span aria-hidden="true" style={{
+                flexShrink: 0, width: "26px", height: "26px", borderRadius: "50%",
+                background: "#065f46", color: "#fff",
+                display: "inline-flex", alignItems: "center", justifyContent: "center",
+                fontSize: "12px", fontWeight: 700,
+              }}>{s.n}</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: "13px", fontWeight: 700, color: "#1a1a1a", marginBottom: "2px" }}>
+                  {s.title}
+                </div>
+                <div style={{ fontSize: "12px", color: "#555", lineHeight: 1.55 }}>
+                  {s.body}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{ fontSize: "11px", color: "#767676", marginBottom: "16px", lineHeight: 1.55 }}>
+          右上角 <span style={{ display: "inline-flex", alignItems: "center", padding: "0 4px" }}>⚙</span> 管理可以餵入更新的翻譯表；每個 filter 旁的 🔒 讓 refresh 保留選擇。
+        </div>
+        <button onClick={onDismiss} style={{
+          width: "100%", padding: "11px",
+          background: "#1a1a1a", color: "#fff",
+          border: "none", borderRadius: "8px",
+          fontSize: "13px", fontWeight: 600, cursor: "pointer",
+          fontFamily: "inherit",
+        }}>開始使用</button>
       </div>
     </div>
   );
@@ -1428,7 +1560,13 @@ function App() {
   const [gt, setGt] = useState(_saved.values.gt || "");
   const [it, setIt] = useState(_saved.values.it || "");
   const [locks, setLocks] = useState(_saved.locks);
+  const [filterExpanded, setFilterExpanded] = useState(false); // 手機版：選完 ≥2 filter 後收合成 pill
   const toggleLock = (key) => setLocks(prev => ({ ...prev, [key]: !prev[key] }));
+  const toggleAllLocks = () => {
+    const keys = ["brand", "fabric", "gender", "dept", "gt", "it"];
+    const anyLocked = keys.some(k => locks[k]);
+    setLocks(anyLocked ? {} : Object.fromEntries(keys.map(k => [k, true])));
+  };
   useEffect(() => {
     localStorage.setItem("stytrix_locks", JSON.stringify(locks));
     const vals = { brand, fabric, dept, gender, gt, it };
@@ -1442,13 +1580,9 @@ function App() {
 
   /* ── Sketch 上傳 ── */
   const [sketchSrc, setSketchSrc] = useState(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchFocused, setSearchFocused] = useState(false);
   const [pomRules, setPomRules] = useState(null);
   const [pomNamesOverride, setPomNamesOverride] = useState(null); // {filename, uploadedAt, count} | null
-  // POM Rules 覆蓋:index 單一槽位 + buckets map(一個 bucketKey 對應一個覆蓋)
-  // shape: { index: {filename, uploadedAt, count} | null, buckets: { [bucketKey]: {filename, uploadedAt, count} } }
-  const [pomRulesOverride, setPomRulesOverride] = useState({ index: null, buckets: {} });
+  const [partPresenceOverride, setPartPresenceOverride] = useState(null); // {filename, uploadedAt, bucketsCount, partsCount} | null
   const [adminOpen, setAdminOpen] = useState(false);
   useEffect(() => {
     // _index.json:先看覆蓋,沒有才抓內建
@@ -1543,145 +1677,48 @@ function App() {
       .catch(err => console.error('重新載入 pom_names.json 失敗:', err));
   };
 
-  /* 把 localStorage 裡的 bucket overrides 合成的 synthetic index entry
-     merge 進 pomRules,讓全新分類 (不在內建 _index.json 裡的 bucket)
-     也能自動出現在 filter 下拉選單。file 欄位留 null,實際資料走 override。 */
-  const mergeBucketOverridesIntoIndex = (basePomRules) => {
-    if (!basePomRules) return basePomRules;
-    try {
-      const stored = localStorage.getItem('stytrix.override.pomRules');
-      if (!stored) return basePomRules;
-      const parsed = JSON.parse(stored);
-      const overrides = parsed?.buckets || {};
-      const existing = new Set((basePomRules.buckets || []).map(b => b.bucket));
-      const extras = [];
-      for (const [key, entry] of Object.entries(overrides)) {
-        if (existing.has(key)) continue;
-        const d = entry?.data;
-        if (!d?.department || !d?.garment_type || !d?.gender) continue;
-        extras.push({ bucket: key, department: d.department, garment_type: d.garment_type, gender: d.gender, file: null });
-      }
-      if (!extras.length) return basePomRules;
-      return { ...basePomRules, buckets: [...basePomRules.buckets, ...extras] };
-    } catch { return basePomRules; }
-  };
-
-  /* POM Rules 覆蓋 — 支援一次上傳多個檔 (可選資料夾):
-     - _index.json (含 buckets 陣列) → 換掉 bucket 清單
-     - bucket 檔 (含 bucket + measurement_rules) → 換掉對應 bucketKey 的規則
-     結構:{ index: {meta, data}|null, buckets: { [bucketKey]: {meta, data} } }
-     同個 bucket 若在這次上傳中出現多次,以最後一個為準。 */
-  const readFileAsText = (file) => new Promise((resolve, reject) => {
+  /* 部位出現率表（l1_part_presence）上傳覆蓋：同一個瀏覽器用 localStorage 覆寫 */
+  const applyPartPresenceOverride = (file) => new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = (ev) => resolve(ev.target.result);
-    reader.onerror = () => reject(new Error(`讀取 ${file.name} 失敗`));
+    reader.onload = (ev) => {
+      let parsed;
+      try { parsed = JSON.parse(ev.target.result); }
+      catch (e) { return reject('JSON 解析失敗：' + e.message); }
+      if (!parsed || typeof parsed !== 'object' || !parsed.by_gt_it || typeof parsed.by_gt_it !== 'object') {
+        return reject('格式不符：缺少 by_gt_it 欄位');
+      }
+      const buckets = Object.keys(parsed.by_gt_it);
+      if (!buckets.length) return reject('格式不符：by_gt_it 為空');
+      let partsCount = 0, badParts = 0;
+      for (const key of buckets) {
+        const b = parsed.by_gt_it[key];
+        if (!Array.isArray(b?.parts)) return reject(`格式不符：${key} 缺少 parts array`);
+        for (const p of b.parts) {
+          if (!p?.l1_code || !p?.tier_en) { badParts++; continue; }
+          partsCount++;
+        }
+      }
+      const stored = { filename: file.name, uploadedAt: new Date().toISOString(), data: parsed };
+      try { localStorage.setItem('stytrix.override.partPresence', JSON.stringify(stored)); }
+      catch (e) { return reject('localStorage 寫入失敗（可能超出配額）：' + e.message); }
+      setPartPresence(parsed);
+      setPartPresenceOverride({
+        filename: file.name, uploadedAt: stored.uploadedAt,
+        bucketsCount: buckets.length, partsCount,
+      });
+      resolve({ bucketsCount: buckets.length, partsCount, badParts });
+    };
+    reader.onerror = () => reject('讀檔失敗');
     reader.readAsText(file);
   });
 
-  const applyPomRulesOverride = async (files) => {
-    // 允許傳入單一 File (舊呼叫) 或 FileList / Array
-    const list = files instanceof File ? [files] : Array.from(files || []);
-    if (!list.length) throw new Error('沒有檔案');
-    // Clean-slate:每次上傳都完全取代既有 overrides
-    let existing = { index: null, buckets: {} };
-
-    // 僅收 .json 檔
-    const jsonFiles = list.filter(f => /\.json$/i.test(f.name));
-    const skipped = list.length - jsonFiles.length;
-    const indexResults = [];
-    const bucketResults = [];
-    let namesResult = null; // 只會有一個 pom_names override (最後一個)
-    const invalid = [];
-    const now = new Date().toISOString();
-
-    await Promise.all(jsonFiles.map(async (file) => {
-      try {
-        const text = await readFileAsText(file);
-        const parsed = JSON.parse(text);
-        if (Array.isArray(parsed.buckets)) {
-          existing.index = { filename: file.name, uploadedAt: now, count: parsed.buckets.length, data: parsed };
-          indexResults.push({ filename: file.name, count: parsed.buckets.length });
-        } else if (parsed.bucket && parsed.measurement_rules) {
-          const mr = parsed.measurement_rules || {};
-          const count = Object.keys(mr.must || {}).length + Object.keys(mr.recommend || {}).length + Object.keys(mr.optional || {}).length;
-          existing.buckets[parsed.bucket] = { filename: file.name, uploadedAt: now, count, data: parsed };
-          bucketResults.push({ filename: file.name, bucketName: parsed.bucket, count });
-        } else {
-          // 嘗試當成 pom_names 處理 — 允許整個資料夾丟進來時自動路由
-          const nm = normalizePomNames(parsed);
-          if (!nm.error && nm.data) {
-            namesResult = { filename: file.name, data: nm.data, count: nm.count, invalidCount: nm.invalidCount };
-          } else {
-            invalid.push({ filename: file.name, reason: '非 _index / bucket / pom_names 格式' });
-          }
-        }
-      } catch (e) {
-        invalid.push({ filename: file.name, reason: e.message || String(e) });
-      }
-    }));
-
-    if (!indexResults.length && !bucketResults.length && !namesResult) {
-      throw new Error(`全部失敗 — ${invalid.length ? invalid.map(x => `${x.filename}: ${x.reason}`).slice(0, 3).join('; ') : '無有效 JSON'}`);
-    }
-
-    // pom_names 寫到自己的 localStorage key + 更新 state (與 applyPomNamesOverride 同路徑)
-    if (namesResult) {
-      const nmStored = { filename: namesResult.filename, uploadedAt: now, data: namesResult.data };
-      try { localStorage.setItem('stytrix.override.pomNames', JSON.stringify(nmStored)); }
-      catch (e) { throw new Error('localStorage 寫入失敗 (pom_names):' + e.message); }
-      setPomNames(namesResult.data); window.POM_NAMES = namesResult.data;
-      setPomNamesOverride({ filename: namesResult.filename, uploadedAt: now, count: namesResult.count });
-    }
-
-    try { localStorage.setItem('stytrix.override.pomRules', JSON.stringify(existing)); }
-    catch (e) { throw new Error('localStorage 寫入失敗(可能超出配額):' + e.message); }
-
-    // 套用 _index (若有),同時把 bucket overrides 裡的新 category 合進 buckets 清單
-    if (indexResults.length) {
-      const merged = mergeBucketOverridesIntoIndex(existing.index.data);
-      setPomRules(merged); window.POM_RULES = merged;
-    } else if (bucketResults.length) {
-      // 沒傳 _index,也要把新 bucket 合進目前 pomRules,讓 filter UI 能列出新分類
-      setPomRules(prev => {
-        const merged = mergeBucketOverridesIntoIndex(prev);
-        window.POM_RULES = merged;
-        return merged;
-      });
-    }
-    // 更新 overrideState metadata
-    setPomRulesOverride({
-      index: existing.index ? { filename: existing.index.filename, uploadedAt: existing.index.uploadedAt, count: existing.index.count } : null,
-      buckets: Object.fromEntries(Object.entries(existing.buckets).map(([k, v]) => [k, { filename: v.filename, uploadedAt: v.uploadedAt, count: v.count }])),
-    });
-    // 若目前 bucketKey 在這次上傳裡,立即套用;否則 filter 切到最後一個上傳的 bucket
-    const matched = bucketResults.find(b => b.bucketName === bucketKey);
-    if (matched) {
-      const d = existing.buckets[matched.bucketName].data;
-      setCurrentBucket(d); window.CURRENT_BUCKET = d;
-    } else if (bucketResults.length) {
-      const last = bucketResults[bucketResults.length - 1];
-      const d = existing.buckets[last.bucketName].data;
-      setCurrentBucket(d); window.CURRENT_BUCKET = d;
-      if (d.department) setDept(d.department);
-      if (d.garment_type) setGt(d.garment_type);
-      if (d.gender) setGender(d.gender);
-    }
-    return { indexCount: indexResults.length, bucketCount: bucketResults.length, namesCount: namesResult ? 1 : 0, invalidCount: invalid.length, skippedNonJson: skipped, invalid };
-  };
-
-  const clearPomRulesOverride = () => {
-    try { localStorage.removeItem('stytrix.override.pomRules'); } catch {}
-    setPomRulesOverride({ index: null, buckets: {} });
-    fetch('./pom_rules/_index.json')
+  const clearPartPresenceOverride = () => {
+    try { localStorage.removeItem('stytrix.override.partPresence'); } catch {}
+    setPartPresenceOverride(null);
+    fetch('./l1_part_presence_v1.json')
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
-      .then(data => { setPomRules(data); window.POM_RULES = data; })
-      .catch(err => console.error('重新載入 _index.json 失敗:', err));
-    if (bucketMeta) {
-      fetch(`./pom_rules/${bucketMeta.file}`)
-        .then(r => r.ok ? r.json() : Promise.reject(r.status))
-        .then(data => { setCurrentBucket(data); window.CURRENT_BUCKET = data; })
-        .catch(err => console.error('重新載入 bucket 失敗:', err));
-    }
+      .then(setPartPresence)
+      .catch(err => console.error('重新載入 l1_part_presence 失敗:', err));
   };
 
   /* 把目前所有 localStorage 覆蓋(POM Rules + POM 翻譯表)打包推到
@@ -1819,6 +1856,29 @@ function App() {
   const [removed, setRemoved] = useState(new Set());
   const [openId, setOpenId] = useState(null);
   const [addonOn, setAddonOn] = useState(true);
+  const [hintDismissed, setHintDismissed] = useState(() => {
+    try { return localStorage.getItem("stytrix.hint.card.dismissed") === "1"; } catch { return false; }
+  });
+  const [onboardingOpen, setOnboardingOpen] = useState(() => {
+    try { return localStorage.getItem("stytrix.onboarding.done") !== "1"; } catch { return false; }
+  });
+  const dismissOnboarding = () => {
+    try { localStorage.setItem("stytrix.onboarding.done", "1"); } catch {}
+    setOnboardingOpen(false);
+  };
+  const [undoToast, setUndoToast] = useState(null); // { message, onUndo, expires }
+  const undoTimerRef = useRef(null);
+  const showUndo = (message, onUndo) => {
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    setUndoToast({ message, onUndo, at: Date.now() });
+    undoTimerRef.current = setTimeout(() => setUndoToast(null), 5000);
+  };
+  const runUndo = () => {
+    if (!undoToast) return;
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    undoToast.onUndo();
+    setUndoToast(null);
+  };
   const [cards, setCards] = useState([]);
   const [isoRec, setIsoRec] = useState(null);
   const [partPresence, setPartPresence] = useState(null);
@@ -1836,10 +1896,31 @@ function App() {
         .catch(err => console.error('載入 l1_iso_recommendations 失敗:', err));
     }
     if (!partPresence) {
-      fetch('./l1_part_presence_v1.json')
-        .then(r => r.ok ? r.json() : Promise.reject(r.status))
-        .then(setPartPresence)
-        .catch(err => console.error('載入 l1_part_presence 失敗:', err));
+      // 先看 localStorage 是否有使用者上傳的覆蓋版；沒有才抓內建
+      let usedOverride = false;
+      try {
+        const stored = localStorage.getItem('stytrix.override.partPresence');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed?.data?.by_gt_it) {
+            setPartPresence(parsed.data);
+            setPartPresenceOverride({
+              filename: parsed.filename || '(unnamed)',
+              uploadedAt: parsed.uploadedAt || null,
+              bucketsCount: Object.keys(parsed.data.by_gt_it).length,
+              partsCount: Object.values(parsed.data.by_gt_it)
+                .reduce((n, b) => n + (Array.isArray(b?.parts) ? b.parts.length : 0), 0),
+            });
+            usedOverride = true;
+          }
+        }
+      } catch (e) { console.warn('讀取 partPresence 覆蓋失敗:', e); }
+      if (!usedOverride) {
+        fetch('./l1_part_presence_v1.json')
+          .then(r => r.ok ? r.json() : Promise.reject(r.status))
+          .then(setPartPresence)
+          .catch(err => console.error('載入 l1_part_presence 失敗:', err));
+      }
     }
     if (!visualGuide) {
       fetch('./data/l2_visual_guide.json')
@@ -1974,45 +2055,6 @@ function App() {
     return IT_OPTIONS[gt] || [];
   }, [gt]);
 
-  /* Search: 打 hoodie 等關鍵字搜尋所有 filter 選項，點一下自動填 */
-  const searchMatches = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    if (q.length < 2) return [];
-    const matches = [];
-    Object.entries(IT_OPTIONS).forEach(([g, items]) => {
-      items.forEach(item => {
-        if (item.toLowerCase().includes(q)) {
-          matches.push({ type: "IT", gt: g, it: item, label: item, hint: `Garment Type: ${g}` });
-        }
-      });
-    });
-    (pomRules ? [...new Set(pomRules.buckets.map(b => b.garment_type))] : Object.keys(IT_OPTIONS)).forEach(g => {
-      if (g !== "UNKNOWN" && g.toLowerCase().includes(q)) {
-        matches.push({ type: "GT", gt: g, label: g, hint: "Garment Type" });
-      }
-    });
-    (pomRules ? [...new Set(pomRules.buckets.map(b => b.department))] : DEPT_OPTIONS).forEach(d => {
-      if (d.toLowerCase().includes(q)) {
-        matches.push({ type: "Dept", dept: d, label: d, hint: "Department" });
-      }
-    });
-    GENDER_OPTIONS.forEach(g => {
-      if (g.label.toLowerCase().includes(q) || g.value.toLowerCase().includes(q)) {
-        matches.push({ type: "Gender", gender: g.value, label: g.label, hint: "Gender" });
-      }
-    });
-    return matches.slice(0, 8);
-  }, [searchQuery, pomRules]);
-
-  const applySearchMatch = (m) => {
-    if (m.type === "IT") { setGt(m.gt); setIt(m.it); }
-    else if (m.type === "GT") { setGt(m.gt); setIt(""); }
-    else if (m.type === "Dept") { setDept(m.dept); }
-    else if (m.type === "Gender") { setGender(m.gender); }
-    setSearchQuery("");
-    setSearchFocused(false);
-  };
-
   const ptCount = useMemo(() => {
     let p = 0, t = 0;
     [...MISSY_POMS.must, ...MISSY_POMS.recommend, ...MISSY_POMS.optional].forEach(pom => {
@@ -2038,6 +2080,91 @@ function App() {
     "⑤ Tolerance 眾數推薦...",
     "✓ 尺寸建議表生成完成"
   ];
+
+  const exportTechpack = () => {
+    const snapshot = {
+      version: "1.0",
+      exportedAt: new Date().toISOString(),
+      filters: { brand, fabric, gender, dept, garment_type: gt, item_type: it || null },
+      construction: cDone ? {
+        total_ie_seconds: Math.round(totalIE),
+        ai_count: aiCount,
+        struct_count: structCount,
+        addon: addonOn ? { brand, name: ADDON.name, ie_seconds: ADDON.ie, steps: ADDON.steps.length } : null,
+        removed_ids: Array.from(removed),
+        cards: vis.map(c => ({
+          id: c.id,
+          l1_code: c.code,
+          l1_name: c.l1,
+          l2: c.l2 || null,
+          l2_code: c.l2Code || null,
+          source: c.source,
+          ie_seconds: Math.round(c.ie),
+          method: c.methodName || null,
+          l3_steps: (c.l3s || []).map(l3 => ({
+            name: l3.pick != null && l3.opts ? (l3.opts[l3.pick]?.n ?? null) : null,
+            ie_seconds: Math.round(l3.ie || 0),
+          })),
+        })),
+      } : null,
+      measurement: (mDone && currentBucket) ? {
+        bucket: currentBucket.bucket,
+        n_designs: currentBucket.n,
+        sizes: currentBucket.size_range || [],
+        poms: (() => {
+          const mr = currentBucket.measurement_rules || {};
+          const mv = currentBucket.median_values || {};
+          const gr = currentBucket.grading_rules || {};
+          const sizes = currentBucket.size_range || [];
+          const out = [];
+          ["must", "recommend", "optional"].forEach(tier => {
+            Object.keys(mr[tier] || {}).forEach(code => {
+              if (excluded.has(code)) return;
+              const pn = pomNames[code] || {};
+              const m = mr[tier][code];
+              const mvRow = mv[code] || {};
+              const baseM = mvRow.size_medians?.M;
+              const ov = baseOverrides[code];
+              const ovParsed = ov != null && ov !== "" ? parseInch(ov) : null;
+              const effBase = ovParsed != null ? ovParsed : baseM;
+              const sizeVals = {};
+              sizes.forEach(s => {
+                const origM = mvRow.size_medians?.M;
+                const origS = mvRow.size_medians?.[s];
+                if (origS == null) return;
+                if (effBase == null || origM == null) { sizeVals[s] = origS; return; }
+                sizeVals[s] = origS + (effBase - origM);
+              });
+              out.push({
+                code,
+                name_en: pn.en || code,
+                name_zh: pn.zh || null,
+                tier,
+                tolerance: tolStr(m),
+                base_m: effBase != null ? Number(effBase.toFixed(4)) : null,
+                overridden: ovParsed != null && baseM != null && Math.abs(ovParsed - baseM) > 1e-9,
+                grading_increment: gr[code]?.typical_increment ?? null,
+                size_values: sizeVals,
+              });
+            });
+          });
+          return out;
+        })(),
+      } : null,
+    };
+    const json = JSON.stringify(snapshot, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const stamp = new Date().toISOString().slice(0, 10);
+    const slug = [brand, gt, it].filter(Boolean).join("_") || "techpack";
+    a.href = url;
+    a.download = `techpack_${slug}_${stamp}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   const runConstruction = async () => {
     setCStep(1); setCAnalyzing(true); setCStage(0);
@@ -2078,7 +2205,11 @@ function App() {
         for (const p of presenceBucket.parts || []) presenceByCode[p.l1_code] = p;
       }
       // Add essential parts the AI missed so they still render (tier_en === 'essential').
+      // Enforce the 38-L1 invariant: presence file uses a legacy schema that
+      // includes old codes (BT/EL/FC/FR/FU/GS/IL/LN/YK…) not in L1_CODE_TO_NAME.
+      // Skip anything outside the canonical 38 so UI never shows half-broken cards.
       for (const code of Object.keys(presenceByCode)) {
+        if (!L1_CODE_TO_NAME[code]) continue;
         if (byCode.has(code)) continue;
         if (presenceByCode[code].tier_en !== "essential") continue;
         byCode.set(code, { code, confidence: null, x: 50, y: 50, side: "front", _fromPresence: true });
@@ -2095,7 +2226,7 @@ function App() {
       // Normalize xlsx Chinese names to ISO-JSON Chinese names (different character choices).
       const ISO_NAME_ALIAS = {
         "帽子":"帽", "下襬":"下擺", "商標":"標",
-        "脅邊":"脇縫", "行縫(固定棉)":"行縫固定棉",
+        "脅邊":"脇縫",
         "袖孔":"袖襱", "袖圍":"袖襱"
       };
       const findIso = (name) => isoByName[name]
@@ -2247,7 +2378,7 @@ function App() {
             ? `${l2Base}${l4Short ? " · " + l4Short : ""}`
             : (rec ? `${rec.recommended_iso} ${isoRec?.iso_reference?.[rec.recommended_iso]?.zh || ""}` : "—"),
           l2Base,
-          source: d._fromPresence ? "presence" : "ai",
+          source: d._fromPresence ? "struct" : "ai",
           conf: Number.isFinite(d.confidence) ? d.confidence : null,
           matchCode: null,
           px: Number.isFinite(d.x) ? d.x : 50,
@@ -2266,6 +2397,7 @@ function App() {
           l3Variants: l3VariantsOut,
           ai_l2_code: d.l2_code || null,
           ai_l2_confidence: Number.isFinite(d.l2_confidence) ? d.l2_confidence : null,
+          ai_l2_explanation: typeof d.l2_explanation === "string" ? d.l2_explanation : null,
           l3s: stepList
         };
       });
@@ -2307,140 +2439,231 @@ function App() {
           <span style={{ width: "1px", height: "14px", background: "#ddd" }} />
           <span style={{ fontSize: "12px", color: "#999", fontWeight: 500 }}>Techpack</span>
         </div>
-      </div>
-
-      <div style={{ maxWidth: "1280px", margin: "0 auto", padding: isMobile ? "14px 14px" : "24px 28px" }}>
-        {/* ─── Top bar：管理 ─── */}
-        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "10px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <button onClick={() => setAdminOpen(true)}
-            aria-label={pomNamesOverride ? "開啟管理面板（已有覆蓋）" : "開啟管理面板"}
-            title={pomNamesOverride ? `已覆蓋 POM 翻譯表：${pomNamesOverride.filename}` : "管理：餵入更新的尺寸翻譯表 / L2 判別"}
+            aria-label={(pomNamesOverride || partPresenceOverride) ? "開啟管理面板（已有覆蓋）" : "開啟管理面板"}
+            title={(() => {
+              const parts = [];
+              if (pomNamesOverride) parts.push(`POM 翻譯表：${pomNamesOverride.filename}`);
+              if (partPresenceOverride) parts.push(`部位出現率表：${partPresenceOverride.filename}`);
+              return parts.length ? `已覆蓋 — ${parts.join('、')}` : "管理：上傳 POM 翻譯表 / 部位出現率表";
+            })()}
             style={{
               background: "#fff", border: "1px solid #e8e5e1", borderRadius: "6px",
-              padding: "5px 11px", fontSize: "11px", fontWeight: 600,
-              color: pomNamesOverride ? "#b45309" : "#767676",
+              padding: "4px 10px", fontSize: "11px", fontWeight: 600,
+              color: (pomNamesOverride || partPresenceOverride) ? "#b45309" : "#767676",
               cursor: "pointer", fontFamily: "inherit",
-              display: "inline-flex", alignItems: "center", gap: "5px",
+              display: "inline-flex", alignItems: "center", justifyContent: "center",
+              position: "relative", transition: "border-color 0.15s",
             }}>
-            {pomNamesOverride && <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#f59e0b", display: "inline-block" }} />}
+            {(pomNamesOverride || partPresenceOverride) && <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#f59e0b", display: "inline-block" }} />}
             管理
           </button>
         </div>
-        {/* ─── Quick search ─── */}
-        <div style={{ position: "relative", marginBottom: "16px" }}>
-          <input type="text" value={searchQuery}
-            onChange={e => { setSearchQuery(e.target.value); setSearchFocused(true); }}
-            onFocus={() => setSearchFocused(true)}
-            onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
-            placeholder="🔍 快速搜尋（例如打 hoodie / leggings / active / mens ... 自動填 filter）"
-            style={{
-              width: "100%", padding: "10px 14px", fontSize: "13px",
-              border: "1.5px solid #e8e5e1", borderRadius: "8px",
-              background: "#fff", fontFamily: "inherit", outline: "none",
-              transition: "border-color 0.15s",
-            }}
-            onMouseEnter={e => e.currentTarget.style.borderColor = "#d4d4d4"}
-            onMouseLeave={e => e.currentTarget.style.borderColor = "#e8e5e1"} />
-          {searchFocused && searchMatches.length > 0 && (
-            <div style={{
-              position: "absolute", top: "100%", left: 0, right: 0, marginTop: "4px",
-              background: "#fff", border: "1.5px solid #e8e5e1", borderRadius: "8px",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.08)", zIndex: 20, maxHeight: "320px", overflowY: "auto"
-            }}>
-              {searchMatches.map((m, i) => (
-                <div key={i} onMouseDown={() => applySearchMatch(m)}
-                  style={{
-                    padding: "8px 14px", cursor: "pointer", fontSize: "13px",
-                    display: "flex", justifyContent: "space-between", alignItems: "center",
-                    borderBottom: i < searchMatches.length - 1 ? "1px solid #f0eeeb" : "none",
-                    transition: "background 0.1s"
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.background = "#faf9f7"}
-                  onMouseLeave={e => e.currentTarget.style.background = "#fff"}>
-                  <span style={{ fontWeight: 600, color: "#1a1a1a" }}>{m.label}</span>
-                  <span style={{ fontSize: "11px", color: "#999" }}>{m.hint}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+      </div>
 
+      <div style={{ maxWidth: "1280px", margin: "0 auto", padding: isMobile ? "14px 14px" : "24px 28px" }}>
         {/* ─── Filter (v10: flush underline selects) ─── */}
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(6, 1fr)",
-          gap: isMobile ? "12px 14px" : "20px",
-          marginBottom: isMobile ? "18px" : "28px",
-          paddingBottom: isMobile ? "14px" : "24px",
-          borderBottom: "1px solid #eee"
-        }}>
-          <Sel label="Brand" value={brand} onChange={setBrand}
-            options={BRANDS.map(b => b.code)} badgeMap={brandBadgeMap}
-            locked={!!locks.brand} onToggleLock={() => toggleLock("brand")} />
-          <Sel label="Fabric" value={fabric}
-            onChange={v => { setFabric(v); setIt(""); }}
-            options={["Woven", "Knit"]} badgeMap={fabricBadgeMap}
-            locked={!!locks.fabric} onToggleLock={() => toggleLock("fabric")} />
-          <Sel label="Gender" value={gender} onChange={setGender}
-            options={pomRules ? Object.keys(genderBadgeMap).filter(v => genderBadgeMap[v] > 0).sort((a,b) => GENDER_OPTIONS.findIndex(g => g.value === a) - GENDER_OPTIONS.findIndex(g => g.value === b)) : GENDER_OPTIONS.map(g => g.value)}
-            labelMap={Object.fromEntries(GENDER_OPTIONS.map(g => [g.value, g.label]))}
-            badgeMap={genderBadgeMap}
-            locked={!!locks.gender} onToggleLock={() => toggleLock("gender")} />
-          <Sel label="Department" value={dept} onChange={setDept}
-            options={pomRules ? Object.keys(deptBadgeMap).filter(d => deptBadgeMap[d] > 0).sort() : DEPT_OPTIONS}
-            badgeMap={deptBadgeMap}
-            locked={!!locks.dept} onToggleLock={() => toggleLock("dept")} />
-          <Sel label="Garment Type" value={gt}
-            onChange={v => { setGt(v); setIt(""); }}
-            options={pomRules ? Object.keys(gtBadgeMap).filter(g => gtBadgeMap[g] > 0).sort() : GT_OPTIONS}
-            badgeMap={gtBadgeMap}
-            locked={!!locks.gt} onToggleLock={() => toggleLock("gt")} />
-          <Sel label="Item Type" value={it} onChange={setIt}
-            options={curItOptions}
-            disabled={curItOptions.length === 0}
-            locked={!!locks.it} onToggleLock={() => toggleLock("it")} />
-        </div>
-
-        {/* ─── Tabs (v10: underline only) ─── */}
-        <div style={{
-          display: "flex", borderBottom: "1px solid #eee",
-          marginBottom: isMobile ? "16px" : "24px",
-          gap: isMobile ? "0" : "0",
-          overflowX: "auto",
-          WebkitOverflowScrolling: "touch",
-        }}>
-          {[
-            { key: "construction", label: "作工建議", done: cDone, disabled: false,
-              badge: cDone ? `${vis.length} 部位 · ${Math.round(totalIE)} 秒` : null },
-            { key: "measurement", label: "基碼 / POM 確認", done: mDone, disabled: false,
-              badge: mDone ? `${displayIncludedCount} POMs` : null },
-            { key: "grading", label: "全碼", done: mDone && displayIncludedCount > 0,
-              disabled: !(mDone && currentBucket && displayIncludedCount > 0),
-              badge: (mDone && currentBucket) ? `${displayIncludedCount} POMs` : null },
-          ].map(t => {
-            const active = activeTab === t.key;
-            const dis = !!t.disabled;
+        {(() => {
+          const selectedFilters = [
+            brand && { label: "Brand", v: brand },
+            fabric && { label: "Fabric", v: fabric },
+            gender && { label: "Gender", v: (GENDER_OPTIONS.find(g => g.value === gender)?.label) || gender },
+            dept && { label: "Dept", v: dept },
+            gt && { label: "GT", v: gt },
+            it && { label: "IT", v: it },
+          ].filter(Boolean);
+          const collapsed = isMobile && selectedFilters.length >= 2 && !filterExpanded;
+          if (collapsed) {
             return (
-              <button key={t.key} onClick={() => !dis && setActiveTab(t.key)}
-                disabled={dis}
-                title={dis ? "請先於基碼 / POM 確認勾選至少一項" : ""}
-                style={{
-                  padding: "12px 0", marginRight: "32px", background: "none", border: "none",
-                  borderBottom: active ? "2px solid #065f46" : "2px solid transparent",
-                  cursor: dis ? "not-allowed" : "pointer",
-                  color: active ? "#1a1a1a" : (dis ? "#ddd" : "#aaa"),
-                  fontSize: "14px", fontWeight: active ? 700 : 500,
-                  marginBottom: "-1px", transition: "all 0.15s", fontFamily: "inherit",
-                  display: "flex", alignItems: "center", gap: "8px",
-                }}>
-                {t.label}
-                {t.done && t.badge && (
-                  <span style={{ fontSize: "11px", color: "#065f46", fontFamily: "'JetBrains Mono',monospace", fontWeight: 600 }}>{t.badge}</span>
-                )}
-              </button>
+              <div style={{
+                display: "flex", alignItems: "center", gap: "8px",
+                flexWrap: "wrap",
+                marginBottom: "14px", paddingBottom: "12px",
+                borderBottom: "1px solid #eee",
+              }}>
+                {selectedFilters.map((f, i) => (
+                  <span key={i} style={{
+                    fontSize: "12px", padding: "4px 10px",
+                    background: i === 0 ? "#1a1a1a" : "#f5f5f5",
+                    color: i === 0 ? "#fff" : "#555",
+                    borderRadius: "999px", fontWeight: 600,
+                    whiteSpace: "nowrap",
+                  }}>{f.v}</span>
+                ))}
+                <button onClick={() => setFilterExpanded(true)} aria-label="編輯 filter" style={{
+                  marginLeft: "auto",
+                  fontSize: "11px", padding: "4px 10px",
+                  background: "#fff", color: "#767676",
+                  border: "1px solid #e8e5e1", borderRadius: "6px",
+                  cursor: "pointer", fontWeight: 600, fontFamily: "inherit",
+                  display: "inline-flex", alignItems: "center", gap: "4px",
+                }}>✎ 編輯</button>
+              </div>
             );
-          })}
-        </div>
+          }
+          const keys = ["brand", "fabric", "gender", "dept", "gt", "it"];
+          const anyLocked = keys.some(k => locks[k]);
+          return (
+            <div style={{
+              marginBottom: isMobile ? "18px" : "28px",
+              paddingBottom: isMobile ? "14px" : "24px",
+              borderBottom: "1px solid #eee",
+            }}>
+              <div style={{
+                display: "flex", justifyContent: "flex-end",
+                gap: "6px", marginBottom: isMobile ? "10px" : "12px",
+              }}>
+                <button onClick={toggleAllLocks}
+                  aria-label={anyLocked ? "全部解鎖" : "全部鎖住"}
+                  title={anyLocked ? "全部解鎖" : "鎖住全部（refresh 不重設）"}
+                  style={{
+                    fontSize: "11px", padding: "3px 10px",
+                    background: "#fff",
+                    color: anyLocked ? "#065f46" : "#767676",
+                    border: `1px solid ${anyLocked ? "#a7f3d0" : "#e8e5e1"}`,
+                    borderRadius: "6px",
+                    cursor: "pointer", fontWeight: 600, fontFamily: "inherit",
+                    display: "inline-flex", alignItems: "center", gap: "5px",
+                  }}>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                    {anyLocked ? <path d="M7 11V7a5 5 0 0 1 10 0v4"/> : <path d="M7 11V7a5 5 0 0 1 9.9-1"/>}
+                  </svg>
+                  {anyLocked ? "全部解鎖" : "全部鎖住"}
+                </button>
+                {isMobile && selectedFilters.length >= 2 && (
+                  <button onClick={() => setFilterExpanded(false)} aria-label="收合 filter" style={{
+                    fontSize: "11px", padding: "3px 10px",
+                    background: "#fff", color: "#767676",
+                    border: "1px solid #e8e5e1", borderRadius: "6px",
+                    cursor: "pointer", fontWeight: 600, fontFamily: "inherit",
+                  }}>收合</button>
+                )}
+              </div>
+              <div style={{
+                display: "grid",
+                gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(6, 1fr)",
+                gap: isMobile ? "12px 14px" : "20px",
+                alignItems: "start",
+              }}>
+              <Sel label="Brand" value={brand} onChange={setBrand}
+                options={BRANDS.map(b => b.code)} badgeMap={brandBadgeMap}
+                locked={!!locks.brand} onToggleLock={() => toggleLock("brand")} />
+              <Sel label="Fabric" value={fabric}
+                onChange={v => { setFabric(v); setIt(""); }}
+                options={["Woven", "Knit"]} badgeMap={fabricBadgeMap}
+                locked={!!locks.fabric} onToggleLock={() => toggleLock("fabric")} />
+              <Sel label="Gender" value={gender} onChange={setGender}
+                options={pomRules ? Object.keys(genderBadgeMap).filter(v => genderBadgeMap[v] > 0).sort((a,b) => GENDER_OPTIONS.findIndex(g => g.value === a) - GENDER_OPTIONS.findIndex(g => g.value === b)) : GENDER_OPTIONS.map(g => g.value)}
+                labelMap={Object.fromEntries(GENDER_OPTIONS.map(g => [g.value, g.label]))}
+                badgeMap={genderBadgeMap}
+                locked={!!locks.gender} onToggleLock={() => toggleLock("gender")} />
+              <Sel label="Department" value={dept} onChange={setDept}
+                options={pomRules ? Object.keys(deptBadgeMap).filter(d => deptBadgeMap[d] > 0).sort() : DEPT_OPTIONS}
+                badgeMap={deptBadgeMap}
+                locked={!!locks.dept} onToggleLock={() => toggleLock("dept")} />
+              <Sel label="Garment Type" value={gt}
+                onChange={v => { setGt(v); setIt(""); }}
+                options={pomRules ? Object.keys(gtBadgeMap).filter(g => gtBadgeMap[g] > 0).sort() : GT_OPTIONS}
+                badgeMap={gtBadgeMap}
+                locked={!!locks.gt} onToggleLock={() => toggleLock("gt")} />
+              <Sel label="Item Type" value={it} onChange={setIt}
+                options={curItOptions}
+                disabled={curItOptions.length === 0}
+                locked={!!locks.it} onToggleLock={() => toggleLock("it")} />
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ─── Tabs：線性步驟樣式 ① ▸ ② ▸ ③ ─── */}
+        {(() => {
+          const tabs = [
+            { key: "construction", label: "作工建議", done: cDone, disabled: false },
+            { key: "measurement", label: "基碼確認", done: mDone, disabled: false },
+            { key: "grading", label: "全碼",
+              done: mDone && displayIncludedCount > 0,
+              disabled: !(mDone && currentBucket && displayIncludedCount > 0) },
+          ];
+          const onTabKey = (e, idx) => {
+            if (e.key !== "ArrowLeft" && e.key !== "ArrowRight" && e.key !== "Home" && e.key !== "End") return;
+            e.preventDefault();
+            const enabledIdx = tabs.map((t, i) => t.disabled ? null : i).filter(i => i !== null);
+            let nextIdx;
+            if (e.key === "Home") nextIdx = enabledIdx[0];
+            else if (e.key === "End") nextIdx = enabledIdx[enabledIdx.length - 1];
+            else {
+              const cur = enabledIdx.indexOf(idx);
+              const dir = e.key === "ArrowRight" ? 1 : -1;
+              nextIdx = enabledIdx[(cur + dir + enabledIdx.length) % enabledIdx.length];
+            }
+            if (nextIdx == null) return;
+            setActiveTab(tabs[nextIdx].key);
+            const el = document.querySelector(`[data-tab-key="${tabs[nextIdx].key}"]`);
+            if (el) el.focus();
+          };
+          return (
+            <div role="tablist" aria-label="步驟" style={{
+              display: "flex", alignItems: "center", borderBottom: "1px solid #eee",
+              marginBottom: isMobile ? "16px" : "24px",
+              overflowX: "auto",
+              WebkitOverflowScrolling: "touch",
+            }}>
+              {tabs.map((t, idx, arr) => {
+                const active = activeTab === t.key;
+                const dis = !!t.disabled;
+                const stepColor = active ? "#065f46" : (t.done ? "#065f46" : (dis ? "#e5e5e5" : "#bbb"));
+                const stepBg = active ? "#065f46" : (t.done ? "#ecfdf5" : "transparent");
+                const stepTextColor = active ? "#fff" : (t.done ? "#065f46" : (dis ? "#ccc" : "#999"));
+                return (
+                  <React.Fragment key={t.key}>
+                    <button role="tab"
+                      data-tab-key={t.key}
+                      id={`tab-${t.key}`}
+                      aria-selected={active}
+                      aria-controls={`tabpanel-${t.key}`}
+                      aria-disabled={dis}
+                      tabIndex={active ? 0 : -1}
+                      onClick={() => !dis && setActiveTab(t.key)}
+                      onKeyDown={(e) => onTabKey(e, idx)}
+                      disabled={dis}
+                      title={dis ? "請先於基碼確認勾選至少一項" : ""}
+                      style={{
+                        padding: "12px 0", background: "none", border: "none",
+                        borderBottom: active ? "2px solid #065f46" : "2px solid transparent",
+                        cursor: dis ? "not-allowed" : "pointer",
+                        color: active ? "#1a1a1a" : (dis ? "#ddd" : "#555"),
+                        fontSize: isMobile ? "13px" : "14px",
+                        fontWeight: active ? 700 : 500,
+                        marginBottom: "-1px", transition: "all 0.15s", fontFamily: "inherit",
+                        display: "inline-flex", alignItems: "center", gap: "8px",
+                        whiteSpace: "nowrap",
+                      }}>
+                      <span aria-hidden="true" style={{
+                        display: "inline-flex", alignItems: "center", justifyContent: "center",
+                        width: "20px", height: "20px", borderRadius: "50%",
+                        border: `1.5px solid ${stepColor}`,
+                        background: stepBg, color: stepTextColor,
+                        fontSize: "11px", fontWeight: 700, lineHeight: 1,
+                        transition: "all 0.15s",
+                      }}>
+                        {t.done && !active ? "✓" : (idx + 1)}
+                      </span>
+                      <span>{t.label}</span>
+                    </button>
+                    {idx < arr.length - 1 && (
+                      <span aria-hidden="true" style={{
+                        margin: "0 14px",
+                        fontSize: "12px", color: "#d4d4d4", userSelect: "none",
+                      }}>▸</span>
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </div>
+          );
+        })()}
 
         {/* ═══ Construction Tab Panel ═══ */}
         {activeTab === "construction" && (
@@ -2469,7 +2692,6 @@ function App() {
                   fontFamily: "inherit",
                 }}>{cAnalyzing ? "分析中…" : "Analyze"}</button>
               )}
-              {analyzeErr && <span style={{ fontSize: "11px", color: "#dc2626" }}>分析失敗: {analyzeErr}</span>}
               {cDone && (
                 <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                   <div style={{ textAlign: "right" }}>
@@ -2523,7 +2745,17 @@ function App() {
                           更換
                         </label>
                         <button
-                          onClick={() => { setSketchSrc(null); setCStep(0); setRemoved(new Set()); setOpenId(null); }}
+                          onClick={() => {
+                            const snap = { sketchSrc, cStep, removed, openId, cards };
+                            setSketchSrc(null); setCStep(0); setRemoved(new Set()); setOpenId(null);
+                            showUndo("草圖已刪除", () => {
+                              setSketchSrc(snap.sketchSrc);
+                              setCStep(snap.cStep);
+                              setRemoved(snap.removed);
+                              setOpenId(snap.openId);
+                              setCards(snap.cards);
+                            });
+                          }}
                           style={{ fontSize: "11px", color: "#dc2626", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline", textUnderlineOffset: "2px", fontFamily: "inherit" }}
                         >刪除</button>
                       </div>
@@ -2540,13 +2772,104 @@ function App() {
                         <span key={v} style={{ fontSize: "11px", padding: "2px 8px", background: i === 0 ? "#1a1a1a" : "#f5f5f5", borderRadius: "4px", color: i === 0 ? "#fff" : "#777", fontWeight: i === 0 ? 600 : 400 }}>{v}</span>
                       ))}
                     </div>}
+                    {cDone && <div style={{
+                      padding: "10px 16px", borderTop: "1px solid #f0f0f0",
+                      display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px",
+                    }}>
+                      <div>
+                        <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
+                          <span style={{ fontSize: "18px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{vis.length}</span>
+                          <span style={{ fontSize: "11px", color: "#999" }}>/ {cards.length} 部位</span>
+                        </div>
+                        <div style={{ fontSize: "10px", color: "#767676", marginTop: "2px" }}>
+                          {aiCount} AI 偵測 · {structCount} 結構推斷
+                        </div>
+                      </div>
+                      <span
+                        title="根據 AI 偵測與歷史資料自動勾選 · 可手動刪除或新增部位"
+                        style={{ fontSize: "10px", color: "#065f46", fontWeight: 600, background: "#ecfdf5", padding: "4px 10px", borderRadius: "4px", whiteSpace: "nowrap", cursor: "help" }}>
+                        已自動選好
+                      </span>
+                    </div>}
+                    {cDone && (
+                      <label style={{
+                        padding: "10px 16px", borderTop: "1px solid #f0f0f0",
+                        display: "flex", alignItems: "center", gap: "10px",
+                        cursor: "pointer",
+                      }}
+                        title={`${brand} 品牌套組 · ${ADDON.steps.length} 工段`}>
+                        <input type="checkbox" checked={addonOn}
+                          onChange={() => setAddonOn(!addonOn)}
+                          style={{ width: "15px", height: "15px", accentColor: "#1a1a1a", cursor: "pointer" }} />
+                        <span style={{ fontSize: "12px", fontWeight: 600, color: addonOn ? "#1a1a1a" : "#999" }}>
+                          {brand} 品牌套組
+                        </span>
+                        <span style={{ fontSize: "10px", color: "#999" }}>
+                          {ADDON.steps.length} 工段
+                        </span>
+                        <span style={{
+                          marginLeft: "auto",
+                          fontSize: "13px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace",
+                          color: addonOn ? "#065f46" : "#ccc",
+                        }}>
+                          {addonOn ? "+" : ""}{ADDON.ie}<span style={{ fontSize: "10px", color: "#aaa", marginLeft: "3px", fontWeight: 500 }}>秒</span>
+                        </span>
+                      </label>
+                    )}
                   </>
                 )}
               </div>
 
               {/* Cards area */}
               <div style={{ alignSelf: "start" }}>
-                {!cDone && !cAnalyzing && <div style={{
+                {analyzeErr && !cAnalyzing && (
+                  <div role="alert" style={{
+                    minHeight: "200px",
+                    padding: "22px 24px",
+                    border: "1px solid #fecaca", background: "#fef2f2", borderRadius: "10px",
+                    display: "flex", flexDirection: "column", gap: "14px",
+                    marginBottom: "10px", animation: "fadeIn 0.2s ease",
+                  }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
+                      <div aria-hidden="true" style={{
+                        flexShrink: 0, width: "28px", height: "28px",
+                        borderRadius: "50%", background: "#fee2e2",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: "15px", color: "#b91c1c",
+                      }}>⚠</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: "14px", fontWeight: 700, color: "#b91c1c", marginBottom: "4px" }}>
+                          Analyze 失敗
+                        </div>
+                        <div style={{ fontSize: "12px", color: "#7f1d1d", lineHeight: 1.5, wordBreak: "break-word" }}>
+                          {analyzeErr}
+                        </div>
+                        <div style={{ fontSize: "11px", color: "#991b1b", marginTop: "8px", lineHeight: 1.5 }}>
+                          可能原因：Claude API 配額用盡、網路中斷、或圖檔格式不支援。檢查環境變數 <code style={{ background: "#fee2e2", padding: "0 4px", borderRadius: "3px" }}>ANTHROPIC_API_KEY</code>
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <button onClick={runConstruction}
+                        disabled={!canAnalyze}
+                        style={{
+                          padding: "8px 16px",
+                          background: canAnalyze ? "#b91c1c" : "#fca5a5",
+                          color: "#fff", border: "none", borderRadius: "6px",
+                          fontSize: "12px", fontWeight: 600,
+                          cursor: canAnalyze ? "pointer" : "not-allowed", fontFamily: "inherit",
+                        }}>重試</button>
+                      <button onClick={() => setAnalyzeErr(null)} style={{
+                        padding: "8px 14px",
+                        background: "#fff", color: "#991b1b",
+                        border: "1px solid #fecaca", borderRadius: "6px",
+                        fontSize: "12px", fontWeight: 600,
+                        cursor: "pointer", fontFamily: "inherit",
+                      }}>關閉</button>
+                    </div>
+                  </div>
+                )}
+                {!cDone && !cAnalyzing && !analyzeErr && <div style={{
                   minHeight: "300px", display: "flex", alignItems: "center", justifyContent: "center",
                   flexDirection: "column", gap: "8px", color: "#bbb",
                   border: "1px solid #eee", borderRadius: "10px", background: "#fff"
@@ -2574,27 +2897,6 @@ function App() {
                 </div>}
 
                 {cDone && <div style={{ animation: "slideUp 0.3s ease" }}>
-                  {/* Summary */}
-                  <div style={{
-                    background: "#fff", border: "1px solid #eee", borderRadius: "10px",
-                    padding: "14px 18px", marginBottom: "12px",
-                    display: "flex", justifyContent: "space-between", alignItems: "center"
-                  }}>
-                    <div>
-                      <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
-                        <span style={{ fontSize: "20px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{vis.length}</span>
-                        <span style={{ fontSize: "12px", color: "#bbb" }}>/ {cards.length} 部位</span>
-                        {addonOn && <span style={{ fontSize: "11px", color: "#888" }}>+ 套組</span>}
-                      </div>
-                      <div style={{ display: "flex", gap: "6px", marginTop: "4px" }}>
-                        <span style={{ fontSize: "11px", color: "#888" }}>{aiCount} AI 偵測</span>
-                        <span style={{ fontSize: "11px", color: "#888" }}>·</span>
-                        <span style={{ fontSize: "11px", color: "#888" }}>{structCount} 結構推斷</span>
-                      </div>
-                    </div>
-                    <span style={{ fontSize: "11px", color: "#065f46", fontWeight: 600 }}>已自動選好</span>
-                  </div>
-
                   {removed.size > 0 && <div style={{
                     padding: "10px 14px", marginBottom: "10px", borderRadius: "8px",
                     background: "#fef9f9", border: "1px solid #f5e0e0",
@@ -2608,9 +2910,25 @@ function App() {
                     }}>復原</button>
                   </div>}
 
-                  <div style={{ fontSize: "11px", color: "#bbb", marginBottom: "10px" }}>
-                    展開卡片後點 ⓘ 可改工法
-                  </div>
+                  {!hintDismissed && (
+                    <div style={{
+                      fontSize: "11px", color: "#767676", marginBottom: "10px",
+                      padding: "6px 10px", background: "#faf9f7", borderRadius: "6px",
+                      display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px",
+                    }}>
+                      <span>展開卡片後點 ⓘ 可改工法</span>
+                      <button onClick={() => {
+                        setHintDismissed(true);
+                        try { localStorage.setItem("stytrix.hint.card.dismissed", "1"); } catch {}
+                      }}
+                        aria-label="關閉提示"
+                        style={{
+                          background: "none", border: "none", cursor: "pointer",
+                          fontSize: "14px", color: "#999", padding: "0 4px", lineHeight: 1,
+                          fontFamily: "inherit",
+                        }}>×</button>
+                    </div>
+                  )}
 
                   {(() => {
                     const TIER_META = {
@@ -2618,7 +2936,7 @@ function App() {
                       common:     { label: "常見",   hint: "50–79%" },
                       occasional: { label: "偶見",   hint: "20–49%" },
                       rare:       { label: "少見",   hint: "<20%" },
-                      other:      { label: "其他",   hint: "AI 偵測無歷史資料" },
+                      other:      { label: "AI 新偵測", hint: "歷史資料未涵蓋，AI 視覺辨識加入" },
                     };
                     const TIER_ORDER = ["essential", "common", "occasional", "rare", "other"];
                     const visWithIdx = vis.map((c, i) => ({ c, i }));
@@ -2674,34 +2992,22 @@ function App() {
                     ));
                   })()}
 
-                  <div style={{ fontSize: "12px", color: "#888", fontWeight: 600, marginTop: "16px", marginBottom: "6px" }}>{brand} 品牌套組</div>
-                  <div style={{
-                    background: "#fff", border: `1px solid ${addonOn ? "#ddd" : "#eee"}`,
-                    borderRadius: "10px", padding: "14px 16px",
-                    display: "flex", justifyContent: "space-between", alignItems: "center",
-                  }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                      <input type="checkbox" checked={addonOn} onChange={() => setAddonOn(!addonOn)}
-                        style={{ width: "16px", height: "16px", accentColor: "#1a1a1a", cursor: "pointer" }} />
-                      <div>
-                        <div style={{ fontSize: "14px", fontWeight: 600 }}>{ADDON.name}</div>
-                        <div style={{ fontSize: "11px", color: "#999" }}>{ADDON.steps.length} 工段</div>
-                      </div>
-                    </div>
-                    <span style={{ fontSize: "16px", color: addonOn ? "#1a1a1a" : "#ccc", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{ADDON.ie}<span style={{ fontSize: "11px", color: "#aaa", marginLeft: "3px", fontWeight: 500 }}>秒</span></span>
-                  </div>
-
-                  <div style={{ display: "flex", gap: "8px", marginTop: "20px" }}>
-                    <button onClick={() => setActiveTab("measurement")} style={{
-                      flex: 1, padding: "12px", background: "#1a1a1a", color: "#fff",
-                      border: "none", borderRadius: "8px", fontSize: "13px", fontWeight: 600,
-                      cursor: "pointer", fontFamily: "inherit",
-                    }}>Next — 尺寸表</button>
-                    <button style={{
-                      padding: "12px 18px", background: "#fff", color: "#999",
-                      border: "1px solid #eee", borderRadius: "8px",
-                      fontSize: "12px", cursor: "pointer", fontFamily: "inherit"
-                    }}>Export</button>
+                  <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "20px" }}>
+                    <button onClick={exportTechpack}
+                      title="下載目前 techpack 狀態為 JSON 檔"
+                      style={{
+                        padding: "10px 20px", background: "#fff", color: "#1a1a1a",
+                        border: "1px solid #e8e5e1", borderRadius: "8px",
+                        fontSize: "12px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+                        display: "inline-flex", alignItems: "center", gap: "6px",
+                      }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                      </svg>
+                      Export JSON
+                    </button>
                   </div>
                 </div>}
               </div>
@@ -2885,11 +3191,11 @@ function App() {
                       <table style={{ width: "100%", minWidth: isMobile ? "680px" : "auto", borderCollapse: "collapse", fontSize: "14px" }}>
                         <thead>
                           <tr style={{ background: "#faf9f7", borderBottom: "1.5px solid #e8e5e1" }}>
-                            <th style={{ padding: isMobile ? "8px 8px" : "10px 12px", textAlign: "left", fontWeight: 600, fontSize: "12px", color: "#888", width: "30px" }}>✓</th>
-                            <th style={{ padding: isMobile ? "8px 8px" : "10px 12px", textAlign: "left", fontWeight: 600, fontSize: "12px", color: "#888", width: "60px" }}>POM</th>
-                            <th style={{ padding: isMobile ? "8px 8px" : "10px 12px", textAlign: "left", fontWeight: 600, fontSize: "12px", color: "#888" }}>Name</th>
-                            <th style={{ padding: isMobile ? "8px 8px" : "10px 12px", textAlign: "right", fontWeight: 600, fontSize: "12px", color: "#7e22ce", width: isMobile ? "72px" : "90px" }}>公差</th>
-                            <th style={{ padding: isMobile ? "8px 8px" : "10px 12px", textAlign: "right", fontWeight: 600, fontSize: "12px", color: "#065f46", width: isMobile ? "108px" : "120px" }}>Base (M)</th>
+                            <th style={{ padding: isMobile ? "6px 6px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", width: "30px" }}>✓</th>
+                            <th style={{ padding: isMobile ? "6px 6px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", width: "56px" }}>POM</th>
+                            <th style={{ padding: isMobile ? "6px 6px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999" }}>Name</th>
+                            <th style={{ padding: isMobile ? "6px 6px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#999", width: isMobile ? "64px" : "80px" }}>公差</th>
+                            <th style={{ padding: isMobile ? "6px 6px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#065f46", width: isMobile ? "96px" : "110px" }}>Base (M)</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -2935,6 +3241,13 @@ function App() {
                                   const ov = baseOverrides[code] ?? "";
                                   const invalid = ov !== "" && parseInch(ov) == null;
                                   const displayVal = ov !== "" ? ov : (baseM != null ? frmt(baseM) : "");
+                                  // 已修改：用戶輸入過且合法、且與中位數不同
+                                  const ovParsed = ov !== "" && !invalid ? parseInch(ov) : null;
+                                  const isChanged = ovParsed != null && baseM != null && Math.abs(ovParsed - baseM) > 1e-9;
+                                  const originalTip = isChanged ? `原值 ${frmt(baseM)}"` : undefined;
+                                  const inputBorder = invalid ? "#dc2626" : (isChanged ? "#f59e0b" : "#a7f3d0");
+                                  const inputColor  = invalid ? "#dc2626" : (isChanged ? "#b45309" : "#065f46");
+                                  const cellBg      = isChanged ? "#fffbeb" : "#ecfdf5";
                                   return (
                                     <tr key={code} style={{ borderBottom: "1px solid #f0eeeb", opacity: included ? 1 : 0.35, transition: "opacity 0.15s" }}>
                                       <td style={{ padding: isMobile ? "7px 8px" : "9px 12px" }}>
@@ -2967,6 +3280,7 @@ function App() {
                                           disabled={!included}
                                           placeholder={baseM != null ? frmt(baseM) : "—"}
                                           inputMode="text"
+                                          title={isChanged ? `${originalTip} · 雙擊還原` : undefined}
                                           style={{
                                             width: isMobile ? "92px" : "104px", textAlign: "right", padding: "7px 9px",
                                             fontFamily: "'JetBrains Mono',monospace", fontSize: "14px", fontWeight: 700,
@@ -3150,16 +3464,11 @@ function App() {
                 )}
 
                 <div style={{ display: "flex", gap: "8px", marginTop: "20px" }}>
-                  <button style={{
+                  <button onClick={exportTechpack} style={{
                     flex: 1, padding: "12px", background: "#1a1a1a", color: "#fff",
                     border: "none", borderRadius: "8px", fontSize: "13px", fontWeight: 600,
                     cursor: "pointer", fontFamily: "inherit",
-                  }}>Export Techpack</button>
-                  <button style={{
-                    padding: "12px 18px", background: "#fff", color: "#999",
-                    border: "1px solid #eee", borderRadius: "8px",
-                    fontSize: "12px", cursor: "pointer", fontFamily: "inherit"
-                  }}>Export CSV</button>
+                  }}>Export JSON</button>
                 </div>
               </div>
             )}
@@ -3256,17 +3565,70 @@ function App() {
 
                   {gradingCodes.length === 0 ? (
                     <div style={{ background: "#fff", border: "1px dashed #e8e5e1", borderRadius: "10px", padding: "20px", textAlign: "center", fontSize: "12px", color: "#999" }}>
-                      尚未勾選任何 POM — 回「基碼 / POM 確認」勾選
+                      尚未勾選任何 POM — 回「基碼確認」勾選
+                    </div>
+                  ) : isMobile ? (
+                    /* 手機版：每個 POM 一張卡片，size 值用 4 欄 grid 呈現（避免水平捲動） */
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                      {gradingCodes.map(code => {
+                        const tier = tierOf(code);
+                        const tc = TIER[tier];
+                        const grRow = gr[code];
+                        const m = mr[tier]?.[code];
+                        const pn = pomNames[code] || {};
+                        const edited = baseOverrides[code] != null && baseOverrides[code] !== "" && parseInch(baseOverrides[code]) != null;
+                        const incText = grRow?.typical_increment != null ? (grRow.typical_increment >= 0 ? "+" : "") + frmt(grRow.typical_increment) + '"' : "—";
+                        return (
+                          <div key={code} style={{
+                            background: "#fff", border: "1px solid #e8e5e1", borderRadius: "10px",
+                            padding: "10px 12px",
+                          }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "8px", marginBottom: "6px" }}>
+                              <div style={{ display: "flex", alignItems: "baseline", gap: "8px", flex: 1, minWidth: 0 }}>
+                                <span style={{ fontFamily: "'JetBrains Mono',monospace", fontWeight: 700, color: tc.c, fontSize: "13px" }}>{code}</span>
+                                <span style={{ fontSize: "12px", color: "#1a1a1a", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis" }}>{pn.en || code}</span>
+                              </div>
+                              {edited && <span style={{ fontSize: "9px", color: "#7e22ce", background: "#f5f3ff", padding: "2px 6px", borderRadius: "3px", fontWeight: 600, whiteSpace: "nowrap" }}>已調整</span>}
+                            </div>
+                            <div style={{ display: "flex", gap: "14px", fontSize: "10px", color: "#888", marginBottom: "8px", paddingBottom: "8px", borderBottom: "1px solid #f5f5f5" }}>
+                              <span>公差 <span style={{ fontFamily: "'JetBrains Mono',monospace", color: "#525252", fontWeight: 600 }}>{tolStr(m)}</span></span>
+                              <span>跳碼 <span style={{ fontFamily: "'JetBrains Mono',monospace", color: "#b45309", fontWeight: 600 }}>{incText}</span></span>
+                            </div>
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "5px" }}>
+                              {sizes.map(s => {
+                                const val = sizeValueFor(code, s);
+                                const isM = s === "M";
+                                return (
+                                  <div key={s} style={{
+                                    padding: "5px 4px",
+                                    background: isM ? "#ecfdf5" : "#fafafa",
+                                    border: isM ? "1px solid #a7f3d0" : "1px solid transparent",
+                                    borderRadius: "5px", textAlign: "center",
+                                  }}>
+                                    <div style={{ fontSize: "9px", color: isM ? "#065f46" : "#888", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", letterSpacing: "0.02em" }}>
+                                      {s}{isM && " · BASE"}
+                                    </div>
+                                    <div style={{ fontSize: "12px", color: isM ? "#065f46" : "#1a1a1a", fontWeight: isM ? 700 : 600, fontFamily: "'JetBrains Mono',monospace", marginTop: "1px" }}>
+                                      {val != null ? frmt(val) + '"' : "—"}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   ) : (
+                    /* 桌機：保留寬表格 */
                     <div style={{ background: "#fff", border: "1px solid #e8e5e1", borderRadius: "10px", overflow: "auto" }}>
-                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: isMobile ? "10.5px" : "11px" }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px" }}>
                         <thead>
                           <tr style={{ background: "#faf9f7", borderBottom: "1.5px solid #e8e5e1" }}>
-                            <th style={{ padding: "8px 8px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", position: "sticky", left: 0, background: "#faf9f7", width: isMobile ? "50px" : "60px" }}>POM</th>
-                            <th style={{ padding: "8px 8px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", minWidth: isMobile ? "100px" : "120px" }}>Name</th>
-                            <th style={{ padding: "8px 8px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#7e22ce", width: isMobile ? "56px" : "70px" }}>公差</th>
-                            <th style={{ padding: "8px 8px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#b45309", width: isMobile ? "56px" : "70px" }}>跳碼<div style={{ fontSize: "8px", fontWeight: 400, color: "#b45309" }}>Grading</div></th>
+                            <th style={{ padding: "8px 8px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", position: "sticky", left: 0, background: "#faf9f7", width: "60px" }}>POM</th>
+                            <th style={{ padding: "8px 8px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", minWidth: "120px" }}>Name</th>
+                            <th style={{ padding: "8px 8px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#999", width: "70px" }}>公差</th>
+                            <th style={{ padding: "8px 8px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#b45309", width: "70px" }}>跳碼<div style={{ fontSize: "8px", fontWeight: 400, color: "#b45309" }}>Grading</div></th>
                             {sizes.map(s => (
                               <th key={s} style={{ padding: "8px 6px", textAlign: "center", fontWeight: 700, fontSize: "10px", color: s === "M" ? "#065f46" : "#666", fontFamily: "'JetBrains Mono',monospace", background: s === "M" ? "#ecfdf5" : "transparent", minWidth: s === "M" ? (isMobile ? "84px" : "96px") : (isMobile ? "42px" : "48px") }}>{s}{s === "M" && <div style={{ fontSize: "7px", color: "#065f46" }}>BASE · 可編輯</div>}</th>
                             ))}
@@ -3283,11 +3645,11 @@ function App() {
                             return (
                               <tr key={code} style={{ borderBottom: "1px solid #f0eeeb" }}>
                                 <td style={{ padding: "5px 8px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: tc.c, position: "sticky", left: 0, background: "#fff" }}>{code}</td>
-                                <td style={{ padding: "5px 8px", fontSize: isMobile ? "10.5px" : "11px", color: "#1a1a1a" }}>
+                                <td style={{ padding: "5px 8px", fontSize: "11px", color: "#1a1a1a" }}>
                                   {pn.en || code}
                                   {edited && <span style={{ marginLeft: "6px", fontSize: "9px", color: "#7e22ce", background: "#f5f3ff", padding: "1px 5px", borderRadius: "3px", fontWeight: 600, whiteSpace: "nowrap" }}>已調整</span>}
                                 </td>
-                                <td style={{ padding: "5px 8px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", color: "#7e22ce", fontWeight: 600, whiteSpace: "nowrap" }}>
+                                <td style={{ padding: "5px 8px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", color: "#525252", fontWeight: 600, whiteSpace: "nowrap" }}>
                                   {tolStr(m)}
                                 </td>
                                 <td style={{ padding: "5px 8px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", color: "#b45309", fontWeight: 600, whiteSpace: "nowrap" }}>
@@ -3378,7 +3740,38 @@ function App() {
         onClearPomRules={clearPomRulesOverride}
         onPushToGithub={pushOverridesToGithub}
         currentBucketKey={bucketKey}
+        partPresenceOverride={partPresenceOverride}
+        onUploadPartPresence={applyPartPresenceOverride}
+        onClearPartPresence={clearPartPresenceOverride}
       />
+      <OnboardingModal open={onboardingOpen} onDismiss={dismissOnboarding} />
+
+      {undoToast && (
+        <div role="status" aria-live="polite" style={{
+          position: "fixed", left: "50%", bottom: "24px",
+          transform: "translateX(-50%)",
+          background: "#1a1a1a", color: "#fff",
+          padding: "10px 14px 10px 16px", borderRadius: "10px",
+          fontSize: "13px", fontWeight: 500,
+          display: "flex", alignItems: "center", gap: "14px",
+          boxShadow: "0 8px 24px rgba(0,0,0,0.22)",
+          zIndex: 200, animation: "slideUp 0.2s ease",
+        }}>
+          <span>{undoToast.message}</span>
+          <button onClick={runUndo} style={{
+            background: "none", border: "none", color: "#86efac",
+            fontSize: "13px", fontWeight: 700, cursor: "pointer",
+            fontFamily: "inherit", padding: "2px 4px",
+          }}>復原</button>
+          <button onClick={() => { if (undoTimerRef.current) clearTimeout(undoTimerRef.current); setUndoToast(null); }}
+            aria-label="關閉"
+            style={{
+              background: "none", border: "none", color: "#999",
+              fontSize: "18px", cursor: "pointer", padding: "0 2px", lineHeight: 1,
+              fontFamily: "inherit",
+            }}>×</button>
+        </div>
+      )}
     </div>
   );
 }
