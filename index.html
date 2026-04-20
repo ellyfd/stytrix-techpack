@@ -300,20 +300,24 @@ const IT_OPTIONS = {
 };
 
 /* ─── Helpers ─── */
+/* 英吋顯示:slash 分數格式(與公差欄一致),例 "3/4"、"16 1/2"、"1/8"。
+   四捨五入到 1/8",與原本的 unicode frmt 同等精度,避免語意改變。 */
 const frmt = (v) => {
   if (v === 0) return "—";
   const neg = v < 0;
   const abs = Math.abs(v);
   const whole = Math.floor(abs);
   const frac = abs - whole;
+  const sign = neg ? "-" : "";
   let f = "";
-  if (frac >= 0.875) return (neg ? "-" : "") + (whole + 1);
-  else if (frac >= 0.625) f = "¾";
-  else if (frac >= 0.375) f = "½";
-  else if (frac >= 0.125) f = "¼";
-  else if (frac > 0.05) f = "⅛";
-  if (f) return (neg ? "-" : "") + (whole > 0 ? whole : "") + f;
-  return (neg ? "-" : "") + String(whole);
+  if (frac >= 0.875) return sign + (whole + 1);
+  else if (frac >= 0.625) f = "3/4";
+  else if (frac >= 0.375) f = "1/2";
+  else if (frac >= 0.125) f = "1/4";
+  else if (frac > 0.05) f = "1/8";
+  if (f && whole > 0) return `${sign}${whole} ${f}`;
+  if (f) return `${sign}${f}`;
+  return `${sign}${whole}`;
 };
 
 /* 解析使用者輸入的英吋字串：支援 "16", "16 1/2", "1/8", "16½", "16¾" 等 */
@@ -2463,6 +2467,19 @@ function App() {
                                       <td style={{ padding: isMobile ? "6px 8px" : "6px 12px", textAlign: "right", background: "#ecfdf5" }}>
                                         <input type="text" value={displayVal}
                                           onChange={(e) => setBaseOverrides(prev => ({ ...prev, [code]: e.target.value }))}
+                                          onBlur={() => {
+                                            const raw = baseOverrides[code];
+                                            if (raw == null || raw === "") return;
+                                            const parsed = parseInch(raw);
+                                            if (parsed == null) return;
+                                            const normalized = frmt(parsed);
+                                            if (normalized !== "—" && normalized !== raw) {
+                                              setBaseOverrides(prev => ({ ...prev, [code]: normalized }));
+                                            }
+                                          }}
+                                          onKeyDown={(e) => {
+                                            if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); }
+                                          }}
                                           disabled={!included}
                                           placeholder={baseM != null ? frmt(baseM) : "—"}
                                           inputMode="text"
