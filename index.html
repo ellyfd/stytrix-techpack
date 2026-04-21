@@ -2438,6 +2438,23 @@ function App() {
       return next;
     });
   };
+  // 使用者對英文名字的手動編輯(雙擊儲存格修改),存 localStorage
+  const [pomEnEdits, setPomEnEdits] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('stytrix.override.pomEnEdits') || '{}'); } catch { return {}; }
+  });
+  const [editingEnCode, setEditingEnCode] = useState(null);
+  const enFor = (code) => pomEnEdits[code] ?? pomNames[code]?.en ?? code;
+  const saveEn = (code, value) => {
+    const trimmed = (value || '').trim();
+    const baseline = pomNames[code]?.en || code;
+    setPomEnEdits(prev => {
+      const next = { ...prev };
+      if (!trimmed || trimmed === baseline) delete next[code];
+      else next[code] = trimmed;
+      try { localStorage.setItem('stytrix.override.pomEnEdits', JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
   const [currentBucket, setCurrentBucket] = useState(null);
   const [bucketLoading, setBucketLoading] = useState(false);
   // 依目前 bucket 解析通用模型的基礎 POM codes(按 candidate 優先序挑第一個在 bucket 有資料的)。
@@ -3732,8 +3749,8 @@ function App() {
         {(() => {
           const tabs = [
             { key: "construction", label: appMode === "universal" ? "作工建議 · ISO" : "作工建議", done: cDone, disabled: false },
-            { key: "measurement",  label: appMode === "universal" ? "基碼確認 · 基礎" : "基碼確認",   done: mDone, disabled: false },
-            { key: "grading",      label: appMode === "universal" ? "全碼 · 基礎"     : "全碼",
+            { key: "measurement",  label: "基碼確認",   done: mDone, disabled: false },
+            { key: "grading",      label: "全碼",
               done: mDone && displayIncludedCount > 0,
               disabled: !(mDone && currentBucket && displayIncludedCount > 0) },
           ];
@@ -4702,7 +4719,6 @@ function App() {
                           顯示 Plus sizes <span style={{ fontSize: "10px", color: "#888" }}>({plusSeq.join("/")} · 自有基碼 {plusAnchor})</span>
                         </label>
                       )}
-                      {!isMobile && <span style={{ fontSize: "10px", color: "#999", marginLeft: "auto" }}>切換會同時套用到「全碼」表</span>}
                     </div>
                   </div>
 
@@ -4762,9 +4778,11 @@ function App() {
                         <thead>
                           <tr style={{ background: "#faf9f7", borderBottom: "1.5px solid #e8e5e1" }}>
                             <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", width: isMobile ? "24px" : "30px" }}>✓</th>
-                            <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", width: isMobile ? "38px" : "56px" }}>POM</th>
+                            {appMode !== "universal" && (
+                              <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", width: isMobile ? "38px" : "56px" }}>POM</th>
+                            )}
                             {!isMobile && (
-                              <th style={{ padding: "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999" }}>Name</th>
+                              <th style={{ padding: "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999" }}>Name<span style={{ fontSize: "9px", fontWeight: 400, color: "#bbb", marginLeft: "4px" }}>(雙擊可改)</span></th>
                             )}
                             <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", minWidth: isMobile ? "110px" : "140px" }}>中文{isMobile ? <span style={{ fontSize: "9px", fontWeight: 400, color: "#bbb", marginLeft: "3px" }}>/ EN</span> : <span style={{ fontSize: "9px", fontWeight: 400, color: "#bbb", marginLeft: "4px" }}>(雙擊可改)</span>}</th>
                             <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#999", width: isMobile ? "52px" : "80px" }}>公差</th>
@@ -4782,7 +4800,7 @@ function App() {
                             const collapsed = collapsedTiers.has(tier);
                             const selectedCount = codes.filter(c => !excluded.has(c)).length;
                             const allOn = selectedCount === codes.length;
-                            const tierColspan = (isMobile ? 4 : 5) + (showPlus && hasPlus ? 1 : 0);
+                            const tierColspan = (isMobile ? 4 : 5) - (appMode === "universal" ? 1 : 0) + (showPlus && hasPlus ? 1 : 0);
                             return (
                               <React.Fragment key={tier}>
                                 <tr style={{ background: tc.bg, cursor: "pointer" }}>
@@ -4833,10 +4851,29 @@ function App() {
                                           onChange={() => setExcluded(prev => { const n = new Set(prev); n.has(code) ? n.delete(code) : n.add(code); return n; })}
                                           style={{ width: "16px", height: "16px", accentColor: tc.c, cursor: "pointer" }} />
                                       </td>
-                                      <td style={{ padding: isMobile ? "5px 4px" : "9px 12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "14px", color: tc.c }}>{code}</td>
+                                      {appMode !== "universal" && (
+                                        <td style={{ padding: isMobile ? "5px 4px" : "9px 12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "14px", color: tc.c }}>{code}</td>
+                                      )}
                                       {!isMobile && (
-                                        <td style={{ padding: "9px 12px" }}>
-                                          <div style={{ fontWeight: 600, color: "#1a1a1a", fontSize: "14px" }}>{pn.en || code}</div>
+                                        <td style={{ padding: "7px 12px" }}
+                                          onDoubleClick={() => setEditingEnCode(code)}
+                                          title={editingEnCode === code ? "" : "雙擊可修改"}
+                                        >
+                                          {editingEnCode === code ? (
+                                            <input type="text" autoFocus
+                                              defaultValue={enFor(code)}
+                                              onBlur={(e) => { saveEn(code, e.target.value); setEditingEnCode(null); }}
+                                              onKeyDown={(e) => {
+                                                if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); }
+                                                else if (e.key === "Escape") { setEditingEnCode(null); }
+                                              }}
+                                              style={{ width: "100%", padding: "5px 7px", fontSize: "14px", fontWeight: 500, fontFamily: "inherit", border: "1px solid #1a1a1a", borderRadius: "5px", background: "#fff" }} />
+                                          ) : (
+                                            <div style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "text", fontWeight: 600, color: "#1a1a1a", fontSize: "14px" }}>
+                                              <span>{enFor(code) || <span style={{ color: "#ccc" }}>(空)</span>}</span>
+                                              {pomEnEdits[code] && <span style={{ fontSize: "9px", color: "#7e22ce", background: "#f5f3ff", padding: "1px 5px", borderRadius: "3px", fontWeight: 600 }}>自訂</span>}
+                                            </div>
+                                          )}
                                         </td>
                                       )}
                                       <td style={{ padding: isMobile ? "4px 4px" : "7px 12px" }}
@@ -4863,7 +4900,24 @@ function App() {
                                               {pomZhEdits[code] && <span style={{ fontSize: "9px", color: "#7e22ce", background: "#f5f3ff", padding: "1px 5px", borderRadius: "3px", fontWeight: 600 }}>自訂</span>}
                                             </div>
                                             {isMobile && (
-                                              <div style={{ fontSize: "10px", color: "#999", marginTop: "1px", lineHeight: 1.25 }}>{pn.en || code}</div>
+                                              editingEnCode === code ? (
+                                                <input type="text" autoFocus
+                                                  defaultValue={enFor(code)}
+                                                  onClick={(e) => e.stopPropagation()}
+                                                  onBlur={(e) => { saveEn(code, e.target.value); setEditingEnCode(null); }}
+                                                  onKeyDown={(e) => {
+                                                    if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); }
+                                                    else if (e.key === "Escape") { setEditingEnCode(null); }
+                                                  }}
+                                                  style={{ width: "100%", padding: "3px 5px", fontSize: "11px", fontFamily: "inherit", border: "1px solid #1a1a1a", borderRadius: "4px", background: "#fff", marginTop: "1px" }} />
+                                              ) : (
+                                                <div onDoubleClick={(e) => { e.stopPropagation(); setEditingEnCode(code); }}
+                                                  title="雙擊可修改"
+                                                  style={{ fontSize: "10px", color: "#999", marginTop: "1px", lineHeight: 1.25, display: "flex", alignItems: "center", gap: "4px" }}>
+                                                  <span>{enFor(code)}</span>
+                                                  {pomEnEdits[code] && <span style={{ fontSize: "8px", color: "#7e22ce", background: "#f5f3ff", padding: "0 4px", borderRadius: "3px", fontWeight: 600 }}>自訂</span>}
+                                                </div>
+                                              )
                                             )}
                                           </div>
                                         )}
@@ -5350,7 +5404,6 @@ function App() {
                           顯示 Plus sizes <span style={{ fontSize: "10px", color: "#888" }}>({plusSeq.join("/")} · 自有基碼 {plusAnchor})</span>
                         </label>
                       )}
-                      {!isMobile && <span style={{ fontSize: "10px", color: "#999", marginLeft: "auto" }}>切換會同時套用到「基碼」頁</span>}
                     </div>
                   </div>
 
@@ -5364,9 +5417,11 @@ function App() {
                       <table style={{ width: "100%", minWidth: isMobile ? `${220 + visibleSizes.length * 66}px` : "auto", borderCollapse: "collapse", fontSize: isMobile ? "12px" : "14px" }}>
                         <thead>
                           <tr style={{ background: "#faf9f7", borderBottom: "1.5px solid #e8e5e1" }}>
-                            <th style={{ padding: isMobile ? "6px 6px" : "10px 12px", textAlign: "left", fontWeight: 600, fontSize: isMobile ? "10px" : "12px", color: "#888", position: "sticky", left: 0, background: "#faf9f7", width: isMobile ? "42px" : "60px" }}>POM</th>
+                            {appMode !== "universal" && (
+                              <th style={{ padding: isMobile ? "6px 6px" : "10px 12px", textAlign: "left", fontWeight: 600, fontSize: isMobile ? "10px" : "12px", color: "#888", position: "sticky", left: 0, background: "#faf9f7", width: isMobile ? "42px" : "60px" }}>POM</th>
+                            )}
                             {!isMobile && (
-                              <th style={{ padding: "10px 12px", textAlign: "left", fontWeight: 600, fontSize: "12px", color: "#888", minWidth: "120px" }}>Name</th>
+                              <th style={{ padding: "10px 12px", textAlign: "left", fontWeight: 600, fontSize: "12px", color: "#888", minWidth: "120px" }}>Name<span style={{ fontSize: "9px", fontWeight: 400, color: "#bbb", marginLeft: "4px" }}>(雙擊可改)</span></th>
                             )}
                             <th style={{ padding: isMobile ? "6px 6px" : "10px 12px", textAlign: "left", fontWeight: 600, fontSize: isMobile ? "10px" : "12px", color: "#888", minWidth: isMobile ? "110px" : "140px" }}>中文{isMobile ? <span style={{ fontSize: "9px", fontWeight: 400, color: "#bbb", marginLeft: "3px" }}>/ EN</span> : <span style={{ fontSize: "9px", fontWeight: 400, color: "#bbb", marginLeft: "4px" }}>(雙擊可改)</span>}</th>
                             <th style={{ padding: isMobile ? "6px 6px" : "10px 12px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? "10px" : "12px", color: "#7e22ce", width: isMobile ? "58px" : "90px" }}>公差</th>
@@ -5388,14 +5443,33 @@ function App() {
                             const edited = baseOverrides[code] != null && baseOverrides[code] !== "" && parseVal(baseOverrides[code]) != null;
                             return (
                               <tr key={code} style={{ borderBottom: "1px solid #f0eeeb" }}>
-                                <td style={{ padding: isMobile ? "7px 6px" : "9px 12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "14px", color: tc.c, position: "sticky", left: 0, background: "#fff" }}>
-                                  {code}
-                                  {isMobile && edited && <span style={{ marginLeft: "3px", fontSize: "8px", color: "#7e22ce", fontWeight: 600 }}>●</span>}
-                                </td>
+                                {appMode !== "universal" && (
+                                  <td style={{ padding: isMobile ? "7px 6px" : "9px 12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "14px", color: tc.c, position: "sticky", left: 0, background: "#fff" }}>
+                                    {code}
+                                    {isMobile && edited && <span style={{ marginLeft: "3px", fontSize: "8px", color: "#7e22ce", fontWeight: 600 }}>●</span>}
+                                  </td>
+                                )}
                                 {!isMobile && (
-                                  <td style={{ padding: "9px 12px", fontSize: "14px", color: "#1a1a1a" }}>
-                                    {pn.en || code}
-                                    {edited && <span style={{ marginLeft: "6px", fontSize: "11px", color: "#7e22ce", background: "#f5f3ff", padding: "2px 6px", borderRadius: "4px", fontWeight: 600, whiteSpace: "nowrap" }}>已調整</span>}
+                                  <td style={{ padding: "7px 12px" }}
+                                    onDoubleClick={() => setEditingEnCode(code)}
+                                    title={editingEnCode === code ? "" : "雙擊可修改"}
+                                  >
+                                    {editingEnCode === code ? (
+                                      <input type="text" autoFocus
+                                        defaultValue={enFor(code)}
+                                        onBlur={(e) => { saveEn(code, e.target.value); setEditingEnCode(null); }}
+                                        onKeyDown={(e) => {
+                                          if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); }
+                                          else if (e.key === "Escape") { setEditingEnCode(null); }
+                                        }}
+                                        style={{ width: "100%", padding: "5px 7px", fontSize: "14px", fontFamily: "inherit", border: "1px solid #1a1a1a", borderRadius: "5px", background: "#fff" }} />
+                                    ) : (
+                                      <div style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "text", fontSize: "14px", color: "#1a1a1a" }}>
+                                        <span>{enFor(code)}</span>
+                                        {pomEnEdits[code] && <span style={{ fontSize: "9px", color: "#7e22ce", background: "#f5f3ff", padding: "1px 5px", borderRadius: "3px", fontWeight: 600 }}>自訂</span>}
+                                        {edited && <span style={{ marginLeft: "2px", fontSize: "11px", color: "#7e22ce", background: "#f5f3ff", padding: "2px 6px", borderRadius: "4px", fontWeight: 600, whiteSpace: "nowrap" }}>已調整</span>}
+                                      </div>
+                                    )}
                                   </td>
                                 )}
                                 <td style={{ padding: isMobile ? "6px 6px" : "7px 12px" }}
@@ -5418,10 +5492,25 @@ function App() {
                                         {pomZhEdits[code] && <span style={{ fontSize: "9px", color: "#7e22ce", background: "#f5f3ff", padding: "1px 5px", borderRadius: "3px", fontWeight: 600 }}>自訂</span>}
                                       </div>
                                       {isMobile && (
-                                        <div style={{ fontSize: "10px", color: "#999", marginTop: "1px", lineHeight: 1.25 }}>
-                                          {pn.en || code}
-                                          {edited && <span style={{ marginLeft: "4px", fontSize: "9px", color: "#7e22ce", fontWeight: 600 }}>已調整</span>}
-                                        </div>
+                                        editingEnCode === code ? (
+                                          <input type="text" autoFocus
+                                            defaultValue={enFor(code)}
+                                            onClick={(e) => e.stopPropagation()}
+                                            onBlur={(e) => { saveEn(code, e.target.value); setEditingEnCode(null); }}
+                                            onKeyDown={(e) => {
+                                              if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); }
+                                              else if (e.key === "Escape") { setEditingEnCode(null); }
+                                            }}
+                                            style={{ width: "100%", padding: "3px 5px", fontSize: "11px", fontFamily: "inherit", border: "1px solid #1a1a1a", borderRadius: "4px", background: "#fff", marginTop: "1px" }} />
+                                        ) : (
+                                          <div onDoubleClick={(e) => { e.stopPropagation(); setEditingEnCode(code); }}
+                                            title="雙擊可修改"
+                                            style={{ fontSize: "10px", color: "#999", marginTop: "1px", lineHeight: 1.25, display: "flex", alignItems: "center", gap: "4px" }}>
+                                            <span>{enFor(code)}</span>
+                                            {pomEnEdits[code] && <span style={{ fontSize: "8px", color: "#7e22ce", background: "#f5f3ff", padding: "0 4px", borderRadius: "3px", fontWeight: 600 }}>自訂</span>}
+                                            {edited && <span style={{ fontSize: "9px", color: "#7e22ce", fontWeight: 600 }}>已調整</span>}
+                                          </div>
+                                        )
                                       )}
                                     </div>
                                   )}
