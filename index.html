@@ -4979,6 +4979,37 @@ function App() {
                 }
                 return v;
               };
+              // 從 fromIdx 走到 toIdx,每步用 array[i] 當 delta(i = 前一個 size 的 index);
+              // 用於 bodytype_variance.grading_deltas 的 <bt>_grading array(跟 missySeq pair 一一對應)
+              const walkArray = (arr, fromIdx, toIdx, fromValue) => {
+                if (fromIdx === toIdx) return fromValue;
+                let v = fromValue;
+                if (toIdx > fromIdx) {
+                  for (let i = fromIdx; i < toIdx; i++) {
+                    if (arr[i] == null) return null;
+                    v += arr[i];
+                  }
+                } else {
+                  for (let i = fromIdx - 1; i >= toIdx; i--) {
+                    if (arr[i] == null) return null;
+                    v -= arr[i];
+                  }
+                }
+                return v;
+              };
+              // bodytype_variance entry for this run(gender|gt|<bt>),non-regular 時才查
+              const activeBodytypeEntry = sizeRunVariant !== 'regular'
+                ? (bodytypeVariance?.[`${gender}|${gt}|${sizeRunVariant.toUpperCase()}`] || null)
+                : null;
+              // 某 POM 的 <bt>_grading array(僅在 same_pattern=false 時返回;same_pattern=true 代表
+              // 跳檔同 regular,不需覆寫);找不到 / same_pattern=true / 結構不符都回 null。
+              const btGradingFor = (code) => {
+                if (!activeBodytypeEntry) return null;
+                const gd = activeBodytypeEntry.grading_deltas?.[code];
+                if (!gd || gd.same_pattern !== false) return null;
+                const arr = gd[sizeRunVariant + '_grading'];
+                return Array.isArray(arr) ? arr : null;
+              };
               const sizeValueFor = (code, s) => {
                 if (isLengthPending(code) && !(baseOverrides[code] && parseInch(baseOverrides[code]) != null)) {
                   return null;
