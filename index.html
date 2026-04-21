@@ -76,7 +76,7 @@ const TAGS = [
 const SRC = {
   ai:     { label: "AI 偵測",   bg: "#e0f2fe", c: "#0369a1", icon: "👁" },
   struct: { label: "結構推斷",   bg: "#d1fae5", c: "#065f46", icon: "⚙" },
-  manual: { label: "手動新增",   bg: "#faf9f7", c: "#767676", icon: "+" }
+  manual: { label: "手動新增",   bg: "#faf9f7", c: "#555", icon: "+" }
 };
 
 /* ─── 長度相關 POM codes（PETITE / TALL 跟 MISSY 有差的） ─── */
@@ -775,7 +775,7 @@ function Sel({ label, value, onChange, options, disabled, badgeMap, labelMap, lo
             style={{
               position: "absolute", top: "100%", left: 0, right: 0, zIndex: 30,
               marginTop: "4px",
-              border: "1px solid #e8e5e1", borderRadius: "8px",
+              border: "1px solid #e8e5e1", borderRadius: "6px",
               background: "#fff", maxHeight: "260px", overflowY: "auto",
               boxShadow: "0 4px 14px rgba(0,0,0,0.06)",
               animation: "fadeIn 0.12s ease",
@@ -806,7 +806,7 @@ function Sel({ label, value, onChange, options, disabled, badgeMap, labelMap, lo
                   onMouseEnter={e => { if (!sel) e.currentTarget.style.background = "#faf9f7"; }}
                   onMouseLeave={e => { if (!sel) e.currentTarget.style.background = "transparent"; }}>
                   <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d}</span>
-                  {b && <span style={{ fontSize: "11px", color: "#999", fontWeight: 400, fontFamily: "'JetBrains Mono',monospace" }}>{b}</span>}
+                  {b && <span style={{ fontSize: "11px", color: "#888", fontWeight: 400, fontFamily: "'JetBrains Mono',monospace" }}>{b}</span>}
                 </div>
               );
             })}
@@ -848,7 +848,7 @@ function Sketch({ src, hl, onClick, ok, vis, cards }) {
   if (!src) return null;
   return (
     <div style={{ position: "relative", width: "100%" }}>
-      <img src={src} alt="sketch" style={{ width: "100%", display: "block", borderRadius: "4px" }} />
+      <img src={src} alt="sketch" style={{ width: "100%", display: "block", borderRadius: "6px" }} />
       {ok && <svg style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none" }} viewBox="0 0 100 133">
         {cards.map((c, i) => {
           if (!vis.has(c.id)) return null;
@@ -886,19 +886,19 @@ function L3Line({ l3, editId, setEditId, idx, col }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "6px", flex: 1, minWidth: 0 }}></div>
         <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
-          <span style={{ fontSize: "14px", color: "#1a1a1a", fontWeight: 700, fontVariantNumeric: "tabular-nums", fontFamily: "'JetBrains Mono',monospace" }}>{Math.round(l3.ie)}<span style={{ fontSize: "10px", color: "#999", marginLeft: "3px", fontWeight: 500 }}>秒</span></span>
+          <span style={{ fontSize: "14px", color: "#1a1a1a", fontWeight: 700, fontVariantNumeric: "tabular-nums", fontFamily: "'JetBrains Mono',monospace" }}>{Math.round(l3.ie)}<span style={{ fontSize: "10px", color: "#888", marginLeft: "3px", fontWeight: 500 }}>秒</span></span>
           {l3.auto && <span style={{ fontSize: "10px", color: "#065f46", background: "#ecfdf5", padding: "2px 8px", borderRadius: "6px", fontWeight: 600, letterSpacing: "0.3px" }}>auto</span>}
           {!l3.auto && hasAlts && <button onClick={() => setEditId(isEditing ? null : idx)}
                 style={{
                   width: "30px", height: "30px", borderRadius: "6px",
                   border: isEditing ? `2px solid ${col}` : "1.5px solid #ddd",
                   background: isEditing ? col : "#fff",
-                  color: isEditing ? "#fff" : "#767676",
-                  fontSize: "15px", cursor: "pointer",
+                  color: isEditing ? "#fff" : "#555",
+                  fontSize: "14px", cursor: "pointer",
                   display: "flex", alignItems: "center", justifyContent: "center",
                   transition: "all 0.15s", flexShrink: 0
                 }}
-                onMouseEnter={e => { if (!isEditing) { e.currentTarget.style.borderColor = "#999"; e.currentTarget.style.background = "#f5f4f0"; }}}
+                onMouseEnter={e => { if (!isEditing) { e.currentTarget.style.borderColor = "#888"; e.currentTarget.style.background = "#f5f4f0"; }}}
                 onMouseLeave={e => { if (!isEditing) { e.currentTarget.style.borderColor = "#ddd"; e.currentTarget.style.background = "#fff"; }}}
               >ⓘ</button>}
         </div>
@@ -916,7 +916,7 @@ function L3Line({ l3, editId, setEditId, idx, col }) {
                 minHeight: "36px", lineHeight: 1.3,
                 border: sel === oi ? `2px solid ${col}` : "1.5px solid #e0ddda",
                 background: sel === oi ? col + "10" : "#fff",
-                color: sel === oi ? col : "#666",
+                color: sel === oi ? col : "#555",
                 fontWeight: sel === oi ? 700 : 400,
                 transition: "all 0.12s"
               }}>
@@ -945,7 +945,7 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
     <div style={{
       background: "#fff",
       border: `1.5px solid ${isOpen ? col + "50" : "#e8e5e1"}`,
-      borderRadius: "10px", marginBottom: "8px", overflow: "hidden",
+      borderRadius: "12px", marginBottom: "8px", overflow: "hidden",
       boxShadow: isOpen ? `0 4px 16px ${col}12` : "0 1px 3px rgba(0,0,0,0.04)",
       transition: "all 0.2s"
     }}>
@@ -957,9 +957,9 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
         {/* LEFT: number + L1 › L2 */}
         <div style={{ display: "flex", alignItems: "flex-start", gap: "10px", flex: 1, minWidth: 0 }}>
           <div style={{
-            width: "30px", height: "30px", borderRadius: "8px",
+            width: "30px", height: "30px", borderRadius: "6px",
             background: isOpen ? col : "#fff",
-            color: isOpen ? "#fff" : "#767676",
+            color: isOpen ? "#fff" : "#555",
             border: isOpen ? "none" : "1.5px solid #eee",
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: "14px", fontWeight: 800, flexShrink: 0,
@@ -967,22 +967,22 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
           }}>{card.id}</div>
           <div style={{ flex: 1, minWidth: 0 }}>
             {/* Line 1: L1 › L2 (the MAIN label) */}
-            <div style={{ fontSize: "15px", color: "#1a1a1a", fontWeight: 700, lineHeight: 1.3, display: "flex", alignItems: "baseline", gap: "6px", flexWrap: "wrap" }}>
+            <div style={{ fontSize: "14px", color: "#1a1a1a", fontWeight: 700, lineHeight: 1.3, display: "flex", alignItems: "baseline", gap: "6px", flexWrap: "wrap" }}>
               <span>{card.l1}</span>
-              <span style={{ color: "#ccc", fontWeight: 400, fontSize: "13px" }}>›</span>
-              <span style={{ color: isOpen ? col : "#525252" }}>{card.l2}</span>
+              <span style={{ color: "#bbb", fontWeight: 400, fontSize: "13px" }}>›</span>
+              <span style={{ color: isOpen ? col : "#555" }}>{card.l2}</span>
             </div>
             {/* Line 2: source badge only — per-level confidence moves into the
                 L2/L3/L4 switcher panels and is driven by historical freq, not
                 AI or placeholder values. */}
             <div style={{ display: "flex", alignItems: "center", gap: "5px", marginTop: "4px", flexWrap: "wrap" }}>
-              <span style={{ fontSize: "10px", color: src.c, background: src.bg, padding: "2px 7px", borderRadius: "4px", fontWeight: 600 }}>{src.icon} {src.label}</span>
+              <span style={{ fontSize: "10px", color: src.c, background: src.bg, padding: "2px 7px", borderRadius: "6px", fontWeight: 600 }}>{src.icon} {src.label}</span>
               {card.matchCode && (
                 <span
                   onMouseEnter={e => { e.stopPropagation(); setShowTip(true); }}
                   onMouseLeave={() => setShowTip(false)}
                   style={{
-                    fontSize: "10px", color: "#999", fontFamily: "'JetBrains Mono',monospace",
+                    fontSize: "10px", color: "#888", fontFamily: "'JetBrains Mono',monospace",
                     cursor: "help", position: "relative"
                   }}>
                   ref: {card.matchCode}
@@ -1002,7 +1002,7 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
             </div>
             {/* Line 3: stats — 通用模型無 5 階,工段永遠為 0,整行不顯示 */}
             {card.l3s.length > 0 && (
-              <div style={{ fontSize: "11px", color: "#999", marginTop: "3px" }}>
+              <div style={{ fontSize: "11px", color: "#888", marginTop: "3px" }}>
                 {card.l3s.length} 工段
                 {autoN > 0 && <span style={{ color: "#065f46", marginLeft: "4px" }}>· {autoN} auto</span>}
                 {adjN > 0 && <span style={{ marginLeft: "4px" }}>· {adjN} 可調</span>}
@@ -1015,15 +1015,15 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
           {appMode !== "universal" && (
             <div style={{ textAlign: "right" }}>
               <div style={{ fontSize: "18px", color: "#1a1a1a", fontWeight: 800, fontFamily: "'JetBrains Mono',monospace", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>{Math.round(card.ie)}</div>
-              <div style={{ fontSize: "9px", color: "#bbb", letterSpacing: "0.5px", marginTop: "2px" }}>秒</div>
+              <div style={{ fontSize: "10px", color: "#bbb", letterSpacing: "0.5px", marginTop: "2px" }}>秒</div>
             </div>
           )}
           <button onClick={(e) => { e.stopPropagation(); onRemove(card.id); }}
-            style={{ background: "none", border: "none", cursor: "pointer", fontSize: "17px",
+            style={{ background: "none", border: "none", cursor: "pointer", fontSize: "16px",
               color: "#dc2626", opacity: 0.7, padding: "4px", transition: "opacity 0.15s", marginTop: "-2px" }}
             onMouseEnter={e => e.currentTarget.style.opacity = "1"}
             onMouseLeave={e => e.currentTarget.style.opacity = "0.7"}>🗑</button>
-          <div style={{ fontSize: "14px", color: "#ccc", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
+          <div style={{ fontSize: "14px", color: "#bbb", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
             transition: "transform 0.25s", display: "inline-block", marginTop: "2px" }}>▾</div>
         </div>
       </div>
@@ -1050,7 +1050,7 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
               <div style={{
                 marginTop: "10px", padding: "10px 12px",
                 background: "#fafaf9", border: "1px solid #e8e5e1",
-                borderRadius: "8px",
+                borderRadius: "6px",
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                   <span style={{
@@ -1060,24 +1060,24 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
                   }}>PATH 2</span>
                   <span style={{
                     fontSize: "10px", fontWeight: 700,
-                    padding: "2px 8px", borderRadius: "4px",
+                    padding: "2px 8px", borderRadius: "6px",
                     background: act.bg, color: act.c,
                   }}>{act.icon} {act.label}</span>
                   {u && (
                     <span title={conf.hint} style={{
                       fontSize: "10px", fontWeight: 600,
-                      padding: "2px 8px", borderRadius: "4px",
+                      padding: "2px 8px", borderRadius: "6px",
                       background: conf.bg, color: conf.c, cursor: "help",
                     }}>conf: {conf.label}</span>
                   )}
                 </div>
                 {u ? (
                   <div style={{ marginTop: "8px", display: "flex", alignItems: "baseline", gap: "8px", flexWrap: "wrap" }}>
-                    <span style={{ fontSize: "20px", fontWeight: 800, fontFamily: "'JetBrains Mono',monospace", color: "#1a1a1a" }}>
+                    <span style={{ fontSize: "18px", fontWeight: 800, fontFamily: "'JetBrains Mono',monospace", color: "#1a1a1a" }}>
                       ISO {u.iso}
                     </span>
-                    {u.iso_zh && <span style={{ fontSize: "13px", color: "#525252", fontWeight: 600 }}>{u.iso_zh}</span>}
-                    {u.machine && <span style={{ fontSize: "12px", color: "#767676" }}>· {u.machine}</span>}
+                    {u.iso_zh && <span style={{ fontSize: "13px", color: "#555", fontWeight: 600 }}>{u.iso_zh}</span>}
+                    {u.machine && <span style={{ fontSize: "12px", color: "#555" }}>· {u.machine}</span>}
                   </div>
                 ) : (
                   <div style={{ marginTop: "8px", fontSize: "12px", color: "#b91c1c" }}>
@@ -1086,9 +1086,9 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
                 )}
                 {u?.alternatives?.length > 0 && (
                   <div style={{ marginTop: "10px", borderTop: "1px dashed #e8e5e1", paddingTop: "8px" }}>
-                    <div style={{ fontSize: "10px", color: "#767676", fontWeight: 600, marginBottom: "4px", letterSpacing: "0.05em" }}>
+                    <div style={{ fontSize: "10px", color: "#555", fontWeight: 600, marginBottom: "4px", letterSpacing: "0.05em" }}>
                       替代 ISO · 點選即可切換
-                      {u.bridgeN != null && <span style={{ marginLeft: "6px", color: "#999", fontWeight: 500 }}>bridge v6 · n={u.bridgeN}</span>}
+                      {u.bridgeN != null && <span style={{ marginLeft: "6px", color: "#888", fontWeight: 500 }}>bridge v6 · n={u.bridgeN}</span>}
                     </div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                       {u.alternatives.map((a, idx) => (
@@ -1098,12 +1098,12 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
                           title={a.count != null ? `歷史資料 ${a.count} / ${u.bridgeN ?? "?"} · 點擊切換為此 ISO` : "點擊切換為此 ISO"}
                           style={{
                             fontSize: "11px", padding: "3px 8px", borderRadius: "6px",
-                            background: "#fff", border: "1px solid #e8e5e1", color: "#525252",
+                            background: "#fff", border: "1px solid #e8e5e1", color: "#555",
                             fontFamily: "'JetBrains Mono',monospace", fontWeight: 600,
                             cursor: "pointer",
                           }}
                           onMouseEnter={e => { e.currentTarget.style.borderColor = "#0c4a6e"; e.currentTarget.style.color = "#0c4a6e"; }}
-                          onMouseLeave={e => { e.currentTarget.style.borderColor = "#e8e5e1"; e.currentTarget.style.color = "#525252"; }}
+                          onMouseLeave={e => { e.currentTarget.style.borderColor = "#e8e5e1"; e.currentTarget.style.color = "#555"; }}
                         >
                           ISO {a.iso}
                           {a.pct != null && <span style={{ marginLeft: "6px", color: "#b45309" }}>{a.pct}%</span>}
@@ -1114,14 +1114,14 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
                 )}
                 {u?.methods?.length > 0 && (
                   <div style={{ marginTop: "10px", borderTop: "1px dashed #e8e5e1", paddingTop: "8px" }}>
-                    <div style={{ fontSize: "10px", color: "#767676", fontWeight: 600, marginBottom: "4px", letterSpacing: "0.05em" }}>
+                    <div style={{ fontSize: "10px", color: "#555", fontWeight: 600, marginBottom: "4px", letterSpacing: "0.05em" }}>
                       常見工法 · bridge v6
                     </div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                       {u.methods.map((m, idx) => (
                         <span key={idx} title={`此 GT×部位 歷史資料出現 ${m.count} 次`} style={{
                           fontSize: "11px", padding: "3px 8px", borderRadius: "6px",
-                          background: "#f5f4f0", border: "1px solid #e8e5e1", color: "#525252",
+                          background: "#f5f4f0", border: "1px solid #e8e5e1", color: "#555",
                           fontWeight: 500, cursor: "help",
                         }}>
                           {m.name}
@@ -1135,12 +1135,12 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
             );
           })()}
           {appMode !== "universal" && card.l2Variants && card.l2Variants.length > 1 && (
-            <div style={{ marginTop: "10px", border: "1px solid #eee", borderRadius: "8px", background: "#f8fafc", padding: "8px 10px" }}>
+            <div style={{ marginTop: "10px", border: "1px solid #eee", borderRadius: "6px", background: "#f8fafc", padding: "8px 10px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
-                <div style={{ fontSize: "11px", color: "#666", fontWeight: 600 }}>
+                <div style={{ fontSize: "11px", color: "#555", fontWeight: 600 }}>
                   L2 零件 · {card.l2Variants[card.l2Idx ?? 0]?.display_name || card.l2Variants[card.l2Idx ?? 0]?.xlsx_name || "—"}
                   {card.l2Variants[card.l2Idx ?? 0]?.freq_pct != null && (
-                    <span style={{ marginLeft: "6px", fontSize: "10px", color: "#666", background: "#f1f5f9", padding: "1px 6px", borderRadius: "4px", fontWeight: 600 }}>歷史 {card.l2Variants[card.l2Idx ?? 0].freq_pct}%</span>
+                    <span style={{ marginLeft: "6px", fontSize: "10px", color: "#555", background: "#f1f5f9", padding: "1px 6px", borderRadius: "6px", fontWeight: 600 }}>歷史 {card.l2Variants[card.l2Idx ?? 0].freq_pct}%</span>
                   )}
                 </div>
                 <button onClick={() => setShowL2Alts(v => !v)}
@@ -1186,12 +1186,12 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
                             {v.code} · {v.display_name}
                           </span>
                           {v.freq_pct != null && (
-                            <span style={{ fontSize: "10px", color: "#666", fontFamily: "'JetBrains Mono',monospace", flexShrink: 0 }}>
+                            <span style={{ fontSize: "10px", color: "#555", fontFamily: "'JetBrains Mono',monospace", flexShrink: 0 }}>
                               {v.freq_pct}%
                             </span>
                           )}
                         </div>
-                        {v.feature && <div style={{ fontSize: "11px", color: "#767676", marginTop: "2px", lineHeight: 1.35 }}>{v.feature}</div>}
+                        {v.feature && <div style={{ fontSize: "11px", color: "#555", marginTop: "2px", lineHeight: 1.35 }}>{v.feature}</div>}
                       </div>
                     );
                   })}
@@ -1200,12 +1200,12 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
             </div>
           )}
           {appMode !== "universal" && card.l3Variants && card.l3Variants.length > 1 && (
-            <div style={{ marginTop: "10px", border: "1px solid #eee", borderRadius: "8px", background: "#fafaf9", padding: "8px 10px" }}>
+            <div style={{ marginTop: "10px", border: "1px solid #eee", borderRadius: "6px", background: "#fafaf9", padding: "8px 10px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
-                <div style={{ fontSize: "11px", color: "#666", fontWeight: 600 }}>
+                <div style={{ fontSize: "11px", color: "#555", fontWeight: 600 }}>
                   L3 形狀 · {card.l3Variants[card.l3Idx ?? 0]?.l3 || "—"}
                   {card.l3Variants[card.l3Idx ?? 0]?.freq_pct != null && (
-                    <span style={{ marginLeft: "6px", fontSize: "10px", color: "#666", background: "#f1f5f9", padding: "1px 6px", borderRadius: "4px", fontWeight: 600 }}>歷史 {card.l3Variants[card.l3Idx ?? 0].freq_pct}%</span>
+                    <span style={{ marginLeft: "6px", fontSize: "10px", color: "#555", background: "#f1f5f9", padding: "1px 6px", borderRadius: "6px", fontWeight: 600 }}>歷史 {card.l3Variants[card.l3Idx ?? 0].freq_pct}%</span>
                   )}
                 </div>
                 <button onClick={() => setShowL3Alts(v => !v)}
@@ -1229,7 +1229,7 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
                           {v.l3 || "—"}
                         </span>
                         {v.freq_pct != null && (
-                          <span style={{ fontSize: "10px", color: "#666", fontFamily: "'JetBrains Mono',monospace", flexShrink: 0 }}>
+                          <span style={{ fontSize: "10px", color: "#555", fontFamily: "'JetBrains Mono',monospace", flexShrink: 0 }}>
                             {v.freq_pct}%
                           </span>
                         )}
@@ -1241,12 +1241,12 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
             </div>
           )}
           {appMode !== "universal" && card.methodVariants && card.methodVariants.length > 1 && (
-            <div style={{ marginTop: "10px", border: "1px solid #eee", borderRadius: "8px", background: "#fafafa", padding: "8px 10px" }}>
+            <div style={{ marginTop: "10px", border: "1px solid #eee", borderRadius: "6px", background: "#fafafa", padding: "8px 10px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
-                <div style={{ fontSize: "11px", color: "#666", fontWeight: 600 }}>
+                <div style={{ fontSize: "11px", color: "#555", fontWeight: 600 }}>
                   L4 工法 · 目前第 {(card.methodIdx ?? 0) + 1} / {card.methodVariants.length}
                   {card.methodVariants[card.methodIdx ?? 0]?.freq_pct != null && (
-                    <span style={{ marginLeft: "6px", fontSize: "10px", color: "#666", background: "#f1f5f9", padding: "1px 6px", borderRadius: "4px", fontWeight: 600 }}>歷史 {card.methodVariants[card.methodIdx ?? 0].freq_pct}%</span>
+                    <span style={{ marginLeft: "6px", fontSize: "10px", color: "#555", background: "#f1f5f9", padding: "1px 6px", borderRadius: "6px", fontWeight: 600 }}>歷史 {card.methodVariants[card.methodIdx ?? 0].freq_pct}%</span>
                   )}
                 </div>
                 <button onClick={() => setShowMethods(v => !v)}
@@ -1271,7 +1271,7 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
                         </span>
                         <span style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
                           {v.freq_pct != null && (
-                            <span style={{ fontSize: "10px", color: "#666", fontFamily: "'JetBrains Mono',monospace" }}>{v.freq_pct}%</span>
+                            <span style={{ fontSize: "10px", color: "#555", fontFamily: "'JetBrains Mono',monospace" }}>{v.freq_pct}%</span>
                           )}
                           <span style={{ fontSize: "11px", color: "#888", fontFamily: "'JetBrains Mono',monospace" }}>
                             {v.totalSec}秒
@@ -1286,13 +1286,13 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
           )}
           {appMode !== "universal" && (
             <>
-              <div style={{ fontSize: "11px", color: "#999", padding: "8px 0 4px 10px" }}>
+              <div style={{ fontSize: "11px", color: "#888", padding: "8px 0 4px 10px" }}>
                 工段 · 秒數
               </div>
               {card.l3s.map((l3, i) => <L3Line key={`${card.methodIdx}-${i}`} l3={l3} editId={editId} setEditId={setEditId} idx={i} col={col} />)}
               <div style={{ display: "flex", justifyContent: "flex-end", padding: "8px 0 0", gap: "8px" }}>
-                <span style={{ fontSize: "13px", color: "#999" }}>小計</span>
-                <span style={{ fontSize: "14px", color: "#1a1a1a", fontWeight: 800, fontFamily: "'JetBrains Mono',monospace" }}>{Math.round(card.ie)}<span style={{ fontSize: "11px", color: "#999", marginLeft: "3px", fontWeight: 500 }}>秒</span></span>
+                <span style={{ fontSize: "13px", color: "#888" }}>小計</span>
+                <span style={{ fontSize: "14px", color: "#1a1a1a", fontWeight: 800, fontFamily: "'JetBrains Mono',monospace" }}>{Math.round(card.ie)}<span style={{ fontSize: "11px", color: "#888", marginLeft: "3px", fontWeight: 500 }}>秒</span></span>
               </div>
             </>
           )}
@@ -1313,7 +1313,7 @@ function MissyPomRow({ pom, tier, isOpen, onToggle, onToggleInclude, included, s
   return (
     <div style={{
       background: "#fff", border: `1.5px solid ${isOpen ? tc.c + "40" : "#e8e5e1"}`,
-      borderRadius: "10px", marginBottom: "6px", overflow: "hidden",
+      borderRadius: "12px", marginBottom: "6px", overflow: "hidden",
       opacity: included ? 1 : 0.4, transition: "all 0.2s"
     }}>
       {/* Header */}
@@ -1327,13 +1327,13 @@ function MissyPomRow({ pom, tier, isOpen, onToggle, onToggleInclude, included, s
             style={{ width: "16px", height: "16px", accentColor: tc.c, cursor: "pointer", flexShrink: 0 }} />
           <span style={{ fontSize: "13px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: tc.c, width: "34px", flexShrink: 0 }}>{pom.code}</span>
           <span style={{ fontSize: "14px", fontWeight: 600, color: "#1a1a1a" }}>{pom.name}</span>
-          {hasVariant && <span style={{ fontSize: "9px", color: "#7e22ce", background: "#f5f3ff", padding: "2px 6px", borderRadius: "4px", fontWeight: 600 }}>P/T 差異</span>}
-          {pom.subRows && <span style={{ fontSize: "9px", color: "#666", background: "#f5f4f0", padding: "2px 6px", borderRadius: "4px" }}>{pom.subRows.length} sub</span>}
+          {hasVariant && <span style={{ fontSize: "10px", color: "#7e22ce", background: "#f5f3ff", padding: "2px 6px", borderRadius: "6px", fontWeight: 600 }}>P/T 差異</span>}
+          {pom.subRows && <span style={{ fontSize: "10px", color: "#555", background: "#f5f4f0", padding: "2px 6px", borderRadius: "6px" }}>{pom.subRows.length} sub</span>}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
           <span style={{ fontSize: "10px", color: tc.c, background: tc.bg, padding: "2px 7px", borderRadius: "6px", fontWeight: 600 }}>{tc.icon} {tc.label}</span>
-          <span style={{ fontSize: "15px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: "#1a1a1a" }}>{frmt(pom.mVal)}"</span>
-          <div style={{ fontSize: "13px", color: "#ccc", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.25s" }}>▾</div>
+          <span style={{ fontSize: "14px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: "#1a1a1a" }}>{frmt(pom.mVal)}"</span>
+          <div style={{ fontSize: "13px", color: "#bbb", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.25s" }}>▾</div>
         </div>
       </div>
 
@@ -1342,22 +1342,22 @@ function MissyPomRow({ pom, tier, isOpen, onToggle, onToggleInclude, included, s
         <div style={{ padding: "0 14px 14px" }}>
           {/* Tol */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #f0eeeb" }}>
-            <span style={{ fontSize: "11px", color: "#999" }}>Tolerance</span>
-            <span style={{ fontSize: "12px", fontFamily: "'JetBrains Mono',monospace", color: "#666" }}>−{frmt(pom.tol[0])} / +{frmt(pom.tol[1])}</span>
+            <span style={{ fontSize: "11px", color: "#888" }}>Tolerance</span>
+            <span style={{ fontSize: "12px", fontFamily: "'JetBrains Mono',monospace", color: "#555" }}>−{frmt(pom.tol[0])} / +{frmt(pom.tol[1])}</span>
           </div>
 
           {/* MISSY size grid */}
           <div style={{ marginTop: "10px" }}>
             <div style={{ fontSize: "10px", fontWeight: 600, color: "#1a1a1a", marginBottom: "4px", letterSpacing: "0.3px" }}>MISSY</div>
             <div style={{ display: "grid", gridTemplateColumns: `72px repeat(${sizes.length}, 1fr)`, gap: "1px", fontSize: "11px" }}>
-              <div style={{ padding: "5px 4px", fontWeight: 600, color: "#999", fontSize: "10px" }}>SIZE</div>
+              <div style={{ padding: "5px 4px", fontWeight: 600, color: "#888", fontSize: "10px" }}>SIZE</div>
               {sizes.map((s, i) => (
                 <div key={s} style={{
                   padding: "5px 2px", textAlign: "center", fontWeight: 700,
                   color: i === baseIdx ? "#065f46" : "#1a1a1a",
                   background: i === baseIdx ? "#ecfdf5" : "#faf9f7",
-                  borderRadius: "4px", fontSize: "11px", fontFamily: "'JetBrains Mono',monospace"
-                }}>{s}{i === baseIdx && <span style={{ display: "block", fontSize: "7px", color: "#065f46", fontWeight: 500 }}>BASE</span>}</div>
+                  borderRadius: "6px", fontSize: "11px", fontFamily: "'JetBrains Mono',monospace"
+                }}>{s}{i === baseIdx && <span style={{ display: "block", fontSize: "10px", color: "#065f46", fontWeight: 500 }}>BASE</span>}</div>
               ))}
               <div style={{ padding: "6px 4px", fontWeight: 600, color: "#1a1a1a", fontSize: "10px" }}>Value</div>
               {sizes.map((s, i) => {
@@ -1367,20 +1367,20 @@ function MissyPomRow({ pom, tier, isOpen, onToggle, onToggleInclude, included, s
                     <div style={{
                       fontSize: "13px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace",
                       color: i === baseIdx ? "#065f46" : "#1a1a1a",
-                      padding: "3px 1px", borderRadius: "4px",
+                      padding: "3px 1px", borderRadius: "6px",
                       border: i === baseIdx ? "2px solid #065f46" : "1.5px solid #e8e5e1",
                       background: i === baseIdx ? "#ecfdf5" : "#fff",
                     }}>{frmt(val)}"</div>
                   </div>
                 );
               })}
-              <div style={{ padding: "5px 4px", fontSize: "9px", color: "#999" }}>Grade</div>
+              <div style={{ padding: "5px 4px", fontSize: "10px", color: "#888" }}>Grade</div>
               {sizes.map((s, i) => {
                 const g = pom.grading[s] || 0;
                 const prev = i > 0 ? (pom.grading[sizes[i - 1]] || 0) : null;
                 const delta = prev !== null ? g - prev : null;
                 return (
-                  <div key={s} style={{ padding: "5px 2px", textAlign: "center", fontSize: "10px", fontFamily: "'JetBrains Mono',monospace", color: delta === 0 || delta === null ? "#ccc" : "#b45309" }}>
+                  <div key={s} style={{ padding: "5px 2px", textAlign: "center", fontSize: "10px", fontFamily: "'JetBrains Mono',monospace", color: delta === 0 || delta === null ? "#bbb" : "#b45309" }}>
                     {delta !== null ? (delta >= 0 ? `+${frmt(delta)}` : frmt(delta)) : "—"}
                   </div>
                 );
@@ -1390,20 +1390,20 @@ function MissyPomRow({ pom, tier, isOpen, onToggle, onToggleInclude, included, s
 
           {/* PETITE variant row */}
           {showingPetite && (
-            <div style={{ marginTop: "8px", padding: "8px 10px", background: "#faf5ff", borderRadius: "8px", border: "1.5px solid #e9d5ff" }}>
+            <div style={{ marginTop: "8px", padding: "8px 10px", background: "#faf5ff", borderRadius: "6px", border: "1.5px solid #e9d5ff" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                  <span style={{ fontSize: "10px", fontWeight: 700, color: "#7e22ce", background: "#f3e8ff", padding: "2px 8px", borderRadius: "4px" }}>PETITE</span>
+                  <span style={{ fontSize: "10px", fontWeight: 700, color: "#7e22ce", background: "#f3e8ff", padding: "2px 8px", borderRadius: "6px" }}>PETITE</span>
                   <span style={{ fontSize: "12px", color: "#7e22ce", fontWeight: 600 }}>{pom.petite.note}</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "baseline", gap: "4px" }}>
-                  <span style={{ fontSize: "10px", color: "#999" }}>M =</span>
-                  <span style={{ fontSize: "15px", fontWeight: 800, fontFamily: "'JetBrains Mono',monospace", color: "#7e22ce" }}>{frmt(pom.petite.mVal)}"</span>
+                  <span style={{ fontSize: "10px", color: "#888" }}>M =</span>
+                  <span style={{ fontSize: "14px", fontWeight: 800, fontFamily: "'JetBrains Mono',monospace", color: "#7e22ce" }}>{frmt(pom.petite.mVal)}"</span>
                 </div>
               </div>
               {/* Petite full row */}
               <div style={{ display: "grid", gridTemplateColumns: `72px repeat(${sizes.length}, 1fr)`, gap: "1px", marginTop: "6px" }}>
-                <div style={{ fontSize: "9px", color: "#999", padding: "3px 4px" }}>Value</div>
+                <div style={{ fontSize: "10px", color: "#888", padding: "3px 4px" }}>Value</div>
                 {sizes.map((s, i) => {
                   const diff = pom.petite.mVal - pom.mVal;
                   const val = pom.petite.mVal + (pom.grading[s] || 0);
@@ -1417,19 +1417,19 @@ function MissyPomRow({ pom, tier, isOpen, onToggle, onToggleInclude, included, s
 
           {/* TALL variant row */}
           {showingTall && (
-            <div style={{ marginTop: "6px", padding: "8px 10px", background: "#eff6ff", borderRadius: "8px", border: "1.5px solid #bfdbfe" }}>
+            <div style={{ marginTop: "6px", padding: "8px 10px", background: "#eff6ff", borderRadius: "6px", border: "1.5px solid #bfdbfe" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                  <span style={{ fontSize: "10px", fontWeight: 700, color: "#1d4ed8", background: "#dbeafe", padding: "2px 8px", borderRadius: "4px" }}>TALL</span>
+                  <span style={{ fontSize: "10px", fontWeight: 700, color: "#1d4ed8", background: "#dbeafe", padding: "2px 8px", borderRadius: "6px" }}>TALL</span>
                   <span style={{ fontSize: "12px", color: "#1d4ed8", fontWeight: 600 }}>{pom.tall.note}</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "baseline", gap: "4px" }}>
-                  <span style={{ fontSize: "10px", color: "#999" }}>M =</span>
-                  <span style={{ fontSize: "15px", fontWeight: 800, fontFamily: "'JetBrains Mono',monospace", color: "#1d4ed8" }}>{frmt(pom.tall.mVal)}"</span>
+                  <span style={{ fontSize: "10px", color: "#888" }}>M =</span>
+                  <span style={{ fontSize: "14px", fontWeight: 800, fontFamily: "'JetBrains Mono',monospace", color: "#1d4ed8" }}>{frmt(pom.tall.mVal)}"</span>
                 </div>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: `72px repeat(${sizes.length}, 1fr)`, gap: "1px", marginTop: "6px" }}>
-                <div style={{ fontSize: "9px", color: "#999", padding: "3px 4px" }}>Value</div>
+                <div style={{ fontSize: "10px", color: "#888", padding: "3px 4px" }}>Value</div>
                 {sizes.map((s) => {
                   const val = pom.tall.mVal + (pom.grading[s] || 0);
                   return (
@@ -1442,18 +1442,18 @@ function MissyPomRow({ pom, tier, isOpen, onToggle, onToggleInclude, included, s
 
           {/* Sub-rows */}
           {pom.subRows && (
-            <div style={{ marginTop: "8px", padding: "8px 10px", background: "#faf9f7", borderRadius: "8px", border: "1px solid #f0eeeb" }}>
-              <div style={{ fontSize: "9px", color: "#999", fontWeight: 600, marginBottom: "4px", letterSpacing: "0.5px" }}>SUB-ROWS</div>
+            <div style={{ marginTop: "8px", padding: "8px 10px", background: "#faf9f7", borderRadius: "6px", border: "1px solid #f0eeeb" }}>
+              <div style={{ fontSize: "10px", color: "#888", fontWeight: 600, marginBottom: "4px", letterSpacing: "0.5px" }}>SUB-ROWS</div>
               {pom.subRows.map(sr => (
                 <div key={sr.label} style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", borderBottom: "1px solid #f0eeeb" }}>
-                  <span style={{ fontSize: "11px", color: "#666" }}>↳ {sr.label}</span>
+                  <span style={{ fontSize: "11px", color: "#555" }}>↳ {sr.label}</span>
                   <span style={{ fontSize: "12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{frmt(sr.mVal)}"</span>
                 </div>
               ))}
             </div>
           )}
 
-          <div style={{ fontSize: "9px", color: "#ccc", marginTop: "6px", fontFamily: "'JetBrains Mono',monospace" }}>source: 943 DNs × 3yr median · {MISSY_META.rule}</div>
+          <div style={{ fontSize: "10px", color: "#bbb", marginTop: "6px", fontFamily: "'JetBrains Mono',monospace" }}>source: 943 DNs × 3yr median · {MISSY_META.rule}</div>
         </div>
       </div>
     </div>
@@ -1469,7 +1469,7 @@ function PlusPomRow({ pom, tier, isOpen, onToggle, onToggleInclude, included }) 
   return (
     <div style={{
       background: "#fff", border: `1.5px solid ${isOpen ? tc.c + "40" : "#e8e5e1"}`,
-      borderRadius: "10px", marginBottom: "6px", overflow: "hidden",
+      borderRadius: "12px", marginBottom: "6px", overflow: "hidden",
       opacity: included ? 1 : 0.4, transition: "all 0.2s"
     }}>
       <div onClick={onToggle} style={{
@@ -1482,33 +1482,33 @@ function PlusPomRow({ pom, tier, isOpen, onToggle, onToggleInclude, included }) 
             style={{ width: "16px", height: "16px", accentColor: tc.c, cursor: "pointer", flexShrink: 0 }} />
           <span style={{ fontSize: "13px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: tc.c, width: "34px", flexShrink: 0 }}>{pom.code}</span>
           <span style={{ fontSize: "14px", fontWeight: 600, color: "#1a1a1a" }}>{pom.name}</span>
-          {pom.noteVsMissy && <span style={{ fontSize: "9px", color: "#be185d", background: "#fdf2f8", padding: "2px 6px", borderRadius: "4px", fontWeight: 600 }}>≠ MISSY</span>}
+          {pom.noteVsMissy && <span style={{ fontSize: "10px", color: "#be185d", background: "#fdf2f8", padding: "2px 6px", borderRadius: "6px", fontWeight: 600 }}>≠ MISSY</span>}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
           <span style={{ fontSize: "10px", color: tc.c, background: tc.bg, padding: "2px 7px", borderRadius: "6px", fontWeight: 600 }}>{tc.icon} {tc.label}</span>
-          <span style={{ fontSize: "15px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{frmt(pom.mVal)}"</span>
-          <div style={{ fontSize: "13px", color: "#ccc", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.25s" }}>▾</div>
+          <span style={{ fontSize: "14px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{frmt(pom.mVal)}"</span>
+          <div style={{ fontSize: "13px", color: "#bbb", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.25s" }}>▾</div>
         </div>
       </div>
       <div style={{ maxHeight: isOpen ? "500px" : "0", overflow: "hidden", transition: "max-height 0.35s ease" }}>
         <div style={{ padding: "0 14px 14px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #f0eeeb" }}>
-            <span style={{ fontSize: "11px", color: "#999" }}>Tolerance</span>
-            <span style={{ fontSize: "12px", fontFamily: "'JetBrains Mono',monospace", color: "#666" }}>−{frmt(pom.tol[0])} / +{frmt(pom.tol[1])}</span>
+            <span style={{ fontSize: "11px", color: "#888" }}>Tolerance</span>
+            <span style={{ fontSize: "12px", fontFamily: "'JetBrains Mono',monospace", color: "#555" }}>−{frmt(pom.tol[0])} / +{frmt(pom.tol[1])}</span>
           </div>
           {pom.noteVsMissy && (
             <div style={{ padding: "6px 8px", marginTop: "6px", background: "#fdf2f8", borderRadius: "6px", fontSize: "10px", color: "#be185d" }}>⚠ {pom.noteVsMissy}</div>
           )}
           <div style={{ marginTop: "8px" }}>
             <div style={{ display: "grid", gridTemplateColumns: `72px repeat(${sizes.length}, 1fr)`, gap: "1px" }}>
-              <div style={{ padding: "5px 4px", fontWeight: 600, color: "#999", fontSize: "10px" }}>SIZE</div>
+              <div style={{ padding: "5px 4px", fontWeight: 600, color: "#888", fontSize: "10px" }}>SIZE</div>
               {sizes.map((s, i) => (
                 <div key={s} style={{
                   padding: "5px 2px", textAlign: "center", fontWeight: 700,
                   color: i === baseIdx ? "#065f46" : "#1a1a1a",
                   background: i === baseIdx ? "#ecfdf5" : "#faf9f7",
-                  borderRadius: "4px", fontSize: "11px", fontFamily: "'JetBrains Mono',monospace"
-                }}>{s}{i === baseIdx && <span style={{ display: "block", fontSize: "7px", color: "#065f46" }}>BASE</span>}</div>
+                  borderRadius: "6px", fontSize: "11px", fontFamily: "'JetBrains Mono',monospace"
+                }}>{s}{i === baseIdx && <span style={{ display: "block", fontSize: "10px", color: "#065f46" }}>BASE</span>}</div>
               ))}
               <div style={{ padding: "6px 4px", fontWeight: 600, fontSize: "10px" }}>Value</div>
               {sizes.map((s, i) => {
@@ -1518,27 +1518,27 @@ function PlusPomRow({ pom, tier, isOpen, onToggle, onToggleInclude, included }) 
                     <div style={{
                       fontSize: "13px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace",
                       color: i === baseIdx ? "#065f46" : "#1a1a1a",
-                      padding: "3px 1px", borderRadius: "4px",
+                      padding: "3px 1px", borderRadius: "6px",
                       border: i === baseIdx ? "2px solid #065f46" : "1.5px solid #e8e5e1",
                       background: i === baseIdx ? "#ecfdf5" : "#fff",
                     }}>{frmt(val)}"</div>
                   </div>
                 );
               })}
-              <div style={{ padding: "5px 4px", fontSize: "9px", color: "#999" }}>Grade</div>
+              <div style={{ padding: "5px 4px", fontSize: "10px", color: "#888" }}>Grade</div>
               {sizes.map((s, i) => {
                 const g = pom.grading[s] || 0;
                 const prev = i > 0 ? (pom.grading[sizes[i - 1]] || 0) : null;
                 const delta = prev !== null ? g - prev : null;
                 return (
-                  <div key={s} style={{ padding: "5px 2px", textAlign: "center", fontSize: "10px", fontFamily: "'JetBrains Mono',monospace", color: delta === 0 || delta === null ? "#ccc" : "#b45309" }}>
+                  <div key={s} style={{ padding: "5px 2px", textAlign: "center", fontSize: "10px", fontFamily: "'JetBrains Mono',monospace", color: delta === 0 || delta === null ? "#bbb" : "#b45309" }}>
                     {delta !== null ? (delta >= 0 ? `+${frmt(delta)}` : frmt(delta)) : "—"}
                   </div>
                 );
               })}
             </div>
           </div>
-          <div style={{ fontSize: "9px", color: "#ccc", marginTop: "6px", fontFamily: "'JetBrains Mono',monospace" }}>source: 943 DNs × 3yr median · {PLUS_META.rule}</div>
+          <div style={{ fontSize: "10px", color: "#bbb", marginTop: "6px", fontFamily: "'JetBrains Mono',monospace" }}>source: 943 DNs × 3yr median · {PLUS_META.rule}</div>
         </div>
       </div>
     </div>
@@ -1621,7 +1621,7 @@ function AddPomMenu({ open, onClose, hiddenCodes, excludedCodes, pomNames, zhFor
       <span style={{ fontFamily: "'JetBrains Mono',monospace", fontWeight: 700, fontSize: "12px", color: "#555", minWidth: "42px" }}>{c}</span>
       <span style={{ fontSize: "13px", color: "#1a1a1a", flex: 1 }}>{zhFor(c) || <span style={{ color: "#bbb" }}>(無中文)</span>}</span>
       <span style={{ fontSize: "11px", color: "#888" }}>{enFor(c)}</span>
-      {label && <span style={{ fontSize: "9px", color: "#7e22ce", background: "#f5f3ff", padding: "1px 5px", borderRadius: "3px", fontWeight: 600 }}>{label}</span>}
+      {label && <span style={{ fontSize: "10px", color: "#7e22ce", background: "#f5f3ff", padding: "1px 5px", borderRadius: "6px", fontWeight: 600 }}>{label}</span>}
     </label>
   );
   return (
@@ -1635,7 +1635,7 @@ function AddPomMenu({ open, onClose, hiddenCodes, excludedCodes, pomNames, zhFor
       }}>
         <div style={{ padding: T.pad.modalHead, borderBottom: `1px solid ${T.c.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ fontSize: T.fs.xl, fontWeight: 700, color: T.c.text }}>新增 POM</div>
-          <button onClick={onClose} aria-label="關閉" style={{ background: "none", border: "none", fontSize: "20px", color: "#999", cursor: "pointer", padding: "0 4px", lineHeight: 1 }}>×</button>
+          <button onClick={onClose} aria-label="關閉" style={{ background: "none", border: "none", fontSize: "18px", color: "#888", cursor: "pointer", padding: "0 4px", lineHeight: 1 }}>×</button>
         </div>
         <div style={{ padding: "10px 14px", borderBottom: "1px solid #f0eeeb" }}>
           <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="搜尋 POM (code / 中文 / 英文)"
@@ -1643,7 +1643,7 @@ function AddPomMenu({ open, onClose, hiddenCodes, excludedCodes, pomNames, zhFor
         </div>
         <div style={{ flex: 1, overflowY: "auto", padding: "8px 10px" }}>
           {hidden.length === 0 && exc.length === 0 && !q && (
-            <div style={{ padding: "20px", textAlign: "center", fontSize: "12px", color: "#999" }}>所有 POM 都已在清單中</div>
+            <div style={{ padding: "20px", textAlign: "center", fontSize: "12px", color: "#888" }}>所有 POM 都已在清單中</div>
           )}
           {hidden.length > 0 && (
             <>
@@ -1695,7 +1695,7 @@ function BucketPomRow({ code, tier, measurement, median, grading, pomName, isOpe
   return (
     <div style={{
       background: "#fff", border: `1.5px solid ${isOpen ? tc.c + "40" : "#e8e5e1"}`,
-      borderRadius: "10px", marginBottom: "6px", overflow: "hidden",
+      borderRadius: "12px", marginBottom: "6px", overflow: "hidden",
       opacity: included ? 1 : 0.4, transition: "all 0.2s"
     }}>
       <div onClick={onToggle} style={{
@@ -1709,36 +1709,36 @@ function BucketPomRow({ code, tier, measurement, median, grading, pomName, isOpe
           <span style={{ fontSize: "13px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: tc.c, width: "42px", flexShrink: 0 }}>{code}</span>
           <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{ fontSize: "14px", fontWeight: 600, color: "#1a1a1a", lineHeight: 1.2 }}>{nameEn}</div>
-            {nameZh && <div style={{ fontSize: "11px", color: "#999", marginTop: "2px" }}>{nameZh}</div>}
+            {nameZh && <div style={{ fontSize: "11px", color: "#888", marginTop: "2px" }}>{nameZh}</div>}
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
           <span style={{ fontSize: "10px", color: tc.c, background: tc.bg, padding: "2px 7px", borderRadius: "6px", fontWeight: 600 }}>{tc.icon} {tc.label}</span>
-          <span title={`${measurement?.count || 0} designs`} style={{ fontSize: "10px", color: "#666", fontFamily: "'JetBrains Mono',monospace" }}>{Math.round((measurement?.rate || 0) * 100)}%</span>
-          {tolDisplay && <span style={{ fontSize: "10px", color: "#525252", background: "#f3f4f6", padding: "2px 6px", borderRadius: "4px", fontWeight: 600, fontFamily: "'JetBrains Mono',monospace" }}>±{tolDisplay}"</span>}
-          <span style={{ fontSize: "15px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: "#1a1a1a" }}>{medianM != null ? frmt(medianM) + '"' : "—"}</span>
-          <div style={{ fontSize: "13px", color: "#ccc", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.25s" }}>▾</div>
+          <span title={`${measurement?.count || 0} designs`} style={{ fontSize: "10px", color: "#555", fontFamily: "'JetBrains Mono',monospace" }}>{Math.round((measurement?.rate || 0) * 100)}%</span>
+          {tolDisplay && <span style={{ fontSize: "10px", color: "#555", background: "#f3f4f6", padding: "2px 6px", borderRadius: "6px", fontWeight: 600, fontFamily: "'JetBrains Mono',monospace" }}>±{tolDisplay}"</span>}
+          <span style={{ fontSize: "14px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: "#1a1a1a" }}>{medianM != null ? frmt(medianM) + '"' : "—"}</span>
+          <div style={{ fontSize: "13px", color: "#bbb", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.25s" }}>▾</div>
         </div>
       </div>
       <div style={{ maxHeight: isOpen ? "700px" : "0", overflow: "hidden", transition: "max-height 0.35s ease" }}>
         <div style={{ padding: "0 14px 14px" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "10px", padding: "10px 0", borderBottom: "1px solid #f0eeeb" }}>
-            <div><div style={{ fontSize: "10px", color: "#999" }}>Tolerance</div><div style={{ fontSize: "12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{tolDisplay ? "±" + tolDisplay + '"' : "—"}</div></div>
-            <div><div style={{ fontSize: "10px", color: "#999" }}>Grading</div><div style={{ fontSize: "12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{grading?.typical_increment != null ? (grading.typical_increment >= 0 ? "+" : "") + frmt(grading.typical_increment) + '"' : "—"}</div></div>
-            <div><div style={{ fontSize: "10px", color: "#999" }}>Rate</div><div style={{ fontSize: "12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{measurement?.rate != null ? Math.round(measurement.rate * 100) + "%" : "—"}</div></div>
-            <div><div style={{ fontSize: "10px", color: "#999" }}>Count</div><div style={{ fontSize: "12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{measurement?.count || grading?.n_pairs || 0}</div></div>
+            <div><div style={{ fontSize: "10px", color: "#888" }}>Tolerance</div><div style={{ fontSize: "12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{tolDisplay ? "±" + tolDisplay + '"' : "—"}</div></div>
+            <div><div style={{ fontSize: "10px", color: "#888" }}>Grading</div><div style={{ fontSize: "12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{grading?.typical_increment != null ? (grading.typical_increment >= 0 ? "+" : "") + frmt(grading.typical_increment) + '"' : "—"}</div></div>
+            <div><div style={{ fontSize: "10px", color: "#888" }}>Rate</div><div style={{ fontSize: "12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{measurement?.rate != null ? Math.round(measurement.rate * 100) + "%" : "—"}</div></div>
+            <div><div style={{ fontSize: "10px", color: "#888" }}>Count</div><div style={{ fontSize: "12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{measurement?.count || grading?.n_pairs || 0}</div></div>
           </div>
           {sizes.length > 0 && (
             <div style={{ marginTop: "10px" }}>
               <div style={{ display: "grid", gridTemplateColumns: `72px repeat(${sizes.length}, 1fr)`, gap: "1px" }}>
-                <div style={{ padding: "5px 4px", fontWeight: 600, color: "#999", fontSize: "10px" }}>SIZE</div>
+                <div style={{ padding: "5px 4px", fontWeight: 600, color: "#888", fontSize: "10px" }}>SIZE</div>
                 {sizes.map(s => (
-                  <div key={s} style={{ padding: "5px 2px", textAlign: "center", fontWeight: 700, color: s === "M" ? "#065f46" : "#1a1a1a", background: s === "M" ? "#ecfdf5" : "#faf9f7", borderRadius: "4px", fontSize: "11px", fontFamily: "'JetBrains Mono',monospace" }}>{s}{s === "M" && <span style={{ display: "block", fontSize: "7px", color: "#065f46" }}>BASE</span>}</div>
+                  <div key={s} style={{ padding: "5px 2px", textAlign: "center", fontWeight: 700, color: s === "M" ? "#065f46" : "#1a1a1a", background: s === "M" ? "#ecfdf5" : "#faf9f7", borderRadius: "6px", fontSize: "11px", fontFamily: "'JetBrains Mono',monospace" }}>{s}{s === "M" && <span style={{ display: "block", fontSize: "10px", color: "#065f46" }}>BASE</span>}</div>
                 ))}
                 <div style={{ padding: "6px 4px", fontWeight: 600, fontSize: "10px" }}>Median</div>
                 {sizes.map(s => (
                   <div key={s} style={{ padding: "3px 1px", textAlign: "center" }}>
-                    <div style={{ fontSize: "12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: s === "M" ? "#065f46" : "#1a1a1a", padding: "3px 1px", borderRadius: "4px", border: s === "M" ? "2px solid #065f46" : "1.5px solid #e8e5e1", background: s === "M" ? "#ecfdf5" : "#fff" }}>{frmt(median.size_medians[s])}"</div>
+                    <div style={{ fontSize: "12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: s === "M" ? "#065f46" : "#1a1a1a", padding: "3px 1px", borderRadius: "6px", border: s === "M" ? "2px solid #065f46" : "1.5px solid #e8e5e1", background: s === "M" ? "#ecfdf5" : "#fff" }}>{frmt(median.size_medians[s])}"</div>
                   </div>
                 ))}
               </div>
@@ -2172,7 +2172,7 @@ function OnboardingModal({ open, onDismiss }) {
         <div style={{ fontSize: "11px", color: "#065f46", fontWeight: 700, letterSpacing: "0.1em", marginBottom: "4px" }}>
           STYTRIX · TECHPACK
         </div>
-        <h2 id="onboarding-title" style={{ margin: "0 0 18px 0", fontSize: "19px", fontWeight: 700, color: "#1a1a1a" }}>
+        <h2 id="onboarding-title" style={{ margin: "0 0 18px 0", fontSize: "18px", fontWeight: 700, color: "#1a1a1a" }}>
           歡迎！3 步驟完成一份 techpack
         </h2>
         <div style={{ display: "flex", flexDirection: "column", gap: "14px", marginBottom: "22px" }}>
@@ -2188,20 +2188,20 @@ function OnboardingModal({ open, onDismiss }) {
                 <div style={{ fontSize: "13px", fontWeight: 700, color: "#1a1a1a", marginBottom: "2px" }}>
                   {s.title}
                 </div>
-                <div style={{ fontSize: "12px", color: "#525252", lineHeight: 1.55 }}>
+                <div style={{ fontSize: "12px", color: "#555", lineHeight: 1.55 }}>
                   {s.body}
                 </div>
               </div>
             </div>
           ))}
         </div>
-        <div style={{ fontSize: "11px", color: "#767676", marginBottom: "16px", lineHeight: 1.55 }}>
+        <div style={{ fontSize: "11px", color: "#555", marginBottom: "16px", lineHeight: 1.55 }}>
           右上角 <span style={{ display: "inline-flex", alignItems: "center", padding: "0 4px" }}>⚙</span> 管理可以餵入更新的翻譯表；每個 filter 旁的 🔒 讓 refresh 保留選擇。
         </div>
         <button onClick={onDismiss} style={{
           width: "100%", padding: "11px",
           background: "#1a1a1a", color: "#fff",
-          border: "none", borderRadius: "8px",
+          border: "none", borderRadius: "6px",
           fontSize: "13px", fontWeight: 600, cursor: "pointer",
           fontFamily: "inherit",
         }}>開始使用</button>
@@ -3771,7 +3771,7 @@ function App() {
             }}
             draggable="false" />
           <span style={{ width: "1px", height: "28px", background: "#ddd" }} />
-          <span style={{ fontSize: isMobile ? "14px" : "16px", color: "#767676", fontWeight: 600, letterSpacing: "0.02em" }}>Techpack</span>
+          <span style={{ fontSize: isMobile ? "14px" : "16px", color: "#555", fontWeight: 600, letterSpacing: "0.02em" }}>Techpack</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
           {/* ─── 模式切換（聚陽 / 通用） ─── */}
@@ -3823,9 +3823,9 @@ function App() {
                   return parts.length ? `已覆蓋 — ${parts.join('、')}` : "管理：上傳 POM 翻譯表 / POM Rules / 部位出現率表";
                 })()}
                 style={{
-                  background: "#fff", border: "1px solid #e8e5e1", borderRadius: "8px",
+                  background: "#fff", border: "1px solid #e8e5e1", borderRadius: "6px",
                   padding: isMobile ? "6px 12px" : "8px 14px", fontSize: isMobile ? "12px" : "13px", fontWeight: 700,
-                  color: hasAnyOverride ? "#b45309" : "#525252",
+                  color: hasAnyOverride ? "#b45309" : "#555",
                   cursor: "pointer", fontFamily: "inherit",
                   display: "inline-flex", alignItems: "center", gap: "6px", justifyContent: "center",
                   position: "relative", transition: "border-color 0.15s",
@@ -3863,7 +3863,7 @@ function App() {
                   <span key={i} style={{
                     fontSize: "12px", padding: "4px 10px",
                     background: i === 0 ? "#1a1a1a" : "#f5f5f5",
-                    color: i === 0 ? "#fff" : "#525252",
+                    color: i === 0 ? "#fff" : "#555",
                     borderRadius: "999px", fontWeight: 600,
                     whiteSpace: "nowrap",
                   }}>{f.v}</span>
@@ -3871,7 +3871,7 @@ function App() {
                 <button onClick={() => setFilterExpanded(true)} aria-label="編輯 filter" style={{
                   marginLeft: "auto",
                   fontSize: "11px", padding: "4px 10px",
-                  background: "#fff", color: "#767676",
+                  background: "#fff", color: "#555",
                   border: "1px solid #e8e5e1", borderRadius: "6px",
                   cursor: "pointer", fontWeight: 600, fontFamily: "inherit",
                   display: "inline-flex", alignItems: "center", gap: "4px",
@@ -3897,7 +3897,7 @@ function App() {
                   style={{
                     fontSize: "11px", padding: "3px 10px",
                     background: "#fff",
-                    color: anyLocked ? "#065f46" : "#767676",
+                    color: anyLocked ? "#065f46" : "#555",
                     border: `1px solid ${anyLocked ? "#a7f3d0" : "#e8e5e1"}`,
                     borderRadius: "6px",
                     cursor: "pointer", fontWeight: 600, fontFamily: "inherit",
@@ -3912,7 +3912,7 @@ function App() {
                 {isMobile && selectedFilters.length >= 2 && (
                   <button onClick={() => setFilterExpanded(false)} aria-label="收合 filter" style={{
                     fontSize: "11px", padding: "3px 10px",
-                    background: "#fff", color: "#767676",
+                    background: "#fff", color: "#555",
                     border: "1px solid #e8e5e1", borderRadius: "6px",
                     cursor: "pointer", fontWeight: 600, fontFamily: "inherit",
                   }}>收合</button>
@@ -3993,7 +3993,7 @@ function App() {
                 const dis = !!t.disabled;
                 const stepColor = active ? "#065f46" : (t.done ? "#065f46" : (dis ? "#eee" : "#bbb"));
                 const stepBg = active ? "#065f46" : (t.done ? "#ecfdf5" : "transparent");
-                const stepTextColor = active ? "#fff" : (t.done ? "#065f46" : (dis ? "#ccc" : "#999"));
+                const stepTextColor = active ? "#fff" : (t.done ? "#065f46" : (dis ? "#bbb" : "#888"));
                 return (
                   <React.Fragment key={t.key}>
                     <button role="tab"
@@ -4011,7 +4011,7 @@ function App() {
                         padding: "12px 0", background: "none", border: "none",
                         borderBottom: active ? "2px solid #065f46" : "2px solid transparent",
                         cursor: dis ? "not-allowed" : "pointer",
-                        color: active ? "#1a1a1a" : (dis ? "#ddd" : "#525252"),
+                        color: active ? "#1a1a1a" : (dis ? "#ddd" : "#555"),
                         fontSize: isMobile ? "13px" : "14px",
                         fontWeight: active ? 700 : 500,
                         marginBottom: "-1px", transition: "all 0.15s", fontFamily: "inherit",
@@ -4048,7 +4048,7 @@ function App() {
           <div style={{ animation: "fadeIn 0.2s ease" }}>
             {/* Action bar (v10: clean) */}
             <div style={{
-              background: "#fff", border: "1px solid #eee", borderRadius: "10px",
+              background: "#fff", border: "1px solid #eee", borderRadius: "12px",
               padding: isMobile ? "12px 14px" : "16px 20px",
               marginBottom: isMobile ? "12px" : "16px",
               display: "flex",
@@ -4058,7 +4058,7 @@ function App() {
               gap: isMobile ? "10px" : "16px"
             }}>
               <div>
-                <div style={{ fontSize: "15px", fontWeight: 700, marginBottom: "3px", color: "#1a1a1a" }}>
+                <div style={{ fontSize: "14px", fontWeight: 700, marginBottom: "3px", color: "#1a1a1a" }}>
                   作工建議
                   {appMode === "universal" && (
                     <span style={{
@@ -4068,7 +4068,7 @@ function App() {
                     }}>通用模型</span>
                   )}
                 </div>
-                <div style={{ fontSize: "12px", color: "#999" }}>
+                <div style={{ fontSize: "12px", color: "#888" }}>
                   {appMode === "universal"
                     ? "Sketch → L1 部位判讀 → 建議歷史 ISO"
                     : "Sketch → L1 部位判讀 → L2 零件判讀 → 工段推薦 → IE人員選擇"}
@@ -4078,7 +4078,7 @@ function App() {
                 <button onClick={runConstruction} disabled={!canAnalyze || cAnalyzing} style={{
                   padding: "10px 24px", background: (canAnalyze && !cAnalyzing) ? "#1a1a1a" : "#eee",
                   color: (canAnalyze && !cAnalyzing) ? "#fff" : "#bbb",
-                  border: "none", borderRadius: "8px",
+                  border: "none", borderRadius: "6px",
                   fontSize: "13px", fontWeight: 600, cursor: (canAnalyze && !cAnalyzing) ? "pointer" : "not-allowed",
                   fontFamily: "inherit",
                 }}>{cAnalyzing ? "分析中…" : "Analyze"}</button>
@@ -4087,13 +4087,13 @@ function App() {
                 <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                   {appMode !== "universal" && (
                     <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: "10px", color: "#999" }}>Sewing 秒</div>
+                      <div style={{ fontSize: "10px", color: "#888" }}>Sewing 秒</div>
                       <div style={{ fontSize: "18px", color: "#065f46", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{Math.round(totalIE)}</div>
                     </div>
                   )}
                   <button onClick={runConstruction} style={{
-                    padding: "8px 16px", background: "#fff", color: "#999",
-                    border: "1px solid #eee", borderRadius: "8px", fontSize: "12px", cursor: "pointer", fontFamily: "inherit"
+                    padding: "8px 16px", background: "#fff", color: "#888",
+                    border: "1px solid #eee", borderRadius: "6px", fontSize: "12px", cursor: "pointer", fontFamily: "inherit"
                   }}>Re-analyze</button>
                 </div>
               )}
@@ -4106,7 +4106,7 @@ function App() {
               gap: isMobile ? "12px" : "16px"
             }}>
               {/* Sketch upload + preview */}
-              <div style={{ background: "#fff", borderRadius: "10px", overflow: "hidden", border: "1px solid #eee", alignSelf: "start" }}>
+              <div style={{ background: "#fff", borderRadius: "12px", overflow: "hidden", border: "1px solid #eee", alignSelf: "start" }}>
                 {!sketchSrc ? (
                   /* ─── Dropzone ─── */
                   <label
@@ -4119,13 +4119,13 @@ function App() {
                     }}
                   >
                     <input type="file" accept="image/*" onChange={handleSketchUpload} style={{ display: "none" }} />
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#bbb" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                       <polyline points="17 8 12 3 7 8" />
                       <line x1="12" y1="3" x2="12" y2="15" />
                     </svg>
-                    <div style={{ fontSize: "14px", fontWeight: 600, color: "#999", marginTop: "16px" }}>上傳設計圖</div>
-                    <div style={{ fontSize: "12px", color: "#767676", marginTop: "6px" }}>拖曳或點擊上傳 · PNG / JPG</div>
+                    <div style={{ fontSize: "14px", fontWeight: 600, color: "#888", marginTop: "16px" }}>上傳設計圖</div>
+                    <div style={{ fontSize: "12px", color: "#555", marginTop: "6px" }}>拖曳或點擊上傳 · PNG / JPG</div>
                   </label>
                 ) : (
                   /* ─── Preview ─── */
@@ -4133,7 +4133,7 @@ function App() {
                     <div style={{ padding: "10px 16px", borderBottom: "1px solid #f0f0f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <span style={{ fontSize: "12px", color: "#888", fontWeight: 500 }}>Sketch</span>
                       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                        <label style={{ fontSize: "11px", color: "#999", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: "2px" }}>
+                        <label style={{ fontSize: "11px", color: "#888", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: "2px" }}>
                           <input type="file" accept="image/*" onChange={handleSketchUpload} style={{ display: "none" }} />
                           更換
                         </label>
@@ -4155,14 +4155,14 @@ function App() {
                     </div>
                     <div style={{ padding: "8px", position: "relative" }}>
                       <Sketch src={sketchSrc} hl={openId} onClick={toggle} ok={cDone} vis={visSet} cards={cards} />
-                      {cAnalyzing && <div style={{ position: "absolute", inset: "8px", background: "rgba(255,255,255,0.6)", borderRadius: "4px" }}>
+                      {cAnalyzing && <div style={{ position: "absolute", inset: "8px", background: "rgba(255,255,255,0.6)", borderRadius: "6px" }}>
                         <div style={{ position: "absolute", left: "10%", right: "10%", height: "2px", background: "#1a1a1a",
-                          borderRadius: "1px", animation: "scanDown 1.5s ease-in-out infinite" }} />
+                          borderRadius: "6px", animation: "scanDown 1.5s ease-in-out infinite" }} />
                       </div>}
                     </div>
                     {cDone && <div style={{ padding: "10px 16px", borderTop: "1px solid #f0f0f0", display: "flex", gap: "5px", flexWrap: "wrap" }}>
                       {[brand, fabric, dept, gender, gt, it].filter(Boolean).map((v, i) => (
-                        <span key={v} style={{ fontSize: "11px", padding: "2px 8px", background: i === 0 ? "#1a1a1a" : "#f5f5f5", borderRadius: "4px", color: i === 0 ? "#fff" : "#767676", fontWeight: i === 0 ? 600 : 400 }}>{v}</span>
+                        <span key={v} style={{ fontSize: "11px", padding: "2px 8px", background: i === 0 ? "#1a1a1a" : "#f5f5f5", borderRadius: "6px", color: i === 0 ? "#fff" : "#555", fontWeight: i === 0 ? 600 : 400 }}>{v}</span>
                       ))}
                     </div>}
                     {cDone && <div style={{
@@ -4174,11 +4174,11 @@ function App() {
                           <span style={{ fontSize: "18px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>
                             {vis.length === cards.length ? cards.length : `${vis.length}/${cards.length}`}
                           </span>
-                          <span style={{ fontSize: "11px", color: "#999" }}>
+                          <span style={{ fontSize: "11px", color: "#888" }}>
                             {vis.length === cards.length ? "部位" : `部位 · 已刪除 ${cards.length - vis.length}`}
                           </span>
                         </div>
-                        <div style={{ fontSize: "10px", color: "#767676", marginTop: "2px" }}>
+                        <div style={{ fontSize: "10px", color: "#555", marginTop: "2px" }}>
                           {aiCount} AI 偵測 · {structCount} 結構推斷
                         </div>
                       </div>
@@ -4213,21 +4213,21 @@ function App() {
                               onChange={toggleAll}
                               style={{ width: "15px", height: "15px", accentColor: "#1a1a1a", cursor: "pointer" }}
                             />
-                            <span style={{ fontSize: "12px", fontWeight: 600, color: addonOn ? "#1a1a1a" : "#999" }}>
+                            <span style={{ fontSize: "12px", fontWeight: 600, color: addonOn ? "#1a1a1a" : "#888" }}>
                               {brand} 品牌套組
                             </span>
-                            <span style={{ fontSize: "10px", color: "#999" }}>
+                            <span style={{ fontSize: "10px", color: "#888" }}>
                               {addonSteps.size}/{ADDON.steps.length} 工段
                             </span>
-                            <span style={{ fontSize: "10px", color: "#999", marginLeft: "4px" }}>
+                            <span style={{ fontSize: "10px", color: "#888", marginLeft: "4px" }}>
                               {showAddonSteps ? "▴" : "▾"}
                             </span>
                             <span style={{
                               marginLeft: "auto",
                               fontSize: "13px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace",
-                              color: addonOn ? "#065f46" : "#ccc",
+                              color: addonOn ? "#065f46" : "#bbb",
                             }}>
-                              {addonOn ? "+" : ""}{Math.round(addonSelectedIE)}<span style={{ fontSize: "10px", color: "#999", marginLeft: "3px", fontWeight: 500 }}>秒</span>
+                              {addonOn ? "+" : ""}{Math.round(addonSelectedIE)}<span style={{ fontSize: "10px", color: "#888", marginLeft: "3px", fontWeight: 500 }}>秒</span>
                             </span>
                           </div>
                           {showAddonSteps && (
@@ -4246,11 +4246,11 @@ function App() {
                                     onChange={() => toggleStep(i)}
                                     style={{ width: "13px", height: "13px", accentColor: "#1a1a1a", cursor: "pointer" }}
                                   />
-                                  <span style={{ fontSize: "11px", color: addonSteps.has(i) ? "#1a1a1a" : "#999" }}>
+                                  <span style={{ fontSize: "11px", color: addonSteps.has(i) ? "#1a1a1a" : "#888" }}>
                                     {step.l3}
                                   </span>
                                   <span style={{
-                                    marginLeft: "auto", fontSize: "11px", color: "#999",
+                                    marginLeft: "auto", fontSize: "11px", color: "#888",
                                     fontFamily: "'JetBrains Mono',monospace",
                                   }}>
                                     +{Math.round(step.ie * 60)}秒
@@ -4284,7 +4284,7 @@ function App() {
                           title={tokenTitle}
                           style={{
                             padding: "8px 16px", borderTop: "1px solid #f0f0f0",
-                            fontSize: "10px", color: "#999", lineHeight: 1.5,
+                            fontSize: "10px", color: "#888", lineHeight: 1.5,
                             background: "#fafafa", cursor: "help",
                           }}>
                           <span>{modelName}</span>
@@ -4305,7 +4305,7 @@ function App() {
                   <div role="alert" style={{
                     minHeight: "200px",
                     padding: "22px 24px",
-                    border: "1px solid #fecaca", background: "#fef2f2", borderRadius: "10px",
+                    border: "1px solid #fecaca", background: "#fef2f2", borderRadius: "12px",
                     display: "flex", flexDirection: "column", gap: "14px",
                     marginBottom: "10px", animation: "fadeIn 0.2s ease",
                   }}>
@@ -4314,7 +4314,7 @@ function App() {
                         flexShrink: 0, width: "28px", height: "28px",
                         borderRadius: "50%", background: "#fee2e2",
                         display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: "15px", color: "#b91c1c",
+                        fontSize: "14px", color: "#b91c1c",
                       }}>⚠</div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: "14px", fontWeight: 700, color: "#b91c1c", marginBottom: "4px" }}>
@@ -4361,7 +4361,7 @@ function App() {
                 {!cDone && !cAnalyzing && !analyzeErr && <div style={{
                   minHeight: "300px", display: "flex", alignItems: "center", justifyContent: "center",
                   flexDirection: "column", gap: "8px", color: "#bbb",
-                  border: "1px solid #eee", borderRadius: "10px", background: "#fff"
+                  border: "1px solid #eee", borderRadius: "12px", background: "#fff"
                 }}>
                   <div style={{ fontSize: "13px", fontWeight: 500 }}>
                     {canAnalyze ? "按上方 Analyze 開始" : (sketchSrc ? "請先完成 filter" : "請先上傳設計圖並完成 filter")}
@@ -4371,13 +4371,13 @@ function App() {
                 {cAnalyzing && <div style={{
                   minHeight: "300px", display: "flex", alignItems: "flex-start", justifyContent: "center",
                   flexDirection: "column", gap: "6px",
-                  border: "1px solid #eee", borderRadius: "10px", background: "#fff",
+                  border: "1px solid #eee", borderRadius: "12px", background: "#fff",
                   padding: "28px"
                 }}>
                   {C_STAGES.slice(0, cStage + 1).map((s, i) => (
                     <div key={i} style={{
                       fontSize: "12px", lineHeight: 1.6,
-                      color: i === cStage ? "#1a1a1a" : "#ccc",
+                      color: i === cStage ? "#1a1a1a" : "#bbb",
                       fontWeight: i === cStage ? 600 : 400,
                       fontFamily: "'JetBrains Mono',monospace",
                       animation: "fadeIn 0.3s ease"
@@ -4387,7 +4387,7 @@ function App() {
 
                 {cDone && <div style={{ animation: "slideUp 0.3s ease" }}>
                   {removed.size > 0 && <div style={{
-                    padding: "10px 14px", marginBottom: "10px", borderRadius: "8px",
+                    padding: "10px 14px", marginBottom: "10px", borderRadius: "6px",
                     background: "#fef9f9", border: "1px solid #f5e0e0",
                     display: "flex", justifyContent: "space-between", alignItems: "center"
                   }}>
@@ -4401,7 +4401,7 @@ function App() {
 
                   {!hintDismissed && (
                     <div style={{
-                      fontSize: "11px", color: "#767676", marginBottom: "10px",
+                      fontSize: "11px", color: "#555", marginBottom: "10px",
                       padding: "6px 10px", background: "#faf9f7", borderRadius: "6px",
                       display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px",
                     }}>
@@ -4413,7 +4413,7 @@ function App() {
                         aria-label="關閉提示"
                         style={{
                           background: "none", border: "none", cursor: "pointer",
-                          fontSize: "14px", color: "#999", padding: "0 4px", lineHeight: 1,
+                          fontSize: "14px", color: "#888", padding: "0 4px", lineHeight: 1,
                           fontFamily: "inherit",
                         }}>×</button>
                     </div>
@@ -4555,13 +4555,13 @@ function App() {
                           style={{
                             width: "100%", marginTop: "16px",
                             padding: "14px", background: "#fff",
-                            border: "1.5px dashed #d4d4d4", borderRadius: "10px",
-                            color: "#767676", fontSize: "13px", fontWeight: 600,
+                            border: "1.5px dashed #d4d4d4", borderRadius: "12px",
+                            color: "#555", fontSize: "13px", fontWeight: 600,
                             cursor: "pointer", fontFamily: "inherit",
                             transition: "all 0.15s",
                           }}
-                          onMouseEnter={e => { e.currentTarget.style.borderColor = "#999"; e.currentTarget.style.color = "#1a1a1a"; }}
-                          onMouseLeave={e => { e.currentTarget.style.borderColor = "#d4d4d4"; e.currentTarget.style.color = "#767676"; }}
+                          onMouseEnter={e => { e.currentTarget.style.borderColor = "#888"; e.currentTarget.style.color = "#1a1a1a"; }}
+                          onMouseLeave={e => { e.currentTarget.style.borderColor = "#d4d4d4"; e.currentTarget.style.color = "#555"; }}
                         >
                           + 新增部位
                         </button>
@@ -4571,18 +4571,18 @@ function App() {
                     return (
                       <div style={{
                         marginTop: "16px", padding: "14px 16px",
-                        border: "1.5px solid #1a1a1a", borderRadius: "10px", background: "#fff",
+                        border: "1.5px solid #1a1a1a", borderRadius: "12px", background: "#fff",
                       }}>
                         <div style={{ fontSize: "12px", fontWeight: 700, marginBottom: "10px", color: "#1a1a1a" }}>
                           新增部位 {appMode === "universal"
-                            ? <span style={{ fontSize: "10px", fontWeight: 500, color: "#767676", marginLeft: "6px" }}>L1 → ISO</span>
-                            : <span style={{ fontSize: "10px", fontWeight: 500, color: "#767676", marginLeft: "6px" }}>L1 → L2 → L3{l4List.length > 1 ? " → L4" : ""}</span>
+                            ? <span style={{ fontSize: "10px", fontWeight: 500, color: "#555", marginLeft: "6px" }}>L1 → ISO</span>
+                            : <span style={{ fontSize: "10px", fontWeight: 500, color: "#555", marginLeft: "6px" }}>L1 → L2 → L3{l4List.length > 1 ? " → L4" : ""}</span>
                           }
                         </div>
 
                         {/* Row 1: L1 */}
                         <div style={rowStyle}>
-                          <label style={{ color: "#767676" }}>L1 部位</label>
+                          <label style={{ color: "#555" }}>L1 部位</label>
                           <select value={newL1} style={selectStyle}
                             onChange={e => { setNewL1(e.target.value); setNewL2Idx(0); setNewL3Idx(0); setNewL4Idx(0); setNewIsoIdx(0); }}>
                             <option value="">— 請選擇 —</option>
@@ -4598,7 +4598,7 @@ function App() {
                         {appMode === "makalot" && newL1 && (
                           <>
                             <div style={rowStyle}>
-                              <label style={{ color: "#767676" }}>L2 零件</label>
+                              <label style={{ color: "#555" }}>L2 零件</label>
                               <select value={newL2Idx} style={selectStyle}
                                 onChange={e => { setNewL2Idx(Number(e.target.value)); setNewL3Idx(0); setNewL4Idx(0); }}
                                 disabled={l2List.length === 0}>
@@ -4611,7 +4611,7 @@ function App() {
                               </select>
                             </div>
                             <div style={rowStyle}>
-                              <label style={{ color: "#767676" }}>L3 形狀</label>
+                              <label style={{ color: "#555" }}>L3 形狀</label>
                               <select value={newL3Idx} style={selectStyle}
                                 onChange={e => { setNewL3Idx(Number(e.target.value)); setNewL4Idx(0); }}
                                 disabled={!newIeData || l3List.length === 0}>
@@ -4636,7 +4636,7 @@ function App() {
                             </div>
                             {l4List.length > 1 && (
                               <div style={rowStyle}>
-                                <label style={{ color: "#767676" }}>L4 方法</label>
+                                <label style={{ color: "#555" }}>L4 方法</label>
                                 <select value={newL4Idx} style={selectStyle}
                                   onChange={e => setNewL4Idx(Number(e.target.value))}>
                                   {l4List.map((m, i) => (
@@ -4658,7 +4658,7 @@ function App() {
                         {/* Universal: ISO */}
                         {appMode === "universal" && newL1 && (
                           <div style={rowStyle}>
-                            <label style={{ color: "#767676" }}>ISO</label>
+                            <label style={{ color: "#555" }}>ISO</label>
                             <select value={newIsoIdx} style={selectStyle}
                               onChange={e => setNewIsoIdx(Number(e.target.value))}
                               disabled={isoList.length === 0}>
@@ -4681,8 +4681,8 @@ function App() {
                         <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "12px" }}>
                           <button onClick={resetAddForm}
                             style={{
-                              padding: "8px 16px", background: "#fff", color: "#767676",
-                              border: "1px solid #e5e5e5", borderRadius: "8px",
+                              padding: "8px 16px", background: "#fff", color: "#555",
+                              border: "1px solid #e5e5e5", borderRadius: "6px",
                               fontSize: "12px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
                             }}>取消</button>
                           <button
@@ -4691,7 +4691,7 @@ function App() {
                             style={{
                               padding: "8px 18px", background: canAdd ? "#1a1a1a" : "#eee",
                               color: canAdd ? "#fff" : "#bbb",
-                              border: "none", borderRadius: "8px",
+                              border: "none", borderRadius: "6px",
                               fontSize: "12px", fontWeight: 600,
                               cursor: canAdd ? "pointer" : "not-allowed", fontFamily: "inherit",
                             }}>新增</button>
@@ -4704,7 +4704,7 @@ function App() {
                         <div style={{
                           marginTop: "16px", padding: "12px 14px",
                           border: "1px solid #fecaca", background: "#fef2f2",
-                          borderRadius: "8px", fontSize: "12px", color: "#b91c1c",
+                          borderRadius: "6px", fontSize: "12px", color: "#b91c1c",
                         }}>
                           新增部位表單載入失敗:{String(err?.message || err)}
                         </div>
@@ -4717,7 +4717,7 @@ function App() {
                       title="下載目前 techpack 狀態為 JSON 檔"
                       style={{
                         padding: "10px 20px", background: "#fff", color: "#1a1a1a",
-                        border: "1px solid #e8e5e1", borderRadius: "8px",
+                        border: "1px solid #e8e5e1", borderRadius: "6px",
                         fontSize: "12px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
                         display: "inline-flex", alignItems: "center", gap: "6px",
                       }}>
@@ -4740,7 +4740,7 @@ function App() {
             {/* Action bar — 僅在未完成 / 生成前顯示,完成後改在下方合併成一個 header */}
             {!mDone && (
               <div style={{
-                background: "#fff", border: "1px solid #eee", borderRadius: "10px",
+                background: "#fff", border: "1px solid #eee", borderRadius: "12px",
                 padding: isMobile ? "14px 16px" : "18px 22px",
                 marginBottom: isMobile ? "12px" : "16px",
                 display: "flex",
@@ -4765,7 +4765,7 @@ function App() {
               <div style={{
                 minHeight: "300px", display: "flex", alignItems: "center", justifyContent: "center",
                 flexDirection: "column", gap: "8px", color: "#bbb",
-                border: "1px solid #eee", borderRadius: "10px", background: "#fff"
+                border: "1px solid #eee", borderRadius: "12px", background: "#fff"
               }}>
                 <div style={{ fontSize: "13px", fontWeight: 500 }}>
                   {canGenerateSpec ? "按上方 Generate Spec 開始" : "請先完成 filter"}
@@ -4777,12 +4777,12 @@ function App() {
               <div style={{
                 minHeight: "300px", display: "flex", alignItems: "flex-start", justifyContent: "center",
                 flexDirection: "column", gap: "6px",
-                border: "1px solid #eee", borderRadius: "10px", background: "#fff", padding: "28px"
+                border: "1px solid #eee", borderRadius: "12px", background: "#fff", padding: "28px"
               }}>
                 {M_STAGES.slice(0, mStage + 1).map((s, i) => (
                   <div key={i} style={{
                     fontSize: "12px", lineHeight: 1.6,
-                    color: i === mStage ? "#1a1a1a" : "#ccc",
+                    color: i === mStage ? "#1a1a1a" : "#bbb",
                     fontWeight: i === mStage ? 600 : 400,
                     fontFamily: "'JetBrains Mono',monospace",
                     animation: "fadeIn 0.3s ease"
@@ -4875,7 +4875,7 @@ function App() {
                 <div style={{ animation: "slideUp 0.3s ease", paddingBottom: "72px" }}>
                   {/* Header:title + 計數明細 + bucket + Re-generate + Size controls(Run/Plus) */}
                   <div style={{
-                    background: "#fff", border: "1px solid #eee", borderRadius: "10px",
+                    background: "#fff", border: "1px solid #eee", borderRadius: "12px",
                     padding: isMobile ? "10px 12px" : "18px 22px",
                     marginBottom: isMobile ? "8px" : "16px",
                   }}>
@@ -4894,7 +4894,7 @@ function App() {
                         <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginTop: isMobile ? "4px" : "12px", flexWrap: "wrap" }}>
                           <span style={{ fontSize: isMobile ? "16px" : "30px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: "#1a1a1a", lineHeight: 1 }}>{bucketIncluded}</span>
                           <span style={{ fontSize: isMobile ? "12px" : "16px", color: "#888" }}>/ {totalPoms} POMs</span>
-                          <span style={{ fontSize: isMobile ? "11px" : "14px", color: "#666", marginLeft: isMobile ? "4px" : "8px" }}>
+                          <span style={{ fontSize: isMobile ? "11px" : "14px", color: "#555", marginLeft: isMobile ? "4px" : "8px" }}>
                             {codesByTier.must.length} 必備 · {codesByTier.recommend.length} 建議 · {codesByTier.optional.length} 選配
                           </span>
                         </div>
@@ -4948,7 +4948,7 @@ function App() {
                       };
                       return (
                         <div style={{
-                          background: "#fff7ed", border: "1.5px solid #f59e0b", borderRadius: "10px",
+                          background: "#fff7ed", border: "1.5px solid #f59e0b", borderRadius: "12px",
                           padding: isMobile ? "12px 14px" : "16px 20px", marginBottom: "12px",
                         }}>
                           <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
@@ -4993,22 +4993,22 @@ function App() {
                           border: `1px dashed ${T.c.accent}`,
                         }}>+ 新增 POM</button>
                     </div>
-                    <div style={{ background: "#fff", border: "1px solid #e8e5e1", borderRadius: "10px", overflow: "auto", marginBottom: "12px" }}>
+                    <div style={{ background: "#fff", border: "1px solid #e8e5e1", borderRadius: "12px", overflow: "auto", marginBottom: "12px" }}>
                       <table style={{ width: "100%", minWidth: isMobile ? (showPlus && hasPlus ? "500px" : "420px") : "auto", borderCollapse: "collapse", fontSize: isMobile ? "12px" : "14px" }}>
                         <thead>
                           <tr style={{ background: "#faf9f7", borderBottom: "1.5px solid #e8e5e1" }}>
-                            <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", width: isMobile ? "24px" : "30px" }}>✓</th>
+                            <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#888", width: isMobile ? "24px" : "30px" }}>✓</th>
                             {appMode !== "universal" && (
-                              <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", width: isMobile ? "38px" : "56px" }}>POM</th>
+                              <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#888", width: isMobile ? "38px" : "56px" }}>POM</th>
                             )}
                             {!isMobile && (
-                              <th style={{ padding: "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999" }}>Name<span style={{ fontSize: "9px", fontWeight: 400, color: "#bbb", marginLeft: "4px" }}>(雙擊可改)</span></th>
+                              <th style={{ padding: "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#888" }}>Name<span style={{ fontSize: "10px", fontWeight: 400, color: "#bbb", marginLeft: "4px" }}>(雙擊可改)</span></th>
                             )}
-                            <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#999", minWidth: isMobile ? "110px" : "140px" }}>中文{isMobile ? <span style={{ fontSize: "9px", fontWeight: 400, color: "#bbb", marginLeft: "3px" }}>/ EN</span> : <span style={{ fontSize: "9px", fontWeight: 400, color: "#bbb", marginLeft: "4px" }}>(雙擊可改)</span>}</th>
-                            <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#999", width: isMobile ? "52px" : "80px" }}>公差</th>
+                            <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#888", minWidth: isMobile ? "110px" : "140px" }}>中文{isMobile ? <span style={{ fontSize: "10px", fontWeight: 400, color: "#bbb", marginLeft: "3px" }}>/ EN</span> : <span style={{ fontSize: "10px", fontWeight: 400, color: "#bbb", marginLeft: "4px" }}>(雙擊可改)</span>}</th>
+                            <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#888", width: isMobile ? "52px" : "80px" }}>公差</th>
                             <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#065f46", width: isMobile ? "80px" : "110px" }}>Base (M)</th>
                             {showPlus && hasPlus && (
-                              <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#be185d", width: isMobile ? "80px" : "110px" }}>Base ({plusAnchor}){!isMobile && <div style={{ fontSize: "9px", fontWeight: 400, color: "#be185d" }}>Plus 獨立</div>}</th>
+                              <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#be185d", width: isMobile ? "80px" : "110px" }}>Base ({plusAnchor}){!isMobile && <div style={{ fontSize: "10px", fontWeight: 400, color: "#be185d" }}>Plus 獨立</div>}</th>
                             )}
                           </tr>
                         </thead>
@@ -5088,11 +5088,11 @@ function App() {
                                                 if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); }
                                                 else if (e.key === "Escape") { setEditingEnCode(null); }
                                               }}
-                                              style={{ width: "100%", padding: "5px 7px", fontSize: "14px", fontWeight: 500, fontFamily: "inherit", border: "1px solid #1a1a1a", borderRadius: "5px", background: "#fff" }} />
+                                              style={{ width: "100%", padding: "5px 7px", fontSize: "14px", fontWeight: 500, fontFamily: "inherit", border: "1px solid #1a1a1a", borderRadius: "6px", background: "#fff" }} />
                                           ) : (
                                             <div style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "text", fontWeight: 600, color: "#1a1a1a", fontSize: "14px" }}>
-                                              <span>{enFor(code) || <span style={{ color: "#ccc" }}>(空)</span>}</span>
-                                              {pomEnEdits[code] && <span style={{ fontSize: "9px", color: "#7e22ce", background: "#f5f3ff", padding: "1px 5px", borderRadius: "3px", fontWeight: 600 }}>自訂</span>}
+                                              <span>{enFor(code) || <span style={{ color: "#bbb" }}>(空)</span>}</span>
+                                              {pomEnEdits[code] && <span style={{ fontSize: "10px", color: "#7e22ce", background: "#f5f3ff", padding: "1px 5px", borderRadius: "6px", fontWeight: 600 }}>自訂</span>}
                                             </div>
                                           )}
                                         </td>
@@ -5112,13 +5112,13 @@ function App() {
                                             style={{
                                               width: "100%", padding: "5px 7px",
                                               fontSize: "13px", fontWeight: 500, fontFamily: "inherit",
-                                              border: "1px solid #1a1a1a", borderRadius: "5px", background: "#fff",
+                                              border: "1px solid #1a1a1a", borderRadius: "6px", background: "#fff",
                                             }} />
                                         ) : (
                                           <div style={{ cursor: "text", padding: isMobile ? "2px 0" : "4px 0" }}>
                                             <div style={{ display: "flex", alignItems: "center", gap: "4px", color: "#555", fontSize: isMobile ? "12px" : "13px" }}>
-                                              <span>{zhFor(code) || <span style={{ color: "#ccc" }}>(空)</span>}</span>
-                                              {pomZhEdits[code] && <span style={{ fontSize: "9px", color: "#7e22ce", background: "#f5f3ff", padding: "1px 5px", borderRadius: "3px", fontWeight: 600 }}>自訂</span>}
+                                              <span>{zhFor(code) || <span style={{ color: "#bbb" }}>(空)</span>}</span>
+                                              {pomZhEdits[code] && <span style={{ fontSize: "10px", color: "#7e22ce", background: "#f5f3ff", padding: "1px 5px", borderRadius: "6px", fontWeight: 600 }}>自訂</span>}
                                             </div>
                                             {isMobile && (
                                               editingEnCode === code ? (
@@ -5130,13 +5130,13 @@ function App() {
                                                     if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); }
                                                     else if (e.key === "Escape") { setEditingEnCode(null); }
                                                   }}
-                                                  style={{ width: "100%", padding: "3px 5px", fontSize: "11px", fontFamily: "inherit", border: "1px solid #1a1a1a", borderRadius: "4px", background: "#fff", marginTop: "1px" }} />
+                                                  style={{ width: "100%", padding: "3px 5px", fontSize: "11px", fontFamily: "inherit", border: "1px solid #1a1a1a", borderRadius: "6px", background: "#fff", marginTop: "1px" }} />
                                               ) : (
                                                 <div onDoubleClick={(e) => { e.stopPropagation(); setEditingEnCode(code); }}
                                                   title="雙擊可修改"
-                                                  style={{ fontSize: "10px", color: "#999", marginTop: "1px", lineHeight: 1.25, display: "flex", alignItems: "center", gap: "4px" }}>
+                                                  style={{ fontSize: "10px", color: "#888", marginTop: "1px", lineHeight: 1.25, display: "flex", alignItems: "center", gap: "4px" }}>
                                                   <span>{enFor(code)}</span>
-                                                  {pomEnEdits[code] && <span style={{ fontSize: "8px", color: "#7e22ce", background: "#f5f3ff", padding: "0 4px", borderRadius: "3px", fontWeight: 600 }}>自訂</span>}
+                                                  {pomEnEdits[code] && <span style={{ fontSize: "10px", color: "#7e22ce", background: "#f5f3ff", padding: "0 4px", borderRadius: "6px", fontWeight: 600 }}>自訂</span>}
                                                 </div>
                                               )
                                             )}
@@ -5222,7 +5222,7 @@ function App() {
                   {invalidOverrides.length > 0 && (
                     <div style={{
                       marginTop: "12px",
-                      background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "10px",
+                      background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "12px",
                       padding: isMobile ? "10px 14px" : "12px 18px",
                       fontSize: isMobile ? "12px" : "13px", color: "#dc2626",
                     }}>
@@ -5256,60 +5256,60 @@ function App() {
               <div style={{ animation: "slideUp 0.3s ease" }}>
                 {/* Summary */}
                 <div style={{
-                  background: "#fff", border: "1px solid #eee", borderRadius: "10px",
+                  background: "#fff", border: "1px solid #eee", borderRadius: "12px",
                   padding: "14px 18px", marginBottom: "12px",
                   display: "flex", justifyContent: "space-between", alignItems: "center"
                 }}>
                   <div>
                     <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
-                      <span style={{ fontSize: "20px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{includedCount}</span>
+                      <span style={{ fontSize: "18px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{includedCount}</span>
                       <span style={{ fontSize: "12px", color: "#bbb" }}>/ {allCodes.length} POMs</span>
                     </div>
                     <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
                       <span style={{ fontSize: "11px", color: "#888" }}>{curPoms.must.length} 必備 · {curPoms.recommend.length} 建議 · {curPoms.optional.length} 選配</span>
                     </div>
                   </div>
-                  <div style={{ fontSize: "12px", color: "#999", fontFamily: "'JetBrains Mono',monospace" }}>inches (fractions)</div>
+                  <div style={{ fontSize: "12px", color: "#888", fontFamily: "'JetBrains Mono',monospace" }}>inches (fractions)</div>
                 </div>
 
                 {/* MISSY / PLUS sub-tabs */}
                 <div style={{ display: "flex", gap: "6px", marginBottom: "8px", alignItems: "center", flexWrap: "wrap" }}>
                   <button onClick={() => { setSizeRun("missy"); setOpenPom(null); }} style={{
-                    padding: "8px 18px", borderRadius: "8px", cursor: "pointer",
+                    padding: "8px 18px", borderRadius: "6px", cursor: "pointer",
                     border: sizeRun === "missy" ? "2px solid #1a1a1a" : "1.5px solid #e8e5e1",
                     background: sizeRun === "missy" ? "#1a1a1a" : "#fff",
-                    color: sizeRun === "missy" ? "#fff" : "#666", fontSize: "12px", fontWeight: 700
-                  }}>MISSY <span style={{ fontSize: "9px", opacity: 0.6 }}>XS–XXL</span></button>
+                    color: sizeRun === "missy" ? "#fff" : "#555", fontSize: "12px", fontWeight: 700
+                  }}>MISSY <span style={{ fontSize: "10px", opacity: 0.6 }}>XS–XXL</span></button>
                   <button onClick={() => { setSizeRun("plus"); setOpenPom(null); }} style={{
-                    padding: "8px 18px", borderRadius: "8px", cursor: "pointer",
+                    padding: "8px 18px", borderRadius: "6px", cursor: "pointer",
                     border: sizeRun === "plus" ? "2px solid #be185d" : "1.5px solid #e8e5e1",
                     background: sizeRun === "plus" ? "#be185d" : "#fff",
-                    color: sizeRun === "plus" ? "#fff" : "#666", fontSize: "12px", fontWeight: 700
-                  }}>PLUS <span style={{ fontSize: "9px", opacity: 0.6 }}>1X–4X</span></button>
+                    color: sizeRun === "plus" ? "#fff" : "#555", fontSize: "12px", fontWeight: 700
+                  }}>PLUS <span style={{ fontSize: "10px", opacity: 0.6 }}>1X–4X</span></button>
 
                   {sizeRun === "missy" && (
                     <div style={{ display: "flex", gap: "4px", marginLeft: "auto" }}>
                       <label style={{
                         display: "flex", alignItems: "center", gap: "5px", padding: "6px 12px",
-                        borderRadius: "8px", cursor: "pointer", fontSize: "11px", fontWeight: 600,
+                        borderRadius: "6px", cursor: "pointer", fontSize: "11px", fontWeight: 600,
                         background: showPetite ? "#f5f3ff" : "#fff",
                         border: showPetite ? "1.5px solid #c4b5fd" : "1.5px solid #e8e5e1",
-                        color: showPetite ? "#7e22ce" : "#999", transition: "all 0.15s"
+                        color: showPetite ? "#7e22ce" : "#888", transition: "all 0.15s"
                       }}>
                         <input type="checkbox" checked={showPetite} onChange={() => setShowPetite(!showPetite)}
                           style={{ width: "14px", height: "14px", accentColor: "#7e22ce" }} />
-                        +PETITE <span style={{ fontSize: "9px", opacity: 0.6 }}>{ptCount.petite} POMs</span>
+                        +PETITE <span style={{ fontSize: "10px", opacity: 0.6 }}>{ptCount.petite} POMs</span>
                       </label>
                       <label style={{
                         display: "flex", alignItems: "center", gap: "5px", padding: "6px 12px",
-                        borderRadius: "8px", cursor: "pointer", fontSize: "11px", fontWeight: 600,
+                        borderRadius: "6px", cursor: "pointer", fontSize: "11px", fontWeight: 600,
                         background: showTall ? "#eff6ff" : "#fff",
                         border: showTall ? "1.5px solid #93c5fd" : "1.5px solid #e8e5e1",
-                        color: showTall ? "#1d4ed8" : "#999", transition: "all 0.15s"
+                        color: showTall ? "#1d4ed8" : "#888", transition: "all 0.15s"
                       }}>
                         <input type="checkbox" checked={showTall} onChange={() => setShowTall(!showTall)}
                           style={{ width: "14px", height: "14px", accentColor: "#1d4ed8" }} />
-                        +TALL <span style={{ fontSize: "9px", opacity: 0.6 }}>{ptCount.tall} POMs</span>
+                        +TALL <span style={{ fontSize: "10px", opacity: 0.6 }}>{ptCount.tall} POMs</span>
                       </label>
                     </div>
                   )}
@@ -5319,7 +5319,7 @@ function App() {
                 <div style={{
                   background: sizeRun === "missy" ? "#ecfdf5" : "#fdf2f8",
                   border: `1.5px solid ${sizeRun === "missy" ? "#a7f3d0" : "#fbcfe8"}`,
-                  borderRadius: "10px", padding: "8px 16px", marginBottom: "10px",
+                  borderRadius: "12px", padding: "8px 16px", marginBottom: "10px",
                   display: "flex", justifyContent: "space-between", alignItems: "center"
                 }}>
                   <div style={{ fontSize: "11px", color: sizeRun === "missy" ? "#065f46" : "#be185d" }}>
@@ -5378,7 +5378,7 @@ function App() {
 
                 {excluded.size > 0 && (
                   <div style={{
-                    padding: "10px 14px", marginTop: "10px", borderRadius: "8px",
+                    padding: "10px 14px", marginTop: "10px", borderRadius: "6px",
                     background: "#fef9f9", border: "1px solid #f5e0e0",
                     display: "flex", justifyContent: "space-between", alignItems: "center"
                   }}>
@@ -5408,13 +5408,13 @@ function App() {
             {!(mDone && currentBucket) && (
               <div style={{
                 minHeight: "200px", display: "flex", alignItems: "center", justifyContent: "center",
-                flexDirection: "column", gap: "10px", color: "#999",
-                border: "1px solid #eee", borderRadius: "10px", background: "#fff", padding: "24px"
+                flexDirection: "column", gap: "10px", color: "#888",
+                border: "1px solid #eee", borderRadius: "12px", background: "#fff", padding: "24px"
               }}>
                 <div style={{ fontSize: "13px" }}>請先完成「基碼 / POM 確認」</div>
                 <button onClick={() => setActiveTab("measurement")} style={{
-                  padding: "8px 16px", border: "1px solid #e8e5e1", borderRadius: "8px",
-                  background: "#fff", color: "#666", fontSize: "12px", fontWeight: 600,
+                  padding: "8px 16px", border: "1px solid #e8e5e1", borderRadius: "6px",
+                  background: "#fff", color: "#555", fontSize: "12px", fontWeight: 600,
                   cursor: "pointer", fontFamily: "inherit",
                 }}>← 回基碼 / POM 確認</button>
               </div>
@@ -5588,7 +5588,7 @@ function App() {
                 <div style={{ animation: "slideUp 0.3s ease", paddingBottom: "24px" }}>
                   {/* Header:跟基碼同一形式(title + 計數 + bucket + Size controls)*/}
                   <div style={{
-                    background: "#fff", border: "1px solid #eee", borderRadius: "10px",
+                    background: "#fff", border: "1px solid #eee", borderRadius: "12px",
                     padding: isMobile ? "10px 12px" : "18px 22px",
                     marginBottom: isMobile ? "8px" : "16px",
                   }}>
@@ -5646,12 +5646,12 @@ function App() {
                   </div>
 
                   {gradingCodes.length === 0 ? (
-                    <div style={{ background: "#fff", border: "1px dashed #e8e5e1", borderRadius: "10px", padding: "20px", textAlign: "center", fontSize: "12px", color: "#999" }}>
+                    <div style={{ background: "#fff", border: "1px dashed #e8e5e1", borderRadius: "12px", padding: "20px", textAlign: "center", fontSize: "12px", color: "#888" }}>
                       尚未勾選任何 POM — 回「基碼確認」勾選
                     </div>
                   ) : (
                     /* 全碼表格:手機與桌機共用寬表格,手機橫向捲動(不折疊) */
-                    <div style={{ background: "#fff", border: "1px solid #e8e5e1", borderRadius: "10px", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+                    <div style={{ background: "#fff", border: "1px solid #e8e5e1", borderRadius: "12px", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
                       <table style={{ width: "100%", minWidth: isMobile ? `${220 + visibleSizes.length * 66}px` : "auto", borderCollapse: "collapse", fontSize: isMobile ? "12px" : "14px" }}>
                         <thead>
                           <tr style={{ background: "#faf9f7", borderBottom: "1.5px solid #e8e5e1" }}>
@@ -5659,14 +5659,14 @@ function App() {
                               <th style={{ padding: isMobile ? "6px 6px" : "10px 12px", textAlign: "left", fontWeight: 600, fontSize: isMobile ? "10px" : "12px", color: "#888", position: "sticky", left: 0, background: "#faf9f7", width: isMobile ? "42px" : "60px" }}>POM</th>
                             )}
                             {!isMobile && (
-                              <th style={{ padding: "10px 12px", textAlign: "left", fontWeight: 600, fontSize: "12px", color: "#888", minWidth: "120px" }}>Name<span style={{ fontSize: "9px", fontWeight: 400, color: "#bbb", marginLeft: "4px" }}>(雙擊可改)</span></th>
+                              <th style={{ padding: "10px 12px", textAlign: "left", fontWeight: 600, fontSize: "12px", color: "#888", minWidth: "120px" }}>Name<span style={{ fontSize: "10px", fontWeight: 400, color: "#bbb", marginLeft: "4px" }}>(雙擊可改)</span></th>
                             )}
-                            <th style={{ padding: isMobile ? "6px 6px" : "10px 12px", textAlign: "left", fontWeight: 600, fontSize: isMobile ? "10px" : "12px", color: "#888", minWidth: isMobile ? "110px" : "140px" }}>中文{isMobile ? <span style={{ fontSize: "9px", fontWeight: 400, color: "#bbb", marginLeft: "3px" }}>/ EN</span> : <span style={{ fontSize: "9px", fontWeight: 400, color: "#bbb", marginLeft: "4px" }}>(雙擊可改)</span>}</th>
+                            <th style={{ padding: isMobile ? "6px 6px" : "10px 12px", textAlign: "left", fontWeight: 600, fontSize: isMobile ? "10px" : "12px", color: "#888", minWidth: isMobile ? "110px" : "140px" }}>中文{isMobile ? <span style={{ fontSize: "10px", fontWeight: 400, color: "#bbb", marginLeft: "3px" }}>/ EN</span> : <span style={{ fontSize: "10px", fontWeight: 400, color: "#bbb", marginLeft: "4px" }}>(雙擊可改)</span>}</th>
                             <th style={{ padding: isMobile ? "6px 6px" : "10px 12px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? "10px" : "12px", color: "#7e22ce", width: isMobile ? "58px" : "90px" }}>公差</th>
                             {visibleSizes.map(s => {
                               const isBase = (s === "M") || (isPlus(s) && s === plusAnchor);
                               return (
-                                <th key={s} style={{ padding: isMobile ? "6px 6px" : "10px 8px", textAlign: "center", fontWeight: 700, fontSize: isMobile ? "10px" : "12px", color: isBase ? "#065f46" : "#666", fontFamily: "'JetBrains Mono',monospace", background: isBase ? "#ecfdf5" : "transparent", minWidth: isBase ? (isMobile ? "78px" : "100px") : (isMobile ? "62px" : "56px"), whiteSpace: "nowrap" }}>{s}{isBase && <div style={{ fontSize: "9px", color: "#065f46" }}>BASE{!isMobile && " · 可編輯"}</div>}</th>
+                                <th key={s} style={{ padding: isMobile ? "6px 6px" : "10px 8px", textAlign: "center", fontWeight: 700, fontSize: isMobile ? "10px" : "12px", color: isBase ? "#065f46" : "#555", fontFamily: "'JetBrains Mono',monospace", background: isBase ? "#ecfdf5" : "transparent", minWidth: isBase ? (isMobile ? "78px" : "100px") : (isMobile ? "62px" : "56px"), whiteSpace: "nowrap" }}>{s}{isBase && <div style={{ fontSize: "10px", color: "#065f46" }}>BASE{!isMobile && " · 可編輯"}</div>}</th>
                               );
                             })}
                           </tr>
@@ -5684,7 +5684,7 @@ function App() {
                                 {appMode !== "universal" && (
                                   <td style={{ padding: isMobile ? "7px 6px" : "9px 12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "14px", color: tc.c, position: "sticky", left: 0, background: "#fff" }}>
                                     {code}
-                                    {isMobile && edited && <span style={{ marginLeft: "3px", fontSize: "8px", color: "#7e22ce", fontWeight: 600 }}>●</span>}
+                                    {isMobile && edited && <span style={{ marginLeft: "3px", fontSize: "10px", color: "#7e22ce", fontWeight: 600 }}>●</span>}
                                   </td>
                                 )}
                                 {!isMobile && (
@@ -5700,12 +5700,12 @@ function App() {
                                           if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); }
                                           else if (e.key === "Escape") { setEditingEnCode(null); }
                                         }}
-                                        style={{ width: "100%", padding: "5px 7px", fontSize: "14px", fontFamily: "inherit", border: "1px solid #1a1a1a", borderRadius: "5px", background: "#fff" }} />
+                                        style={{ width: "100%", padding: "5px 7px", fontSize: "14px", fontFamily: "inherit", border: "1px solid #1a1a1a", borderRadius: "6px", background: "#fff" }} />
                                     ) : (
                                       <div style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "text", fontSize: "14px", color: "#1a1a1a" }}>
                                         <span>{enFor(code)}</span>
-                                        {pomEnEdits[code] && <span style={{ fontSize: "9px", color: "#7e22ce", background: "#f5f3ff", padding: "1px 5px", borderRadius: "3px", fontWeight: 600 }}>自訂</span>}
-                                        {edited && <span style={{ marginLeft: "2px", fontSize: "11px", color: "#7e22ce", background: "#f5f3ff", padding: "2px 6px", borderRadius: "4px", fontWeight: 600, whiteSpace: "nowrap" }}>已調整</span>}
+                                        {pomEnEdits[code] && <span style={{ fontSize: "10px", color: "#7e22ce", background: "#f5f3ff", padding: "1px 5px", borderRadius: "6px", fontWeight: 600 }}>自訂</span>}
+                                        {edited && <span style={{ marginLeft: "2px", fontSize: "11px", color: "#7e22ce", background: "#f5f3ff", padding: "2px 6px", borderRadius: "6px", fontWeight: 600, whiteSpace: "nowrap" }}>已調整</span>}
                                       </div>
                                     )}
                                   </td>
@@ -5722,12 +5722,12 @@ function App() {
                                         if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); }
                                         else if (e.key === "Escape") { setEditingZhCode(null); }
                                       }}
-                                      style={{ width: "100%", padding: "5px 7px", fontSize: "13px", fontFamily: "inherit", border: "1px solid #1a1a1a", borderRadius: "5px", background: "#fff" }} />
+                                      style={{ width: "100%", padding: "5px 7px", fontSize: "13px", fontFamily: "inherit", border: "1px solid #1a1a1a", borderRadius: "6px", background: "#fff" }} />
                                   ) : (
                                     <div style={{ cursor: "text" }}>
                                       <div style={{ display: "flex", alignItems: "center", gap: "4px", color: "#555", fontSize: isMobile ? "12px" : "13px" }}>
-                                        <span>{zhFor(code) || <span style={{ color: "#ccc" }}>(空)</span>}</span>
-                                        {pomZhEdits[code] && <span style={{ fontSize: "9px", color: "#7e22ce", background: "#f5f3ff", padding: "1px 5px", borderRadius: "3px", fontWeight: 600 }}>自訂</span>}
+                                        <span>{zhFor(code) || <span style={{ color: "#bbb" }}>(空)</span>}</span>
+                                        {pomZhEdits[code] && <span style={{ fontSize: "10px", color: "#7e22ce", background: "#f5f3ff", padding: "1px 5px", borderRadius: "6px", fontWeight: 600 }}>自訂</span>}
                                       </div>
                                       {isMobile && (
                                         editingEnCode === code ? (
@@ -5739,14 +5739,14 @@ function App() {
                                               if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); }
                                               else if (e.key === "Escape") { setEditingEnCode(null); }
                                             }}
-                                            style={{ width: "100%", padding: "3px 5px", fontSize: "11px", fontFamily: "inherit", border: "1px solid #1a1a1a", borderRadius: "4px", background: "#fff", marginTop: "1px" }} />
+                                            style={{ width: "100%", padding: "3px 5px", fontSize: "11px", fontFamily: "inherit", border: "1px solid #1a1a1a", borderRadius: "6px", background: "#fff", marginTop: "1px" }} />
                                         ) : (
                                           <div onDoubleClick={(e) => { e.stopPropagation(); setEditingEnCode(code); }}
                                             title="雙擊可修改"
-                                            style={{ fontSize: "10px", color: "#999", marginTop: "1px", lineHeight: 1.25, display: "flex", alignItems: "center", gap: "4px" }}>
+                                            style={{ fontSize: "10px", color: "#888", marginTop: "1px", lineHeight: 1.25, display: "flex", alignItems: "center", gap: "4px" }}>
                                             <span>{enFor(code)}</span>
-                                            {pomEnEdits[code] && <span style={{ fontSize: "8px", color: "#7e22ce", background: "#f5f3ff", padding: "0 4px", borderRadius: "3px", fontWeight: 600 }}>自訂</span>}
-                                            {edited && <span style={{ fontSize: "9px", color: "#7e22ce", fontWeight: 600 }}>已調整</span>}
+                                            {pomEnEdits[code] && <span style={{ fontSize: "10px", color: "#7e22ce", background: "#f5f3ff", padding: "0 4px", borderRadius: "6px", fontWeight: 600 }}>自訂</span>}
+                                            {edited && <span style={{ fontSize: "10px", color: "#7e22ce", fontWeight: 600 }}>已調整</span>}
                                           </div>
                                         )
                                       )}
@@ -5789,7 +5789,7 @@ function App() {
                                             width: isMobile ? "62px" : "96px", textAlign: "center", padding: isMobile ? "5px 4px" : "7px 9px",
                                             fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "14px", fontWeight: 700,
                                             color: invalid ? "#dc2626" : "#065f46",
-                                            border: `1px solid ${invalid ? "#dc2626" : "#a7f3d0"}`, borderRadius: "5px",
+                                            border: `1px solid ${invalid ? "#dc2626" : "#a7f3d0"}`, borderRadius: "6px",
                                             background: "#fff",
                                           }} />
                                       </td>
@@ -5838,7 +5838,7 @@ function App() {
           position: "fixed", left: "50%", bottom: "24px",
           transform: "translateX(-50%)",
           background: "#1a1a1a", color: "#fff",
-          padding: "10px 14px 10px 16px", borderRadius: "10px",
+          padding: "10px 14px 10px 16px", borderRadius: "12px",
           fontSize: "13px", fontWeight: 500,
           display: "flex", alignItems: "center", gap: "14px",
           boxShadow: "0 8px 24px rgba(0,0,0,0.22)",
@@ -5853,7 +5853,7 @@ function App() {
           <button onClick={() => { if (undoTimerRef.current) clearTimeout(undoTimerRef.current); setUndoToast(null); }}
             aria-label="關閉復原提示"
             style={{
-              background: "none", border: "none", color: "#999",
+              background: "none", border: "none", color: "#888",
               fontSize: "18px", cursor: "pointer", padding: "0 2px", lineHeight: 1,
               fontFamily: "inherit",
             }}>×</button>
