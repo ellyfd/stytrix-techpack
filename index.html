@@ -430,11 +430,108 @@ const PLUS_POMS = {
 const MISSY_META = { sizes: ["XS","S","M","L","XL","XXL"], base: "M", rule: "Old Navy Womens Alpha" };
 const PLUS_META  = { sizes: ["1X","2X","3X","4X"], base: "2X", rule: "Old Navy Womens Plus Alpha" };
 
+/* ─────────────────────────────────────────────────────────────────────────
+   DESIGN TOKENS
+   全站一致性的單一來源:字級、配色、圓角、陰影、常用 padding、常用按鈕樣式。
+   舊碼仍散見 hard-coded literal,新碼請一律引用 T.xxx;要全域改一次就改這裡。
+   ───────────────────────────────────────────────────────────────────────── */
+const T = {
+  // 字級(px)— 收斂成 6 階
+  fs: {
+    xs:   "10px",  // 徽章、hint、超小標
+    sm:   "11px",  // 三級 label
+    base: "12px",  // 正文、input
+    md:   "13px",  // 二級強調 label、次要按鈕
+    lg:   "14px",  // 正文放大、主要按鈕
+    xl:   "16px",  // 區段標題(手機)
+    "2xl":"18px",  // 區段標題(桌機)
+  },
+  // 色票 — 以「角色」命名,不以色系命名
+  c: {
+    // 文字階層(只保留四階)
+    text:    "#1a1a1a",
+    text2:   "#555",
+    text3:   "#888",
+    text4:   "#bbb",
+    // 表面
+    bg:      "#fff",
+    bg2:     "#faf9f7",   // 套疊區、表頭
+    // 邊界
+    border:  "#e8e5e1",
+    border2: "#eee",
+    border3: "#f0eeeb",   // 列分隔
+    // 品牌主色(綠)
+    green:       "#065f46",
+    greenLight:  "#a7f3d0",
+    greenBg:     "#ecfdf5",
+    // Accent(紫)— 使用者覆寫、自訂
+    accent:    "#7e22ce",
+    accentBg:  "#f5f3ff",
+    // Danger(紅)
+    danger:       "#dc2626",
+    dangerBg:     "#fef2f2",
+    dangerBorder: "#fecaca",
+    // Warning(琥珀)
+    warning:   "#f59e0b",
+    warningBg: "#fff7ed",
+    // Plus sizes(粉)
+    pink:       "#be185d",
+    pinkLight:  "#fbcfe8",
+    pinkBg:     "#fdf2f8",
+  },
+  // 圓角 — 收斂成 5 階
+  r: {
+    xs:   "4px",    // 徽章、極小 tag
+    sm:   "6px",    // 小按鈕、input、toggle group 容器
+    md:   "8px",    // 一般按鈕
+    lg:   "10px",   // 區塊卡片、tier header
+    xl:   "12px",   // Modal、主要 card
+    pill: "999px",  // 圓形 pill
+  },
+  // 陰影
+  shadow: {
+    sm: "0 2px 8px rgba(0,0,0,0.08)",
+    md: "0 10px 40px rgba(0,0,0,0.15)",   // Modal 預設
+    lg: "0 20px 60px rgba(0,0,0,0.2)",    // 浮層最強
+  },
+  // 間距/常用 padding
+  pad: {
+    btn:        "8px 16px",     // 桌機主按鈕
+    btnMobile:  "6px 12px",     // 手機主按鈕
+    btnSm:      "5px 12px",     // toggle pill
+    btnLg:      "11px 22px",    // 強調 CTA
+    input:      "7px 9px",      // input
+    card:       "14px 18px",    // card 內距(桌機)
+    cardMobile: "10px 12px",    // card 內距(手機)
+    modalHead:  "16px 18px",    // modal header
+  },
+};
+
+// 按鈕 style 產生器 — variant: primary(深色) / brand(綠) / secondary(白+邊框) / ghost(透明)
+const btnStyle = ({ variant = 'primary', isMobile = false, disabled = false } = {}) => {
+  const base = {
+    padding: isMobile ? T.pad.btnMobile : T.pad.btn,
+    fontSize: isMobile ? T.fs.base : T.fs.md,
+    fontWeight: 600,
+    borderRadius: T.r.md,
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    fontFamily: 'inherit',
+    whiteSpace: 'nowrap',
+    border: 'none',
+    transition: 'all 0.15s',
+  };
+  if (disabled) return { ...base, background: T.c.border2, color: T.c.text4 };
+  if (variant === 'brand')     return { ...base, background: T.c.green,  color: T.c.bg };
+  if (variant === 'secondary') return { ...base, background: T.c.bg, color: T.c.text2, border: `1px solid ${T.c.border}` };
+  if (variant === 'ghost')     return { ...base, background: 'transparent', color: T.c.text2, border: `1px dashed ${T.c.border}` };
+  return { ...base, background: T.c.text, color: T.c.bg };   // primary(深色)
+};
+
 const TIER = {
-  must:      { label: "必備", bg: "#dc262615", c: "#dc2626", icon: "●" },
-  recommend: { label: "建議", bg: "#b4530915", c: "#b45309", icon: "◐" },
-  optional:  { label: "選配", bg: "#0369a115", c: "#0369a1", icon: "○" },
-  custom:    { label: "自訂", bg: "#7e22ce15", c: "#7e22ce", icon: "◇" },
+  must:      { label: "必備", bg: "#dc262615", c: T.c.danger,  icon: "●" },
+  recommend: { label: "建議", bg: "#b4530915", c: "#b45309",   icon: "◐" },
+  optional:  { label: "選配", bg: "#0369a115", c: "#0369a1",   icon: "○" },
+  custom:    { label: "自訂", bg: T.c.accentBg, c: T.c.accent, icon: "◇" },
 };
 
 /* Filter options — 對應 pom_rules 資料結構 */
@@ -1463,23 +1560,26 @@ function TierSection({ tier, count, children }) {
 }
 
 /* 單位(in/cm)與格式(分數/小數)切換 — 基碼與全碼共用 */
+/* Toggle pill 樣式:與 Run toggle 一致(fontSize base, padding btnSm) */
+const pillBtn = (active) => ({
+  padding: T.pad.btnSm, fontSize: T.fs.base, fontWeight: active ? 700 : 500,
+  background: active ? T.c.text : T.c.bg,
+  color: active ? T.c.bg : T.c.text2,
+  border: "none", cursor: "pointer", fontFamily: "inherit",
+});
+const pillGroupStyle = { display: "inline-flex", border: `1px solid ${T.c.border}`, borderRadius: T.r.sm, overflow: "hidden" };
+
 function UnitFormatToggle({ displayUnit, setDisplayUnit, displayFormat, setDisplayFormat }) {
-  const pill = (active) => ({
-    padding: "5px 10px", fontSize: "11px", fontWeight: active ? 700 : 500,
-    background: active ? "#1a1a1a" : "#fff",
-    color: active ? "#fff" : "#555",
-    border: "none", cursor: "pointer", fontFamily: "inherit",
-  });
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-      <div style={{ display: "inline-flex", border: "1px solid #e8e5e1", borderRadius: "6px", overflow: "hidden" }}>
-        <button onClick={() => setDisplayUnit('in')} style={{ ...pill(displayUnit === 'in'), borderRight: "1px solid #e8e5e1" }} aria-label="英吋">in</button>
-        <button onClick={() => setDisplayUnit('cm')} style={pill(displayUnit === 'cm')} aria-label="公分">cm</button>
+      <div style={pillGroupStyle}>
+        <button onClick={() => setDisplayUnit('in')} style={{ ...pillBtn(displayUnit === 'in'), borderRight: `1px solid ${T.c.border}` }} aria-label="英吋">in</button>
+        <button onClick={() => setDisplayUnit('cm')} style={pillBtn(displayUnit === 'cm')} aria-label="公分">cm</button>
       </div>
       {displayUnit === 'in' && (
-        <div style={{ display: "inline-flex", border: "1px solid #e8e5e1", borderRadius: "6px", overflow: "hidden" }}>
-          <button onClick={() => setDisplayFormat('fraction')} style={{ ...pill(displayFormat === 'fraction'), borderRight: "1px solid #e8e5e1" }} aria-label="分數">1/2</button>
-          <button onClick={() => setDisplayFormat('decimal')} style={pill(displayFormat === 'decimal')} aria-label="小數">0.5</button>
+        <div style={pillGroupStyle}>
+          <button onClick={() => setDisplayFormat('fraction')} style={{ ...pillBtn(displayFormat === 'fraction'), borderRight: `1px solid ${T.c.border}` }} aria-label="分數">1/2</button>
+          <button onClick={() => setDisplayFormat('decimal')} style={pillBtn(displayFormat === 'decimal')} aria-label="小數">0.5</button>
         </div>
       )}
     </div>
@@ -1532,11 +1632,11 @@ function AddPomMenu({ open, onClose, hiddenCodes, excludedCodes, pomNames, zhFor
       <div style={{
         position: "fixed", top: "10%", left: "50%", transform: "translateX(-50%)",
         width: "min(560px, 92vw)", maxHeight: "80vh",
-        background: "#fff", borderRadius: "12px", boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
+        background: T.c.bg, borderRadius: T.r.xl, boxShadow: T.shadow.md,
         zIndex: 100, display: "flex", flexDirection: "column", overflow: "hidden",
       }}>
-        <div style={{ padding: "14px 18px", borderBottom: "1px solid #e8e5e1", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ fontSize: "15px", fontWeight: 700, color: "#1a1a1a" }}>新增 POM</div>
+        <div style={{ padding: T.pad.modalHead, borderBottom: `1px solid ${T.c.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ fontSize: T.fs.xl, fontWeight: 700, color: T.c.text }}>新增 POM</div>
           <button onClick={onClose} aria-label="關閉" style={{ background: "none", border: "none", fontSize: "20px", color: "#999", cursor: "pointer", padding: "0 4px", lineHeight: 1 }}>×</button>
         </div>
         <div style={{ padding: "10px 14px", borderBottom: "1px solid #f0eeeb" }}>
@@ -1569,17 +1669,10 @@ function AddPomMenu({ open, onClose, hiddenCodes, excludedCodes, pomNames, zhFor
               style={{ flex: 1, padding: "7px 9px", fontSize: "12px", fontFamily: "inherit", border: "1px solid #e8e5e1", borderRadius: "6px", background: "#fff" }} />
           </div>
         </div>
-        <div style={{ padding: "10px 14px", borderTop: "1px solid #e8e5e1", display: "flex", justifyContent: "flex-end", gap: "8px" }}>
-          <button onClick={onClose} style={{ padding: "8px 14px", fontSize: "12px", fontWeight: 600, background: "#fff", color: "#666", border: "1px solid #e8e5e1", borderRadius: "6px", cursor: "pointer", fontFamily: "inherit" }}>取消</button>
+        <div style={{ padding: "10px 14px", borderTop: `1px solid ${T.c.border}`, display: "flex", justifyContent: "flex-end", gap: "8px" }}>
+          <button onClick={onClose} style={btnStyle({ variant: 'secondary' })}>取消</button>
           <button onClick={apply} disabled={picked.size === 0 && !customCode.trim()}
-            style={{
-              padding: "8px 14px", fontSize: "12px", fontWeight: 700,
-              background: (picked.size === 0 && !customCode.trim()) ? "#eee" : "#1a1a1a",
-              color: (picked.size === 0 && !customCode.trim()) ? "#bbb" : "#fff",
-              border: "none", borderRadius: "6px",
-              cursor: (picked.size === 0 && !customCode.trim()) ? "not-allowed" : "pointer",
-              fontFamily: "inherit",
-            }}>
+            style={btnStyle({ variant: 'primary', disabled: picked.size === 0 && !customCode.trim() })}>
             加入 {picked.size > 0 ? `(${picked.size + (customCode.trim() ? 1 : 0)})` : (customCode.trim() ? "(1)" : "")}
           </button>
         </div>
@@ -1795,9 +1888,9 @@ function AdminModal({
       zIndex: 100, padding: '20px',
     }}>
       <div onClick={e => e.stopPropagation()} style={{
-        background: '#fff', borderRadius: '10px', padding: '22px',
+        background: T.c.bg, borderRadius: T.r.xl, padding: '22px',
         maxWidth: '480px', width: '100%', maxHeight: '85vh', overflowY: 'auto',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+        boxShadow: T.shadow.md,
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '6px' }}>
           <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 700 }}>管理 · 資料覆蓋</h2>
@@ -2074,9 +2167,9 @@ function OnboardingModal({ open, onDismiss }) {
       zIndex: 150, padding: "20px", animation: "fadeIn 0.15s ease",
     }}>
       <div onClick={e => e.stopPropagation()} style={{
-        background: "#fff", borderRadius: "10px", padding: "26px 28px",
+        background: T.c.bg, borderRadius: T.r.xl, padding: "26px 28px",
         maxWidth: "440px", width: "100%",
-        boxShadow: "0 12px 36px rgba(0,0,0,0.2)",
+        boxShadow: T.shadow.md,
       }}>
         <div style={{ fontSize: "11px", color: "#065f46", fontWeight: 700, letterSpacing: "0.1em", marginBottom: "4px" }}>
           STYTRIX · TECHPACK
@@ -3688,8 +3781,8 @@ function App() {
             title="切換模式 — 聚陽模型：作工五階層+POM tier+全碼；通用模型：AI→ISO+基礎大尺寸"
             style={{
               display: "inline-flex", alignItems: "center",
-              background: "#f5f4f0", borderRadius: "999px",
-              padding: "3px", border: "1px solid #e8e5e1",
+              background: T.c.bg2, borderRadius: T.r.pill,
+              padding: "3px", border: `1px solid ${T.c.border}`,
               boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
             }}>
             {[
@@ -3701,11 +3794,11 @@ function App() {
                 <button key={o.v} onClick={() => setAppMode(o.v)}
                   aria-pressed={on}
                   style={{
-                    background: on ? "#1a1a1a" : "transparent",
-                    color:      on ? "#fff"    : "#525252",
-                    border: "none", borderRadius: "999px",
+                    background: on ? T.c.text : "transparent",
+                    color:      on ? T.c.bg   : T.c.text2,
+                    border: "none", borderRadius: T.r.pill,
                     padding: isMobile ? "6px 12px" : "7px 18px",
-                    fontSize: isMobile ? "12px" : "13px", fontWeight: 700,
+                    fontSize: isMobile ? T.fs.base : T.fs.md, fontWeight: 700,
                     cursor: "pointer", fontFamily: "inherit",
                     transition: "all 0.15s", letterSpacing: "0.02em",
                     boxShadow: on ? "0 1px 3px rgba(0,0,0,0.15)" : "none",
@@ -4662,13 +4755,10 @@ function App() {
                   <div style={{ fontSize: isMobile ? "16px" : "18px", fontWeight: 700, marginBottom: "4px", color: "#1a1a1a" }}>基碼 / POM 確認</div>
                   <div style={{ fontSize: isMobile ? "12px" : "13px", color: "#888" }}>POM 建議 × 公差 × Base (M)</div>
                 </div>
-                <button onClick={runMeasurement} disabled={!canGenerateSpec || mAnalyzing} style={{
-                  padding: "11px 26px", background: (canGenerateSpec && !mAnalyzing) ? "#065f46" : "#eee",
-                  color: (canGenerateSpec && !mAnalyzing) ? "#fff" : "#bbb",
-                  border: "none", borderRadius: "8px",
-                  fontSize: "14px", fontWeight: 600, cursor: (canGenerateSpec && !mAnalyzing) ? "pointer" : "not-allowed",
-                  fontFamily: "inherit",
-                }}>{mAnalyzing ? "生成中…" : "Generate Spec"}</button>
+                <button onClick={runMeasurement} disabled={!canGenerateSpec || mAnalyzing}
+                  style={btnStyle({ variant: 'brand', isMobile, disabled: !canGenerateSpec || mAnalyzing })}>
+                  {mAnalyzing ? "生成中…" : "Generate Spec"}
+                </button>
               </div>
             )}
 
@@ -4811,28 +4901,21 @@ function App() {
                           </span>
                         </div>
                       </div>
-                      <button onClick={runMeasurement} style={{
-                        padding: isMobile ? "5px 10px" : "8px 16px", background: "#fff", color: "#666",
-                        border: "1px solid #ddd", borderRadius: "6px", fontSize: isMobile ? "11px" : "13px", fontWeight: 500,
-                        cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap"
-                      }}>Re-generate</button>
+                      <button onClick={runMeasurement} style={btnStyle({ variant: 'secondary', isMobile })}>Re-generate</button>
                     </div>
                     {/* Size 擴展控制列(Run / Plus / 單位 / 格式)— 跟全碼頁共用 state,兩邊同步 */}
                     <div style={{ display: "flex", alignItems: "center", gap: isMobile ? "10px" : "14px", flexWrap: "wrap", marginTop: isMobile ? "8px" : "14px", paddingTop: isMobile ? "6px" : "12px", borderTop: "1px dashed #eee" }}>
                       {availableRuns.length > 1 && (
                       <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                         <span style={{ fontSize: "11px", color: "#888", fontWeight: 500 }}>Run</span>
-                        <div style={{ display: "inline-flex", border: "1px solid #e8e5e1", borderRadius: "6px", overflow: "hidden" }}>
+                        <div style={pillGroupStyle}>
                           {availableRuns.map((run, i) => {
                             const active = sizeRunVariant === run;
                             return (
                               <button key={run} onClick={() => setSizeRunVariant(run)}
                                 style={{
-                                  padding: "5px 11px", fontSize: "12px", fontWeight: active ? 700 : 500,
-                                  background: active ? "#1a1a1a" : "#fff",
-                                  color: active ? "#fff" : "#555",
-                                  border: "none", cursor: "pointer", fontFamily: "inherit",
-                                  borderRight: i !== availableRuns.length - 1 ? "1px solid #e8e5e1" : "none",
+                                  ...pillBtn(active),
+                                  borderRight: i !== availableRuns.length - 1 ? `1px solid ${T.c.border}` : "none",
                                 }}>
                                 {run === 'regular' ? 'Regular' : run === 'petite' ? 'Petite' : 'Tall'}
                               </button>
@@ -4904,14 +4987,13 @@ function App() {
                       <div style={{ fontSize: isMobile ? "12px" : "15px", fontWeight: 700, color: "#1a1a1a" }}>
                         基碼 <span style={{ fontSize: isMobile ? "10px" : "13px", color: "#888", fontWeight: 400 }}>{isMobile ? "M size · 勾選 POM" : "M size 基本尺寸 · 勾選要納入的 POM，並可手動調整尺寸"}</span>
                       </div>
-                      <button onClick={() => setAddPomOpen(true)} style={{
-                        marginLeft: "auto",
-                        padding: isMobile ? "5px 10px" : "6px 14px",
-                        fontSize: isMobile ? "11px" : "12px", fontWeight: 700,
-                        background: "#fff", color: "#7e22ce",
-                        border: "1px dashed #c4b5fd", borderRadius: "6px",
-                        cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
-                      }}>+ 新增 POM</button>
+                      <button onClick={() => setAddPomOpen(true)}
+                        style={{
+                          ...btnStyle({ variant: 'ghost', isMobile }),
+                          marginLeft: "auto",
+                          color: T.c.accent,
+                          border: `1px dashed ${T.c.accent}`,
+                        }}>+ 新增 POM</button>
                     </div>
                     <div style={{ background: "#fff", border: "1px solid #e8e5e1", borderRadius: "10px", overflow: "auto", marginBottom: "12px" }}>
                       <table style={{ width: "100%", minWidth: isMobile ? (showPlus && hasPlus ? "500px" : "420px") : "auto", borderCollapse: "collapse", fontSize: isMobile ? "12px" : "14px" }}>
@@ -5312,11 +5394,10 @@ function App() {
                 )}
 
                 <div style={{ display: "flex", gap: "8px", marginTop: "20px" }}>
-                  <button onClick={exportTechpack} style={{
-                    flex: 1, padding: "12px", background: "#1a1a1a", color: "#fff",
-                    border: "none", borderRadius: "8px", fontSize: "13px", fontWeight: 600,
-                    cursor: "pointer", fontFamily: "inherit",
-                  }}>Export JSON</button>
+                  <button onClick={exportTechpack}
+                    style={{ ...btnStyle({ variant: 'primary' }), flex: 1, padding: "10px 16px" }}>
+                    Export JSON
+                  </button>
                 </div>
               </div>
             )}
@@ -5539,17 +5620,14 @@ function App() {
                       {availableRuns.length > 1 && (
                       <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                         <span style={{ fontSize: "11px", color: "#888", fontWeight: 500 }}>Run</span>
-                        <div style={{ display: "inline-flex", border: "1px solid #e8e5e1", borderRadius: "6px", overflow: "hidden" }}>
+                        <div style={pillGroupStyle}>
                           {availableRuns.map((run, i) => {
                             const active = sizeRunVariant === run;
                             return (
                               <button key={run} onClick={() => setSizeRunVariant(run)}
                                 style={{
-                                  padding: "5px 11px", fontSize: "12px", fontWeight: active ? 700 : 500,
-                                  background: active ? "#1a1a1a" : "#fff",
-                                  color: active ? "#fff" : "#555",
-                                  border: "none", cursor: "pointer", fontFamily: "inherit",
-                                  borderRight: i !== availableRuns.length - 1 ? "1px solid #e8e5e1" : "none",
+                                  ...pillBtn(active),
+                                  borderRight: i !== availableRuns.length - 1 ? `1px solid ${T.c.border}` : "none",
                                 }}>
                                 {run === 'regular' ? 'Regular' : run === 'petite' ? 'Petite' : 'Tall'}
                               </button>
