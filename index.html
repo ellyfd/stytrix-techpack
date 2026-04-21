@@ -1458,6 +1458,30 @@ function TierSection({ tier, count, children }) {
     </div>
   );
 }
+
+/* 單位(in/cm)與格式(分數/小數)切換 — 基碼與全碼共用 */
+function UnitFormatToggle({ displayUnit, setDisplayUnit, displayFormat, setDisplayFormat }) {
+  const pill = (active) => ({
+    padding: "5px 10px", fontSize: "11px", fontWeight: active ? 700 : 500,
+    background: active ? "#1a1a1a" : "#fff",
+    color: active ? "#fff" : "#555",
+    border: "none", cursor: "pointer", fontFamily: "inherit",
+  });
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+      <div style={{ display: "inline-flex", border: "1px solid #e8e5e1", borderRadius: "6px", overflow: "hidden" }}>
+        <button onClick={() => setDisplayUnit('in')} style={{ ...pill(displayUnit === 'in'), borderRight: "1px solid #e8e5e1" }} aria-label="英吋">in</button>
+        <button onClick={() => setDisplayUnit('cm')} style={pill(displayUnit === 'cm')} aria-label="公分">cm</button>
+      </div>
+      {displayUnit === 'in' && (
+        <div style={{ display: "inline-flex", border: "1px solid #e8e5e1", borderRadius: "6px", overflow: "hidden" }}>
+          <button onClick={() => setDisplayFormat('fraction')} style={{ ...pill(displayFormat === 'fraction'), borderRight: "1px solid #e8e5e1" }} aria-label="分數">1/2</button>
+          <button onClick={() => setDisplayFormat('decimal')} style={pill(displayFormat === 'decimal')} aria-label="小數">0.5</button>
+        </div>
+      )}
+    </div>
+  );
+}
 /* ─── BucketPomRow: 從 currentBucket 動態渲染單一 POM ─── */
 function BucketPomRow({ code, tier, measurement, median, grading, pomName, isOpen, onToggle, onToggleInclude, included }) {
   const tc = TIER[tier];
@@ -2635,6 +2659,75 @@ function App() {
   // Size run:regular / petite / tall。非 regular 會在 sizeValueFor 加上
   // bucket.size_run_offsets[sizeRunVariant][code] 的 offset(目前大多 bucket 還沒這層資料)
   const [sizeRunVariant, setSizeRunVariant] = useState('regular');
+  // 顯示單位/格式切換(只影響顯示;內部資料一律為英吋 float)
+  // displayUnit: 'in' | 'cm';  displayFormat: 'fraction' | 'decimal' (僅 inch 時有效,cm 固定小數)
+  const [displayUnit, setDisplayUnit] = useState('in');
+  const [displayFormat, setDisplayFormat] = useState('fraction');
+  const unitSuffix = displayUnit === 'cm' ? ' cm' : '"';
+  const fmtDisp = (v) => {
+    if (v == null) return "—";
+    if (displayUnit === 'cm') {
+      const cm = v * 2.54;
+      const r = Math.round(cm * 10) / 10;
+      return Number.isInteger(r) ? String(r) : r.toFixed(1);
+    }
+    if (displayFormat === 'decimal') {
+      const r = Math.round(v * 1000) / 1000;
+      return Number.isInteger(r) ? String(r) : String(r);
+    }
+    return frmt(v);
+  };
+  // 解析使用者輸入 → 統一轉成英吋(內部儲存一律用英吋 float)
+  // cm 模式下:"25" → 25 / 2.54 inches。inch 模式下仍用 parseInch。
+  const parseValAs = (s, unit) => {
+    if (s == null) return null;
+    if (typeof s === "number") return s;
+    const t = String(s).trim();
+    if (!t) return null;
+    if (unit === 'cm') {
+      const cleaned = t.replace(/\s*cm\s*$/i, '').trim();
+      const n = Number(cleaned);
+      return Number.isFinite(n) ? n / 2.54 : null;
+    }
+    return parseInch(t);
+  };
+  const parseVal = (s) => parseValAs(s, displayUnit);
+  // 切換單位/格式時,把既有的 override 字串用「舊單位/格式」解析 → 用「新單位/格式」重新格式化
+  const migrateOverrides = (prevUnit, prevFormat, nextUnit, nextFormat) => {
+    const rebuild = (store) => {
+      const out = {};
+      for (const [k, v] of Object.entries(store)) {
+        if (v == null || v === "") { out[k] = v; continue; }
+        const parsed = parseValAs(v, prevUnit);
+        if (parsed == null) { out[k] = v; continue; }
+        let formatted;
+        if (nextUnit === 'cm') {
+          const cm = parsed * 2.54;
+          const r = Math.round(cm * 10) / 10;
+          formatted = Number.isInteger(r) ? String(r) : r.toFixed(1);
+        } else if (nextFormat === 'decimal') {
+          const r = Math.round(parsed * 1000) / 1000;
+          formatted = String(r);
+        } else {
+          formatted = frmt(parsed);
+        }
+        out[k] = formatted === "—" ? v : formatted;
+      }
+      return out;
+    };
+    setBaseOverrides(prev => rebuild(prev));
+    setPlusBaseOverrides(prev => rebuild(prev));
+  };
+  const changeUnit = (u) => {
+    if (u === displayUnit) return;
+    migrateOverrides(displayUnit, displayFormat, u, displayFormat);
+    setDisplayUnit(u);
+  };
+  const changeFormat = (f) => {
+    if (f === displayFormat) return;
+    migrateOverrides(displayUnit, displayFormat, displayUnit, f);
+    setDisplayFormat(f);
+  };
   // 手機版斷點（< 720px）：表格切換為卡片 / 精簡欄位
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== "undefined" && window.matchMedia && window.matchMedia("(max-width: 720px)").matches
@@ -4509,8 +4602,9 @@ function App() {
               const tolStr = m => {
                 const t = m?.tolerance;
                 if (!t) return "—";
-                if (typeof t === "object") return "±" + (t.display || frmt(t.standard)) + '"';
-                return "±" + frmt(t) + '"';
+                const base = typeof t === "object" ? t.standard : t;
+                if (base == null) return "—";
+                return "±" + fmtDisp(base) + unitSuffix;
               };
               // 未選 Item Type 時,長度敏感 POM 視為「待選長度」— 不顯示數值
               const isLengthPending = code =>
@@ -4519,7 +4613,7 @@ function App() {
               const effectiveBaseM = code => {
                 const ov = baseOverrides[code];
                 if (ov != null && ov !== "") {
-                  const v = parseInch(ov);
+                  const v = parseVal(ov);
                   if (v != null) return v;
                 }
                 if (isLengthPending(code)) return null;
@@ -4528,7 +4622,7 @@ function App() {
               const isOverrideValid = code => {
                 const ov = baseOverrides[code];
                 if (ov == null || ov === "") return true;
-                return parseInch(ov) != null;
+                return parseVal(ov) != null;
               };
               const toggleTier = tier => setCollapsedTiers(prev => {
                 const n = new Set(prev); n.has(tier) ? n.delete(tier) : n.add(tier); return n;
@@ -4576,7 +4670,7 @@ function App() {
                         cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap"
                       }}>Re-generate</button>
                     </div>
-                    {/* Size 擴展控制列(Run / Plus)— 跟全碼頁共用 state,兩邊同步 */}
+                    {/* Size 擴展控制列(Run / Plus / 單位 / 格式)— 跟全碼頁共用 state,兩邊同步 */}
                     <div style={{ display: "flex", alignItems: "center", gap: isMobile ? "10px" : "14px", flexWrap: "wrap", marginTop: isMobile ? "8px" : "14px", paddingTop: isMobile ? "6px" : "12px", borderTop: "1px dashed #eee" }}>
                       {availableRuns.length > 1 && (
                       <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
@@ -4600,6 +4694,7 @@ function App() {
                         </div>
                       </div>
                       )}
+                      <UnitFormatToggle displayUnit={displayUnit} setDisplayUnit={changeUnit} displayFormat={displayFormat} setDisplayFormat={changeFormat} />
                       {hasPlus && (
                         <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "#555", cursor: "pointer", userSelect: "none" }}>
                           <input type="checkbox" checked={showPlus} onChange={e => setShowPlus(e.target.checked)}
@@ -4621,7 +4716,7 @@ function App() {
                         setIt(opt);
                         const inches = parseHintInches(hints[opt]);
                         if (inches != null && mv[lengthCode]) {
-                          setBaseOverrides(prev => ({ ...prev, [lengthCode]: frmt(inches) }));
+                          setBaseOverrides(prev => ({ ...prev, [lengthCode]: fmtDisp(inches) }));
                         }
                       };
                       return (
@@ -4722,12 +4817,12 @@ function App() {
                                   const included = !excluded.has(code);
                                   const pn = pomNames[code] || {};
                                   const ov = baseOverrides[code] ?? "";
-                                  const invalid = ov !== "" && parseInch(ov) == null;
-                                  const displayVal = ov !== "" ? ov : (baseM != null ? frmt(baseM) : "");
+                                  const invalid = ov !== "" && parseVal(ov) == null;
+                                  const displayVal = ov !== "" ? ov : (baseM != null ? fmtDisp(baseM) : "");
                                   // 已修改：用戶輸入過且合法、且與中位數不同
-                                  const ovParsed = ov !== "" && !invalid ? parseInch(ov) : null;
+                                  const ovParsed = ov !== "" && !invalid ? parseVal(ov) : null;
                                   const isChanged = ovParsed != null && baseM != null && Math.abs(ovParsed - baseM) > 1e-9;
-                                  const originalTip = isChanged ? `原值 ${frmt(baseM)}"` : undefined;
+                                  const originalTip = isChanged ? `原值 ${fmtDisp(baseM)}${unitSuffix}` : undefined;
                                   const inputBorder = invalid ? "#dc2626" : (isChanged ? "#f59e0b" : "#a7f3d0");
                                   const inputColor  = invalid ? "#dc2626" : (isChanged ? "#b45309" : "#065f46");
                                   const cellBg      = isChanged ? "#fffbeb" : "#ecfdf5";
@@ -4780,9 +4875,9 @@ function App() {
                                           onBlur={() => {
                                             const raw = baseOverrides[code];
                                             if (raw == null || raw === "") return;
-                                            const parsed = parseInch(raw);
+                                            const parsed = parseVal(raw);
                                             if (parsed == null) return;
-                                            const normalized = frmt(parsed);
+                                            const normalized = fmtDisp(parsed);
                                             if (normalized !== "—" && normalized !== raw) {
                                               setBaseOverrides(prev => ({ ...prev, [code]: normalized }));
                                             }
@@ -4791,7 +4886,7 @@ function App() {
                                             if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); }
                                           }}
                                           disabled={!included}
-                                          placeholder={pending ? "待選長度" : (baseM != null ? frmt(baseM) : "—")}
+                                          placeholder={pending ? "待選長度" : (baseM != null ? fmtDisp(baseM) : "—")}
                                           inputMode="text"
                                           title={isChanged ? `${originalTip} · 雙擊還原` : (pending ? "請先在上方選擇長度" : undefined)}
                                           style={{
@@ -4801,13 +4896,13 @@ function App() {
                                             border: `1px solid ${invalid ? "#dc2626" : "#a7f3d0"}`, borderRadius: "6px",
                                             background: "#fff",
                                           }} />
-                                        <span style={{ fontSize: isMobile ? "11px" : "13px", color: "#065f46", marginLeft: "2px" }}>"</span>
+                                        <span style={{ fontSize: isMobile ? "11px" : "13px", color: "#065f46", marginLeft: "2px" }}>{unitSuffix.trim()}</span>
                                       </td>
                                       {showPlus && hasPlus && (() => {
                                         const base2X = pending ? null : mvRow?.size_medians?.[plusAnchor];
                                         const ov2 = plusBaseOverrides[code] ?? "";
-                                        const invalid2 = ov2 !== "" && parseInch(ov2) == null;
-                                        const display2 = ov2 !== "" ? ov2 : (base2X != null ? frmt(base2X) : "");
+                                        const invalid2 = ov2 !== "" && parseVal(ov2) == null;
+                                        const display2 = ov2 !== "" ? ov2 : (base2X != null ? fmtDisp(base2X) : "");
                                         return (
                                           <td style={{ padding: isMobile ? "4px 4px" : "6px 12px", textAlign: "right", background: "#fdf2f8" }}>
                                             <input type="text" value={display2}
@@ -4815,16 +4910,16 @@ function App() {
                                               onBlur={() => {
                                                 const raw = plusBaseOverrides[code];
                                                 if (raw == null || raw === "") return;
-                                                const parsed = parseInch(raw);
+                                                const parsed = parseVal(raw);
                                                 if (parsed == null) return;
-                                                const normalized = frmt(parsed);
+                                                const normalized = fmtDisp(parsed);
                                                 if (normalized !== "—" && normalized !== raw) {
                                                   setPlusBaseOverrides(prev => ({ ...prev, [code]: normalized }));
                                                 }
                                               }}
                                               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); } }}
                                               disabled={!included}
-                                              placeholder={pending ? "待選長度" : (base2X != null ? frmt(base2X) : "—")}
+                                              placeholder={pending ? "待選長度" : (base2X != null ? fmtDisp(base2X) : "—")}
                                               inputMode="text"
                                               aria-label={`${code} Base ${plusAnchor}`}
                                               style={{
@@ -4834,7 +4929,7 @@ function App() {
                                                 border: `1px solid ${invalid2 ? "#dc2626" : "#fbcfe8"}`, borderRadius: "6px",
                                                 background: "#fff",
                                               }} />
-                                            <span style={{ fontSize: isMobile ? "11px" : "13px", color: "#be185d", marginLeft: "2px" }}>"</span>
+                                            <span style={{ fontSize: isMobile ? "11px" : "13px", color: "#be185d", marginLeft: "2px" }}>{unitSuffix.trim()}</span>
                                           </td>
                                         );
                                       })()}
@@ -5048,13 +5143,14 @@ function App() {
               const tolStr = m => {
                 const t = m?.tolerance;
                 if (!t) return "—";
-                if (typeof t === "object") return "±" + (t.display || frmt(t.standard)) + '"';
-                return "±" + frmt(t) + '"';
+                const base = typeof t === "object" ? t.standard : t;
+                if (base == null) return "—";
+                return "±" + fmtDisp(base) + unitSuffix;
               };
               const effectiveBaseM = code => {
                 const ov = baseOverrides[code];
                 if (ov != null && ov !== "") {
-                  const v = parseInch(ov);
+                  const v = parseVal(ov);
                   if (v != null) return v;
                 }
                 return mv[code]?.size_medians?.M;
@@ -5072,7 +5168,7 @@ function App() {
               const effectivePlusBase = (code) => {
                 const ov = plusBaseOverrides[code];
                 if (ov != null && ov !== "") {
-                  const v = parseInch(ov);
+                  const v = parseVal(ov);
                   if (v != null) return v;
                 }
                 return mv[code]?.size_medians?.[plusAnchor];
@@ -5222,7 +5318,7 @@ function App() {
                         </div>
                       </div>
                     </div>
-                    {/* Size 擴展控制列(Run / Plus)— 跟基碼頁共用 state,兩邊同步 */}
+                    {/* Size 擴展控制列(Run / Plus / 單位 / 格式)— 跟基碼頁共用 state,兩邊同步 */}
                     <div style={{ display: "flex", alignItems: "center", gap: isMobile ? "10px" : "14px", flexWrap: "wrap", marginTop: isMobile ? "8px" : "14px", paddingTop: isMobile ? "6px" : "12px", borderTop: "1px dashed #eee" }}>
                       {availableRuns.length > 1 && (
                       <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
@@ -5246,6 +5342,7 @@ function App() {
                         </div>
                       </div>
                       )}
+                      <UnitFormatToggle displayUnit={displayUnit} setDisplayUnit={changeUnit} displayFormat={displayFormat} setDisplayFormat={changeFormat} />
                       {hasPlus && (
                         <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "#555", cursor: "pointer", userSelect: "none" }}>
                           <input type="checkbox" checked={showPlus} onChange={e => setShowPlus(e.target.checked)}
@@ -5288,7 +5385,7 @@ function App() {
                             const grRow = gr[code];
                             const m = mr[tier]?.[code];
                             const pn = pomNames[code] || {};
-                            const edited = baseOverrides[code] != null && baseOverrides[code] !== "" && parseInch(baseOverrides[code]) != null;
+                            const edited = baseOverrides[code] != null && baseOverrides[code] !== "" && parseVal(baseOverrides[code]) != null;
                             return (
                               <tr key={code} style={{ borderBottom: "1px solid #f0eeeb" }}>
                                 <td style={{ padding: isMobile ? "7px 6px" : "9px 12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "14px", color: tc.c, position: "sticky", left: 0, background: "#fff" }}>
@@ -5334,7 +5431,7 @@ function App() {
                                 </td>
                                 {!isMobile && (
                                   <td style={{ padding: "9px 12px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", fontSize: "14px", color: "#b45309", fontWeight: 600, whiteSpace: "nowrap" }}>
-                                    {grRow?.typical_increment != null ? (grRow.typical_increment >= 0 ? "+" : "") + frmt(grRow.typical_increment) + '"' : "—"}
+                                    {grRow?.typical_increment != null ? (grRow.typical_increment >= 0 ? "+" : "") + fmtDisp(grRow.typical_increment) + unitSuffix : "—"}
                                     {hasInflection(code) && (
                                       <span title="grading_patterns: S→M 與 M→L 的跳碼不同,已改用非線性推導" style={{ marginLeft: "5px", fontSize: "9px", color: "#7e22ce", background: "#f5f3ff", padding: "1px 5px", borderRadius: "3px", fontWeight: 700, cursor: "help" }}>⟿</span>
                                     )}
@@ -5349,8 +5446,8 @@ function App() {
                                     const setStore = isMissyBase ? setBaseOverrides : setPlusBaseOverrides;
                                     const rawBase = mv[code]?.size_medians?.[s];
                                     const ov = storeMap[code] ?? "";
-                                    const invalid = ov !== "" && parseInch(ov) == null;
-                                    const displayVal = ov !== "" ? ov : (rawBase != null ? frmt(rawBase) : "");
+                                    const invalid = ov !== "" && parseVal(ov) == null;
+                                    const displayVal = ov !== "" ? ov : (rawBase != null ? fmtDisp(rawBase) : "");
                                     return (
                                       <td key={s} style={{ padding: isMobile ? "4px 4px" : "6px 8px", textAlign: "center", background: "#ecfdf5" }}>
                                         <input type="text" value={displayVal}
@@ -5358,15 +5455,15 @@ function App() {
                                           onBlur={() => {
                                             const raw = storeMap[code];
                                             if (raw == null || raw === "") return;
-                                            const parsed = parseInch(raw);
+                                            const parsed = parseVal(raw);
                                             if (parsed == null) return;
-                                            const normalized = frmt(parsed);
+                                            const normalized = fmtDisp(parsed);
                                             if (normalized !== "—" && normalized !== raw) {
                                               setStore(prev => ({ ...prev, [code]: normalized }));
                                             }
                                           }}
                                           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); } }}
-                                          placeholder={rawBase != null ? frmt(rawBase) : "—"}
+                                          placeholder={rawBase != null ? fmtDisp(rawBase) : "—"}
                                           inputMode="text"
                                           aria-label={`${code} Base ${s}`}
                                           style={{
@@ -5381,7 +5478,7 @@ function App() {
                                   }
                                   return (
                                     <td key={s} style={{ padding: isMobile ? "6px 4px" : "9px 8px", textAlign: "center", fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "14px", color: "#1a1a1a", fontWeight: 500, whiteSpace: "nowrap" }}>
-                                      {val != null ? frmt(val) + '"' : "—"}
+                                      {val != null ? fmtDisp(val) + unitSuffix : "—"}
                                     </td>
                                   );
                                 })}
