@@ -20,6 +20,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+  <!-- SheetJS for Excel import/export in the admin POM-dictionary editor -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script type="text/babel" data-presets="react">
 const { useState, useMemo, useEffect, useRef } = React;
 
@@ -1755,8 +1757,149 @@ function BucketPomRow({ code, tier, measurement, median, grading, pomName, isOpe
 /* ═══════════════════════════════════════════════════════════════════
    Main App
    ═══════════════════════════════════════════════════════════════════ */
-function AdminModal({ open, onClose }) {
+/* AdminModal:POM 翻譯表編輯器(data/pom_dictionary.json)
+   - 上方「GitHub 推送 Token」:shared 密碼,存 localStorage['stytrix.admin.token']
+   - 中間表格:code / en / zh 三欄,可搜尋 / 編輯 / 刪列 / 新增列
+   - 工具:匯入 Excel(code/en/zh 三欄)、匯出 Excel
+   - 下方:commit message + 推送到 GitHub
+   - pomNames 是目前線上版 dict(read-only seed),draft 是草稿 */
+function AdminModal({ open, onClose, pomNames, onPushDict }) {
+  const [draft, setDraft] = React.useState({});
+  const [search, setSearch] = React.useState('');
+  const [token, setToken] = React.useState(() => {
+    try { return localStorage.getItem('stytrix.admin.token') || ''; } catch { return ''; }
+  });
+  const [showToken, setShowToken] = React.useState(false);
+  const [commitMsg, setCommitMsg] = React.useState('');
+  const [pushState, setPushState] = React.useState({ status: 'idle', msg: '' });
+
+  // 開啟時用當前 pomNames 初始化 draft
+  React.useEffect(() => {
+    if (open) {
+      setDraft({ ...(pomNames || {}) });
+      setSearch('');
+      setCommitMsg('');
+      setPushState({ status: 'idle', msg: '' });
+    }
+  }, [open, pomNames]);
+
   if (!open) return null;
+
+  const saveToken = (t) => {
+    setToken(t);
+    try { t ? localStorage.setItem('stytrix.admin.token', t) : localStorage.removeItem('stytrix.admin.token'); } catch {}
+  };
+
+  // Draft helpers
+  const updateRow = (code, field, value) => {
+    setDraft(prev => ({ ...prev, [code]: { ...(prev[code] || { en: '', zh: '' }), [field]: value } }));
+  };
+  const renameCode = (oldCode, newCode) => {
+    const nc = (newCode || '').toUpperCase().trim();
+    if (!nc || nc === oldCode) return;
+    setDraft(prev => {
+      if (prev[nc]) return prev; // 已存在,拒絕覆蓋
+      const { [oldCode]: row, ...rest } = prev;
+      return { ...rest, [nc]: row };
+    });
+  };
+  const deleteRow = (code) => {
+    if (!window.confirm(`刪除 ${code} (${draft[code]?.en || ''} / ${draft[code]?.zh || ''})?`)) return;
+    setDraft(prev => { const { [code]: _, ...rest } = prev; return rest; });
+  };
+  const addRow = () => {
+    const code = (window.prompt('新 POM code(大寫字母 + 數字,e.g. H99):') || '').toUpperCase().trim();
+    if (!code) return;
+    if (!/^[A-Z]{1,3}\d{0,3}$/.test(code)) { alert('code 格式不對,需 1-3 大寫字母 + 0-3 數字'); return; }
+    if (draft[code]) { alert(`${code} 已存在`); return; }
+    setDraft(prev => ({ ...prev, [code]: { en: '', zh: '' } }));
+    setSearch(code);
+  };
+
+  // Excel I/O
+  const importExcel = (file) => {
+    if (typeof XLSX === 'undefined') { alert('SheetJS 未載入'); return; }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const wb = XLSX.read(e.target.result, { type: 'array' });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+        if (!rows.length) { alert('Excel 無資料'); return; }
+        const header = rows[0].map(x => String(x).toLowerCase().trim());
+        const iCode = header.indexOf('code');
+        const iEn = header.indexOf('en');
+        const iZh = header.indexOf('zh');
+        if (iCode < 0 || iEn < 0 || iZh < 0) {
+          alert('Excel 需有 code / en / zh 三欄(第一列表頭)'); return;
+        }
+        const next = { ...draft };
+        let added = 0, updated = 0, skipped = 0;
+        for (let r = 1; r < rows.length; r++) {
+          const row = rows[r];
+          const code = String(row[iCode] || '').toUpperCase().trim();
+          if (!code) continue;
+          if (!/^[A-Z]{1,3}\d{0,3}$/.test(code)) { skipped++; continue; }
+          const en = String(row[iEn] || '').trim();
+          const zh = String(row[iZh] || '').trim();
+          if (next[code]) updated++; else added++;
+          next[code] = { en, zh };
+        }
+        setDraft(next);
+        alert(`匯入完成:新增 ${added},更新 ${updated},略過 ${skipped}(格式錯誤)`);
+      } catch (err) {
+        alert('匯入失敗:' + (err?.message || err));
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+  const exportExcel = () => {
+    if (typeof XLSX === 'undefined') { alert('SheetJS 未載入'); return; }
+    const rows = [['code', 'en', 'zh']];
+    Object.keys(draft).sort().forEach(code => {
+      rows.push([code, draft[code]?.en || '', draft[code]?.zh || '']);
+    });
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'pom_dictionary');
+    const d = new Date();
+    const stamp = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+    XLSX.writeFile(wb, `pom_dictionary_${stamp}.xlsx`);
+  };
+
+  // Push handler
+  const pushNow = async () => {
+    if (!token) { alert('請先填 Admin Token'); return; }
+    setPushState({ status: 'pushing', msg: '推送中…' });
+    try {
+      const result = await onPushDict(draft, { token, message: commitMsg });
+      if (result.unchanged) {
+        setPushState({ status: 'success', msg: '沒有變更,未建立新 commit' });
+      } else {
+        setPushState({
+          status: 'success',
+          msg: `已推送(${result.entries} 筆 / commit ${(result.commit || '').slice(0, 7)})`,
+          commitUrl: result.commit_url,
+        });
+      }
+    } catch (err) {
+      setPushState({ status: 'error', msg: err?.message || String(err) });
+    }
+  };
+
+  // Derived
+  const allCodes = Object.keys(draft).sort();
+  const filter = search.trim().toLowerCase();
+  const visible = filter
+    ? allCodes.filter(c =>
+        c.toLowerCase().includes(filter)
+        || (draft[c]?.en || '').toLowerCase().includes(filter)
+        || (draft[c]?.zh || '').includes(filter))
+    : allCodes;
+  const pomCount = allCodes.length;
+  const origCount = Object.keys(pomNames || {}).length;
+  const changed = JSON.stringify(draft) !== JSON.stringify(pomNames || {});
+
   return (
     <div onClick={onClose} role="dialog" aria-modal="true" aria-label="管理面板" style={{
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)',
@@ -1764,20 +1907,151 @@ function AdminModal({ open, onClose }) {
       zIndex: 100, padding: '20px',
     }}>
       <div onClick={e => e.stopPropagation()} style={{
-        background: T.c.bg, borderRadius: T.r.xl, padding: '22px',
-        maxWidth: '420px', width: '100%', maxHeight: '85vh', overflowY: 'auto',
+        background: T.c.bg, borderRadius: T.r.xl, padding: '20px',
+        maxWidth: '880px', width: '100%', maxHeight: '90vh', display: 'flex', flexDirection: 'column',
         boxShadow: T.shadow.md,
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '6px' }}>
-          <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 700 }}>管理</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '10px' }}>
+          <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 700 }}>管理 · POM 翻譯表編輯</h2>
           <button onClick={onClose} aria-label="關閉管理面板" style={{
             background: 'none', border: 'none', cursor: 'pointer',
-            fontSize: '22px', color: '#999', padding: '0 4px', lineHeight: 1,
-            fontFamily: 'inherit',
+            fontSize: '22px', color: '#999', padding: '0 4px', lineHeight: 1, fontFamily: 'inherit',
           }}>×</button>
         </div>
-        <div style={{ padding: '32px 8px', textAlign: 'center', color: '#888', fontSize: '13px', lineHeight: 1.6 }}>
-          目前沒有可用的管理功能。
+
+        {/* Admin Token(上方) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', padding: '10px 12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px' }}>
+          <span style={{ fontSize: '11px', color: '#92400e', fontWeight: 600, whiteSpace: 'nowrap' }}>🔑 Admin Token</span>
+          <input type={showToken ? 'text' : 'password'} value={token} onChange={e => saveToken(e.target.value)}
+            placeholder="Vercel env ADMIN_TOKEN 對應的共享密碼"
+            style={{ flex: 1, minWidth: 0, padding: '6px 10px', fontSize: '12px', fontFamily: "'JetBrains Mono',monospace",
+              border: '1px solid #fcd34d', borderRadius: '6px', background: '#fff' }} />
+          <button onClick={() => setShowToken(!showToken)} type="button"
+            style={{ fontSize: '11px', padding: '5px 10px', border: '1px solid #fcd34d', background: '#fff', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit' }}>
+            {showToken ? '隱藏' : '顯示'}
+          </button>
+          <span style={{ fontSize: '10px', color: '#92400e' }} title="存在 localStorage.stytrix.admin.token,跟 Vercel 的 ADMIN_TOKEN 環境變數比對">?</span>
+        </div>
+
+        {/* 工具列:搜尋 / 匯入 / 匯出 / 新增 */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="搜尋 code / en / zh…"
+            style={{ flex: '1 1 180px', minWidth: '140px', padding: '7px 10px', fontSize: '12px',
+              border: '1px solid #e5e5e5', borderRadius: '6px', background: '#fff' }} />
+          <label style={{
+            padding: '6px 12px', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+            border: '1px solid #bfdbfe', background: '#eff6ff', color: '#1d4ed8', borderRadius: '6px',
+          }}>
+            📥 匯入 Excel
+            <input type="file" accept=".xlsx,.xls" style={{ display: 'none' }}
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) { importExcel(f); e.target.value = ''; } }} />
+          </label>
+          <button onClick={exportExcel}
+            style={{ padding: '6px 12px', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+              border: '1px solid #e5e5e5', background: '#fff', color: '#555', borderRadius: '6px', fontFamily: 'inherit' }}>
+            📤 匯出 Excel
+          </button>
+          <button onClick={addRow}
+            style={{ padding: '6px 12px', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+              border: '1px dashed #a3a3a3', background: '#fff', color: '#525252', borderRadius: '6px', fontFamily: 'inherit' }}>
+            + 新增列
+          </button>
+          <div style={{ marginLeft: 'auto', fontSize: '11px', color: '#888', fontFamily: "'JetBrains Mono',monospace" }}>
+            {visible.length}/{pomCount} 筆{changed ? <span style={{ marginLeft: '6px', color: '#b45309', fontWeight: 600 }}>● 未儲存</span> : ''}
+          </div>
+        </div>
+
+        {/* 表格區 */}
+        <div style={{ flex: 1, overflow: 'auto', border: '1px solid #e8e5e1', borderRadius: '8px', background: '#fff', minHeight: '200px' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+            <thead style={{ position: 'sticky', top: 0, background: '#faf9f7', zIndex: 1 }}>
+              <tr style={{ borderBottom: '1.5px solid #e8e5e1' }}>
+                <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, fontSize: '11px', color: '#525252', width: '70px' }}>Code</th>
+                <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, fontSize: '11px', color: '#525252' }}>English</th>
+                <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, fontSize: '11px', color: '#525252', width: '160px' }}>中文</th>
+                <th style={{ padding: '8px 6px', width: '32px' }}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {visible.length === 0 && (
+                <tr><td colSpan={4} style={{ padding: '24px', textAlign: 'center', color: '#888', fontSize: '12px' }}>
+                  {filter ? '沒有符合搜尋的項目' : '(空)'}
+                </td></tr>
+              )}
+              {visible.map(code => {
+                const row = draft[code] || { en: '', zh: '' };
+                return (
+                  <tr key={code} style={{ borderBottom: '1px solid #f0eeeb' }}>
+                    <td style={{ padding: '4px 8px' }}>
+                      <input value={code} onChange={(e) => renameCode(code, e.target.value)}
+                        style={{ width: '60px', padding: '4px 6px', fontSize: '12px', fontWeight: 700,
+                          fontFamily: "'JetBrains Mono',monospace", color: '#0891b2',
+                          border: '1px solid transparent', borderRadius: '4px', background: 'transparent' }}
+                        onFocus={(e) => e.target.style.border = '1px solid #bae6fd'}
+                        onBlur={(e) => e.target.style.border = '1px solid transparent'} />
+                    </td>
+                    <td style={{ padding: '4px 8px' }}>
+                      <input value={row.en} onChange={(e) => updateRow(code, 'en', e.target.value)}
+                        style={{ width: '100%', padding: '4px 6px', fontSize: '12px',
+                          border: '1px solid transparent', borderRadius: '4px', background: 'transparent', fontFamily: 'inherit' }}
+                        onFocus={(e) => e.target.style.border = '1px solid #d4d4d4'}
+                        onBlur={(e) => e.target.style.border = '1px solid transparent'} />
+                    </td>
+                    <td style={{ padding: '4px 8px' }}>
+                      <input value={row.zh} onChange={(e) => updateRow(code, 'zh', e.target.value)}
+                        style={{ width: '100%', padding: '4px 6px', fontSize: '12px',
+                          border: '1px solid transparent', borderRadius: '4px', background: 'transparent', fontFamily: 'inherit' }}
+                        onFocus={(e) => e.target.style.border = '1px solid #d4d4d4'}
+                        onBlur={(e) => e.target.style.border = '1px solid transparent'} />
+                    </td>
+                    <td style={{ padding: '4px 4px', textAlign: 'center' }}>
+                      <button onClick={() => deleteRow(code)} title="刪除"
+                        style={{ border: 'none', background: 'transparent', cursor: 'pointer',
+                          color: '#dc2626', fontSize: '14px', padding: '2px 4px', fontFamily: 'inherit' }}>×</button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* 推送區 */}
+        <div style={{ marginTop: '12px', padding: '10px 12px', background: '#f9fafb', border: '1px solid #e5e5e5', borderRadius: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+            <input value={commitMsg} onChange={e => setCommitMsg(e.target.value)}
+              placeholder={`commit message(空白 → 自動「Update data/pom_dictionary.json via admin (${pomCount} entries)」)`}
+              style={{ flex: 1, padding: '7px 10px', fontSize: '12px',
+                border: '1px solid #e5e5e5', borderRadius: '6px', background: '#fff' }} />
+            <button onClick={pushNow}
+              disabled={!token || pushState.status === 'pushing'}
+              style={{
+                padding: '7px 16px', fontSize: '12px', fontWeight: 700,
+                border: 'none', borderRadius: '6px', fontFamily: 'inherit',
+                cursor: (!token || pushState.status === 'pushing') ? 'not-allowed' : 'pointer',
+                background: (!token || pushState.status === 'pushing') ? '#d4d4d4' : '#1a1a1a',
+                color: '#fff', whiteSpace: 'nowrap',
+              }}>
+              {pushState.status === 'pushing' ? '推送中…' : '🚀 推送到 GitHub'}
+            </button>
+          </div>
+          {pushState.msg && (
+            <div style={{
+              fontSize: '11px', padding: '6px 10px', borderRadius: '6px',
+              background: pushState.status === 'error' ? '#fef2f2' : pushState.status === 'success' ? '#f0fdf4' : '#eff6ff',
+              color: pushState.status === 'error' ? '#991b1b' : pushState.status === 'success' ? '#166534' : '#1e40af',
+              border: `1px solid ${pushState.status === 'error' ? '#fecaca' : pushState.status === 'success' ? '#bbf7d0' : '#bfdbfe'}`,
+            }}>
+              {pushState.msg}
+              {pushState.commitUrl && (
+                <> · <a href={pushState.commitUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#166534' }}>查看 commit</a></>
+              )}
+            </div>
+          )}
+          <div style={{ fontSize: '10px', color: '#888', marginTop: '6px' }}>
+            目前線上版 {origCount} 筆 → 草稿 {pomCount} 筆
+            {changed && <span style={{ marginLeft: '6px', color: '#b45309' }}>(有改動)</span>}
+          </div>
         </div>
       </div>
     </div>
@@ -3063,6 +3337,28 @@ function App() {
       setCStep(0);
     }
   };
+  /* 推送 POM 翻譯表草稿到 GitHub(透過 /api/push-pom-dict)。
+     成功時,前端本地 state(pomNames)也同步更新,不用等重新載入。 */
+  const pushPomDict = async (dict, { token, message } = {}) => {
+    const resp = await fetch('/api/push-pom-dict', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-admin-token': token || '' },
+      body: JSON.stringify({ dict, message }),
+    });
+    const raw = await resp.text();
+    let data = null;
+    try { data = raw ? JSON.parse(raw) : null; } catch {}
+    if (!resp.ok) {
+      const msg = data?.error || `HTTP ${resp.status}`;
+      const detail = data?.detail ? ` · ${String(data.detail).slice(0, 200)}` : '';
+      throw new Error(msg + detail);
+    }
+    // Commit 成功或 unchanged 都把 draft 同步到前端 state。
+    setPomNames(dict);
+    window.POM_NAMES = dict;
+    return data || {};
+  };
+
   const runMeasurement = () => {
     setMStep(1); setMAnalyzing(true); setMStage(0);
     setExcluded(new Set()); setOpenPom(null); setSizeRun("missy");
@@ -5326,6 +5622,8 @@ function App() {
       <AdminModal
         open={adminOpen}
         onClose={() => setAdminOpen(false)}
+        pomNames={pomNames}
+        onPushDict={pushPomDict}
       />
       <OnboardingModal open={onboardingOpen} onDismiss={dismissOnboarding} />
 
