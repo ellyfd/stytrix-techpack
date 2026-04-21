@@ -3749,8 +3749,8 @@ function App() {
         {(() => {
           const tabs = [
             { key: "construction", label: appMode === "universal" ? "作工建議 · ISO" : "作工建議", done: cDone, disabled: false },
-            { key: "measurement",  label: appMode === "universal" ? "基碼確認 · 基礎" : "基碼確認",   done: mDone, disabled: false },
-            { key: "grading",      label: appMode === "universal" ? "全碼 · 基礎"     : "全碼",
+            { key: "measurement",  label: "基碼確認",   done: mDone, disabled: false },
+            { key: "grading",      label: "全碼",
               done: mDone && displayIncludedCount > 0,
               disabled: !(mDone && currentBucket && displayIncludedCount > 0) },
           ];
