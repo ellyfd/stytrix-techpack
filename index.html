@@ -1932,10 +1932,19 @@ function App() {
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(setGradingPatterns)
       .catch(err => console.error('載入 grading_patterns 失敗:', err));
-    fetch('./pom_rules/pom_names.json')
+    fetch('./data/bodytype_variance.json')
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(setBodytypeVariance)
+      .catch(err => console.error('載入 bodytype_variance 失敗:', err));
+    // POM 翻譯表:primary = data/pom_dictionary.json(439 codes,含 en/zh),
+    // fallback = pom_rules/pom_names.json(舊版)。schema 一致 {code: {en, zh}}。
+    fetch('./data/pom_dictionary.json')
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(data => { setPomNames(data); window.POM_NAMES = data; })
-      .catch(err => console.error('載入 pom_rules/pom_names.json 失敗:', err));
+      .catch(() => fetch('./pom_rules/pom_names.json')
+        .then(r => r.ok ? r.json() : Promise.reject(r.status))
+        .then(data => { setPomNames(data); window.POM_NAMES = data; })
+        .catch(err => console.error('載入 pom_dictionary/pom_names 失敗:', err)));
   }, []);
 
   const [pomNames, setPomNames] = useState({});
@@ -2191,9 +2200,14 @@ function App() {
   // Plus sizes 有自己的 2X 基碼(獨立於 Missy M),預設不顯示 Plus
   const [plusBaseOverrides, setPlusBaseOverrides] = useState({});
   const [showPlus, setShowPlus] = useState(false);
-  // Size run:regular / petite / tall。非 regular 會在 sizeValueFor 加上
-  // bucket.size_run_offsets[sizeRunVariant][code] 的 offset(目前大多 bucket 還沒這層資料)
-  const [sizeRunVariant, setSizeRunVariant] = useState('regular');
+  // Petite / Tall 各自獨立的 M 基碼覆寫(基碼頁的並列欄位用),
+  // schema 跟 plusBaseOverrides 一樣 ({ code: "value-string" })。
+  const [petiteBaseOverrides, setPetiteBaseOverrides] = useState({});
+  const [tallBaseOverrides, setTallBaseOverrides] = useState({});
+  // 全碼頁身型 sub-tab(radio 單選):'regular' | 'petite' | 'tall'。
+  // 切換時整張全碼表的 M 基碼換成 <bt>_M(來自 bodytype_variance),
+  // 跳檔仍走 Missy 的 grading_patterns / typical_increment(使用者明示)。
+  const [gradingBodytype, setGradingBodytype] = useState('regular');
   // 顯示單位/格式切換(只影響顯示;內部資料一律為英吋 float)
   // displayUnit: 'in' | 'cm';  displayFormat: 'fraction' | 'decimal' (僅 inch 時有效,cm 固定小數)
   const [displayUnit, setDisplayUnit] = useState('in');
@@ -2281,8 +2295,10 @@ function App() {
     setCollapsedTiers(new Set());
     setBaseOverrides({});
     setPlusBaseOverrides({});
+    setPetiteBaseOverrides({});
+    setTallBaseOverrides({});
     setShowPlus(false);
-    setSizeRunVariant('regular');
+    setGradingBodytype('regular');
     setUserAddedCodes(new Set());
     setCustomPoms([]);
   }, [currentBucket?.bucket]);
@@ -4123,23 +4139,22 @@ function App() {
               const plusSeq = sizes.filter(isPlus).slice().sort((a, b) => parseInt(a) - parseInt(b));
               const plusAnchor = plusSeq[0] || "2X";
               const hasPlus = plusSeq.length > 0;
-              const runOffsets = currentBucket.size_run_offsets || {};
-              const activeOffsets = sizeRunVariant === 'regular' ? null : (runOffsets[sizeRunVariant] || null);
-              const hasRunData = !!activeOffsets && Object.keys(activeOffsets).length > 0;
               // bodytype_variance lookup(data/bodytype_variance.json):
               // key = GENDER|GT|<BT>,值為 { m_size_comparison, grading_deltas }。
-              // 當 sizeRunVariant 是 petite/tall 時,swap 每個 POM 的 M 基碼為 <bt>_M。
-              const bodytypeKeyFor = (bt) => (gender && gt) ? `${gender}|${gt}|${bt.toUpperCase()}` : null;
+              // 基碼頁:Petite/Tall 各自一欄;每個 POM 從 m_size_comparison.<bt>_M 取絕對值。
               const bodytypeEntryFor = (bt) => {
-                const k = bodytypeKeyFor(bt);
-                return (k && bodytypeVariance) ? (bodytypeVariance[k] || null) : null;
+                if (!gender || !gt || !bodytypeVariance) return null;
+                return bodytypeVariance[`${gender}|${gt}|${bt.toUpperCase()}`] || null;
               };
-              const activeBodytypeEntry = sizeRunVariant === 'regular' ? null : bodytypeEntryFor(sizeRunVariant);
-              // Run 選項:有 bucket 內建 size_run_offsets 就算,否則看 bodytype_variance 有沒有對應資料
-              const availableRuns = ['regular', ...['petite','tall'].filter(bt => {
-                if (runOffsets[bt] && Object.keys(runOffsets[bt]).length > 0) return true;
-                return !!bodytypeEntryFor(bt);
-              })];
+              const petiteEntry = bodytypeEntryFor('petite');
+              const tallEntry = bodytypeEntryFor('tall');
+              const hasPetiteData = !!(petiteEntry && petiteEntry.m_size_comparison && Object.keys(petiteEntry.m_size_comparison).length > 0);
+              const hasTallData = !!(tallEntry && tallEntry.m_size_comparison && Object.keys(tallEntry.m_size_comparison).length > 0);
+              // 取某 POM 的 <bt>_M(petite_M / tall_M)絕對值;沒對應 entry 回 null。
+              const btMFor = (entry, code, btKey) => {
+                const msc = entry?.m_size_comparison?.[code];
+                return (msc && msc[btKey] != null) ? msc[btKey] : null;
+              };
               const tierOf = code => mr.must?.[code] ? "must" : mr.recommend?.[code] ? "recommend" : (mr.optional?.[code] ? "optional" : "custom");
               // Foundational (tier-1 enforced) POM codes — 不管 rate 多少都被強制進 must。
               // UI 以 ★ 標示區別「歷史 rate 高進 must」vs「tier-1 強制進 must」。
@@ -4211,28 +4226,42 @@ function App() {
                       </div>
                       <button onClick={runMeasurement} style={btnStyle({ variant: 'secondary', isMobile })}>Re-generate</button>
                     </div>
-                    {/* Size 擴展控制列(Run / Plus / 單位 / 格式)— 跟全碼頁共用 state,兩邊同步 */}
+                    {/* Size 擴展控制列(身型 checkbox / 單位 / 格式)— Petite/Tall/Plus 都用 checkbox
+                        加欄,跟主表「Base (M)」並列;Plus 走 2X anchor、Petite/Tall 走 bodytype_variance。 */}
                     <div style={{ display: "flex", alignItems: "center", gap: isMobile ? "10px" : "14px", flexWrap: "wrap", marginTop: isMobile ? "8px" : "14px", paddingTop: isMobile ? "6px" : "12px", borderTop: "1px dashed #eee" }}>
-                      {availableRuns.length > 1 && (
-                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                        <span style={{ fontSize: "11px", color: "#888", fontWeight: 500 }}>Run</span>
-                        <div style={pillGroupStyle}>
-                          {availableRuns.map((run, i) => {
-                            const active = sizeRunVariant === run;
-                            return (
-                              <button key={run} onClick={() => setSizeRunVariant(run)}
-                                style={{
-                                  ...pillBtn(active),
-                                  borderRight: i !== availableRuns.length - 1 ? `1px solid ${T.c.border}` : "none",
-                                }}>
-                                {run === 'regular' ? 'Regular' : run === 'petite' ? 'Petite' : 'Tall'}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                      )}
                       <UnitFormatToggle displayUnit={displayUnit} setDisplayUnit={changeUnit} displayFormat={displayFormat} setDisplayFormat={changeFormat} />
+                      <label
+                        title={hasPetiteData ? "" : "此 GT × Gender 在 bodytype_variance 無 Petite 歷史資料"}
+                        style={{
+                          display: "flex", alignItems: "center", gap: "5px", padding: "6px 12px",
+                          borderRadius: "6px", cursor: hasPetiteData ? "pointer" : "not-allowed",
+                          fontSize: "11px", fontWeight: 600, userSelect: "none",
+                          background: showPetite && hasPetiteData ? "#f5f3ff" : "#fff",
+                          border: showPetite && hasPetiteData ? "1.5px solid #c4b5fd" : "1.5px solid #e8e5e1",
+                          color: !hasPetiteData ? "#bbb" : (showPetite ? "#7e22ce" : "#888"),
+                          opacity: hasPetiteData ? 1 : 0.5, transition: "all 0.15s",
+                        }}>
+                        <input type="checkbox" checked={showPetite && hasPetiteData} disabled={!hasPetiteData}
+                          onChange={() => setShowPetite(!showPetite)}
+                          style={{ width: "14px", height: "14px", accentColor: "#7e22ce" }} />
+                        +PETITE
+                      </label>
+                      <label
+                        title={hasTallData ? "" : "此 GT × Gender 在 bodytype_variance 無 Tall 歷史資料"}
+                        style={{
+                          display: "flex", alignItems: "center", gap: "5px", padding: "6px 12px",
+                          borderRadius: "6px", cursor: hasTallData ? "pointer" : "not-allowed",
+                          fontSize: "11px", fontWeight: 600, userSelect: "none",
+                          background: showTall && hasTallData ? "#eff6ff" : "#fff",
+                          border: showTall && hasTallData ? "1.5px solid #93c5fd" : "1.5px solid #e8e5e1",
+                          color: !hasTallData ? "#bbb" : (showTall ? "#1d4ed8" : "#888"),
+                          opacity: hasTallData ? 1 : 0.5, transition: "all 0.15s",
+                        }}>
+                        <input type="checkbox" checked={showTall && hasTallData} disabled={!hasTallData}
+                          onChange={() => setShowTall(!showTall)}
+                          style={{ width: "14px", height: "14px", accentColor: "#1d4ed8" }} />
+                        +TALL
+                      </label>
                       {hasPlus && (
                         <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "#555", cursor: "pointer", userSelect: "none" }}>
                           <input type="checkbox" checked={showPlus} onChange={e => setShowPlus(e.target.checked)}
@@ -4295,6 +4324,12 @@ function App() {
                       <div style={{ fontSize: isMobile ? "12px" : "15px", fontWeight: 700, color: "#1a1a1a" }}>
                         基碼 <span style={{ fontSize: isMobile ? "10px" : "13px", color: "#888", fontWeight: 400 }}>{isMobile ? "M size · 勾選 POM" : "M size 基本尺寸 · 勾選要納入的 POM，並可手動調整尺寸"}</span>
                       </div>
+                      {tier1Set.size > 0 && (
+                        <span style={{ fontSize: isMobile ? "10px" : "11px", color: "#0891b2", background: "#ecfeff", padding: "2px 8px", borderRadius: "6px", fontWeight: 500 }}
+                          title="Foundational:歷史不論 rate 都強制納入,不能隱藏">
+                          ★ <span style={{ color: "#0e7490" }}>= Foundational(強制納入)</span>
+                        </span>
+                      )}
                       <button onClick={() => setAddPomOpen(true)}
                         style={{
                           ...btnStyle({ variant: 'ghost', isMobile }),
@@ -4317,6 +4352,12 @@ function App() {
                             <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#888", minWidth: isMobile ? "110px" : "140px" }}>中文{isMobile ? <span style={{ fontSize: "10px", fontWeight: 400, color: "#bbb", marginLeft: "3px" }}>/ EN</span> : <span style={{ fontSize: "10px", fontWeight: 400, color: "#bbb", marginLeft: "4px" }}>(雙擊可改)</span>}</th>
                             <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#888", width: isMobile ? "52px" : "80px" }}>公差</th>
                             <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#065f46", width: isMobile ? "80px" : "110px" }}>Base (M)</th>
+                            {showPetite && hasPetiteData && (
+                              <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#7e22ce", width: isMobile ? "80px" : "110px" }}>Base (Petite M){!isMobile && <div style={{ fontSize: "10px", fontWeight: 400, color: "#7e22ce" }}>vs Regular delta</div>}</th>
+                            )}
+                            {showTall && hasTallData && (
+                              <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#1d4ed8", width: isMobile ? "80px" : "110px" }}>Base (Tall M){!isMobile && <div style={{ fontSize: "10px", fontWeight: 400, color: "#1d4ed8" }}>vs Regular delta</div>}</th>
+                            )}
                             {showPlus && hasPlus && (
                               <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#be185d", width: isMobile ? "80px" : "110px" }}>Base ({plusAnchor}){!isMobile && <div style={{ fontSize: "10px", fontWeight: 400, color: "#be185d" }}>Plus 獨立</div>}</th>
                             )}
@@ -4330,7 +4371,11 @@ function App() {
                             const collapsed = collapsedTiers.has(tier);
                             const selectedCount = codes.filter(c => !excluded.has(c)).length;
                             const allOn = selectedCount === codes.length;
-                            const tierColspan = (isMobile ? 4 : 5) - (appMode === "universal" ? 1 : 0) + (showPlus && hasPlus ? 1 : 0);
+                            const tierColspan = (isMobile ? 4 : 5)
+                              - (appMode === "universal" ? 1 : 0)
+                              + ((showPetite && hasPetiteData) ? 1 : 0)
+                              + ((showTall && hasTallData) ? 1 : 0)
+                              + (showPlus && hasPlus ? 1 : 0);
                             return (
                               <React.Fragment key={tier}>
                                 <tr style={{ background: tc.bg, cursor: "pointer" }}>
@@ -4362,14 +4407,7 @@ function App() {
                                   const m = tier === "custom" ? (customMeta ? { tolerance: customMeta.tolerance } : null) : mr[tier]?.[code];
                                   const mvRow = mv[code];
                                   const pending = tier !== "custom" && isLengthPending(code);
-                                  const regularM = pending ? null : (tier === "custom" ? null : mvRow?.size_medians?.M);
-                                  // bodytype variance:切到 petite/tall 時,用 <bt>_M 取代 regular M。
-                                  // 沒對應 entry(該 POM 在該身型無資料)就退回 regular M。
-                                  const btMsc = activeBodytypeEntry?.m_size_comparison?.[code];
-                                  const btKey = sizeRunVariant + '_M'; // "petite_M" / "tall_M"
-                                  const btM = btMsc && btMsc[btKey] != null ? btMsc[btKey] : null;
-                                  const baseM = (sizeRunVariant !== 'regular' && btM != null) ? btM : regularM;
-                                  const btDelta = (btMsc && btMsc.delta != null) ? btMsc.delta : null;
+                                  const baseM = pending ? null : (tier === "custom" ? null : mvRow?.size_medians?.M);
                                   const included = !excluded.has(code);
                                   const pn = pomNames[code] || {};
                                   const ov = baseOverrides[code] ?? "";
@@ -4495,13 +4533,91 @@ function App() {
                                             background: "#fff",
                                           }} />
                                         <span style={{ fontSize: isMobile ? "11px" : "13px", color: "#065f46", marginLeft: "2px" }}>{unitSuffix.trim()}</span>
-                                        {sizeRunVariant !== 'regular' && btDelta != null && btDelta !== 0 && (
-                                          <div style={{ fontSize: "10px", color: "#7e22ce", marginTop: "2px", fontFamily: "'JetBrains Mono',monospace" }}
-                                            title={`vs regular M = ${fmtDisp(regularM)}${unitSuffix}`}>
-                                            {btDelta > 0 ? '+' : ''}{fmtDisp(btDelta)}{unitSuffix.trim()} vs regular
-                                          </div>
-                                        )}
                                       </td>
+                                      {/* Petite M(從 bodytype_variance 取絕對值,delta 顯示在欄位下) */}
+                                      {showPetite && hasPetiteData && (() => {
+                                        const ptM = pending ? null : btMFor(petiteEntry, code, 'petite_M');
+                                        const ovP = petiteBaseOverrides[code] ?? "";
+                                        const invalidP = ovP !== "" && parseVal(ovP) == null;
+                                        const displayP = ovP !== "" ? ovP : (ptM != null ? fmtDisp(ptM) : "");
+                                        const deltaP = (ptM != null && baseM != null) ? (ptM - baseM) : null;
+                                        return (
+                                          <td style={{ padding: isMobile ? "4px 4px" : "6px 12px", textAlign: "right", background: "#faf5ff" }}>
+                                            <input type="text" value={displayP}
+                                              onChange={(e) => setPetiteBaseOverrides(prev => ({ ...prev, [code]: e.target.value }))}
+                                              onBlur={() => {
+                                                const raw = petiteBaseOverrides[code];
+                                                if (raw == null || raw === "") return;
+                                                const parsed = parseVal(raw);
+                                                if (parsed == null) return;
+                                                const normalized = fmtDisp(parsed);
+                                                if (normalized !== "—" && normalized !== raw) {
+                                                  setPetiteBaseOverrides(prev => ({ ...prev, [code]: normalized }));
+                                                }
+                                              }}
+                                              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); } }}
+                                              disabled={!included}
+                                              placeholder={ptM != null ? fmtDisp(ptM) : "—"}
+                                              inputMode="text"
+                                              title={ptM == null ? "此 POM 在 Petite 無歷史資料" : undefined}
+                                              style={{
+                                                width: isMobile ? "66px" : "104px", textAlign: "right", padding: isMobile ? "5px 6px" : "7px 9px",
+                                                fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "14px", fontWeight: 700,
+                                                color: invalidP ? "#dc2626" : "#7e22ce",
+                                                border: `1px solid ${invalidP ? "#dc2626" : "#c4b5fd"}`, borderRadius: "6px",
+                                                background: "#fff",
+                                              }} />
+                                            <span style={{ fontSize: isMobile ? "11px" : "13px", color: "#7e22ce", marginLeft: "2px" }}>{unitSuffix.trim()}</span>
+                                            {deltaP != null && Math.abs(deltaP) > 1e-9 && (
+                                              <div style={{ fontSize: "10px", color: "#7e22ce", marginTop: "2px", fontFamily: "'JetBrains Mono',monospace" }}>
+                                                {deltaP > 0 ? '+' : ''}{fmtDisp(deltaP)}{unitSuffix.trim()} vs Regular
+                                              </div>
+                                            )}
+                                          </td>
+                                        );
+                                      })()}
+                                      {/* Tall M */}
+                                      {showTall && hasTallData && (() => {
+                                        const tlM = pending ? null : btMFor(tallEntry, code, 'tall_M');
+                                        const ovT = tallBaseOverrides[code] ?? "";
+                                        const invalidT = ovT !== "" && parseVal(ovT) == null;
+                                        const displayT = ovT !== "" ? ovT : (tlM != null ? fmtDisp(tlM) : "");
+                                        const deltaT = (tlM != null && baseM != null) ? (tlM - baseM) : null;
+                                        return (
+                                          <td style={{ padding: isMobile ? "4px 4px" : "6px 12px", textAlign: "right", background: "#eff6ff" }}>
+                                            <input type="text" value={displayT}
+                                              onChange={(e) => setTallBaseOverrides(prev => ({ ...prev, [code]: e.target.value }))}
+                                              onBlur={() => {
+                                                const raw = tallBaseOverrides[code];
+                                                if (raw == null || raw === "") return;
+                                                const parsed = parseVal(raw);
+                                                if (parsed == null) return;
+                                                const normalized = fmtDisp(parsed);
+                                                if (normalized !== "—" && normalized !== raw) {
+                                                  setTallBaseOverrides(prev => ({ ...prev, [code]: normalized }));
+                                                }
+                                              }}
+                                              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); } }}
+                                              disabled={!included}
+                                              placeholder={tlM != null ? fmtDisp(tlM) : "—"}
+                                              inputMode="text"
+                                              title={tlM == null ? "此 POM 在 Tall 無歷史資料" : undefined}
+                                              style={{
+                                                width: isMobile ? "66px" : "104px", textAlign: "right", padding: isMobile ? "5px 6px" : "7px 9px",
+                                                fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "14px", fontWeight: 700,
+                                                color: invalidT ? "#dc2626" : "#1d4ed8",
+                                                border: `1px solid ${invalidT ? "#dc2626" : "#93c5fd"}`, borderRadius: "6px",
+                                                background: "#fff",
+                                              }} />
+                                            <span style={{ fontSize: isMobile ? "11px" : "13px", color: "#1d4ed8", marginLeft: "2px" }}>{unitSuffix.trim()}</span>
+                                            {deltaT != null && Math.abs(deltaT) > 1e-9 && (
+                                              <div style={{ fontSize: "10px", color: "#1d4ed8", marginTop: "2px", fontFamily: "'JetBrains Mono',monospace" }}>
+                                                {deltaT > 0 ? '+' : ''}{fmtDisp(deltaT)}{unitSuffix.trim()} vs Regular
+                                              </div>
+                                            )}
+                                          </td>
+                                        );
+                                      })()}
                                       {showPlus && hasPlus && (() => {
                                         const base2X = pending ? null : mvRow?.size_medians?.[plusAnchor];
                                         const ov2 = plusBaseOverrides[code] ?? "";
@@ -4771,20 +4887,31 @@ function App() {
                 if (base == null) return "—";
                 return "±" + fmtDisp(base) + unitSuffix;
               };
+              // gradingBodytype sub-tab(全碼頁專用):'regular' | 'petite' | 'tall'。
+              // 只替換每個 POM 的 M 基碼為 bodytype_variance 的 <bt>_M;跳檔仍走 Missy。
+              const gradingBtEntry = (gradingBodytype !== 'regular' && gender && gt && bodytypeVariance)
+                ? (bodytypeVariance[`${gender}|${gt}|${gradingBodytype.toUpperCase()}`] || null)
+                : null;
+              const hasGradingPetite = !!(bodytypeVariance?.[`${gender}|${gt}|PETITE`]?.m_size_comparison
+                && Object.keys(bodytypeVariance[`${gender}|${gt}|PETITE`].m_size_comparison).length > 0);
+              const hasGradingTall = !!(bodytypeVariance?.[`${gender}|${gt}|TALL`]?.m_size_comparison
+                && Object.keys(bodytypeVariance[`${gender}|${gt}|TALL`].m_size_comparison).length > 0);
               const effectiveBaseM = code => {
                 const ov = baseOverrides[code];
                 if (ov != null && ov !== "") {
                   const v = parseVal(ov);
                   if (v != null) return v;
                 }
-                // bodytype variance:非 regular 且有 <bt>_M 就用它,否則退回 regular M
-                const btMsc = sizeRunVariant !== 'regular'
-                  ? bodytypeVariance?.[`${gender}|${gt}|${sizeRunVariant.toUpperCase()}`]?.m_size_comparison?.[code]
-                  : null;
-                const btMKey = sizeRunVariant + '_M';
-                if (btMsc && btMsc[btMKey] != null) return btMsc[btMKey];
+                // sub-tab=Petite/Tall 時,M 換成 <bt>_M(沒對應就回退 regular)
+                if (gradingBtEntry) {
+                  const msc = gradingBtEntry.m_size_comparison?.[code];
+                  const btKey = gradingBodytype + '_M';
+                  if (msc && msc[btKey] != null) return msc[btKey];
+                }
                 return mv[code]?.size_medians?.M;
               };
+              // tier1 set + ★ 圖例觸發
+              const gradingTier1Set = new Set(currentBucket.foundational_measurements?.tier1_poms || []);
               // 全碼 size 值:
               // Missy (XXS/XS/S/M/L/XL/XXL) 用 M + 步進 × 跳碼 推導 — M 改整條跟著走。
               // Plus (1X/2X/3X/4X) 完全獨立:自己的基碼 2X,不受 Missy M 影響。
@@ -4852,37 +4979,6 @@ function App() {
                 }
                 return v;
               };
-              // 從 fromIdx 走到 toIdx,每步用 array[i] 當 delta(i = 前一個 size 的 index);
-              // 用於 bodytype_variance.grading_deltas 的 <bt>_grading array(跟 missySeq pair 一一對應)
-              const walkArray = (arr, fromIdx, toIdx, fromValue) => {
-                if (fromIdx === toIdx) return fromValue;
-                let v = fromValue;
-                if (toIdx > fromIdx) {
-                  for (let i = fromIdx; i < toIdx; i++) {
-                    if (arr[i] == null) return null;
-                    v += arr[i];
-                  }
-                } else {
-                  for (let i = fromIdx - 1; i >= toIdx; i--) {
-                    if (arr[i] == null) return null;
-                    v -= arr[i];
-                  }
-                }
-                return v;
-              };
-              // bodytype_variance entry for this run(gender|gt|<bt>),non-regular 時才查
-              const activeBodytypeEntry = sizeRunVariant !== 'regular'
-                ? (bodytypeVariance?.[`${gender}|${gt}|${sizeRunVariant.toUpperCase()}`] || null)
-                : null;
-              // 某 POM 的 <bt>_grading array(僅在 same_pattern=false 時返回;same_pattern=true 代表
-              // 跳檔同 regular,不需覆寫);找不到 / same_pattern=true / 結構不符都回 null。
-              const btGradingFor = (code) => {
-                if (!activeBodytypeEntry) return null;
-                const gd = activeBodytypeEntry.grading_deltas?.[code];
-                if (!gd || gd.same_pattern !== false) return null;
-                const arr = gd[sizeRunVariant + '_grading'];
-                return Array.isArray(arr) ? arr : null;
-              };
               const sizeValueFor = (code, s) => {
                 if (isLengthPending(code) && !(baseOverrides[code] && parseInch(baseOverrides[code]) != null)) {
                   return null;
@@ -4916,13 +5012,9 @@ function App() {
                   if (newM == null) v = origS ?? null;
                   else if (mIdxMissy >= 0) {
                     const sIdx = missySeq.indexOf(s);
-                    // 最高優先:bodytype_variance.<bt>_grading array(same_pattern=false 的 POM 才有)
-                    const btArr = btGradingFor(code);
-                    if (sIdx >= 0 && btArr) {
-                      v = walkArray(btArr, mIdxMissy, sIdx, newM);
-                    }
-                    // 次優:grading_patterns pairs(非線性,respects inflection)
-                    if (v == null && sIdx >= 0 && pairs) {
+                    // 跳檔一律走 Missy 的邏輯(grading_patterns pairs → typical_increment 線性 → orig shift)
+                    // sub-tab=Petite/Tall 只影響 newM(已從 effectiveBaseM 套 <bt>_M),跳檔不另外讀 bt_grading。
+                    if (sIdx >= 0 && pairs) {
                       v = walkPairs(pairs, missySeq, mIdxMissy, sIdx, newM);
                     }
                     if (v == null) {
@@ -4940,23 +5032,11 @@ function App() {
               };
               // 顯示哪些 sizes:預設只 missy;showPlus=true 才 append plus
               const visibleSizes = showPlus ? [...missySeq, ...plusSeq] : missySeq;
-              // Size run offset:非 regular 時,每個 POM 加上 bucket 提供的 offset
-              // (schema: size_run_offsets = { petite: {code: delta}, tall: {code: delta} })
+              // size_run_offsets 是 legacy 結構(bucket 大多沒有此欄),保留以防舊 bucket 還在用。
+              // bodytype 切換改走 gradingBodytype + bodytype_variance,不再透過 offset 加總。
               const runOffsets = currentBucket.size_run_offsets || {};
-              const activeOffsets = sizeRunVariant === 'regular' ? null : (runOffsets[sizeRunVariant] || null);
-              const hasRunData = !!activeOffsets && Object.keys(activeOffsets).length > 0;
-              // Run 選項:有 bucket 內建 size_run_offsets 就算,否則看 bodytype_variance 有沒有對應資料
-              // (bodytype_variance 讓基碼頁的 M 切換 + grading array 覆寫在全碼頁也能同步套)
-              const availableRuns = ['regular', ...['petite','tall'].filter(bt => {
-                if (runOffsets[bt] && Object.keys(runOffsets[bt]).length > 0) return true;
-                const k = (gender && gt) ? `${gender}|${gt}|${bt.toUpperCase()}` : null;
-                return !!(k && bodytypeVariance?.[k]);
-              })];
-              const applyRunOffset = (code, v) => {
-                if (v == null || !activeOffsets) return v;
-                const d = activeOffsets[code];
-                return d != null ? v + d : v;
-              };
+              const activeOffsets = null; // bodytype 走 effectiveBaseM swap,不再用 offset
+              const applyRunOffset = (code, v) => v; // no-op,留 callsite 不破
 
               return (
                 <div style={{ animation: "slideUp 0.3s ease", paddingBottom: "24px" }}>
@@ -4987,26 +5067,36 @@ function App() {
                         </div>
                       </div>
                     </div>
-                    {/* Size 擴展控制列(Run / Plus / 單位 / 格式)— 跟基碼頁共用 state,兩邊同步 */}
+                    {/* Size 擴展控制列:Body Type sub-tab(單選)+ Plus checkbox(獨立加欄)+ 單位 */}
                     <div style={{ display: "flex", alignItems: "center", gap: isMobile ? "10px" : "14px", flexWrap: "wrap", marginTop: isMobile ? "8px" : "14px", paddingTop: isMobile ? "6px" : "12px", borderTop: "1px dashed #eee" }}>
-                      {availableRuns.length > 1 && (
-                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                        <span style={{ fontSize: "11px", color: "#888", fontWeight: 500 }}>Run</span>
-                        <div style={pillGroupStyle}>
-                          {availableRuns.map((run, i) => {
-                            const active = sizeRunVariant === run;
-                            return (
-                              <button key={run} onClick={() => setSizeRunVariant(run)}
-                                style={{
-                                  ...pillBtn(active),
-                                  borderRight: i !== availableRuns.length - 1 ? `1px solid ${T.c.border}` : "none",
-                                }}>
-                                {run === 'regular' ? 'Regular' : run === 'petite' ? 'Petite' : 'Tall'}
-                              </button>
-                            );
-                          })}
+                      {(hasGradingPetite || hasGradingTall) && (
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                          <span style={{ fontSize: "11px", color: "#888", fontWeight: 500 }}>Body</span>
+                          <div style={pillGroupStyle}>
+                            {[
+                              { v: 'regular', label: 'Regular', activeBg: '#1a1a1a', activeFg: '#fff', enabled: true },
+                              { v: 'petite',  label: 'Petite',  activeBg: '#7e22ce', activeFg: '#fff', enabled: hasGradingPetite },
+                              { v: 'tall',    label: 'Tall',    activeBg: '#1d4ed8', activeFg: '#fff', enabled: hasGradingTall },
+                            ].map((opt, i, arr) => {
+                              const active = gradingBodytype === opt.v;
+                              return (
+                                <button key={opt.v}
+                                  disabled={!opt.enabled}
+                                  onClick={() => opt.enabled && setGradingBodytype(opt.v)}
+                                  title={opt.enabled ? "" : `此 GT × Gender 在 bodytype_variance 無 ${opt.label} 歷史資料`}
+                                  style={{
+                                    padding: "6px 14px", fontSize: "11px", fontWeight: 700,
+                                    border: "none", borderRight: i !== arr.length - 1 ? `1px solid ${T.c.border}` : "none",
+                                    background: active && opt.enabled ? opt.activeBg : "transparent",
+                                    color: !opt.enabled ? "#bbb" : (active ? opt.activeFg : "#555"),
+                                    cursor: opt.enabled ? "pointer" : "not-allowed",
+                                    opacity: opt.enabled ? 1 : 0.5,
+                                    fontFamily: "inherit", transition: "all 0.15s",
+                                  }}>{opt.label}</button>
+                              );
+                            })}
+                          </div>
                         </div>
-                      </div>
                       )}
                       <UnitFormatToggle displayUnit={displayUnit} setDisplayUnit={changeUnit} displayFormat={displayFormat} setDisplayFormat={changeFormat} />
                       {hasPlus && (
@@ -5016,7 +5106,25 @@ function App() {
                           顯示 Plus sizes <span style={{ fontSize: "10px", color: "#888" }}>({plusSeq.join("/")} · 自有基碼 {plusAnchor})</span>
                         </label>
                       )}
+                      {gradingTier1Set.size > 0 && (
+                        <span style={{ fontSize: "11px", color: "#0891b2", background: "#ecfeff", padding: "2px 8px", borderRadius: "6px", fontWeight: 500, marginLeft: "auto" }}
+                          title="Foundational:歷史不論 rate 都強制納入,不能隱藏">
+                          ★ <span style={{ color: "#0e7490" }}>= Foundational</span>
+                        </span>
+                      )}
                     </div>
+                    {gradingBodytype !== 'regular' && (
+                      <div style={{
+                        marginTop: "8px", padding: "8px 12px", borderRadius: "8px",
+                        background: gradingBodytype === 'petite' ? "#faf5ff" : "#eff6ff",
+                        border: `1.5px solid ${gradingBodytype === 'petite' ? "#e9d5ff" : "#bfdbfe"}`,
+                        fontSize: "11px", color: gradingBodytype === 'petite' ? "#7e22ce" : "#1d4ed8",
+                      }}>
+                        <strong>{gradingBodytype === 'petite' ? 'PETITE' : 'TALL'}</strong>
+                        {" · M 基碼套 "}<code style={{ background: "transparent", fontFamily: "'JetBrains Mono',monospace" }}>{gradingBodytype}_M</code>
+                        {" · 跳檔同 Missy(grading_patterns / typical_increment)"}
+                      </div>
+                    )}
                   </div>
 
                   {gradingCodes.length === 0 ? (
@@ -5056,8 +5164,12 @@ function App() {
                             return (
                               <tr key={code} style={{ borderBottom: "1px solid #f0eeeb" }}>
                                 {appMode !== "universal" && (
-                                  <td style={{ padding: isMobile ? "7px 6px" : "9px 12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "14px", color: tc.c, position: "sticky", left: 0, background: "#fff" }}>
+                                  <td style={{ padding: isMobile ? "7px 6px" : "9px 12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "14px", color: tc.c, position: "sticky", left: 0, background: "#fff", whiteSpace: "nowrap" }}>
                                     {code}
+                                    {gradingTier1Set.has(code) && (
+                                      <span title="Tier-1 Foundational:不論 rate 多少都強制進 must,不能隱藏"
+                                        style={{ marginLeft: "4px", color: "#0891b2", fontSize: "11px" }}>★</span>
+                                    )}
                                     {isMobile && edited && <span style={{ marginLeft: "3px", fontSize: "10px", color: "#7e22ce", fontWeight: 600 }}>●</span>}
                                   </td>
                                 )}
