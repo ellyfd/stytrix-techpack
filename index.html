@@ -1573,13 +1573,13 @@ function UnitFormatToggle({ displayUnit, setDisplayUnit, displayFormat, setDispl
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
       <div style={pillGroupStyle}>
-        <button onClick={() => setDisplayUnit('in')} style={{ ...pillBtn(displayUnit === 'in'), borderRight: `1px solid ${T.c.border}` }} aria-label="英吋">in</button>
-        <button onClick={() => setDisplayUnit('cm')} style={pillBtn(displayUnit === 'cm')} aria-label="公分">cm</button>
+        <button onClick={() => setDisplayUnit('in')} style={{ ...pillBtn(displayUnit === 'in'), borderRight: `1px solid ${T.c.border}` }} aria-label="英吋">英吋</button>
+        <button onClick={() => setDisplayUnit('cm')} style={pillBtn(displayUnit === 'cm')} aria-label="公分">公分</button>
       </div>
       {displayUnit === 'in' && (
         <div style={pillGroupStyle}>
-          <button onClick={() => setDisplayFormat('fraction')} style={{ ...pillBtn(displayFormat === 'fraction'), borderRight: `1px solid ${T.c.border}` }} aria-label="分數">1/2</button>
-          <button onClick={() => setDisplayFormat('decimal')} style={pillBtn(displayFormat === 'decimal')} aria-label="小數">0.5</button>
+          <button onClick={() => setDisplayFormat('fraction')} style={{ ...pillBtn(displayFormat === 'fraction'), borderRight: `1px solid ${T.c.border}` }} aria-label="分數">分數</button>
+          <button onClick={() => setDisplayFormat('decimal')} style={pillBtn(displayFormat === 'decimal')} aria-label="小數">小數</button>
         </div>
       )}
     </div>
@@ -4273,7 +4273,7 @@ function App() {
                         }}>
                           <input type="checkbox" checked={showPlus} onChange={e => setShowPlus(e.target.checked)}
                             style={{ width: "14px", height: "14px", accentColor: "#be185d" }} />
-                          +PLUS <span style={{ fontSize: "10px", opacity: 0.6 }}>{plusSeq.join("/")} · 自有 {plusAnchor}</span>
+                          +PLUS
                         </label>
                       )}
                     </div>
@@ -4349,24 +4349,24 @@ function App() {
                       <table style={{ width: "100%", minWidth: isMobile ? (showPlus && hasPlus ? "500px" : "420px") : "auto", borderCollapse: "collapse", fontSize: isMobile ? "12px" : "14px" }}>
                         <thead>
                           <tr style={{ background: "#faf9f7", borderBottom: "1.5px solid #e8e5e1" }}>
-                            <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#888", width: isMobile ? "24px" : "30px" }}>✓</th>
+                            <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#525252", width: isMobile ? "24px" : "30px" }}>✓</th>
                             {appMode !== "universal" && (
-                              <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#888", width: isMobile ? "38px" : "56px" }}>POM</th>
+                              <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#525252", width: isMobile ? "38px" : "56px" }}>POM</th>
                             )}
                             {!isMobile && (
-                              <th style={{ padding: "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#888" }}>Name<span style={{ fontSize: "10px", fontWeight: 400, color: "#bbb", marginLeft: "4px" }}>(雙擊可改)</span></th>
+                              <th style={{ padding: "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "13px", color: "#525252" }}>Name<span style={{ fontSize: "11px", fontWeight: 400, color: "#999", marginLeft: "4px" }}>(雙擊可改)</span></th>
                             )}
-                            <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "10px", color: "#888", minWidth: isMobile ? "110px" : "140px" }}>中文{isMobile ? <span style={{ fontSize: "10px", fontWeight: 400, color: "#bbb", marginLeft: "3px" }}>/ EN</span> : <span style={{ fontSize: "10px", fontWeight: 400, color: "#bbb", marginLeft: "4px" }}>(雙擊可改)</span>}</th>
-                            <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#888", width: isMobile ? "52px" : "80px" }}>公差</th>
-                            <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#065f46", width: isMobile ? "80px" : "110px" }}>Base (M)</th>
+                            <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#525252", minWidth: isMobile ? "110px" : "140px" }}>中文{isMobile ? <span style={{ fontSize: "10px", fontWeight: 400, color: "#999", marginLeft: "3px" }}>/ EN</span> : <span style={{ fontSize: "11px", fontWeight: 400, color: "#999", marginLeft: "4px" }}>(雙擊可改)</span>}</th>
+                            <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#525252", width: isMobile ? "52px" : "80px" }}>公差</th>
+                            <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#065f46", width: isMobile ? "80px" : "110px" }}>Base (M)</th>
                             {showPetite && hasPetiteData && (
-                              <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#7e22ce", width: isMobile ? "80px" : "110px" }}>Base (Petite M){!isMobile && <div style={{ fontSize: "10px", fontWeight: 400, color: "#7e22ce" }}>vs Regular delta</div>}</th>
+                              <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#7e22ce", width: isMobile ? "80px" : "110px" }}>Base (Petite M){!isMobile && <div style={{ fontSize: "11px", fontWeight: 400, color: "#7e22ce" }}>vs Regular delta</div>}</th>
                             )}
                             {showTall && hasTallData && (
-                              <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#1d4ed8", width: isMobile ? "80px" : "110px" }}>Base (Tall M){!isMobile && <div style={{ fontSize: "10px", fontWeight: 400, color: "#1d4ed8" }}>vs Regular delta</div>}</th>
+                              <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#1d4ed8", width: isMobile ? "80px" : "110px" }}>Base (Tall M){!isMobile && <div style={{ fontSize: "11px", fontWeight: 400, color: "#1d4ed8" }}>vs Regular delta</div>}</th>
                             )}
                             {showPlus && hasPlus && (
-                              <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "10px", color: "#be185d", width: isMobile ? "80px" : "110px" }}>Base ({plusAnchor}){!isMobile && <div style={{ fontSize: "10px", fontWeight: 400, color: "#be185d" }}>Plus 獨立</div>}</th>
+                              <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#be185d", width: isMobile ? "80px" : "110px" }}>Base ({plusAnchor}){!isMobile && <div style={{ fontSize: "11px", fontWeight: 400, color: "#be185d" }}>Plus 獨立</div>}</th>
                             )}
                           </tr>
                         </thead>
@@ -4904,7 +4904,13 @@ function App() {
               const hasGradingTall = !!(bodytypeVariance?.[`${gender}|${gt}|TALL`]?.m_size_comparison
                 && Object.keys(bodytypeVariance[`${gender}|${gt}|TALL`].m_size_comparison).length > 0);
               const effectiveBaseM = code => {
-                const ov = baseOverrides[code];
+                // Override 來源跟隨 gradingBodytype:Petite 編輯寫 petiteBaseOverrides、
+                // Tall 寫 tallBaseOverrides,Regular 才寫 baseOverrides。
+                // 這樣在 Petite sub-tab 編輯的 M 不會滲透到 Regular,也不會被 Regular override 蓋掉。
+                const ovSource = gradingBodytype === 'petite' ? petiteBaseOverrides
+                               : gradingBodytype === 'tall' ? tallBaseOverrides
+                               : baseOverrides;
+                const ov = ovSource[code];
                 if (ov != null && ov !== "") {
                   const v = parseVal(ov);
                   if (v != null) return v;
@@ -5117,7 +5123,7 @@ function App() {
                         }}>
                           <input type="checkbox" checked={showPlus} onChange={e => setShowPlus(e.target.checked)}
                             style={{ width: "14px", height: "14px", accentColor: "#be185d" }} />
-                          +PLUS <span style={{ fontSize: "10px", opacity: 0.6 }}>{plusSeq.join("/")} · 自有 {plusAnchor}</span>
+                          +PLUS
                         </label>
                       )}
                       {gradingTier1Set.size > 0 && (
@@ -5261,14 +5267,41 @@ function App() {
                                   const isMissyBase = s === "M";
                                   const isPlusBase = isPlus(s) && s === plusAnchor;
                                   if (isMissyBase || isPlusBase) {
-                                    const storeMap = isMissyBase ? baseOverrides : plusBaseOverrides;
-                                    const setStore = isMissyBase ? setBaseOverrides : setPlusBaseOverrides;
-                                    const rawBase = mv[code]?.size_medians?.[s];
+                                    // Missy M 編輯:依 gradingBodytype 分別寫入各自的 overrides 表;
+                                    // Plus 2X 一律寫 plusBaseOverrides(Plus 獨立於身型)。
+                                    const storeMap = isMissyBase
+                                      ? (gradingBodytype === 'petite' ? petiteBaseOverrides
+                                        : gradingBodytype === 'tall' ? tallBaseOverrides
+                                        : baseOverrides)
+                                      : plusBaseOverrides;
+                                    const setStore = isMissyBase
+                                      ? (gradingBodytype === 'petite' ? setPetiteBaseOverrides
+                                        : gradingBodytype === 'tall' ? setTallBaseOverrides
+                                        : setBaseOverrides)
+                                      : setPlusBaseOverrides;
+                                    // 預設顯示值:Missy 用 effectiveBaseM(會套 <bt>_M),Plus 直接吃 median
+                                    const rawBase = isMissyBase ? effectiveBaseM(code) : mv[code]?.size_medians?.[s];
                                     const ov = storeMap[code] ?? "";
                                     const invalid = ov !== "" && parseVal(ov) == null;
                                     const displayVal = ov !== "" ? ov : (rawBase != null ? fmtDisp(rawBase) : "");
+                                    // Missy M 欄位底色依 bodytype 顯示(紫/藍/綠)
+                                    const cellBg = isMissyBase
+                                      ? (gradingBodytype === 'petite' ? "#faf5ff"
+                                        : gradingBodytype === 'tall' ? "#eff6ff"
+                                        : "#ecfdf5")
+                                      : "#fdf2f8"; // Plus 2X
+                                    const borderColor = isMissyBase
+                                      ? (gradingBodytype === 'petite' ? "#c4b5fd"
+                                        : gradingBodytype === 'tall' ? "#93c5fd"
+                                        : "#a7f3d0")
+                                      : "#fbcfe8";
+                                    const fgColor = isMissyBase
+                                      ? (gradingBodytype === 'petite' ? "#7e22ce"
+                                        : gradingBodytype === 'tall' ? "#1d4ed8"
+                                        : "#065f46")
+                                      : "#be185d";
                                     return (
-                                      <td key={s} style={{ padding: isMobile ? "4px 4px" : "6px 8px", textAlign: "center", background: "#ecfdf5" }}>
+                                      <td key={s} style={{ padding: isMobile ? "4px 4px" : "6px 8px", textAlign: "center", background: cellBg }}>
                                         <input type="text" value={displayVal}
                                           onChange={(e) => setStore(prev => ({ ...prev, [code]: e.target.value }))}
                                           onBlur={() => {
@@ -5288,8 +5321,8 @@ function App() {
                                           style={{
                                             width: isMobile ? "62px" : "96px", textAlign: "center", padding: isMobile ? "5px 4px" : "7px 9px",
                                             fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "14px", fontWeight: 700,
-                                            color: invalid ? "#dc2626" : "#065f46",
-                                            border: `1px solid ${invalid ? "#dc2626" : "#a7f3d0"}`, borderRadius: "6px",
+                                            color: invalid ? "#dc2626" : fgColor,
+                                            border: `1px solid ${invalid ? "#dc2626" : borderColor}`, borderRadius: "6px",
                                             background: "#fff",
                                           }} />
                                       </td>
