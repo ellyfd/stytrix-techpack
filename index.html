@@ -432,6 +432,7 @@ const TIER = {
   must:      { label: "必備", bg: "#dc262615", c: "#dc2626", icon: "●" },
   recommend: { label: "建議", bg: "#b4530915", c: "#b45309", icon: "◐" },
   optional:  { label: "選配", bg: "#0369a115", c: "#0369a1", icon: "○" },
+  custom:    { label: "自訂", bg: "#7e22ce15", c: "#7e22ce", icon: "◇" },
 };
 
 /* Filter options — 對應 pom_rules 資料結構 */
@@ -1482,6 +1483,109 @@ function UnitFormatToggle({ displayUnit, setDisplayUnit, displayFormat, setDispl
     </div>
   );
 }
+
+/* 新增 POM 下拉:被 hide 的 bucket POMs 優先 + 多選 + 自訂欄位 */
+function AddPomMenu({ open, onClose, hiddenCodes, excludedCodes, pomNames, zhFor, enFor, onAddBucket, onAddCustom }) {
+  const [search, setSearch] = React.useState("");
+  const [picked, setPicked] = React.useState(() => new Set());
+  const [customCode, setCustomCode] = React.useState("");
+  const [customZh, setCustomZh] = React.useState("");
+  React.useEffect(() => {
+    if (!open) { setSearch(""); setPicked(new Set()); setCustomCode(""); setCustomZh(""); }
+  }, [open]);
+  if (!open) return null;
+  const norm = (s) => (s || "").toLowerCase();
+  const q = norm(search);
+  const matches = (c) => {
+    if (!q) return true;
+    const zh = norm(zhFor(c));
+    const en = norm(enFor(c));
+    return norm(c).includes(q) || zh.includes(q) || en.includes(q);
+  };
+  const hidden = hiddenCodes.filter(matches);
+  const exc = excludedCodes.filter(matches);
+  const togglePick = (c) => setPicked(prev => {
+    const n = new Set(prev); n.has(c) ? n.delete(c) : n.add(c); return n;
+  });
+  const apply = () => {
+    if (picked.size > 0) onAddBucket([...picked]);
+    const codeTrim = (customCode || "").trim();
+    if (codeTrim) onAddCustom(codeTrim, (customZh || "").trim());
+    onClose();
+  };
+  const renderRow = (c, label) => (
+    <label key={c} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "7px 10px", borderRadius: "6px", cursor: "pointer", background: picked.has(c) ? "#f5f3ff" : "transparent" }}
+      onMouseEnter={e => { if (!picked.has(c)) e.currentTarget.style.background = "#faf9f7"; }}
+      onMouseLeave={e => { if (!picked.has(c)) e.currentTarget.style.background = "transparent"; }}>
+      <input type="checkbox" checked={picked.has(c)} onChange={() => togglePick(c)} style={{ width: "14px", height: "14px", cursor: "pointer" }} />
+      <span style={{ fontFamily: "'JetBrains Mono',monospace", fontWeight: 700, fontSize: "12px", color: "#555", minWidth: "42px" }}>{c}</span>
+      <span style={{ fontSize: "13px", color: "#1a1a1a", flex: 1 }}>{zhFor(c) || <span style={{ color: "#bbb" }}>(無中文)</span>}</span>
+      <span style={{ fontSize: "11px", color: "#888" }}>{enFor(c)}</span>
+      {label && <span style={{ fontSize: "9px", color: "#7e22ce", background: "#f5f3ff", padding: "1px 5px", borderRadius: "3px", fontWeight: 600 }}>{label}</span>}
+    </label>
+  );
+  return (
+    <>
+      <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.15)", zIndex: 90 }} />
+      <div style={{
+        position: "fixed", top: "10%", left: "50%", transform: "translateX(-50%)",
+        width: "min(560px, 92vw)", maxHeight: "80vh",
+        background: "#fff", borderRadius: "12px", boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
+        zIndex: 100, display: "flex", flexDirection: "column", overflow: "hidden",
+      }}>
+        <div style={{ padding: "14px 18px", borderBottom: "1px solid #e8e5e1", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ fontSize: "15px", fontWeight: 700, color: "#1a1a1a" }}>新增 POM</div>
+          <button onClick={onClose} aria-label="關閉" style={{ background: "none", border: "none", fontSize: "20px", color: "#999", cursor: "pointer", padding: "0 4px", lineHeight: 1 }}>×</button>
+        </div>
+        <div style={{ padding: "10px 14px", borderBottom: "1px solid #f0eeeb" }}>
+          <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="搜尋 POM (code / 中文 / 英文)"
+            style={{ width: "100%", padding: "8px 10px", fontSize: "13px", fontFamily: "inherit", border: "1px solid #e8e5e1", borderRadius: "6px", background: "#faf9f7" }} />
+        </div>
+        <div style={{ flex: 1, overflowY: "auto", padding: "8px 10px" }}>
+          {hidden.length === 0 && exc.length === 0 && !q && (
+            <div style={{ padding: "20px", textAlign: "center", fontSize: "12px", color: "#999" }}>所有 POM 都已在清單中</div>
+          )}
+          {hidden.length > 0 && (
+            <>
+              <div style={{ fontSize: "11px", color: "#7e22ce", fontWeight: 700, padding: "6px 10px", letterSpacing: "0.03em" }}>已隱藏 · {hidden.length} 項</div>
+              {hidden.map(c => renderRow(c, "隱藏"))}
+            </>
+          )}
+          {exc.length > 0 && (
+            <>
+              <div style={{ fontSize: "11px", color: "#b45309", fontWeight: 700, padding: "8px 10px 6px", letterSpacing: "0.03em" }}>已排除 · {exc.length} 項</div>
+              {exc.map(c => renderRow(c, "已排除"))}
+            </>
+          )}
+        </div>
+        <div style={{ padding: "10px 14px", borderTop: "1px solid #e8e5e1", background: "#faf9f7" }}>
+          <div style={{ fontSize: "11px", color: "#888", fontWeight: 700, marginBottom: "6px" }}>自訂 POM(不在清單裡)</div>
+          <div style={{ display: "flex", gap: "6px" }}>
+            <input type="text" value={customCode} onChange={e => setCustomCode(e.target.value)} placeholder="Code (如 X99)"
+              style={{ width: "100px", padding: "7px 9px", fontSize: "12px", fontFamily: "'JetBrains Mono',monospace", border: "1px solid #e8e5e1", borderRadius: "6px", background: "#fff" }} />
+            <input type="text" value={customZh} onChange={e => setCustomZh(e.target.value)} placeholder="中文名稱(選填)"
+              style={{ flex: 1, padding: "7px 9px", fontSize: "12px", fontFamily: "inherit", border: "1px solid #e8e5e1", borderRadius: "6px", background: "#fff" }} />
+          </div>
+        </div>
+        <div style={{ padding: "10px 14px", borderTop: "1px solid #e8e5e1", display: "flex", justifyContent: "flex-end", gap: "8px" }}>
+          <button onClick={onClose} style={{ padding: "8px 14px", fontSize: "12px", fontWeight: 600, background: "#fff", color: "#666", border: "1px solid #e8e5e1", borderRadius: "6px", cursor: "pointer", fontFamily: "inherit" }}>取消</button>
+          <button onClick={apply} disabled={picked.size === 0 && !customCode.trim()}
+            style={{
+              padding: "8px 14px", fontSize: "12px", fontWeight: 700,
+              background: (picked.size === 0 && !customCode.trim()) ? "#eee" : "#1a1a1a",
+              color: (picked.size === 0 && !customCode.trim()) ? "#bbb" : "#fff",
+              border: "none", borderRadius: "6px",
+              cursor: (picked.size === 0 && !customCode.trim()) ? "not-allowed" : "pointer",
+              fontFamily: "inherit",
+            }}>
+            加入 {picked.size > 0 ? `(${picked.size + (customCode.trim() ? 1 : 0)})` : (customCode.trim() ? "(1)" : "")}
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 /* ─── BucketPomRow: 從 currentBucket 動態渲染單一 POM ─── */
 function BucketPomRow({ code, tier, measurement, median, grading, pomName, isOpen, onToggle, onToggleInclude, included }) {
   const tc = TIER[tier];
@@ -2666,6 +2770,12 @@ function App() {
   const [showTall, setShowTall] = useState(true);
   const [openPom, setOpenPom] = useState(null);
   const [excluded, setExcluded] = useState(new Set());
+  // 使用者手動加入的 POM codes(通用模型 keep 會略過 universalBasicCodes 限制)
+  const [userAddedCodes, setUserAddedCodes] = useState(() => new Set());
+  // 自訂 POM(不在 bucket 中):{ code, zh, tolerance: "±1/2" 等字串 }
+  const [customPoms, setCustomPoms] = useState([]);
+  // 加入 POM 下拉開關
+  const [addPomOpen, setAddPomOpen] = useState(false);
   // 折疊的 tier 區段
   const [collapsedTiers, setCollapsedTiers] = useState(new Set());
   // 使用者編輯的基碼（M size）覆寫值：{ code: "16 1/2" }
@@ -2765,7 +2875,14 @@ function App() {
     setPlusBaseOverrides({});
     setShowPlus(false);
     setSizeRunVariant('regular');
+    setUserAddedCodes(new Set());
+    setCustomPoms([]);
   }, [currentBucket?.bucket]);
+  // 模式切換時(聚陽↔通用)也重置 user-added / custom(universal filter 會不同)
+  useEffect(() => {
+    setUserAddedCodes(new Set());
+    setCustomPoms([]);
+  }, [appMode]);
 
   /* ── Derived ── */
   const canAnalyze = brand && fabric && dept && gender && gt && sketchSrc;
@@ -4589,20 +4706,31 @@ function App() {
               const mv = currentBucket.median_values || {};
               const gr = currentBucket.grading_rules || {};
               // 通用模型只顯示 5–6 個基礎大尺寸 POM code；其餘版面、邏輯與聚陽一致。
-              const keep = appMode === "universal" ? (c => universalBasicCodes.has(c)) : (() => true);
+              // userAddedCodes 可在通用模型加入被 hide 的 POM。
+              const keep = appMode === "universal" ? (c => universalBasicCodes.has(c) || userAddedCodes.has(c)) : (() => true);
               const tierPoms = tier => Object.keys(mr[tier] || {}).filter(c => mr[tier][c] != null && keep(c));
-              const tiersOrdered = ["must", "recommend", "optional"];
+              const tiersOrdered = ["must", "recommend", "optional", "custom"];
+              // 自訂 POM 放進「custom」tier,資料只存在 customPoms 陣列
+              const customCodes = customPoms.map(p => p.code);
               const codesByTier = Object.fromEntries(
-                tiersOrdered.map(t => [t, sortPomCodes(tierPoms(t), currentBucket.pom_sort_order)])
+                tiersOrdered.map(t => {
+                  if (t === "custom") return [t, customCodes];
+                  return [t, sortPomCodes(tierPoms(t), currentBucket.pom_sort_order)];
+                })
               );
               const totalPoms = tiersOrdered.reduce((s, t) => s + codesByTier[t].length, 0);
               const allCodesFlat = sortPomCodes(
-                tiersOrdered.flatMap(t => codesByTier[t]),
+                ["must", "recommend", "optional"].flatMap(t => codesByTier[t]),
                 currentBucket.pom_sort_order
-              );
+              ).concat(customCodes);
               const gradingCodes = allCodesFlat.filter(c => !excluded.has(c));
               const bucketIncluded = gradingCodes.length;
               const sizes = currentBucket.size_range || [];
+              // 隱藏中的 bucket POM codes(供下拉加入使用):通用模型時,
+              // 在 bucket 但不在目前顯示清單的 codes(可能被 universal filter 過濾,或被使用者排除)
+              const allBucketCodes = tiersOrdered.filter(t => t !== "custom").flatMap(t => Object.keys(mr[t] || {}).filter(c => mr[t][c] != null));
+              const hiddenBucketCodes = allBucketCodes.filter(c => !keep(c)); // 被 universal 過濾
+              const excludedBucketCodes = allBucketCodes.filter(c => keep(c) && excluded.has(c)); // 被 user 排除
               // Size run / Plus 相關衍生值(跟全碼表共用,讓基碼 header 也能顯示 toggle)
               const isPlus = s => /^\d+X$/.test(s);
               const plusSeq = sizes.filter(isPlus).slice().sort((a, b) => parseInt(a) - parseInt(b));
@@ -4615,7 +4743,7 @@ function App() {
               const availableRuns = ['regular', ...['petite','tall'].filter(
                 r => runOffsets[r] && Object.keys(runOffsets[r]).length > 0
               )];
-              const tierOf = code => mr.must?.[code] ? "must" : mr.recommend?.[code] ? "recommend" : "optional";
+              const tierOf = code => mr.must?.[code] ? "must" : mr.recommend?.[code] ? "recommend" : (mr.optional?.[code] ? "optional" : "custom");
               const tolStr = m => {
                 const t = m?.tolerance;
                 if (!t) return "—";
@@ -4770,8 +4898,18 @@ function App() {
                     })()}
 
                     {/* 基碼 (Base M) table — 分區：必備 → 建議 → 選配（可折疊 / 全選 / 取消） */}
-                    <div style={{ fontSize: isMobile ? "12px" : "15px", fontWeight: 700, color: "#1a1a1a", marginTop: isMobile ? "2px" : "4px", marginBottom: isMobile ? "6px" : "8px" }}>
-                      基碼 <span style={{ fontSize: isMobile ? "10px" : "13px", color: "#888", fontWeight: 400 }}>{isMobile ? "M size · 勾選 POM" : "M size 基本尺寸 · 勾選要納入的 POM，並可手動調整尺寸"}</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: isMobile ? "2px" : "4px", marginBottom: isMobile ? "6px" : "8px", flexWrap: "wrap" }}>
+                      <div style={{ fontSize: isMobile ? "12px" : "15px", fontWeight: 700, color: "#1a1a1a" }}>
+                        基碼 <span style={{ fontSize: isMobile ? "10px" : "13px", color: "#888", fontWeight: 400 }}>{isMobile ? "M size · 勾選 POM" : "M size 基本尺寸 · 勾選要納入的 POM，並可手動調整尺寸"}</span>
+                      </div>
+                      <button onClick={() => setAddPomOpen(true)} style={{
+                        marginLeft: "auto",
+                        padding: isMobile ? "5px 10px" : "6px 14px",
+                        fontSize: isMobile ? "11px" : "12px", fontWeight: 700,
+                        background: "#fff", color: "#7e22ce",
+                        border: "1px dashed #c4b5fd", borderRadius: "6px",
+                        cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
+                      }}>+ 新增 POM</button>
                     </div>
                     <div style={{ background: "#fff", border: "1px solid #e8e5e1", borderRadius: "10px", overflow: "auto", marginBottom: "12px" }}>
                       <table style={{ width: "100%", minWidth: isMobile ? (showPlus && hasPlus ? "500px" : "420px") : "auto", borderCollapse: "collapse", fontSize: isMobile ? "12px" : "14px" }}>
@@ -4828,10 +4966,11 @@ function App() {
                                   </td>
                                 </tr>
                                 {!collapsed && codes.map(code => {
-                                  const m = mr[tier][code];
+                                  const customMeta = tier === "custom" ? customPoms.find(p => p.code === code) : null;
+                                  const m = tier === "custom" ? (customMeta ? { tolerance: customMeta.tolerance } : null) : mr[tier]?.[code];
                                   const mvRow = mv[code];
-                                  const pending = isLengthPending(code);
-                                  const baseM = pending ? null : mvRow?.size_medians?.M;
+                                  const pending = tier !== "custom" && isLengthPending(code);
+                                  const baseM = pending ? null : (tier === "custom" ? null : mvRow?.size_medians?.M);
                                   const included = !excluded.has(code);
                                   const pn = pomNames[code] || {};
                                   const ov = baseOverrides[code] ?? "";
@@ -5008,6 +5147,26 @@ function App() {
                       ⚠ 有 {invalidOverrides.length} 筆尺寸格式不正確(例:16、16 1/2、1/8)
                     </div>
                   )}
+                  <AddPomMenu
+                    open={addPomOpen}
+                    onClose={() => setAddPomOpen(false)}
+                    hiddenCodes={hiddenBucketCodes}
+                    excludedCodes={excludedBucketCodes}
+                    pomNames={pomNames}
+                    zhFor={zhFor}
+                    enFor={enFor}
+                    onAddBucket={(codes) => {
+                      setUserAddedCodes(prev => { const n = new Set(prev); codes.forEach(c => n.add(c)); return n; });
+                      setExcluded(prev => { const n = new Set(prev); codes.forEach(c => n.delete(c)); return n; });
+                    }}
+                    onAddCustom={(code, zh) => {
+                      setCustomPoms(prev => {
+                        if (prev.some(p => p.code === code)) return prev;
+                        return [...prev, { code, zh, tolerance: null }];
+                      });
+                      if (zh) saveZh(code, zh);
+                    }}
+                  />
                 </div>
               );
             })()}
@@ -5184,16 +5343,17 @@ function App() {
               const gr = currentBucket.grading_rules || {};
               const mr = currentBucket.measurement_rules || {};
               const tiersOrdered = ["must", "recommend", "optional"];
-              // 通用模型過濾為基礎大尺寸 POM；其餘版面與聚陽 100% 共用。
-              const keep = appMode === "universal" ? (c => universalBasicCodes.has(c)) : (() => true);
+              // 通用模型過濾為基礎大尺寸 POM;被使用者加入的 userAddedCodes 可繞過。
+              const keep = appMode === "universal" ? (c => universalBasicCodes.has(c) || userAddedCodes.has(c)) : (() => true);
               const tierPoms = tier => Object.keys(mr[tier] || {}).filter(c => mr[tier][c] != null && keep(c));
+              const customCodes = customPoms.map(p => p.code);
               const allCodesFlat = sortPomCodes(
                 tiersOrdered.flatMap(t => tierPoms(t)),
                 currentBucket.pom_sort_order
-              );
+              ).concat(customCodes);
               const gradingCodes = allCodesFlat.filter(c => !excluded.has(c));
               const sizes = currentBucket.size_range || [];
-              const tierOf = code => mr.must?.[code] ? "must" : mr.recommend?.[code] ? "recommend" : "optional";
+              const tierOf = code => mr.must?.[code] ? "must" : mr.recommend?.[code] ? "recommend" : (mr.optional?.[code] ? "optional" : "custom");
               const tolStr = m => {
                 const t = m?.tolerance;
                 if (!t) return "—";
