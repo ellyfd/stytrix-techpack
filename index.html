@@ -5497,6 +5497,12 @@ function App() {
                   const v = parseVal(ov);
                   if (v != null) return v;
                 }
+                // bodytype variance:非 regular 且有 <bt>_M 就用它,否則退回 regular M
+                const btMsc = sizeRunVariant !== 'regular'
+                  ? bodytypeVariance?.[`${gender}|${gt}|${sizeRunVariant.toUpperCase()}`]?.m_size_comparison?.[code]
+                  : null;
+                const btMKey = sizeRunVariant + '_M';
+                if (btMsc && btMsc[btMKey] != null) return btMsc[btMKey];
                 return mv[code]?.size_medians?.M;
               };
               // 全碼 size 值:
@@ -5566,6 +5572,37 @@ function App() {
                 }
                 return v;
               };
+              // 從 fromIdx 走到 toIdx,每步用 array[i] 當 delta(i = 前一個 size 的 index);
+              // 用於 bodytype_variance.grading_deltas 的 <bt>_grading array(跟 missySeq pair 一一對應)
+              const walkArray = (arr, fromIdx, toIdx, fromValue) => {
+                if (fromIdx === toIdx) return fromValue;
+                let v = fromValue;
+                if (toIdx > fromIdx) {
+                  for (let i = fromIdx; i < toIdx; i++) {
+                    if (arr[i] == null) return null;
+                    v += arr[i];
+                  }
+                } else {
+                  for (let i = fromIdx - 1; i >= toIdx; i--) {
+                    if (arr[i] == null) return null;
+                    v -= arr[i];
+                  }
+                }
+                return v;
+              };
+              // bodytype_variance entry for this run(gender|gt|<bt>),non-regular 時才查
+              const activeBodytypeEntry = sizeRunVariant !== 'regular'
+                ? (bodytypeVariance?.[`${gender}|${gt}|${sizeRunVariant.toUpperCase()}`] || null)
+                : null;
+              // 某 POM 的 <bt>_grading array(僅在 same_pattern=false 時返回;same_pattern=true 代表
+              // 跳檔同 regular,不需覆寫);找不到 / same_pattern=true / 結構不符都回 null。
+              const btGradingFor = (code) => {
+                if (!activeBodytypeEntry) return null;
+                const gd = activeBodytypeEntry.grading_deltas?.[code];
+                if (!gd || gd.same_pattern !== false) return null;
+                const arr = gd[sizeRunVariant + '_grading'];
+                return Array.isArray(arr) ? arr : null;
+              };
               const sizeValueFor = (code, s) => {
                 if (isLengthPending(code) && !(baseOverrides[code] && parseInch(baseOverrides[code]) != null)) {
                   return null;
@@ -5599,8 +5636,13 @@ function App() {
                   if (newM == null) v = origS ?? null;
                   else if (mIdxMissy >= 0) {
                     const sIdx = missySeq.indexOf(s);
-                    // 優先 grading_patterns pairs
-                    if (sIdx >= 0 && pairs) {
+                    // 最高優先:bodytype_variance.<bt>_grading array(same_pattern=false 的 POM 才有)
+                    const btArr = btGradingFor(code);
+                    if (sIdx >= 0 && btArr) {
+                      v = walkArray(btArr, mIdxMissy, sIdx, newM);
+                    }
+                    // 次優:grading_patterns pairs(非線性,respects inflection)
+                    if (v == null && sIdx >= 0 && pairs) {
                       v = walkPairs(pairs, missySeq, mIdxMissy, sIdx, newM);
                     }
                     if (v == null) {
@@ -5623,10 +5665,13 @@ function App() {
               const runOffsets = currentBucket.size_run_offsets || {};
               const activeOffsets = sizeRunVariant === 'regular' ? null : (runOffsets[sizeRunVariant] || null);
               const hasRunData = !!activeOffsets && Object.keys(activeOffsets).length > 0;
-              // 只顯示有實際 offset 資料的 run 選項(regular 一律顯示)
-              const availableRuns = ['regular', ...['petite','tall'].filter(
-                r => runOffsets[r] && Object.keys(runOffsets[r]).length > 0
-              )];
+              // Run 選項:有 bucket 內建 size_run_offsets 就算,否則看 bodytype_variance 有沒有對應資料
+              // (bodytype_variance 讓基碼頁的 M 切換 + grading array 覆寫在全碼頁也能同步套)
+              const availableRuns = ['regular', ...['petite','tall'].filter(bt => {
+                if (runOffsets[bt] && Object.keys(runOffsets[bt]).length > 0) return true;
+                const k = (gender && gt) ? `${gender}|${gt}|${bt.toUpperCase()}` : null;
+                return !!(k && bodytypeVariance?.[k]);
+              })];
               const applyRunOffset = (code, v) => {
                 if (v == null || !activeOffsets) return v;
                 const d = activeOffsets[code];
