@@ -195,124 +195,180 @@ function sortedL1sForBucket(partPresence, gt, it) {
   });
 }
 
-/* ─── app 的 dept / gender / gt 值正規化到 v4.3 桶用的 key ───
-   v4.3 GT 對齊 App UI 下拉選單(PANTS/LEGGINGS/SHORTS/TOP/… 保持細粒度),
-   所以 V43_GT_ALIAS 縮到只剩兩個 UI 有但 v4.3 沒 bucket 的例外。
-   v4.3 Dept 為 General / Sleepwear / Swimwear(Sleepwear entry 極少但存在,
-   isoOptionsFor 的第 3 層 fallback 會自動退到 General)。
-   v4.3 Gender 集合為 KIDS / MENS / UNISEX / WOMENS。 */
-const V43_DEPT_ALIAS = {
-  Active: "General", RTW: "General", Fleece: "General",
-  Sleepwear: "Sleepwear", Swimwear: "Swimwear",
+/* ─── UI 下拉值正規化到 master 的 key(UPPERCASE + 非字母數字→底線)───
+   master 的 entry.key 在 build_recipes_master.py 已全部 normKey 過,
+   這裡前端查詢時做同樣的轉換。Gender / Dept / GT 有少數 UI-only 值
+   (MATERNITY / BOYS / GIRLS、FLEECE、BODYSUIT、SWIM_PIECE)不在任何手冊中,
+   用 FALLBACK 表映射到最接近的手冊值。屬「1:1 正名」不是模糊別名。 */
+const normKey = (s) => {
+  if (s == null) return null;
+  const up = String(s).toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  return up || null;
 };
-const V43_GENDER_ALIAS = {
-  MENS: "MENS", WOMENS: "WOMENS", MATERNITY: "WOMENS",
-  BOYS: "KIDS", GIRLS: "KIDS", "BABY/TODDLER": "KIDS",
-};
-const V43_GT_ALIAS = {
-  BODYSUIT: "TOP",   // 連身式上衣,v4.3 沒獨立 bucket
-  SWIM_PIECE: "TOP", // 泳裝單件,Department=Swimwear 已區分,GT 先 map 到 TOP
-};
+const GENDER_FALLBACK = { MATERNITY: "WOMENS", BOYS: "KIDS", GIRLS: "KIDS", BABY_TODDLER: "KIDS" };
+const DEPT_RECIPE_V43_FALLBACK = { ACTIVE: "GENERAL", RTW: "GENERAL", FLEECE: "GENERAL" };
+const GT_UNIVERSAL_FALLBACK = { BODYSUIT: "TOP", SWIM_PIECE: "TOP" };
 
-/* ─── ISO 代碼 → {iso_zh, machine} 顯示對照(從 v4 entries 動態建出來)
-   v4.3 沒有 iso_zh / machine,需要用這個表補充顯示資訊 ─── */
-function buildIsoRef(lookupV4) {
-  const ref = {};
-  const entries = lookupV4?.entries || [];
-  for (const e of entries) {
-    if (e.iso && !ref[e.iso]) {
-      ref[e.iso] = { iso_zh: e.iso_zh || null, machine: e.machine || null };
+/* ─── master 查詢:在指定 aggregation_level 層,依序嘗試多個 key 條件,
+   回第一個有 iso_distribution 的 entry。沒有就 null。 ─── */
+function findMasterEntry(master, level, keyPreds) {
+  if (!master || !Array.isArray(master.entries)) return null;
+  for (const pred of keyPreds) {
+    for (const e of master.entries) {
+      if (e.aggregation_level !== level) continue;
+      if (pred(e.key)) return e;
     }
   }
-  return ref;
+  return null;
 }
 
-/* ─── 通用模型:回傳目前 bucket 下該 L1 可選的 ISO 列表
-   先查 v4.3(Department × Gender × GT × L1,fine GT 對齊 UI,含性別,230 entries,
-   L1 用 38 碼標準中文名),查無對應再 fallback 到 v4
-   (Fabric × Department × GT × L1_code,沒有性別但覆蓋完整、提供 iso_zh/machine)。
-   格式:[{ iso, iso_zh, machine, pct, isPrimary, source: "v4.3"|"v4" }] ─── */
-function isoOptionsFor(lookupV43, lookupV4, filters, l1Code) {
-  if (!l1Code) return [];
+/* ─── master entry → UI ISO 選項陣列(primary 在前,alts 依 pct 排序) ─── */
+function buildIsoOptions(entry, dict) {
+  if (!entry || !entry.iso_distribution?.length) return [];
+  const refs = dict?.entries || {};
+  return entry.iso_distribution.map((d, i) => ({
+    iso: d.iso,
+    iso_zh: refs[d.iso]?.zh || null,
+    machine: refs[d.iso]?.machine || null,
+    n: d.n,
+    pct: d.pct,
+    isPrimary: i === 0,
+    source: entry.source,
+    aggregation_level: entry.aggregation_level,
+    n_total: entry.n_total,
+  }));
+}
+
+/* ─── 通用模型:回傳該 L1 的 ISO 選項(同細類→同大類→通用→跨款 4 層 fallback)
+   master.entries 單一資料源;dict 提供 iso_zh / machine 顯示字段。
+   格式:[{ iso, iso_zh, machine, n, pct, n_total, isPrimary, source, aggregation_level }] ─── */
+function isoOptionsFor(master, dict, filters, l1Code) {
+  if (!l1Code || !master) return [];
   const { fabric, dept, gender, gt, it } = filters || {};
-  const l1Name = L1_CODE_TO_NAME[l1Code];
-  const isoRef = buildIsoRef(lookupV4);
+  const deptN = normKey(dept);
+  const genderRaw = normKey(gender);
+  const genderN = GENDER_FALLBACK[genderRaw] || genderRaw;
+  const gtRaw = normKey(gt);
+  const gtN = GT_UNIVERSAL_FALLBACK[gtRaw] || gtRaw;
+  const itN = normKey(it);
+  const fabricN = normKey(fabric) || "KNIT";
+  const deptRV = DEPT_RECIPE_V43_FALLBACK[deptN] || deptN || "GENERAL";
 
-  // ── v4.3 查詢(fine GT,對齊 UI 下拉選單,只需處理少數例外) ──
-  const v43Entries = lookupV43?.entries || [];
-  const deptKey = V43_DEPT_ALIAS[dept] || "General";
-  const genderKey = V43_GENDER_ALIAS[gender] || "UNISEX";
-  const gtKey43 = V43_GT_ALIAS[gt] || gt;
-  const findV43 = (pred) => v43Entries.find(e => e.l1 === l1Name && pred(e));
-  let v43Entry = null;
-  if (l1Name) {
-    // 4 層 fallback:精準 → 同 dept + UNISEX → General + gender → General(任何 gender)
-    v43Entry = findV43(e => e.department === deptKey && e.gender === genderKey && e.gt === gtKey43)
-      || findV43(e => e.department === deptKey && e.gender === "UNISEX" && e.gt === gtKey43)
-      || findV43(e => e.department === "General" && e.gender === genderKey && e.gt === gtKey43)
-      || findV43(e => e.department === "General" && e.gt === gtKey43);
+  // Layer 1: same_sub (recipe, 需要 IT)
+  if (itN) {
+    const e = findMasterEntry(master, "same_sub", [
+      k => k.gender === genderN && k.dept === deptRV && k.gt === gtN && k.it === itN && k.l1 === l1Code,
+    ]);
+    if (e && e.iso_distribution.length) return buildIsoOptions(e, dict);
   }
-  if (v43Entry && v43Entry.iso) {
-    const dist = v43Entry.iso_distribution || {};
-    const total = Object.values(dist).reduce((s, n) => s + n, 0) || 1;
-    const pctFor = (iso) => +((dist[iso] || 0) / total * 100).toFixed(1);
-    const v43Primary = {
-      iso: v43Entry.iso,
-      iso_zh: isoRef[v43Entry.iso]?.iso_zh || null,
-      machine: isoRef[v43Entry.iso]?.machine || null,
-      pct: v43Entry.iso_pct ?? pctFor(v43Entry.iso),
-      isPrimary: true, source: "v4.3",
-    };
-    const v43Alts = Object.keys(dist)
-      .filter(iso => iso !== v43Entry.iso)
-      .map(iso => ({
-        iso,
-        iso_zh: isoRef[iso]?.iso_zh || null,
-        machine: isoRef[iso]?.machine || null,
-        pct: pctFor(iso), isPrimary: false, source: "v4.3",
-      }))
-      .sort((a, b) => (b.pct ?? 0) - (a.pct ?? 0));
-    return [v43Primary, ...v43Alts];
+  // Layer 2: same_gt (v4.3)
+  {
+    const e = findMasterEntry(master, "same_gt", [
+      k => k.gender === genderN && k.dept === deptRV && k.gt === gtN && k.l1 === l1Code,
+      k => k.gender === "UNISEX" && k.dept === deptRV && k.gt === gtN && k.l1 === l1Code,
+      k => k.gender === genderN && k.dept === "GENERAL" && k.gt === gtN && k.l1 === l1Code,
+      k => k.dept === "GENERAL" && k.gt === gtN && k.l1 === l1Code,
+    ]);
+    if (e && e.iso_distribution.length) return buildIsoOptions(e, dict);
+  }
+  // Layer 3: general (v4, fabric × dept × gt × l1)
+  {
+    const e = findMasterEntry(master, "general", [
+      k => k.fabric === fabricN && k.dept === deptN && k.gt === gtN && k.l1 === l1Code,
+      k => k.fabric === fabricN && k.gt === gtN && k.l1 === l1Code,
+      k => k.fabric === fabricN && k.dept === deptN && k.l1 === l1Code,
+      k => k.fabric === fabricN && k.l1 === l1Code,
+    ]);
+    if (e && e.iso_distribution.length) return buildIsoOptions(e, dict);
+  }
+  // Layer 4: cross_design (bridge,只挑有 iso 的)
+  {
+    const e = findMasterEntry(master, "cross_design", [
+      k => k.gt === gtN && k.l1 === l1Code,
+    ]);
+    if (e && e.iso_distribution.length) return buildIsoOptions(e, dict);
+  }
+  return [];
+}
+
+/* ─── 取得指定 (gt, l1) 的常見工法。只從 cross_design(bridge)層拿,
+   不管主 ISO 來自哪一層,methods 永遠用跨款累積值。回 { methods, bridgeN }。 ─── */
+function methodsFor(master, filters, l1Code) {
+  if (!master || !l1Code) return { methods: [], bridgeN: null };
+  const gtRaw = normKey(filters?.gt);
+  const gtN = GT_UNIVERSAL_FALLBACK[gtRaw] || gtRaw;
+  const e = findMasterEntry(master, "cross_design", [
+    k => k.gt === gtN && k.l1 === l1Code,
+  ]);
+  if (!e) return { methods: [], bridgeN: null };
+  return { methods: e.methods || [], bridgeN: e.n_total || null };
+}
+
+/* ─── buildUniversalCard: 單一入口建通用模式的 card,供 runConstruction 初次
+   建卡、切替代 ISO、切 L1 部位三處共用。傳入 detection + filters + master + dict,
+   回傳完整 card 物件(或 null 代表該部位無資料不出卡)。
+   pickedIso 非空時把它提升為主 ISO(使用者手動選 alt),原 primary 丟回 alts。 ─── */
+function buildUniversalCard(d, filters, master, dict, l1Std, presenceByCode, idx = 0, pickedIso = null) {
+  const l1Name = l1Std?.codes?.[d.code]?.zh || L1_CODE_TO_NAME[d.code] || d.code;
+  const opts = isoOptionsFor(master, dict, filters, d.code);
+  if (!opts.length) return null;
+
+  let primary = opts[0];
+  let alternatives = opts.slice(1);
+  if (pickedIso) {
+    const pickedIdx = opts.findIndex(o => o.iso === pickedIso);
+    if (pickedIdx > 0) {
+      primary = opts[pickedIdx];
+      alternatives = [opts[0], ...opts.slice(1).filter(o => o.iso !== pickedIso)];
+    }
   }
 
-  // ── v4 fallback(無性別、但 L1 覆蓋廣) ──
-  const v4Entries = lookupV4?.entries || [];
-  const fabricV4 = (fabric || "Knit").toLowerCase() === "woven" ? "Woven" : "Knit";
-  const V4_DEPTS = ["Active", "RTW", "Swimwear", "Sleepwear"];
-  const deptV4 = V4_DEPTS.find(d => d.toUpperCase() === String(dept || "").toUpperCase()) || null;
-  const GT_V4_ALIAS = { SWIM_PIECE: ["TOP", "PANTS"] };
-  const gtCandidates = GT_V4_ALIAS[gt] || [gt];
-  const CONF_RANK = { strong: 4, likely: 3, mixed: 2, no_dominant: 1, no_data: 0 };
-  const rank = (e) => ((e.iso ? 1000 : 0) + (CONF_RANK[e.confidence] || 0) * 10 + (e.expect === "yes" ? 1 : 0));
-  const pickBest = (list) => list.reduce((best, e) => (best == null || rank(e) > rank(best)) ? e : best, null);
-  const tiers = [
-    (e) => e.fabric === fabricV4 && e.department === deptV4 && gtCandidates.includes(e.gt) && e.l1_code === l1Code,
-    (e) => e.fabric === fabricV4 && gtCandidates.includes(e.gt) && e.l1_code === l1Code,
-    (e) => e.fabric === fabricV4 && e.department === deptV4 && e.l1_code === l1Code,
-    (e) => e.fabric === fabricV4 && e.l1_code === l1Code,
-  ];
-  let v4Entry = null;
-  for (const pred of tiers) {
-    const best = pickBest(v4Entries.filter(pred));
-    if (best && best.iso) { v4Entry = best; break; }
-  }
-  if (!v4Entry || !v4Entry.iso) return [];
-  const votes = v4Entry.pptx_2025_votes || {};
-  const totalVotes = Object.values(votes).reduce((s, n) => s + n, 0) || 0;
-  const v4Primary = {
-    iso: v4Entry.iso, iso_zh: v4Entry.iso_zh || null, machine: v4Entry.machine || null,
-    pct: totalVotes > 0 && votes[v4Entry.iso] ? +(votes[v4Entry.iso] / totalVotes * 100).toFixed(1) : null,
-    isPrimary: true, source: "v4",
+  const { methods, bridgeN } = methodsFor(master, filters, d.code);
+  const label = `ISO ${primary.iso}${primary.iso_zh ? " · " + primary.iso_zh : ""}${primary.machine ? " · " + primary.machine : ""}`;
+  const pres = presenceByCode?.[d.code] || null;
+
+  return {
+    id: idx + 1,
+    l1: l1Name,
+    l1_code: d.code,
+    l2: label,
+    l2Base: null,
+    source: d._fromPresence ? "struct" : "ai",
+    conf: Number.isFinite(d.confidence) ? d.confidence : null,
+    matchCode: null,
+    px: Number.isFinite(d.x) ? d.x : 50,
+    py: Number.isFinite(d.y) ? d.y : 50,
+    side: d.side === "back" ? "right" : "left",
+    ie: 0,
+    action: "manual",
+    isoConfidence: pickedIso ? "manual" : null,
+    presenceTier: pres?.tier_en || null,
+    presencePct: pres?.presence_pct ?? null,
+    universal: {
+      iso: primary.iso,
+      iso_zh: primary.iso_zh,
+      machine: primary.machine,
+      n: primary.n,
+      pct: primary.pct,
+      n_total: primary.n_total,
+      source: primary.source,
+      aggregation_level: primary.aggregation_level,
+      alternatives: alternatives.map(a => ({
+        iso: a.iso, iso_zh: a.iso_zh, machine: a.machine, n: a.n, pct: a.pct,
+      })),
+      methods,
+      bridgeN,
+      confidence: pickedIso ? "manual" : null,
+      action: null,
+    },
+    // universal 模式不使用五階層 drill-down
+    methodIdx: 0, methodVariants: [],
+    l2Idx: 0, l2Variants: [],
+    l3Idx: 0, l3Variants: [],
+    ai_l2_code: null, ai_l2_confidence: null, ai_l2_explanation: null,
+    ai_l2_needs_text: false, ai_l2_merged_candidates: [],
+    l3s: [],
   };
-  const v4Alts = Object.keys(votes)
-    .filter(iso => iso !== v4Entry.iso)
-    .map(iso => ({
-      iso, iso_zh: isoRef[iso]?.iso_zh || null, machine: isoRef[iso]?.machine || null,
-      pct: totalVotes > 0 ? +(votes[iso] / totalVotes * 100).toFixed(1) : null,
-      isPrimary: false, source: "v4",
-    }))
-    .sort((a, b) => (b.pct ?? 0) - (a.pct ?? 0));
-  return [v4Primary, ...v4Alts];
 }
 
 /* ─── 聚陽模型:從 visualGuide 組該 L1 的 L2 變體清單 ─── */
@@ -1033,21 +1089,24 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
         <div style={{ padding: "0 14px 14px" }}>
           {appMode === "universal" && (() => {
             const u = card.universal;
-            const CONF_META = {
-              strong:     { label: "strong",     bg: "#ecfdf5", c: "#065f46", hint: "第一名 ≥60% · 自動推薦" },
-              likely:     { label: "likely",     bg: "#eff6ff", c: "#1e40af", hint: "40-59% · 推薦附替代" },
-              mixed:      { label: "mixed",      bg: "#fffbeb", c: "#b45309", hint: "25-39% · 需選擇" },
-              no_dominant:{ label: "no_dominant",bg: "#fef2f2", c: "#b91c1c", hint: "<25% · 手動" },
-              no_data:    { label: "no_data",    bg: "#f5f5f4", c: "#57534e", hint: "查表無對應" },
-              manual:     { label: "manual",     bg: "#f0f9ff", c: "#0c4a6e", hint: "使用者手動選擇" },
+            // aggregation_level 標示主 ISO 來自哪一層樣本,n/n_total + pct 是客觀統計
+            // 數字,取代舊版 strong/mixed/likely 的主觀標籤。
+            const AGG_META = {
+              same_sub:     { label: "同細類", bg: "#ecfdf5", c: "#065f46", hint: "同性別+同部門+同大類+同細類 recipe 樣本" },
+              same_gt:      { label: "同大類", bg: "#eff6ff", c: "#1e40af", hint: "同部門+同性別+同大類 v4.3 樣本" },
+              general:      { label: "通用",   bg: "#fffbeb", c: "#b45309", hint: "v4 通用手冊推薦(curated,非統計)" },
+              cross_design: { label: "跨款",   bg: "#fef2f2", c: "#b91c1c", hint: "跨款 bridge 累積(僅 methods 可信)" },
             };
             const ACTION_META = {
               recommend: { label: "推薦", c: "#065f46", bg: "#ecfdf5", icon: "✓" },
               select:    { label: "請選",  c: "#b45309", bg: "#fffbeb", icon: "◐" },
               manual:    { label: "手動",  c: "#57534e", bg: "#f5f5f4", icon: "✎" },
             };
-            const conf = CONF_META[u?.confidence] || CONF_META.no_data;
+            const agg = AGG_META[u?.aggregation_level] || null;
             const act = ACTION_META[u?.action] || ACTION_META.manual;
+            const isManual = u?.confidence === "manual";
+            // general 層是 curated(v4 單一推薦),不顯示 pct 避免誤導(常見 0 票推薦)
+            const showPct = u?.aggregation_level && u.aggregation_level !== "general";
             return (
               <div style={{
                 marginTop: "10px", padding: "10px 12px",
@@ -1065,21 +1124,37 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
                     padding: "2px 8px", borderRadius: "6px",
                     background: act.bg, color: act.c,
                   }}>{act.icon} {act.label}</span>
-                  {u && (
-                    <span title={conf.hint} style={{
+                  {agg && (
+                    <span title={agg.hint} style={{
+                      fontSize: "10px", fontWeight: 700,
+                      padding: "2px 8px", borderRadius: "6px",
+                      background: agg.bg, color: agg.c, cursor: "help",
+                    }}>{agg.label}</span>
+                  )}
+                  {isManual && (
+                    <span title="使用者手動切換 ISO" style={{
                       fontSize: "10px", fontWeight: 600,
                       padding: "2px 8px", borderRadius: "6px",
-                      background: conf.bg, color: conf.c, cursor: "help",
-                    }}>conf: {conf.label}</span>
+                      background: "#f0f9ff", color: "#0c4a6e",
+                    }}>manual</span>
                   )}
                 </div>
-                {u ? (
+                {u && u.iso ? (
                   <div style={{ marginTop: "8px", display: "flex", alignItems: "baseline", gap: "8px", flexWrap: "wrap" }}>
                     <span style={{ fontSize: "18px", fontWeight: 800, fontFamily: "'JetBrains Mono',monospace", color: "#1a1a1a" }}>
                       ISO {u.iso}
                     </span>
                     {u.iso_zh && <span style={{ fontSize: "13px", color: "#555", fontWeight: 600 }}>{u.iso_zh}</span>}
                     {u.machine && <span style={{ fontSize: "12px", color: "#555" }}>· {u.machine}</span>}
+                    {showPct && u.n != null && u.n_total != null && (
+                      <span style={{ fontSize: "12px", color: "#b45309", fontFamily: "'JetBrains Mono',monospace", fontWeight: 600 }}>
+                        {u.n}/{u.n_total}
+                        {u.pct != null && <span style={{ marginLeft: "4px" }}>· {u.pct}%</span>}
+                      </span>
+                    )}
+                    {!showPct && u.aggregation_level === "general" && (
+                      <span style={{ fontSize: "11px", color: "#b45309" }}>通用手冊推薦</span>
+                    )}
                   </div>
                 ) : (
                   <div style={{ marginTop: "8px", fontSize: "12px", color: "#b91c1c" }}>
@@ -1090,14 +1165,14 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
                   <div style={{ marginTop: "10px", borderTop: "1px dashed #e8e5e1", paddingTop: "8px" }}>
                     <div style={{ fontSize: "10px", color: "#555", fontWeight: 600, marginBottom: "4px", letterSpacing: "0.05em" }}>
                       替代 ISO · 點選即可切換
-                      {u.bridgeN != null && <span style={{ marginLeft: "6px", color: "#888", fontWeight: 500 }}>bridge v6 · n={u.bridgeN}</span>}
+                      {u.n_total != null && <span style={{ marginLeft: "6px", color: "#888", fontWeight: 500 }}>樣本 n={u.n_total}</span>}
                     </div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                       {u.alternatives.map((a, idx) => (
                         <button
                           key={idx}
                           onClick={(e) => { e.stopPropagation(); onPickUniversalIso && onPickUniversalIso(card.id, a.iso); }}
-                          title={a.count != null ? `歷史資料 ${a.count} / ${u.bridgeN ?? "?"} · 點擊切換為此 ISO` : "點擊切換為此 ISO"}
+                          title={a.n != null && u.n_total != null ? `歷史 ${a.n}/${u.n_total} · 點擊切換` : "點擊切換為此 ISO"}
                           style={{
                             fontSize: "11px", padding: "3px 8px", borderRadius: "6px",
                             background: "#fff", border: "1px solid #e8e5e1", color: "#555",
@@ -1117,17 +1192,21 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
                 {u?.methods?.length > 0 && (
                   <div style={{ marginTop: "10px", borderTop: "1px dashed #e8e5e1", paddingTop: "8px" }}>
                     <div style={{ fontSize: "10px", color: "#555", fontWeight: 600, marginBottom: "4px", letterSpacing: "0.05em" }}>
-                      常見工法 · bridge v6
+                      常見工法 · bridge 跨款
+                      {u.bridgeN != null && <span style={{ marginLeft: "6px", color: "#888", fontWeight: 500 }}>n={u.bridgeN}</span>}
                     </div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                       {u.methods.map((m, idx) => (
-                        <span key={idx} title={`此 GT×部位 歷史資料出現 ${m.count} 次`} style={{
+                        <span key={idx} title={u.bridgeN != null ? `此 GT×部位歷史出現 ${m.n}/${u.bridgeN}` : `出現 ${m.n} 次`} style={{
                           fontSize: "11px", padding: "3px 8px", borderRadius: "6px",
                           background: "#f5f4f0", border: "1px solid #e8e5e1", color: "#555",
                           fontWeight: 500, cursor: "help",
                         }}>
                           {m.name}
-                          <span style={{ marginLeft: "6px", color: "#b45309", fontFamily: "'JetBrains Mono',monospace", fontWeight: 600 }}>{m.count}</span>
+                          <span style={{ marginLeft: "6px", color: "#b45309", fontFamily: "'JetBrains Mono',monospace", fontWeight: 600 }}>
+                            {m.n}
+                            {m.pct != null && <span style={{ marginLeft: "3px", color: "#999" }}>({m.pct}%)</span>}
+                          </span>
                         </span>
                       ))}
                     </div>
@@ -2076,19 +2155,15 @@ function App() {
   const [isoRec, setIsoRec] = useState(null);
   const [partPresence, setPartPresence] = useState(null);
   const [visualGuide, setVisualGuide] = useState(null);
-  // 通用模型 Path 2 — 雙表查詢:
-  //   v4.3 (primary, Department × Gender × GT × L1 → ISO,fine GT 對齊 UI,含性別,130 entries)
-  //   v4   (fallback, Fabric × Department × GT × L1_code → ISO,覆蓋完整、有 iso_zh/machine)
-  // v4.3 由 5 種來源合併(PPTX 中文 / PDF 英文 / JSONL iso_codes / Raw PDF / OCR callout),
-  // GT 保留 fine 粒度(PANTS/LEGGINGS/SHORTS/TOP/… 直接對應 App UI 下拉選單值);
-  // v4 有 38 L1 但沒 Gender,也提供 iso_zh 與 machine 中英雙語顯示用的對照。
-  const [isoLookupV43, setIsoLookupV43] = useState(null);
-  const [isoLookupV4, setIsoLookupV4] = useState(null);
-  // v6 construction bridge(data/construction_bridge_v6.json):
-  // 每 GT 的 zone → L1 → iso_distribution + method_distribution。
-  // 範圍比 v4 entry 的 pptx_2025_votes 廣(跨 2024/2025/2026 三年 1,328 designs),
-  // 拿來當「替代 ISO」和「常見工法」的資料源。
-  const [bridgeV6, setBridgeV6] = useState(null);
+  // 通用模型 Path 2 — 單一 master + 獨立 ISO 字典 + 38 碼正名表:
+  //   data/recipes_master.json  — 4 層 aggregation 合併後的 entries(由 scripts/build_recipes_master.py 產出)
+  //                                same_sub(recipe,71 檔)→ same_gt(v4.3)→ general(v4)→ cross_design(bridge)
+  //   data/iso_dictionary.json  — ISO code → {zh, en, machine} 顯示字典
+  //   data/l1_standard_38.json  — 38 碼 L1 正名表({code: {zh, en}}),取自 v4.3 的 l1_standard_38
+  // 原始 4 本手冊(v4.3 / v4 / bridge v6 / recipes/*)保留在 repo,master 由 script 重建。
+  const [recipesMaster, setRecipesMaster] = useState(null);
+  const [isoDictionary, setIsoDictionary] = useState(null);
+  const [l1Standard38, setL1Standard38] = useState(null);
   // v6 grading_patterns(data/grading_patterns.json):
   // {category|gender: {POM: {m_median, pairs:{S→M,M→L,...}, inflection, delta_sm, delta_ml}}}
   // 33 combos × 1,016 POM families,20.6% POM 有 inflection(S→M 和 M→L 的 delta 不同)。
@@ -2158,23 +2233,23 @@ function App() {
         .then(setVisualGuide)
         .catch(err => console.error('載入 l2_visual_guide 失敗:', err));
     }
-    if (!isoLookupV43 && appMode === "universal") {
-      fetch('./General%20Model_Path2_Construction%20Suggestion/iso_lookup_factory_v4.3.json')
+    if (!recipesMaster && appMode === "universal") {
+      fetch('./data/recipes_master.json')
         .then(r => r.ok ? r.json() : Promise.reject(r.status))
-        .then(setIsoLookupV43)
-        .catch(err => console.error('載入 iso_lookup_factory_v4.3 失敗:', err));
+        .then(setRecipesMaster)
+        .catch(err => console.error('載入 recipes_master 失敗:', err));
     }
-    if (!isoLookupV4 && appMode === "universal") {
-      fetch('./General%20Model_Path2_Construction%20Suggestion/iso_lookup_factory_v4.json')
+    if (!isoDictionary && appMode === "universal") {
+      fetch('./data/iso_dictionary.json')
         .then(r => r.ok ? r.json() : Promise.reject(r.status))
-        .then(setIsoLookupV4)
-        .catch(err => console.error('載入 iso_lookup_factory_v4 失敗:', err));
+        .then(setIsoDictionary)
+        .catch(err => console.error('載入 iso_dictionary 失敗:', err));
     }
-    if (!bridgeV6 && appMode === "universal") {
-      fetch('./data/construction_bridge_v6.json')
+    if (!l1Standard38 && appMode === "universal") {
+      fetch('./data/l1_standard_38.json')
         .then(r => r.ok ? r.json() : Promise.reject(r.status))
-        .then(setBridgeV6)
-        .catch(err => console.error('載入 construction_bridge_v6 失敗:', err));
+        .then(setL1Standard38)
+        .catch(err => console.error('載入 l1_standard_38 失敗:', err));
     }
   }, [sketchSrc, appMode]);
 
@@ -2573,33 +2648,37 @@ function App() {
   const addManualUniversalCard = () => {
     const l1Code = newL1;
     if (!l1Code) return;
-    const opts = isoOptionsFor(isoLookupV43, isoLookupV4, { fabric, dept, gender, gt, it }, l1Code);
-    // 歷史沒對應時 opts 可能為空 — 仍允許空白新增,ISO 欄位留 null,由人工後補。
-    const picked = opts.length ? (opts[newIsoIdx] || opts[0]) : null;
+    const filters = { fabric, dept, gender, gt, it };
+    const opts = isoOptionsFor(recipesMaster, isoDictionary, filters, l1Code);
     const nextId = Math.max(0, ...cards.map(c => c.id || 0)) + 1;
-    const l1Name = L1_CODE_TO_NAME[l1Code] || l1Code;
-    const label = picked
-      ? `ISO ${picked.iso}${picked.iso_zh ? " · " + picked.iso_zh : ""}${picked.machine ? " · " + picked.machine : ""}`
-      : `${l1Name} · —`;
-    const alternatives = picked
-      ? opts.filter((_, i) => i !== opts.indexOf(picked))
-          .map(o => ({ iso: o.iso, iso_zh: o.iso_zh, machine: o.machine, pct: o.pct }))
-      : [];
-    const card = {
+    const l1Name = l1Standard38?.codes?.[l1Code]?.zh || L1_CODE_TO_NAME[l1Code] || l1Code;
+
+    if (opts.length) {
+      // 有 ISO 資料:用 buildUniversalCard 走跟 runConstruction / onPickUniversalIso
+      // 一樣的單一入口,確保 methods / alternatives / n_total 欄位都齊。
+      const picked = opts[newIsoIdx] || opts[0];
+      const det = { code: l1Code, x: 50, y: 50, side: "front", confidence: null };
+      const card = buildUniversalCard(det, filters, recipesMaster, isoDictionary, l1Standard38, {}, nextId - 1, picked.iso);
+      if (card) {
+        setCards(prev => [...prev, { ...card, id: nextId, source: "manual", action: "manual" }]);
+        resetAddForm();
+        return;
+      }
+    }
+    // 歷史沒對應時 opts 為空 — 仍允許空白新增,ISO 欄位留 null,由人工後補。
+    setCards(prev => [...prev, {
       id: nextId, code: l1Code, l1: l1Name, l1_code: l1Code,
       source: "manual", ie: 0,
-      l2: label, l2Base: null,
+      l2: `${l1Name} · —`, l2Base: null,
       l2Variants: [], l3Variants: [], methodVariants: [], l3s: [],
       universal: {
-        iso: picked?.iso ?? null,
-        iso_zh: picked?.iso_zh ?? null,
-        machine: picked?.machine ?? null,
-        confidence: null, action: "manual", alternatives,
+        iso: null, iso_zh: null, machine: null,
+        confidence: null, action: "manual", alternatives: [],
+        methods: [], bridgeN: null,
       },
       presenceTier: null, presencePct: null,
       conf: null, px: 50, py: 50, side: "left",
-    };
-    setCards(prev => [...prev, card]);
+    }]);
     resetAddForm();
   };
 
@@ -2722,142 +2801,19 @@ function App() {
       }
       const detected = Array.from(byCode.values());
 
-      // ── Path 2 通用模型 — VLM(L1) → iso_lookup_factory_v4.3 + v4 fallback ──
-      // v4.3 主查:Department × Gender × GT × L1(fine GT 對齊 UI,含性別,130 entries)
-      // v4 次查:Fabric × Department × GT × L1_code,L1 覆蓋更廣、含 iso_zh / machine
-      // 兩表透過共同的 isoOptionsFor 合併:先試 v4.3,找不到再退 v4。
+      // ── Path 2 通用模型 — VLM(L1) → data/recipes_master.json 單一資料源 ──
+      // master 由 scripts/build_recipes_master.py 合併 recipe / v4.3 / v4 / bridge 產出,
+      // 4 層 aggregation(same_sub → same_gt → general → cross_design)由 buildUniversalCard
+      // 內部 isoOptionsFor 依序 fallback。methods 一律從 cross_design(bridge)拿。
       if (appMode === "universal") {
-        const fabricV4 = (fabric || "Knit").toLowerCase() === "woven" ? "Woven" : "Knit";
-        const V4_DEPTS = ["Active", "RTW", "Swimwear", "Sleepwear"];
-        const normDept = (() => {
-          if (!dept) return null;
-          const match = V4_DEPTS.find(d => d.toUpperCase() === String(dept).toUpperCase());
-          return match || null;
-        })();
-        // SWIM_PIECE 不是 v4 GT,但可由 Department=Swimwear + TOP/PANTS 類推
-        const GT_V4_ALIAS = { SWIM_PIECE: ["TOP", "PANTS"] };
-        const gtCandidates = GT_V4_ALIAS[gt] || [gt];
-        const entriesAll = isoLookupV4?.entries || [];
-        // 排序權重:iso 非 null 最重要,再看 confidence,再看 expect=yes
-        const CONF_RANK = { strong: 4, likely: 3, mixed: 2, no_dominant: 1, no_data: 0 };
-        const rankEntry = (e) => (
-          (e.iso ? 1000 : 0) +
-          (CONF_RANK[e.confidence] || 0) * 10 +
-          (e.expect === "yes" ? 1 : 0)
-        );
-        const pickBest = (list) => {
-          if (!list.length) return null;
-          let best = list[0];
-          for (const e of list) if (rankEntry(e) > rankEntry(best)) best = e;
-          return best;
-        };
-        const lookupV4 = (l1_code) => {
-          // 1) 精準:Fabric × Dept × GT × L1_code 的所有 entry,排序取最佳
-          let cands = entriesAll.filter(e =>
-            e.fabric === fabricV4 && e.department === normDept &&
-            gtCandidates.includes(e.gt) && e.l1_code === l1_code);
-          let best = pickBest(cands);
-          if (best?.iso) return best;
-          // 2) 放寬 Dept(同 Fabric × GT × L1_code)
-          cands = entriesAll.filter(e =>
-            e.fabric === fabricV4 && gtCandidates.includes(e.gt) && e.l1_code === l1_code);
-          best = pickBest(cands);
-          if (best?.iso) return best;
-          // 3) 放寬 GT(同 Fabric × Dept × L1_code)
-          cands = entriesAll.filter(e =>
-            e.fabric === fabricV4 && e.department === normDept && e.l1_code === l1_code);
-          best = pickBest(cands);
-          if (best?.iso) return best;
-          // 4) 最後 fallback:同 Fabric × L1_code
-          cands = entriesAll.filter(e =>
-            e.fabric === fabricV4 && e.l1_code === l1_code);
-          return pickBest(cands);
-        };
-        // 先建立 bridge v6 這 GT 的 L1_code → zone 索引,供後面每張卡片查替代 ISO / 常見工法
-        const bridgeGT = bridgeV6?.bridges?.[gt] || null;
-        const bridgeByL1 = {};
-        if (bridgeGT) {
-          for (const z of Object.values(bridgeGT.zones || {})) {
-            if (z && z.l1_code && z.l1_code !== "—") bridgeByL1[z.l1_code] = z;
-          }
-        }
-        // no_data / iso=null 的 L1 直接濾掉,不產卡片 —— 避免顯示「ISO null」
-        // 透過 isoOptionsFor 合併:先試 v4.3(fine GT + 性別),找不到再退 v4。
-        // opts[0] 是 primary(含 iso / iso_zh / machine / source),opts[1+] 是替代。
-        const builtAll = detected.map((d) => {
-          const opts = isoOptionsFor(isoLookupV43, isoLookupV4, { fabric, dept, gender, gt, it }, d.code);
-          const primary = opts && opts.length ? opts[0] : null;
-          // v4 entry 仍保留:bridge 沒資料時用 pptx_2025_votes 填替代 ISO 分布
-          const v4Entry = lookupV4(d.code);
-          return { d, primary, v4Entry };
-        });
-        const builtFiltered = builtAll.filter(x => x.primary && x.primary.iso);
-        const built = builtFiltered.map(({ d, primary, v4Entry }, i) => {
-          const l1 = L1_CODE_TO_NAME[d.code] || d.code;
-          const label = `ISO ${primary.iso}${primary.iso_zh ? " · " + primary.iso_zh : ""}${primary.machine ? " · " + primary.machine : ""}`;
-          // 替代 ISO 來源:優先用 bridge v6 的 iso_distribution(跨 1,328 designs 三年累計),
-          // 沒 bridge 才 fallback 到 v4 entry 的 pptx_2025_votes(只有 2025 當年)
-          const bridgeZone = bridgeByL1[d.code] || null;
-          const isoDist = bridgeZone?.iso_distribution
-            || v4Entry?.pptx_2025_votes
-            || {};
-          const isoTotal = Object.values(isoDist).reduce((s, n) => s + (Number(n) || 0), 0) || 1;
-          const alternatives = Object.entries(isoDist)
-            .filter(([iso]) => iso !== primary.iso)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 5)
-            .map(([iso, count]) => ({
-              iso,
-              count,
-              pct: Math.round(count / isoTotal * 100),
-            }));
-          // 常見工法(只有 bridge 有):method_distribution 前 3 名
-          const methods = bridgeZone
-            ? Object.entries(bridgeZone.method_distribution || {})
-                .sort((a, b) => b[1] - a[1])
-                .slice(0, 3)
-                .map(([name, count]) => ({ name, count }))
-            : [];
-          return {
-            id: i + 1,
-            l1,
-            l1_code: d.code,
-            l2: label,
-            l2Base: null,
-            source: d._fromPresence ? "struct" : "ai",
-            conf: Number.isFinite(d.confidence) ? d.confidence : null,
-            matchCode: null,
-            px: Number.isFinite(d.x) ? d.x : 50,
-            py: Number.isFinite(d.y) ? d.y : 50,
-            side: d.side === "back" ? "right" : "left",
-            ie: 0,
-            action: "manual",
-            isoConfidence: null,
-            presenceTier: presenceByCode[d.code]?.tier_en || null,
-            presencePct: presenceByCode[d.code]?.presence_pct ?? null,
-            // Path 2 專屬:ISO 資訊 + 來源標記(v4.3 / v4)
-            universal: {
-              iso: primary.iso,
-              iso_zh: primary.iso_zh || null,
-              machine: primary.machine || null,
-              confidence: null,
-              action: null,
-              source: primary.source,
-              alternatives,
-              methods,
-              bridgeN: bridgeZone?.n_designs ?? null,
-            },
-            // 留空:universal mode 不使用五階層 drill-down
-            methodIdx: 0, methodVariants: [],
-            l2Idx: 0, l2Variants: [],
-            l3Idx: 0, l3Variants: [],
-            ai_l2_code: null, ai_l2_confidence: null, ai_l2_explanation: null,
-            ai_l2_needs_text: false, ai_l2_merged_candidates: [],
-            l3s: [],
-          };
-        });
+        const filters = { fabric, dept, gender, gt, it };
+        const built = detected
+          .map((d, i) => buildUniversalCard(d, filters, recipesMaster, isoDictionary, l1Standard38, presenceByCode, i))
+          .filter(c => c && c.universal?.iso);
+        // 重編 id:buildUniversalCard 用 idx+1,但過濾後可能有斷號
+        const renumbered = built.map((c, i) => ({ ...c, id: i + 1 }));
         clearInterval(si);
-        setCards(built);
+        setCards(renumbered);
         setCStage(5);
         setCAnalyzing(false);
         setCStep(2);
@@ -3781,28 +3737,20 @@ function App() {
                           if (cc.id !== cardId) return cc;
                           const u = cc.universal;
                           if (!u || u.iso === newIso) return cc;
-                          // 從 v4 entries 找 newIso 的 iso_zh / machine (取第一筆有值的即可)
-                          const allEntries = isoLookupV4?.entries || [];
-                          const meta = allEntries.find(e => e.iso === newIso && (e.iso_zh || e.machine)) || {};
-                          // 舊主 ISO 推入替代陣列(不保留票數,因為已是使用者選擇軌跡),
-                          // 新 ISO 從替代中移除(避免重複)
-                          const newAlts = [
-                            { iso: u.iso, count: null },
-                            ...u.alternatives.filter(a => a.iso !== newIso),
-                          ];
-                          return {
-                            ...cc,
-                            l2: `ISO ${newIso}${meta.iso_zh ? " · " + meta.iso_zh : ""}${meta.machine ? " · " + meta.machine : ""}`,
-                            isoConfidence: "manual",
-                            universal: {
-                              ...u,
-                              iso: newIso,
-                              iso_zh: meta.iso_zh || null,
-                              machine: meta.machine || null,
-                              confidence: "manual",
-                              alternatives: newAlts,
-                            },
+                          // 用 buildUniversalCard 整張重建:methods / alternatives / 顯示字串
+                          // 一起刷新(以前只換 iso 字串,methods 留舊值 = 痛點 2)
+                          const filters = { fabric, dept, gender, gt, it };
+                          const det = {
+                            code: cc.l1_code,
+                            x: cc.px, y: cc.py,
+                            side: cc.side === "right" ? "back" : "front",
+                            confidence: cc.conf,
+                            _fromPresence: cc.source === "struct",
                           };
+                          const pres = { [cc.l1_code]: { tier_en: cc.presenceTier, presence_pct: cc.presencePct } };
+                          const rebuilt = buildUniversalCard(det, filters, recipesMaster, isoDictionary, l1Standard38, pres, cc.id - 1, newIso);
+                          if (!rebuilt) return cc;
+                          return { ...rebuilt, id: cc.id };
                         }))} />
                     );
                     if (!showHeaders) return vis.map((c, i) => renderCard({ c, i }));
@@ -3840,7 +3788,7 @@ function App() {
                     const pickedShape = l3List[newL3Idx] || null;
                     const l4List = pickedShape?.methods || [];
                     const isoList = appMode === "universal" && newL1
-                      ? isoOptionsFor(isoLookupV43, isoLookupV4, { fabric, dept, gender, gt, it }, newL1) : [];
+                      ? isoOptionsFor(recipesMaster, isoDictionary, { fabric, dept, gender, gt, it }, newL1) : [];
 
                     const makalotReady = appMode === "makalot"
                       && !!newL1 && l2List.length > 0 && l3List.length > 0
