@@ -1872,7 +1872,9 @@ function AdminModal({ open, onClose, pomNames, onPushDict }) {
     if (!token) { alert('請先填 Admin Token'); return; }
     setPushState({ status: 'pushing', msg: '推送中…' });
     try {
-      const result = await onPushDict(draft, { token, message: commitMsg });
+      // 沒填 commit message 就用自動產生的那條
+      const finalMsg = (commitMsg || '').trim() || autoMsg;
+      const result = await onPushDict(draft, { token, message: finalMsg });
       if (result.unchanged) {
         setPushState({ status: 'success', msg: '沒有變更,未建立新 commit' });
       } else {
@@ -1899,6 +1901,32 @@ function AdminModal({ open, onClose, pomNames, onPushDict }) {
   const pomCount = allCodes.length;
   const origCount = Object.keys(pomNames || {}).length;
   const changed = JSON.stringify(draft) !== JSON.stringify(pomNames || {});
+
+  // diff draft vs pomNames,自動產生 commit message + 給使用者看的摘要
+  const diff = React.useMemo(() => {
+    const orig = pomNames || {};
+    const added = [], modified = [], removed = [];
+    const origKeys = new Set(Object.keys(orig));
+    const draftKeys = new Set(Object.keys(draft));
+    for (const k of draftKeys) {
+      if (!origKeys.has(k)) added.push(k);
+      else {
+        const a = orig[k] || {}; const b = draft[k] || {};
+        if ((a.en || '') !== (b.en || '') || (a.zh || '') !== (b.zh || '')) modified.push(k);
+      }
+    }
+    for (const k of origKeys) if (!draftKeys.has(k)) removed.push(k);
+    return { added, modified, removed };
+  }, [draft, pomNames]);
+  // 自動 commit message:把三類計數 + 前幾個代號塞進句子
+  const autoMsg = React.useMemo(() => {
+    const parts = [];
+    if (diff.added.length)    parts.push(`+${diff.added.length} (${diff.added.slice(0, 4).join(', ')}${diff.added.length > 4 ? '…' : ''})`);
+    if (diff.modified.length) parts.push(`~${diff.modified.length} (${diff.modified.slice(0, 4).join(', ')}${diff.modified.length > 4 ? '…' : ''})`);
+    if (diff.removed.length)  parts.push(`-${diff.removed.length} (${diff.removed.slice(0, 4).join(', ')}${diff.removed.length > 4 ? '…' : ''})`);
+    if (!parts.length) return `Update data/pom_dictionary.json via admin (${pomCount} entries, no content change)`;
+    return `Update pom_dictionary: ${parts.join(' / ')}`;
+  }, [diff, pomCount]);
 
   return (
     <div onClick={onClose} role="dialog" aria-modal="true" aria-label="管理面板" style={{
@@ -2018,9 +2046,24 @@ function AdminModal({ open, onClose, pomNames, onPushDict }) {
 
         {/* 推送區 */}
         <div style={{ marginTop: '12px', padding: '10px 12px', background: '#f9fafb', border: '1px solid #e5e5e5', borderRadius: '8px' }}>
+          {/* 改動摘要 + auto commit message 預覽 */}
+          {changed && (
+            <div style={{ fontSize: '11px', color: '#525252', marginBottom: '8px', padding: '6px 10px', background: '#fff', border: '1px dashed #e5e5e5', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <span style={{ color: '#0891b2', fontWeight: 700 }}>改動:</span>
+              {diff.added.length > 0 && <span style={{ color: '#065f46' }}>+{diff.added.length} 新增</span>}
+              {diff.modified.length > 0 && <span style={{ color: '#b45309' }}>~{diff.modified.length} 修改</span>}
+              {diff.removed.length > 0 && <span style={{ color: '#991b1b' }}>-{diff.removed.length} 刪除</span>}
+              <span style={{ marginLeft: 'auto', color: '#888' }}>auto-msg:</span>
+              <code style={{ background: '#f5f5f5', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', fontFamily: "'JetBrains Mono',monospace", flex: '1 1 auto', minWidth: '200px' }}>{autoMsg}</code>
+              <button type="button" onClick={() => setCommitMsg(autoMsg)}
+                style={{ fontSize: '10px', padding: '3px 8px', border: '1px solid #bae6fd', background: '#f0f9ff', color: '#0369a1', borderRadius: '4px', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+                套用到下方
+              </button>
+            </div>
+          )}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
             <input value={commitMsg} onChange={e => setCommitMsg(e.target.value)}
-              placeholder={`commit message(空白 → 自動「Update data/pom_dictionary.json via admin (${pomCount} entries)」)`}
+              placeholder={`commit message(空白 → 自動用「${autoMsg}」)`}
               style={{ flex: 1, padding: '7px 10px', fontSize: '12px',
                 border: '1px solid #e5e5e5', borderRadius: '6px', background: '#fff' }} />
             <button onClick={pushNow}
