@@ -198,11 +198,12 @@ function sortedL1sForBucket(partPresence, gt, it) {
 /* ─── app 的 dept / gender / gt 值正規化到 v4.3 桶用的 key ───
    v4.3 GT 對齊 App UI 下拉選單(PANTS/LEGGINGS/SHORTS/TOP/… 保持細粒度),
    所以 V43_GT_ALIAS 縮到只剩兩個 UI 有但 v4.3 沒 bucket 的例外。
-   v4.3 Dept 只有 General / Swimwear(Sleepwear 折進 General)。
-   v4.3 Gender 集合為 KIDS/MENS/UNKNOWN/WOMENS。 */
+   v4.3 Dept 為 General / Sleepwear / Swimwear(Sleepwear entry 極少但存在,
+   isoOptionsFor 的第 3 層 fallback 會自動退到 General)。
+   v4.3 Gender 集合為 KIDS / MENS / UNISEX / WOMENS。 */
 const V43_DEPT_ALIAS = {
   Active: "General", RTW: "General", Fleece: "General",
-  Sleepwear: "General", Swimwear: "Swimwear",
+  Sleepwear: "Sleepwear", Swimwear: "Swimwear",
 };
 const V43_GENDER_ALIAS = {
   MENS: "MENS", WOMENS: "WOMENS", MATERNITY: "WOMENS",
@@ -227,9 +228,9 @@ function buildIsoRef(lookupV4) {
 }
 
 /* ─── 通用模型:回傳目前 bucket 下該 L1 可選的 ISO 列表
-   先查 v4.3(Department × Gender × GT × L1,fine GT 對齊 UI,含性別,130 entries),
-   查無對應再 fallback 到 v4(Fabric × Department × GT × L1_code,沒有性別但覆蓋完整、
-   提供 iso_zh/machine 顯示字串)。
+   先查 v4.3(Department × Gender × GT × L1,fine GT 對齊 UI,含性別,230 entries,
+   L1 用 38 碼標準中文名),查無對應再 fallback 到 v4
+   (Fabric × Department × GT × L1_code,沒有性別但覆蓋完整、提供 iso_zh/machine)。
    格式:[{ iso, iso_zh, machine, pct, isPrimary, source: "v4.3"|"v4" }] ─── */
 function isoOptionsFor(lookupV43, lookupV4, filters, l1Code) {
   if (!l1Code) return [];
@@ -240,13 +241,14 @@ function isoOptionsFor(lookupV43, lookupV4, filters, l1Code) {
   // ── v4.3 查詢(fine GT,對齊 UI 下拉選單,只需處理少數例外) ──
   const v43Entries = lookupV43?.entries || [];
   const deptKey = V43_DEPT_ALIAS[dept] || "General";
-  const genderKey = V43_GENDER_ALIAS[gender] || "UNKNOWN";
+  const genderKey = V43_GENDER_ALIAS[gender] || "UNISEX";
   const gtKey43 = V43_GT_ALIAS[gt] || gt;
   const findV43 = (pred) => v43Entries.find(e => e.l1 === l1Name && pred(e));
   let v43Entry = null;
   if (l1Name) {
+    // 4 層 fallback:精準 → 同 dept + UNISEX → General + gender → General(任何 gender)
     v43Entry = findV43(e => e.department === deptKey && e.gender === genderKey && e.gt === gtKey43)
-      || findV43(e => e.department === deptKey && e.gender === "UNKNOWN" && e.gt === gtKey43)
+      || findV43(e => e.department === deptKey && e.gender === "UNISEX" && e.gt === gtKey43)
       || findV43(e => e.department === "General" && e.gender === genderKey && e.gt === gtKey43)
       || findV43(e => e.department === "General" && e.gt === gtKey43);
   }
@@ -2083,6 +2085,13 @@ function App() {
   // 33 combos × 1,016 POM families,20.6% POM 有 inflection(S→M 和 M→L 的 delta 不同)。
   // 拿來取代基碼頁目前用 pom_rules.grading_rules.typical_increment(固定遞增)的線性推導。
   const [gradingPatterns, setGradingPatterns] = useState(null);
+  // bodytype_variance(data/bodytype_variance.json):
+  // {GENDER|GT|BODYTYPE: {m_size_comparison: {POM: {regular_M, <bt>_M, delta}},
+  //                        grading_deltas:   {POM: {regular_grading, <bt>_grading, same_pattern}}}}
+  // 43 組 key,每組覆蓋 40+ POM。提供 PETITE/TALL/PLUS 相對 MISSY 的 M 差值 +
+  // 跳檔序列對比(81% POM same_pattern=false,身材下跳檔序列就是跟 regular 不同)。
+  // UI:使用者切 Run(petite/tall/plus)時拿 delta 套到 M 基碼,跳檔直接用 <bt>_grading array。
+  const [bodytypeVariance, setBodytypeVariance] = useState(null);
   const [analyzeErr, setAnalyzeErr] = useState(null);
   // { model, pass1: {input, output, cache_read, cache_write}, pass2: {...}, cost_est } | null
   const [analyzeUsage, setAnalyzeUsage] = useState(null);
@@ -4117,11 +4126,24 @@ function App() {
               const runOffsets = currentBucket.size_run_offsets || {};
               const activeOffsets = sizeRunVariant === 'regular' ? null : (runOffsets[sizeRunVariant] || null);
               const hasRunData = !!activeOffsets && Object.keys(activeOffsets).length > 0;
-              // 只顯示有實際 offset 資料的 run 選項(regular 一律顯示)
-              const availableRuns = ['regular', ...['petite','tall'].filter(
-                r => runOffsets[r] && Object.keys(runOffsets[r]).length > 0
-              )];
+              // bodytype_variance lookup(data/bodytype_variance.json):
+              // key = GENDER|GT|<BT>,值為 { m_size_comparison, grading_deltas }。
+              // 當 sizeRunVariant 是 petite/tall 時,swap 每個 POM 的 M 基碼為 <bt>_M。
+              const bodytypeKeyFor = (bt) => (gender && gt) ? `${gender}|${gt}|${bt.toUpperCase()}` : null;
+              const bodytypeEntryFor = (bt) => {
+                const k = bodytypeKeyFor(bt);
+                return (k && bodytypeVariance) ? (bodytypeVariance[k] || null) : null;
+              };
+              const activeBodytypeEntry = sizeRunVariant === 'regular' ? null : bodytypeEntryFor(sizeRunVariant);
+              // Run 選項:有 bucket 內建 size_run_offsets 就算,否則看 bodytype_variance 有沒有對應資料
+              const availableRuns = ['regular', ...['petite','tall'].filter(bt => {
+                if (runOffsets[bt] && Object.keys(runOffsets[bt]).length > 0) return true;
+                return !!bodytypeEntryFor(bt);
+              })];
               const tierOf = code => mr.must?.[code] ? "must" : mr.recommend?.[code] ? "recommend" : (mr.optional?.[code] ? "optional" : "custom");
+              // Foundational (tier-1 enforced) POM codes — 不管 rate 多少都被強制進 must。
+              // UI 以 ★ 標示區別「歷史 rate 高進 must」vs「tier-1 強制進 must」。
+              const tier1Set = new Set(currentBucket.foundational_measurements?.tier1_poms || []);
               const tolStr = m => {
                 const t = m?.tolerance;
                 if (!t) return "—";
@@ -4340,7 +4362,14 @@ function App() {
                                   const m = tier === "custom" ? (customMeta ? { tolerance: customMeta.tolerance } : null) : mr[tier]?.[code];
                                   const mvRow = mv[code];
                                   const pending = tier !== "custom" && isLengthPending(code);
-                                  const baseM = pending ? null : (tier === "custom" ? null : mvRow?.size_medians?.M);
+                                  const regularM = pending ? null : (tier === "custom" ? null : mvRow?.size_medians?.M);
+                                  // bodytype variance:切到 petite/tall 時,用 <bt>_M 取代 regular M。
+                                  // 沒對應 entry(該 POM 在該身型無資料)就退回 regular M。
+                                  const btMsc = activeBodytypeEntry?.m_size_comparison?.[code];
+                                  const btKey = sizeRunVariant + '_M'; // "petite_M" / "tall_M"
+                                  const btM = btMsc && btMsc[btKey] != null ? btMsc[btKey] : null;
+                                  const baseM = (sizeRunVariant !== 'regular' && btM != null) ? btM : regularM;
+                                  const btDelta = (btMsc && btMsc.delta != null) ? btMsc.delta : null;
                                   const included = !excluded.has(code);
                                   const pn = pomNames[code] || {};
                                   const ov = baseOverrides[code] ?? "";
@@ -4361,7 +4390,13 @@ function App() {
                                           style={{ width: "16px", height: "16px", accentColor: tc.c, cursor: "pointer" }} />
                                       </td>
                                       {appMode !== "universal" && (
-                                        <td style={{ padding: isMobile ? "5px 4px" : "9px 12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "14px", color: tc.c }}>{code}</td>
+                                        <td style={{ padding: isMobile ? "5px 4px" : "9px 12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "14px", color: tc.c, whiteSpace: "nowrap" }}>
+                                          {code}
+                                          {tier1Set.has(code) && (
+                                            <span title="Tier-1 Foundational:不論 rate 多少都強制進 must,不能隱藏"
+                                              style={{ marginLeft: "4px", color: "#0891b2", fontSize: "11px" }}>★</span>
+                                          )}
+                                        </td>
                                       )}
                                       {!isMobile && (
                                         <td style={{ padding: "7px 12px" }}
@@ -4460,6 +4495,12 @@ function App() {
                                             background: "#fff",
                                           }} />
                                         <span style={{ fontSize: isMobile ? "11px" : "13px", color: "#065f46", marginLeft: "2px" }}>{unitSuffix.trim()}</span>
+                                        {sizeRunVariant !== 'regular' && btDelta != null && btDelta !== 0 && (
+                                          <div style={{ fontSize: "10px", color: "#7e22ce", marginTop: "2px", fontFamily: "'JetBrains Mono',monospace" }}
+                                            title={`vs regular M = ${fmtDisp(regularM)}${unitSuffix}`}>
+                                            {btDelta > 0 ? '+' : ''}{fmtDisp(btDelta)}{unitSuffix.trim()} vs regular
+                                          </div>
+                                        )}
                                       </td>
                                       {showPlus && hasPlus && (() => {
                                         const base2X = pending ? null : mvRow?.size_medians?.[plusAnchor];
