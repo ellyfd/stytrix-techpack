@@ -4570,11 +4570,13 @@ function App() {
                           </span>
                         </div>
                       </div>
-                      <div style={{ display: "flex", flexDirection: isMobile ? "row" : "column", alignItems: isMobile ? "center" : "flex-end", justifyContent: "space-between", gap: isMobile ? "6px" : "10px" }}>
-                        <div style={{ textAlign: isMobile ? "left" : "right" }}>
-                          <div style={{ fontSize: isMobile ? "12px" : "14px", color: "#065f46", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{currentBucket.bucket}</div>
-                          <div style={{ fontSize: isMobile ? "10px" : "12px", color: "#999", marginTop: "2px" }}>n={currentBucket.n} · inches (fractions)</div>
-                        </div>
+                      <div style={{ display: "flex", flexDirection: isMobile ? "row" : "column", alignItems: isMobile ? "center" : "flex-end", justifyContent: isMobile ? "flex-end" : "space-between", gap: isMobile ? "6px" : "10px" }}>
+                        {!isMobile && (
+                          <div style={{ textAlign: "right" }}>
+                            <div style={{ fontSize: "14px", color: "#065f46", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{currentBucket.bucket}</div>
+                            <div style={{ fontSize: "12px", color: "#999", marginTop: "2px" }}>n={currentBucket.n} · inches (fractions)</div>
+                          </div>
+                        )}
                         <button onClick={runMeasurement} style={{
                           padding: isMobile ? "5px 10px" : "8px 16px", background: "#fff", color: "#666",
                           border: "1px solid #ddd", borderRadius: "6px", fontSize: isMobile ? "11px" : "13px", fontWeight: 500,
@@ -4613,7 +4615,7 @@ function App() {
                           顯示 Plus sizes <span style={{ fontSize: "10px", color: "#888" }}>({plusSeq.join("/")} · 自有基碼 {plusAnchor})</span>
                         </label>
                       )}
-                      <span style={{ fontSize: "10px", color: "#999", marginLeft: "auto" }}>切換會同時套用到「全碼」表</span>
+                      {!isMobile && <span style={{ fontSize: "10px", color: "#999", marginLeft: "auto" }}>切換會同時套用到「全碼」表</span>}
                     </div>
                   </div>
 
@@ -5227,14 +5229,16 @@ function App() {
                           )}
                         </div>
                       </div>
-                      <div style={{ textAlign: isMobile ? "left" : "right" }}>
-                        <div style={{ fontSize: isMobile ? "12px" : "14px", color: "#065f46", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{currentBucket.bucket}</div>
-                        <div style={{ fontSize: isMobile ? "10px" : "12px", color: "#999", marginTop: "2px" }}>
-                          Base: <span style={{ fontWeight: 700, color: "#065f46" }}>M</span>
-                          {showPlus && <> + <span style={{ fontWeight: 700, color: "#065f46" }}>{plusAnchor}</span></>}
-                          {" · inches (fractions)"}
+                      {!isMobile && (
+                        <div style={{ textAlign: "right" }}>
+                          <div style={{ fontSize: "14px", color: "#065f46", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace" }}>{currentBucket.bucket}</div>
+                          <div style={{ fontSize: "12px", color: "#999", marginTop: "2px" }}>
+                            Base: <span style={{ fontWeight: 700, color: "#065f46" }}>M</span>
+                            {showPlus && <> + <span style={{ fontWeight: 700, color: "#065f46" }}>{plusAnchor}</span></>}
+                            {" · inches (fractions)"}
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                     {/* Size 擴展控制列(Run / Plus)— 跟基碼頁共用 state,兩邊同步 */}
                     <div style={{ display: "flex", alignItems: "center", gap: isMobile ? "10px" : "14px", flexWrap: "wrap", marginTop: isMobile ? "8px" : "14px", paddingTop: isMobile ? "6px" : "12px", borderTop: "1px dashed #eee" }}>
@@ -5267,7 +5271,7 @@ function App() {
                           顯示 Plus sizes <span style={{ fontSize: "10px", color: "#888" }}>({plusSeq.join("/")} · 自有基碼 {plusAnchor})</span>
                         </label>
                       )}
-                      <span style={{ fontSize: "10px", color: "#999", marginLeft: "auto" }}>切換會同時套用到「基碼」頁</span>
+                      {!isMobile && <span style={{ fontSize: "10px", color: "#999", marginLeft: "auto" }}>切換會同時套用到「基碼」頁</span>}
                     </div>
                   </div>
 
