@@ -4786,10 +4786,10 @@ function App() {
                             <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#525252", width: isMobile ? "52px" : "80px" }}>公差</th>
                             <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#065f46", width: isMobile ? "80px" : "110px" }}>Base (M)</th>
                             {showPetite && hasPetiteData && (
-                              <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#7e22ce", width: isMobile ? "80px" : "110px" }}>Base (Petite M){!isMobile && <div style={{ fontSize: "11px", fontWeight: 400, color: "#7e22ce" }}>vs Regular delta</div>}</th>
+                              <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#7e22ce", width: isMobile ? "80px" : "110px" }}>Base (Petite M)</th>
                             )}
                             {showTall && hasTallData && (
-                              <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#1d4ed8", width: isMobile ? "80px" : "110px" }}>Base (Tall M){!isMobile && <div style={{ fontSize: "11px", fontWeight: 400, color: "#1d4ed8" }}>vs Regular delta</div>}</th>
+                              <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#1d4ed8", width: isMobile ? "80px" : "110px" }}>Base (Tall M)</th>
                             )}
                             {showPlus && hasPlus && (
                               <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#be185d", width: isMobile ? "80px" : "110px" }}>Base ({plusAnchor}){!isMobile && <div style={{ fontSize: "11px", fontWeight: 400, color: "#be185d" }}>Plus 獨立</div>}</th>
@@ -5000,12 +5000,6 @@ function App() {
                                                 border: `1px solid ${invalidP ? "#dc2626" : "#c4b5fd"}`, borderRadius: "6px",
                                                 background: "#fff",
                                               }} />
-                                            <span style={{ fontSize: isMobile ? "11px" : "13px", color: "#7e22ce", marginLeft: "2px" }}>{unitSuffix.trim()}</span>
-                                            {deltaP != null && Math.abs(deltaP) > 1e-9 && (
-                                              <div style={{ fontSize: "10px", color: "#7e22ce", marginTop: "2px", fontFamily: "'JetBrains Mono',monospace" }}>
-                                                {deltaP > 0 ? '+' : ''}{fmtDisp(deltaP)}{unitSuffix.trim()} vs Regular
-                                              </div>
-                                            )}
                                           </td>
                                         );
                                       })()}
@@ -5042,12 +5036,6 @@ function App() {
                                                 border: `1px solid ${invalidT ? "#dc2626" : "#93c5fd"}`, borderRadius: "6px",
                                                 background: "#fff",
                                               }} />
-                                            <span style={{ fontSize: isMobile ? "11px" : "13px", color: "#1d4ed8", marginLeft: "2px" }}>{unitSuffix.trim()}</span>
-                                            {deltaT != null && Math.abs(deltaT) > 1e-9 && (
-                                              <div style={{ fontSize: "10px", color: "#1d4ed8", marginTop: "2px", fontFamily: "'JetBrains Mono',monospace" }}>
-                                                {deltaT > 0 ? '+' : ''}{fmtDisp(deltaT)}{unitSuffix.trim()} vs Regular
-                                              </div>
-                                            )}
                                           </td>
                                         );
                                       })()}
@@ -5559,18 +5547,6 @@ function App() {
                         </span>
                       )}
                     </div>
-                    {gradingBodytype !== 'regular' && (
-                      <div style={{
-                        marginTop: "8px", padding: "8px 12px", borderRadius: "8px",
-                        background: gradingBodytype === 'petite' ? "#faf5ff" : "#eff6ff",
-                        border: `1.5px solid ${gradingBodytype === 'petite' ? "#e9d5ff" : "#bfdbfe"}`,
-                        fontSize: "11px", color: gradingBodytype === 'petite' ? "#7e22ce" : "#1d4ed8",
-                      }}>
-                        <strong>{gradingBodytype === 'petite' ? 'PETITE' : 'TALL'}</strong>
-                        {" · M 基碼套 "}<code style={{ background: "transparent", fontFamily: "'JetBrains Mono',monospace" }}>{gradingBodytype}_M</code>
-                        {" · 跳檔同 Missy(grading_patterns / typical_increment)"}
-                      </div>
-                    )}
                   </div>
 
                   {gradingCodes.length === 0 ? (
