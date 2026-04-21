@@ -198,11 +198,12 @@ function sortedL1sForBucket(partPresence, gt, it) {
 /* ─── app 的 dept / gender / gt 值正規化到 v4.3 桶用的 key ───
    v4.3 GT 對齊 App UI 下拉選單(PANTS/LEGGINGS/SHORTS/TOP/… 保持細粒度),
    所以 V43_GT_ALIAS 縮到只剩兩個 UI 有但 v4.3 沒 bucket 的例外。
-   v4.3 Dept 只有 General / Swimwear(Sleepwear 折進 General)。
-   v4.3 Gender 集合為 KIDS/MENS/UNKNOWN/WOMENS。 */
+   v4.3 Dept 為 General / Sleepwear / Swimwear(Sleepwear entry 極少但存在,
+   isoOptionsFor 的第 3 層 fallback 會自動退到 General)。
+   v4.3 Gender 集合為 KIDS / MENS / UNISEX / WOMENS。 */
 const V43_DEPT_ALIAS = {
   Active: "General", RTW: "General", Fleece: "General",
-  Sleepwear: "General", Swimwear: "Swimwear",
+  Sleepwear: "Sleepwear", Swimwear: "Swimwear",
 };
 const V43_GENDER_ALIAS = {
   MENS: "MENS", WOMENS: "WOMENS", MATERNITY: "WOMENS",
@@ -227,9 +228,9 @@ function buildIsoRef(lookupV4) {
 }
 
 /* ─── 通用模型:回傳目前 bucket 下該 L1 可選的 ISO 列表
-   先查 v4.3(Department × Gender × GT × L1,fine GT 對齊 UI,含性別,130 entries),
-   查無對應再 fallback 到 v4(Fabric × Department × GT × L1_code,沒有性別但覆蓋完整、
-   提供 iso_zh/machine 顯示字串)。
+   先查 v4.3(Department × Gender × GT × L1,fine GT 對齊 UI,含性別,230 entries,
+   L1 用 38 碼標準中文名),查無對應再 fallback 到 v4
+   (Fabric × Department × GT × L1_code,沒有性別但覆蓋完整、提供 iso_zh/machine)。
    格式:[{ iso, iso_zh, machine, pct, isPrimary, source: "v4.3"|"v4" }] ─── */
 function isoOptionsFor(lookupV43, lookupV4, filters, l1Code) {
   if (!l1Code) return [];
@@ -240,13 +241,14 @@ function isoOptionsFor(lookupV43, lookupV4, filters, l1Code) {
   // ── v4.3 查詢(fine GT,對齊 UI 下拉選單,只需處理少數例外) ──
   const v43Entries = lookupV43?.entries || [];
   const deptKey = V43_DEPT_ALIAS[dept] || "General";
-  const genderKey = V43_GENDER_ALIAS[gender] || "UNKNOWN";
+  const genderKey = V43_GENDER_ALIAS[gender] || "UNISEX";
   const gtKey43 = V43_GT_ALIAS[gt] || gt;
   const findV43 = (pred) => v43Entries.find(e => e.l1 === l1Name && pred(e));
   let v43Entry = null;
   if (l1Name) {
+    // 4 層 fallback:精準 → 同 dept + UNISEX → General + gender → General(任何 gender)
     v43Entry = findV43(e => e.department === deptKey && e.gender === genderKey && e.gt === gtKey43)
-      || findV43(e => e.department === deptKey && e.gender === "UNKNOWN" && e.gt === gtKey43)
+      || findV43(e => e.department === deptKey && e.gender === "UNISEX" && e.gt === gtKey43)
       || findV43(e => e.department === "General" && e.gender === genderKey && e.gt === gtKey43)
       || findV43(e => e.department === "General" && e.gt === gtKey43);
   }
