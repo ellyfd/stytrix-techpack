@@ -2364,8 +2364,10 @@ function App() {
   // 拿來取代基碼頁目前用 pom_rules.grading_rules.typical_increment(固定遞增)的線性推導。
   const [gradingPatterns, setGradingPatterns] = useState(null);
   // bodytype_variance(data/bodytype_variance.json):
-  // {GENDER|GT|BODYTYPE: {m_size_comparison: {POM: {regular_M, <bt>_M, delta}},
+  // {GENDER|GT|BODYTYPE: {m_size_comparison: {POM: {delta, n_pairs}},
   //                        grading_deltas:   {POM: {regular_grading, <bt>_grading, same_pattern}}}}
+  // 絕對值 = bucket.median_values[POM].size_medians.M + delta
+  //(配對母體跟全部設計的 bucket median 不同,不能存絕對值,只存 delta)
   // 43 組 key,每組覆蓋 40+ POM。提供 PETITE/TALL/PLUS 相對 MISSY 的 M 差值 +
   // 跳檔序列對比(81% POM same_pattern=false,身材下跳檔序列就是跟 regular 不同)。
   // UI:使用者切 Run(petite/tall/plus)時拿 delta 套到 M 基碼,跳檔直接用 <bt>_grading array。
@@ -4432,7 +4434,8 @@ function App() {
               const hasPlus = plusSeq.length > 0;
               // bodytype_variance lookup(data/bodytype_variance.json):
               // key = GENDER|GT|<BT>,值為 { m_size_comparison, grading_deltas }。
-              // 基碼頁:Petite/Tall 各自一欄;每個 POM 從 m_size_comparison.<bt>_M 取絕對值。
+              // m_size_comparison.<POM> 只含 { delta, n_pairs } — 絕對值用
+              // bucket median + delta 算(不同母體,不可直接拿 <bt>_M)。
               const bodytypeEntryFor = (bt) => {
                 if (!gender || !gt || !bodytypeVariance) return null;
                 return bodytypeVariance[`${gender}|${gt}|${bt.toUpperCase()}`] || null;
@@ -4441,10 +4444,13 @@ function App() {
               const tallEntry = bodytypeEntryFor('tall');
               const hasPetiteData = !!(petiteEntry && petiteEntry.m_size_comparison && Object.keys(petiteEntry.m_size_comparison).length > 0);
               const hasTallData = !!(tallEntry && tallEntry.m_size_comparison && Object.keys(tallEntry.m_size_comparison).length > 0);
-              // 取某 POM 的 <bt>_M(petite_M / tall_M)絕對值;沒對應 entry 回 null。
-              const btMFor = (entry, code, btKey) => {
+              // Petite/Tall 的 M = bucket median M + delta;沒對應 entry 或 median 回 null。
+              const btMFor = (entry, code) => {
                 const msc = entry?.m_size_comparison?.[code];
-                return (msc && msc[btKey] != null) ? msc[btKey] : null;
+                if (!msc) return null;
+                const base = mv[code]?.size_medians?.M;
+                if (base == null) return null;
+                return base + (msc.delta ?? 0);
               };
               const tierOf = code => mr.must?.[code] ? "must" : mr.recommend?.[code] ? "recommend" : (mr.optional?.[code] ? "optional" : "custom");
               // Foundational (tier-1 enforced) POM codes — 不管 rate 多少都被強制進 must。
@@ -4833,7 +4839,7 @@ function App() {
                                       </td>
                                       {/* Petite M(從 bodytype_variance 取絕對值,delta 顯示在欄位下) */}
                                       {showPetite && hasPetiteData && (() => {
-                                        const ptM = pending ? null : btMFor(petiteEntry, code, 'petite_M');
+                                        const ptM = pending ? null : btMFor(petiteEntry, code);
                                         const ovP = petiteBaseOverrides[code] ?? "";
                                         const invalidP = ovP !== "" && parseVal(ovP) == null;
                                         const displayP = ovP !== "" ? ovP : (ptM != null ? fmtDisp(ptM) : "");
@@ -4869,7 +4875,7 @@ function App() {
                                       })()}
                                       {/* Tall M */}
                                       {showTall && hasTallData && (() => {
-                                        const tlM = pending ? null : btMFor(tallEntry, code, 'tall_M');
+                                        const tlM = pending ? null : btMFor(tallEntry, code);
                                         const ovT = tallBaseOverrides[code] ?? "";
                                         const invalidT = ovT !== "" && parseVal(ovT) == null;
                                         const displayT = ovT !== "" ? ovT : (tlM != null ? fmtDisp(tlM) : "");
@@ -5192,13 +5198,13 @@ function App() {
                   const v = parseVal(ov);
                   if (v != null) return v;
                 }
-                // sub-tab=Petite/Tall 時,M 換成 <bt>_M(沒對應就回退 regular)
+                // sub-tab=Petite/Tall 時,M = bucket median + delta(delta=0 時等於 regular)。
+                const base = mv[code]?.size_medians?.M;
                 if (gradingBtEntry) {
                   const msc = gradingBtEntry.m_size_comparison?.[code];
-                  const btKey = gradingBodytype + '_M';
-                  if (msc && msc[btKey] != null) return msc[btKey];
+                  if (msc && base != null) return base + (msc.delta ?? 0);
                 }
-                return mv[code]?.size_medians?.M;
+                return base;
               };
               // tier1 set + ★ 圖例觸發
               const gradingTier1Set = new Set(currentBucket.foundational_measurements?.tier1_poms || []);
