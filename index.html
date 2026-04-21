@@ -1901,10 +1901,12 @@ function AdminModal({ open, onClose, pomNames, onPushDict }) {
   const changed = JSON.stringify(draft) !== JSON.stringify(pomNames || {});
 
   return (
-    <div onClick={onClose} role="dialog" aria-modal="true" aria-label="管理面板" style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      zIndex: 100, padding: '20px',
+    <div role="menu" style={{
+      position: 'absolute', top: 'calc(100% + 6px)', right: 0,
+      minWidth: '220px', background: '#fff',
+      border: '1px solid #e8e5e1', borderRadius: '8px',
+      boxShadow: '0 6px 20px rgba(0,0,0,0.12)',
+      zIndex: 90, padding: '6px 0',
     }}>
       <div onClick={e => e.stopPropagation()} style={{
         background: T.c.bg, borderRadius: T.r.xl, padding: '20px',
@@ -2054,6 +2056,82 @@ function AdminModal({ open, onClose, pomNames, onPushDict }) {
           </div>
         </div>
       </div>
+      <div>
+        {!selectedL1 && <div style={{ color: '#888', padding: '20px' }}>請從左側選一個 L1 部位</div>}
+        {selectedL1 && docErr && <div style={{ color: '#b91c1c' }}>⚠ {docErr}</div>}
+        {selectedL1 && !doc && !docErr && <div style={{ color: '#888' }}>載入中…</div>}
+        {selectedL1 && doc && (
+          <>
+            <div style={{ marginBottom: '10px' }}>
+              <div style={{ fontSize: '15px', fontWeight: 700 }}>{doc.l1 || '(未命名)'} <span style={{ color: '#888', fontSize: '12px', fontFamily: 'monospace', fontWeight: 400 }}>{doc.code || selectedL1}</span></div>
+            </div>
+            {availableFabrics.length > 1 && (
+              <div style={{ display: 'inline-flex', gap: '4px', padding: '3px', background: '#f5f5f5', borderRadius: '999px', marginBottom: '12px' }}>
+                {availableFabrics.map(f => (
+                  <button key={f} onClick={() => setFabric(f)}
+                    style={{
+                      padding: '5px 14px', fontSize: '12px', fontWeight: 700, fontFamily: 'inherit',
+                      background: fabric === f ? '#1a1a1a' : 'transparent',
+                      color: fabric === f ? '#fff' : '#555',
+                      border: 'none', borderRadius: '999px', cursor: 'pointer',
+                    }}>{f === 'knit' ? '針織 knit' : '梭織 woven'}</button>
+                ))}
+              </div>
+            )}
+            {!fabricData || fabricData.length === 0 ? (
+              <div style={{ color: '#888', padding: '10px' }}>此布別沒有資料</div>
+            ) : (
+              <div style={{ fontSize: '12px', lineHeight: 1.6 }}>
+                {fabricData.map((l2Node, i) => (
+                  <details key={i} style={{ marginBottom: '8px', border: '1px solid #e8e5e1', borderRadius: '6px' }}>
+                    <summary style={{ padding: '8px 12px', cursor: 'pointer', fontWeight: 700, background: '#fafafa', borderRadius: '6px' }}>
+                      L2 · {l2Node.l2} <span style={{ color: '#888', fontWeight: 400 }}>({(l2Node.shapes || []).length} shape)</span>
+                    </summary>
+                    <div style={{ padding: '4px 10px 10px 16px' }}>
+                      {(l2Node.shapes || []).map((shape, si) => (
+                        <details key={si} style={{ marginTop: '6px' }}>
+                          <summary style={{ cursor: 'pointer', fontWeight: 600, color: '#333' }}>
+                            L3 · {shape.l3} <span style={{ color: '#888', fontWeight: 400 }}>({(shape.methods || []).length} method)</span>
+                          </summary>
+                          <div style={{ paddingLeft: '14px', marginTop: '4px' }}>
+                            {(shape.methods || []).map((m, mi) => (
+                              <details key={mi} style={{ marginTop: '4px' }}>
+                                <summary style={{ cursor: 'pointer', color: '#555' }}>
+                                  L4 · {m.l4} <span style={{ color: '#888' }}>({(m.steps || []).length} step)</span>
+                                </summary>
+                                <table style={{ width: '100%', marginTop: '4px', fontSize: '11px', borderCollapse: 'collapse' }}>
+                                  <thead>
+                                    <tr style={{ background: '#f5f5f5' }}>
+                                      <th style={{ textAlign: 'left', padding: '4px 6px', borderBottom: '1px solid #ddd' }}>L5 步驟</th>
+                                      <th style={{ textAlign: 'center', padding: '4px 6px', borderBottom: '1px solid #ddd', width: '40px' }}>類</th>
+                                      <th style={{ textAlign: 'right', padding: '4px 6px', borderBottom: '1px solid #ddd', width: '60px' }}>IE</th>
+                                      <th style={{ textAlign: 'center', padding: '4px 6px', borderBottom: '1px solid #ddd', width: '40px' }}>主/副</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {(m.steps || []).map((s, stepI) => (
+                                      <tr key={stepI}>
+                                        <td style={{ padding: '3px 6px', borderBottom: '1px solid #f5f5f5' }}>{s[0]}</td>
+                                        <td style={{ padding: '3px 6px', borderBottom: '1px solid #f5f5f5', textAlign: 'center', fontFamily: 'monospace' }}>{s[1]}</td>
+                                        <td style={{ padding: '3px 6px', borderBottom: '1px solid #f5f5f5', textAlign: 'right', fontFamily: 'monospace' }}>{s[2]}</td>
+                                        <td style={{ padding: '3px 6px', borderBottom: '1px solid #f5f5f5', textAlign: 'center' }}>{s[3]}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </details>
+                            ))}
+                          </div>
+                        </details>
+                      ))}
+                    </div>
+                  </details>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -2158,6 +2236,8 @@ function App() {
   const [sketchSrc, setSketchSrc] = useState(null);
   const [pomRules, setPomRules] = useState(null);
   const [adminOpen, setAdminOpen] = useState(false);
+  const [adminPanel, setAdminPanel] = useState(null); // null | 'pom' | 'filter' | 'hierarchy'
+  const adminAnchorRef = useRef(null);
   // 模式切換：makalot=聚陽模型（作工五階層 + POM tier + 全碼）/ universal=通用模型（AI→ISO + 基礎大尺寸）
   const [appMode, setAppMode] = useState(() => {
     try {
@@ -2210,15 +2290,10 @@ function App() {
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(setBodytypeVariance)
       .catch(err => console.error('載入 bodytype_variance 失敗:', err));
-    // POM 翻譯表:primary = data/pom_dictionary.json(439 codes,含 en/zh),
-    // fallback = pom_rules/pom_names.json(舊版)。schema 一致 {code: {en, zh}}。
     fetch('./data/pom_dictionary.json')
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(data => { setPomNames(data); window.POM_NAMES = data; })
-      .catch(() => fetch('./pom_rules/pom_names.json')
-        .then(r => r.ok ? r.json() : Promise.reject(r.status))
-        .then(data => { setPomNames(data); window.POM_NAMES = data; })
-        .catch(err => console.error('載入 pom_dictionary/pom_names 失敗:', err)));
+      .catch(err => console.error('載入 pom_dictionary 失敗:', err));
   }, []);
 
   const [pomNames, setPomNames] = useState({});
@@ -3431,19 +3506,29 @@ function App() {
               );
             })}
           </div>
-          <button onClick={() => setAdminOpen(true)}
-            aria-label="開啟管理面板"
-            title="管理"
-            style={{
-              background: "#fff", border: "1px solid #e8e5e1", borderRadius: "6px",
-              padding: isMobile ? "6px 12px" : "8px 14px", fontSize: isMobile ? "12px" : "13px", fontWeight: 700,
-              color: "#555",
-              cursor: "pointer", fontFamily: "inherit",
-              display: "inline-flex", alignItems: "center", justifyContent: "center",
-              transition: "border-color 0.15s",
-            }}>
-            管理
-          </button>
+          <div ref={adminAnchorRef} style={{ position: "relative" }}>
+            <button onClick={() => setAdminOpen(v => !v)}
+              aria-label="開啟管理選單"
+              aria-haspopup="menu"
+              aria-expanded={adminOpen}
+              title="管理"
+              style={{
+                background: "#fff", border: "1px solid #e8e5e1", borderRadius: "6px",
+                padding: isMobile ? "6px 12px" : "8px 14px", fontSize: isMobile ? "12px" : "13px", fontWeight: 700,
+                color: "#555",
+                cursor: "pointer", fontFamily: "inherit",
+                display: "inline-flex", alignItems: "center", gap: "4px", justifyContent: "center",
+                transition: "border-color 0.15s",
+              }}>
+              管理 <span style={{ fontSize: "9px", opacity: 0.7 }}>▾</span>
+            </button>
+            <AdminDropdown
+              open={adminOpen}
+              anchorRef={adminAnchorRef}
+              onClose={() => setAdminOpen(false)}
+              onSelect={(id) => { setAdminPanel(id); setAdminOpen(false); }}
+            />
+          </div>
         </div>
       </div>
       </div>
