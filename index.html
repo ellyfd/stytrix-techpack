@@ -4471,12 +4471,12 @@ function App() {
                       </div>
                       <button onClick={runMeasurement} style={btnStyle({ variant: 'secondary', isMobile })}>Re-generate</button>
                     </div>
-                    {/* Size 擴展控制列(身型 checkbox / 單位 / 格式)— Petite/Tall/Plus 都用 checkbox
-                        加欄,跟主表「Base (M)」並列;Plus 走 2X anchor、Petite/Tall 走 bodytype_variance。 */}
+                    {/* Size 擴展控制列:Petite/Tall checkbox 開關「有差異的 POM 顯示 sub-row」,
+                        Plus 才真的加一欄(走 2X anchor,所有 POM 都有值)。 */}
                     <div style={{ display: "flex", alignItems: "center", gap: isMobile ? "10px" : "14px", flexWrap: "wrap", marginTop: isMobile ? "8px" : "14px", paddingTop: isMobile ? "6px" : "12px", borderTop: "1px dashed #eee" }}>
                       <UnitFormatToggle displayUnit={displayUnit} setDisplayUnit={changeUnit} displayFormat={displayFormat} setDisplayFormat={changeFormat} />
                       <label
-                        title={hasPetiteData ? "" : "此 GT × Gender 在 bodytype_variance 無 Petite 歷史資料"}
+                        title={hasPetiteData ? "顯示與 Base(M) 有差異的 POM 之 Petite sub-row" : "此 GT × Gender 在 bodytype_variance 無 Petite 歷史資料"}
                         style={{
                           display: "flex", alignItems: "center", gap: "5px", padding: "6px 12px",
                           borderRadius: "6px", cursor: hasPetiteData ? "pointer" : "not-allowed",
@@ -4492,7 +4492,7 @@ function App() {
                         +PETITE
                       </label>
                       <label
-                        title={hasTallData ? "" : "此 GT × Gender 在 bodytype_variance 無 Tall 歷史資料"}
+                        title={hasTallData ? "顯示與 Base(M) 有差異的 POM 之 Tall sub-row" : "此 GT × Gender 在 bodytype_variance 無 Tall 歷史資料"}
                         style={{
                           display: "flex", alignItems: "center", gap: "5px", padding: "6px 12px",
                           borderRadius: "6px", cursor: hasTallData ? "pointer" : "not-allowed",
@@ -4604,12 +4604,6 @@ function App() {
                             <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#525252", minWidth: isMobile ? "110px" : "140px" }}>中文{isMobile ? <span style={{ fontSize: "10px", fontWeight: 400, color: "#999", marginLeft: "3px" }}>/ EN</span> : <span style={{ fontSize: "11px", fontWeight: 400, color: "#999", marginLeft: "4px" }}>(雙擊可改)</span>}</th>
                             <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#525252", width: isMobile ? "52px" : "80px" }}>公差</th>
                             <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#065f46", width: isMobile ? "80px" : "110px" }}>Base (M)</th>
-                            {showPetite && hasPetiteData && (
-                              <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#7e22ce", width: isMobile ? "80px" : "110px" }}>Base (Petite M)</th>
-                            )}
-                            {showTall && hasTallData && (
-                              <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#1d4ed8", width: isMobile ? "80px" : "110px" }}>Base (Tall M)</th>
-                            )}
                             {showPlus && hasPlus && (
                               <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#be185d", width: isMobile ? "80px" : "110px" }}>Base ({plusAnchor}){!isMobile && <div style={{ fontSize: "11px", fontWeight: 400, color: "#be185d" }}>Plus 獨立</div>}</th>
                             )}
@@ -4625,8 +4619,6 @@ function App() {
                             const allOn = selectedCount === codes.length;
                             const tierColspan = (isMobile ? 4 : 5)
                               - (appMode === "universal" ? 1 : 0)
-                              + ((showPetite && hasPetiteData) ? 1 : 0)
-                              + ((showTall && hasTallData) ? 1 : 0)
                               + (showPlus && hasPlus ? 1 : 0);
                             return (
                               <React.Fragment key={tier}>
@@ -4672,8 +4664,19 @@ function App() {
                                   const inputBorder = invalid ? "#dc2626" : (isChanged ? "#f59e0b" : "#a7f3d0");
                                   const inputColor  = invalid ? "#dc2626" : (isChanged ? "#b45309" : "#065f46");
                                   const cellBg      = isChanged ? "#fffbeb" : "#ecfdf5";
+                                  // sub-row 條件:bodytype 有非零 delta 或使用者曾手動覆蓋過
+                                  const petiteMsc = petiteEntry?.m_size_comparison?.[code];
+                                  const tallMsc   = tallEntry?.m_size_comparison?.[code];
+                                  const petiteOv  = petiteBaseOverrides[code] ?? "";
+                                  const tallOv    = tallBaseOverrides[code] ?? "";
+                                  const petiteHasDelta = !!(petiteMsc && Math.abs(petiteMsc.delta ?? 0) > 1e-9);
+                                  const tallHasDelta   = !!(tallMsc && Math.abs(tallMsc.delta ?? 0) > 1e-9);
+                                  const showPetiteSub = showPetite && hasPetiteData && !pending && (petiteHasDelta || petiteOv !== "");
+                                  const showTallSub   = showTall && hasTallData && !pending && (tallHasDelta || tallOv !== "");
+                                  const labelSpan = 1 + (appMode !== "universal" ? 1 : 0) + (!isMobile ? 1 : 0) + 2;
                                   return (
-                                    <tr key={code} style={{ borderBottom: "1px solid #f0eeeb", opacity: included ? 1 : 0.35, transition: "opacity 0.15s" }}>
+                                    <React.Fragment key={code}>
+                                    <tr style={{ borderBottom: "1px solid #f0eeeb", opacity: included ? 1 : 0.35, transition: "opacity 0.15s" }}>
                                       <td style={{ padding: isMobile ? "5px 4px" : "9px 12px" }}>
                                         <input type="checkbox" checked={included}
                                           onChange={() => setExcluded(prev => { const n = new Set(prev); n.has(code) ? n.delete(code) : n.add(code); return n; })}
@@ -4785,78 +4788,6 @@ function App() {
                                             background: "#fff",
                                           }} />
                                       </td>
-                                      {/* Petite M(從 bodytype_variance 取絕對值,delta 顯示在欄位下) */}
-                                      {showPetite && hasPetiteData && (() => {
-                                        const ptM = pending ? null : btMFor(petiteEntry, code);
-                                        const ovP = petiteBaseOverrides[code] ?? "";
-                                        const invalidP = ovP !== "" && parseVal(ovP) == null;
-                                        const displayP = ovP !== "" ? ovP : (ptM != null ? fmtDisp(ptM) : "");
-                                        const deltaP = (ptM != null && baseM != null) ? (ptM - baseM) : null;
-                                        return (
-                                          <td style={{ padding: isMobile ? "4px 4px" : "6px 12px", textAlign: "right", background: "#faf5ff" }}>
-                                            <input type="text" value={displayP}
-                                              onChange={(e) => setPetiteBaseOverrides(prev => ({ ...prev, [code]: e.target.value }))}
-                                              onBlur={() => {
-                                                const raw = petiteBaseOverrides[code];
-                                                if (raw == null || raw === "") return;
-                                                const parsed = parseVal(raw);
-                                                if (parsed == null) return;
-                                                const normalized = fmtDisp(parsed);
-                                                if (normalized !== "—" && normalized !== raw) {
-                                                  setPetiteBaseOverrides(prev => ({ ...prev, [code]: normalized }));
-                                                }
-                                              }}
-                                              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); } }}
-                                              disabled={!included}
-                                              placeholder={ptM != null ? fmtDisp(ptM) : "—"}
-                                              inputMode="text"
-                                              title={ptM == null ? "此 POM 在 Petite 無歷史資料" : undefined}
-                                              style={{
-                                                width: isMobile ? "66px" : "104px", textAlign: "right", padding: isMobile ? "5px 6px" : "7px 9px",
-                                                fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "14px", fontWeight: 700,
-                                                color: invalidP ? "#dc2626" : "#7e22ce",
-                                                border: `1px solid ${invalidP ? "#dc2626" : "#c4b5fd"}`, borderRadius: "6px",
-                                                background: "#fff",
-                                              }} />
-                                          </td>
-                                        );
-                                      })()}
-                                      {/* Tall M */}
-                                      {showTall && hasTallData && (() => {
-                                        const tlM = pending ? null : btMFor(tallEntry, code);
-                                        const ovT = tallBaseOverrides[code] ?? "";
-                                        const invalidT = ovT !== "" && parseVal(ovT) == null;
-                                        const displayT = ovT !== "" ? ovT : (tlM != null ? fmtDisp(tlM) : "");
-                                        const deltaT = (tlM != null && baseM != null) ? (tlM - baseM) : null;
-                                        return (
-                                          <td style={{ padding: isMobile ? "4px 4px" : "6px 12px", textAlign: "right", background: "#eff6ff" }}>
-                                            <input type="text" value={displayT}
-                                              onChange={(e) => setTallBaseOverrides(prev => ({ ...prev, [code]: e.target.value }))}
-                                              onBlur={() => {
-                                                const raw = tallBaseOverrides[code];
-                                                if (raw == null || raw === "") return;
-                                                const parsed = parseVal(raw);
-                                                if (parsed == null) return;
-                                                const normalized = fmtDisp(parsed);
-                                                if (normalized !== "—" && normalized !== raw) {
-                                                  setTallBaseOverrides(prev => ({ ...prev, [code]: normalized }));
-                                                }
-                                              }}
-                                              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); } }}
-                                              disabled={!included}
-                                              placeholder={tlM != null ? fmtDisp(tlM) : "—"}
-                                              inputMode="text"
-                                              title={tlM == null ? "此 POM 在 Tall 無歷史資料" : undefined}
-                                              style={{
-                                                width: isMobile ? "66px" : "104px", textAlign: "right", padding: isMobile ? "5px 6px" : "7px 9px",
-                                                fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "14px", fontWeight: 700,
-                                                color: invalidT ? "#dc2626" : "#1d4ed8",
-                                                border: `1px solid ${invalidT ? "#dc2626" : "#93c5fd"}`, borderRadius: "6px",
-                                                background: "#fff",
-                                              }} />
-                                          </td>
-                                        );
-                                      })()}
                                       {showPlus && hasPlus && (() => {
                                         const base2X = pending ? null : mvRow?.size_medians?.[plusAnchor];
                                         const ov2 = plusBaseOverrides[code] ?? "";
@@ -4892,6 +4823,95 @@ function App() {
                                         );
                                       })()}
                                     </tr>
+                                    {showPetiteSub && (() => {
+                                      const ptM = btMFor(petiteEntry, code);
+                                      const invalidP = petiteOv !== "" && parseVal(petiteOv) == null;
+                                      const displayP = petiteOv !== "" ? petiteOv : (ptM != null ? fmtDisp(ptM) : "");
+                                      const deltaP = (ptM != null && baseM != null) ? (ptM - baseM) : null;
+                                      const deltaStr = deltaP != null ? (deltaP > 0 ? `+${fmtDisp(deltaP)}${unitSuffix}` : `${fmtDisp(deltaP)}${unitSuffix}`) : null;
+                                      return (
+                                        <tr style={{ background: "#faf5ff", borderBottom: "1px solid #f0eeeb", opacity: included ? 1 : 0.35 }}>
+                                          <td colSpan={labelSpan} style={{ padding: isMobile ? "3px 8px 5px" : "4px 12px 6px", textAlign: "right", fontSize: isMobile ? "11px" : "12px", color: "#7e22ce" }}>
+                                            <span style={{ color: "#c4b5fd", marginRight: "6px" }}>↳</span>
+                                            <span style={{ fontWeight: 600 }}>{enFor(code)}</span>
+                                            <span style={{ color: "#a78bfa", marginLeft: "4px" }}>(Petite)</span>
+                                            {deltaStr && <span style={{ color: "#a78bfa", marginLeft: "10px", fontFamily: "'JetBrains Mono',monospace" }}>{deltaStr}</span>}
+                                          </td>
+                                          <td style={{ padding: isMobile ? "3px 4px 5px" : "4px 12px 6px", textAlign: "right" }}>
+                                            <input type="text" value={displayP}
+                                              onChange={(e) => setPetiteBaseOverrides(prev => ({ ...prev, [code]: e.target.value }))}
+                                              onBlur={() => {
+                                                const raw = petiteBaseOverrides[code];
+                                                if (raw == null || raw === "") return;
+                                                const parsed = parseVal(raw);
+                                                if (parsed == null) return;
+                                                const normalized = fmtDisp(parsed);
+                                                if (normalized !== "—" && normalized !== raw) {
+                                                  setPetiteBaseOverrides(prev => ({ ...prev, [code]: normalized }));
+                                                }
+                                              }}
+                                              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); } }}
+                                              disabled={!included}
+                                              placeholder={ptM != null ? fmtDisp(ptM) : "—"}
+                                              inputMode="text"
+                                              aria-label={`${code} Petite M`}
+                                              style={{
+                                                width: isMobile ? "66px" : "104px", textAlign: "right", padding: isMobile ? "4px 6px" : "6px 9px",
+                                                fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "13px", fontWeight: 700,
+                                                color: invalidP ? "#dc2626" : "#7e22ce",
+                                                border: `1px solid ${invalidP ? "#dc2626" : "#c4b5fd"}`, borderRadius: "6px",
+                                                background: "#fff",
+                                              }} />
+                                          </td>
+                                          {showPlus && hasPlus && <td />}
+                                        </tr>
+                                      );
+                                    })()}
+                                    {showTallSub && (() => {
+                                      const tlM = btMFor(tallEntry, code);
+                                      const invalidT = tallOv !== "" && parseVal(tallOv) == null;
+                                      const displayT = tallOv !== "" ? tallOv : (tlM != null ? fmtDisp(tlM) : "");
+                                      const deltaT = (tlM != null && baseM != null) ? (tlM - baseM) : null;
+                                      const deltaStr = deltaT != null ? (deltaT > 0 ? `+${fmtDisp(deltaT)}${unitSuffix}` : `${fmtDisp(deltaT)}${unitSuffix}`) : null;
+                                      return (
+                                        <tr style={{ background: "#eff6ff", borderBottom: "1px solid #f0eeeb", opacity: included ? 1 : 0.35 }}>
+                                          <td colSpan={labelSpan} style={{ padding: isMobile ? "3px 8px 5px" : "4px 12px 6px", textAlign: "right", fontSize: isMobile ? "11px" : "12px", color: "#1d4ed8" }}>
+                                            <span style={{ color: "#93c5fd", marginRight: "6px" }}>↳</span>
+                                            <span style={{ fontWeight: 600 }}>{enFor(code)}</span>
+                                            <span style={{ color: "#60a5fa", marginLeft: "4px" }}>(Tall)</span>
+                                            {deltaStr && <span style={{ color: "#60a5fa", marginLeft: "10px", fontFamily: "'JetBrains Mono',monospace" }}>{deltaStr}</span>}
+                                          </td>
+                                          <td style={{ padding: isMobile ? "3px 4px 5px" : "4px 12px 6px", textAlign: "right" }}>
+                                            <input type="text" value={displayT}
+                                              onChange={(e) => setTallBaseOverrides(prev => ({ ...prev, [code]: e.target.value }))}
+                                              onBlur={() => {
+                                                const raw = tallBaseOverrides[code];
+                                                if (raw == null || raw === "") return;
+                                                const parsed = parseVal(raw);
+                                                if (parsed == null) return;
+                                                const normalized = fmtDisp(parsed);
+                                                if (normalized !== "—" && normalized !== raw) {
+                                                  setTallBaseOverrides(prev => ({ ...prev, [code]: normalized }));
+                                                }
+                                              }}
+                                              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); } }}
+                                              disabled={!included}
+                                              placeholder={tlM != null ? fmtDisp(tlM) : "—"}
+                                              inputMode="text"
+                                              aria-label={`${code} Tall M`}
+                                              style={{
+                                                width: isMobile ? "66px" : "104px", textAlign: "right", padding: isMobile ? "4px 6px" : "6px 9px",
+                                                fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "13px", fontWeight: 700,
+                                                color: invalidT ? "#dc2626" : "#1d4ed8",
+                                                border: `1px solid ${invalidT ? "#dc2626" : "#93c5fd"}`, borderRadius: "6px",
+                                                background: "#fff",
+                                              }} />
+                                          </td>
+                                          {showPlus && hasPlus && <td />}
+                                        </tr>
+                                      );
+                                    })()}
+                                    </React.Fragment>
                                   );
                                 })}
                               </React.Fragment>
