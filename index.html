@@ -4263,10 +4263,17 @@ function App() {
                         +TALL
                       </label>
                       {hasPlus && (
-                        <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "#555", cursor: "pointer", userSelect: "none" }}>
+                        <label style={{
+                          display: "flex", alignItems: "center", gap: "5px", padding: "6px 12px",
+                          borderRadius: "6px", cursor: "pointer", fontSize: "11px", fontWeight: 600, userSelect: "none",
+                          background: showPlus ? "#fdf2f8" : "#fff",
+                          border: showPlus ? "1.5px solid #fbcfe8" : "1.5px solid #e8e5e1",
+                          color: showPlus ? "#be185d" : "#888",
+                          transition: "all 0.15s",
+                        }}>
                           <input type="checkbox" checked={showPlus} onChange={e => setShowPlus(e.target.checked)}
-                            style={{ width: "14px", height: "14px", cursor: "pointer" }} />
-                          顯示 Plus sizes <span style={{ fontSize: "10px", color: "#888" }}>({plusSeq.join("/")} · 自有基碼 {plusAnchor})</span>
+                            style={{ width: "14px", height: "14px", accentColor: "#be185d" }} />
+                          +PLUS <span style={{ fontSize: "10px", opacity: 0.6 }}>{plusSeq.join("/")} · 自有 {plusAnchor}</span>
                         </label>
                       )}
                     </div>
@@ -4979,37 +4986,6 @@ function App() {
                 }
                 return v;
               };
-              // 從 fromIdx 走到 toIdx,每步用 array[i] 當 delta(i = 前一個 size 的 index);
-              // 用於 bodytype_variance.grading_deltas 的 <bt>_grading array(跟 missySeq pair 一一對應)
-              const walkArray = (arr, fromIdx, toIdx, fromValue) => {
-                if (fromIdx === toIdx) return fromValue;
-                let v = fromValue;
-                if (toIdx > fromIdx) {
-                  for (let i = fromIdx; i < toIdx; i++) {
-                    if (arr[i] == null) return null;
-                    v += arr[i];
-                  }
-                } else {
-                  for (let i = fromIdx - 1; i >= toIdx; i--) {
-                    if (arr[i] == null) return null;
-                    v -= arr[i];
-                  }
-                }
-                return v;
-              };
-              // bodytype_variance entry for this run(gender|gt|<bt>),non-regular 時才查
-              const activeBodytypeEntry = sizeRunVariant !== 'regular'
-                ? (bodytypeVariance?.[`${gender}|${gt}|${sizeRunVariant.toUpperCase()}`] || null)
-                : null;
-              // 某 POM 的 <bt>_grading array(僅在 same_pattern=false 時返回;same_pattern=true 代表
-              // 跳檔同 regular,不需覆寫);找不到 / same_pattern=true / 結構不符都回 null。
-              const btGradingFor = (code) => {
-                if (!activeBodytypeEntry) return null;
-                const gd = activeBodytypeEntry.grading_deltas?.[code];
-                if (!gd || gd.same_pattern !== false) return null;
-                const arr = gd[sizeRunVariant + '_grading'];
-                return Array.isArray(arr) ? arr : null;
-              };
               const sizeValueFor = (code, s) => {
                 if (isLengthPending(code) && !(baseOverrides[code] && parseInch(baseOverrides[code]) != null)) {
                   return null;
@@ -5131,10 +5107,17 @@ function App() {
                       )}
                       <UnitFormatToggle displayUnit={displayUnit} setDisplayUnit={changeUnit} displayFormat={displayFormat} setDisplayFormat={changeFormat} />
                       {hasPlus && (
-                        <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "#555", cursor: "pointer", userSelect: "none" }}>
+                        <label style={{
+                          display: "flex", alignItems: "center", gap: "5px", padding: "6px 12px",
+                          borderRadius: "6px", cursor: "pointer", fontSize: "11px", fontWeight: 600, userSelect: "none",
+                          background: showPlus ? "#fdf2f8" : "#fff",
+                          border: showPlus ? "1.5px solid #fbcfe8" : "1.5px solid #e8e5e1",
+                          color: showPlus ? "#be185d" : "#888",
+                          transition: "all 0.15s",
+                        }}>
                           <input type="checkbox" checked={showPlus} onChange={e => setShowPlus(e.target.checked)}
-                            style={{ width: "14px", height: "14px", cursor: "pointer" }} />
-                          顯示 Plus sizes <span style={{ fontSize: "10px", color: "#888" }}>({plusSeq.join("/")} · 自有基碼 {plusAnchor})</span>
+                            style={{ width: "14px", height: "14px", accentColor: "#be185d" }} />
+                          +PLUS <span style={{ fontSize: "10px", opacity: 0.6 }}>{plusSeq.join("/")} · 自有 {plusAnchor}</span>
                         </label>
                       )}
                       {gradingTier1Set.size > 0 && (
