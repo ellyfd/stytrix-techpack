@@ -2306,7 +2306,12 @@ function App() {
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(setGradingPatterns)
       .catch(err => console.error('載入 grading_patterns 失敗:', err));
-    // POM 翻譯表：先看 localStorage 覆蓋，沒有才抓內建
+    fetch('./data/bodytype_variance.json')
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(setBodytypeVariance)
+      .catch(err => console.error('載入 bodytype_variance 失敗:', err));
+    // POM 翻譯表:先看 localStorage 覆蓋,沒有才抓 data/pom_dictionary.json
+    // (fallback:pom_rules/pom_names.json — 供舊版 repo 沒 dictionary 時用)
     let usedOverride = false;
     try {
       const stored = localStorage.getItem('stytrix.override.pomNames');
@@ -2325,10 +2330,13 @@ function App() {
       }
     } catch (e) { console.warn('讀取 pomNames 覆蓋失敗:', e); }
     if (!usedOverride) {
-      fetch('./pom_rules/pom_names.json')
+      fetch('./data/pom_dictionary.json')
         .then(r => r.ok ? r.json() : Promise.reject(r.status))
         .then(data => { setPomNames(data); window.POM_NAMES = data; })
-        .catch(err => console.error('載入 pom_rules/pom_names.json 失敗:', err));
+        .catch(() => fetch('./pom_rules/pom_names.json')
+          .then(r => r.ok ? r.json() : Promise.reject(r.status))
+          .then(data => { setPomNames(data); window.POM_NAMES = data; })
+          .catch(err => console.error('載入 pom_dictionary/pom_names 失敗:', err)));
     }
   }, []);
 
@@ -2779,6 +2787,13 @@ function App() {
   // 33 combos × 1,016 POM families,20.6% POM 有 inflection(S→M 和 M→L 的 delta 不同)。
   // 拿來取代基碼頁目前用 pom_rules.grading_rules.typical_increment(固定遞增)的線性推導。
   const [gradingPatterns, setGradingPatterns] = useState(null);
+  // bodytype_variance(data/bodytype_variance.json):
+  // {GENDER|GT|BODYTYPE: {m_size_comparison: {POM: {regular_M, <bt>_M, delta}},
+  //                        grading_deltas:   {POM: {regular_grading, <bt>_grading, same_pattern}}}}
+  // 43 組 key,每組覆蓋 40+ POM。提供 PETITE/TALL/PLUS 相對 MISSY 的 M 差值 +
+  // 跳檔序列對比(81% POM same_pattern=false,身材下跳檔序列就是跟 regular 不同)。
+  // UI:使用者切 Run(petite/tall/plus)時拿 delta 套到 M 基碼,跳檔直接用 <bt>_grading array。
+  const [bodytypeVariance, setBodytypeVariance] = useState(null);
   const [analyzeErr, setAnalyzeErr] = useState(null);
   // { model, pass1: {input, output, cache_read, cache_write}, pass2: {...}, cost_est } | null
   const [analyzeUsage, setAnalyzeUsage] = useState(null);
@@ -4831,11 +4846,24 @@ function App() {
               const runOffsets = currentBucket.size_run_offsets || {};
               const activeOffsets = sizeRunVariant === 'regular' ? null : (runOffsets[sizeRunVariant] || null);
               const hasRunData = !!activeOffsets && Object.keys(activeOffsets).length > 0;
-              // 只顯示有實際 offset 資料的 run 選項(regular 一律顯示)
-              const availableRuns = ['regular', ...['petite','tall'].filter(
-                r => runOffsets[r] && Object.keys(runOffsets[r]).length > 0
-              )];
+              // bodytype_variance lookup(data/bodytype_variance.json):
+              // key = GENDER|GT|<BT>,值為 { m_size_comparison, grading_deltas }。
+              // 當 sizeRunVariant 是 petite/tall 時,swap 每個 POM 的 M 基碼為 <bt>_M。
+              const bodytypeKeyFor = (bt) => (gender && gt) ? `${gender}|${gt}|${bt.toUpperCase()}` : null;
+              const bodytypeEntryFor = (bt) => {
+                const k = bodytypeKeyFor(bt);
+                return (k && bodytypeVariance) ? (bodytypeVariance[k] || null) : null;
+              };
+              const activeBodytypeEntry = sizeRunVariant === 'regular' ? null : bodytypeEntryFor(sizeRunVariant);
+              // Run 選項:有 bucket 內建 size_run_offsets 就算,否則看 bodytype_variance 有沒有對應資料
+              const availableRuns = ['regular', ...['petite','tall'].filter(bt => {
+                if (runOffsets[bt] && Object.keys(runOffsets[bt]).length > 0) return true;
+                return !!bodytypeEntryFor(bt);
+              })];
               const tierOf = code => mr.must?.[code] ? "must" : mr.recommend?.[code] ? "recommend" : (mr.optional?.[code] ? "optional" : "custom");
+              // Foundational (tier-1 enforced) POM codes — 不管 rate 多少都被強制進 must。
+              // UI 以 ★ 標示區別「歷史 rate 高進 must」vs「tier-1 強制進 must」。
+              const tier1Set = new Set(currentBucket.foundational_measurements?.tier1_poms || []);
               const tolStr = m => {
                 const t = m?.tolerance;
                 if (!t) return "—";
@@ -5054,7 +5082,14 @@ function App() {
                                   const m = tier === "custom" ? (customMeta ? { tolerance: customMeta.tolerance } : null) : mr[tier]?.[code];
                                   const mvRow = mv[code];
                                   const pending = tier !== "custom" && isLengthPending(code);
-                                  const baseM = pending ? null : (tier === "custom" ? null : mvRow?.size_medians?.M);
+                                  const regularM = pending ? null : (tier === "custom" ? null : mvRow?.size_medians?.M);
+                                  // bodytype variance:切到 petite/tall 時,用 <bt>_M 取代 regular M。
+                                  // 沒對應 entry(該 POM 在該身型無資料)就退回 regular M。
+                                  const btMsc = activeBodytypeEntry?.m_size_comparison?.[code];
+                                  const btKey = sizeRunVariant + '_M'; // "petite_M" / "tall_M"
+                                  const btM = btMsc && btMsc[btKey] != null ? btMsc[btKey] : null;
+                                  const baseM = (sizeRunVariant !== 'regular' && btM != null) ? btM : regularM;
+                                  const btDelta = (btMsc && btMsc.delta != null) ? btMsc.delta : null;
                                   const included = !excluded.has(code);
                                   const pn = pomNames[code] || {};
                                   const ov = baseOverrides[code] ?? "";
@@ -5075,7 +5110,13 @@ function App() {
                                           style={{ width: "16px", height: "16px", accentColor: tc.c, cursor: "pointer" }} />
                                       </td>
                                       {appMode !== "universal" && (
-                                        <td style={{ padding: isMobile ? "5px 4px" : "9px 12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "14px", color: tc.c }}>{code}</td>
+                                        <td style={{ padding: isMobile ? "5px 4px" : "9px 12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "14px", color: tc.c, whiteSpace: "nowrap" }}>
+                                          {code}
+                                          {tier1Set.has(code) && (
+                                            <span title="Tier-1 Foundational:不論 rate 多少都強制進 must,不能隱藏"
+                                              style={{ marginLeft: "4px", color: "#0891b2", fontSize: "11px" }}>★</span>
+                                          )}
+                                        </td>
                                       )}
                                       {!isMobile && (
                                         <td style={{ padding: "7px 12px" }}
@@ -5174,6 +5215,12 @@ function App() {
                                             background: "#fff",
                                           }} />
                                         <span style={{ fontSize: isMobile ? "11px" : "13px", color: "#065f46", marginLeft: "2px" }}>{unitSuffix.trim()}</span>
+                                        {sizeRunVariant !== 'regular' && btDelta != null && btDelta !== 0 && (
+                                          <div style={{ fontSize: "10px", color: "#7e22ce", marginTop: "2px", fontFamily: "'JetBrains Mono',monospace" }}
+                                            title={`vs regular M = ${fmtDisp(regularM)}${unitSuffix}`}>
+                                            {btDelta > 0 ? '+' : ''}{fmtDisp(btDelta)}{unitSuffix.trim()} vs regular
+                                          </div>
+                                        )}
                                       </td>
                                       {showPlus && hasPlus && (() => {
                                         const base2X = pending ? null : mvRow?.size_medians?.[plusAnchor];
