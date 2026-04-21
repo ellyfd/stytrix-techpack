@@ -2236,8 +2236,6 @@ function App() {
   const [sketchSrc, setSketchSrc] = useState(null);
   const [pomRules, setPomRules] = useState(null);
   const [adminOpen, setAdminOpen] = useState(false);
-  const [adminPanel, setAdminPanel] = useState(null); // null | 'pom' | 'filter' | 'hierarchy'
-  const adminAnchorRef = useRef(null);
   // 模式切換：makalot=聚陽模型（作工五階層 + POM tier + 全碼）/ universal=通用模型（AI→ISO + 基礎大尺寸）
   const [appMode, setAppMode] = useState(() => {
     try {
@@ -3506,29 +3504,19 @@ function App() {
               );
             })}
           </div>
-          <div ref={adminAnchorRef} style={{ position: "relative" }}>
-            <button onClick={() => setAdminOpen(v => !v)}
-              aria-label="開啟管理選單"
-              aria-haspopup="menu"
-              aria-expanded={adminOpen}
-              title="管理"
-              style={{
-                background: "#fff", border: "1px solid #e8e5e1", borderRadius: "6px",
-                padding: isMobile ? "6px 12px" : "8px 14px", fontSize: isMobile ? "12px" : "13px", fontWeight: 700,
-                color: "#555",
-                cursor: "pointer", fontFamily: "inherit",
-                display: "inline-flex", alignItems: "center", gap: "4px", justifyContent: "center",
-                transition: "border-color 0.15s",
-              }}>
-              管理 <span style={{ fontSize: "9px", opacity: 0.7 }}>▾</span>
-            </button>
-            <AdminDropdown
-              open={adminOpen}
-              anchorRef={adminAnchorRef}
-              onClose={() => setAdminOpen(false)}
-              onSelect={(id) => { setAdminPanel(id); setAdminOpen(false); }}
-            />
-          </div>
+          <button onClick={() => setAdminOpen(true)}
+            aria-label="開啟管理面板"
+            title="管理"
+            style={{
+              background: "#fff", border: "1px solid #e8e5e1", borderRadius: "6px",
+              padding: isMobile ? "6px 12px" : "8px 14px", fontSize: isMobile ? "12px" : "13px", fontWeight: 700,
+              color: "#555",
+              cursor: "pointer", fontFamily: "inherit",
+              display: "inline-flex", alignItems: "center", gap: "4px", justifyContent: "center",
+              transition: "border-color 0.15s",
+            }}>
+            管理
+          </button>
         </div>
       </div>
       </div>
