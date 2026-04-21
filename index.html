@@ -5307,7 +5307,7 @@ function App() {
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: "flex", alignItems: "baseline", gap: "8px", flexWrap: "wrap" }}>
                           <div style={{ fontSize: isMobile ? "14px" : "18px", fontWeight: 700, color: "#1a1a1a" }}>全碼 / 尺寸表</div>
-                          {!isMobile && <div style={{ fontSize: "13px", color: "#888" }}>各 size 中位數 · 公差 · 跳碼 · Grading 由 Base 推導</div>}
+                          {!isMobile && <div style={{ fontSize: "13px", color: "#888" }}>各 size 中位數 · 公差 · Grading 由 Base 推導</div>}
                         </div>
                         <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginTop: isMobile ? "4px" : "12px", flexWrap: "wrap" }}>
                           <span style={{ fontSize: isMobile ? "16px" : "30px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: "#1a1a1a", lineHeight: 1 }}>{gradingCodes.length}</span>
@@ -5429,14 +5429,6 @@ function App() {
                                 <td style={{ padding: isMobile ? "7px 6px" : "9px 12px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "14px", color: "#7e22ce", fontWeight: 600, whiteSpace: "nowrap" }}>
                                   {tolStr(m)}
                                 </td>
-                                {!isMobile && (
-                                  <td style={{ padding: "9px 12px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", fontSize: "14px", color: "#b45309", fontWeight: 600, whiteSpace: "nowrap" }}>
-                                    {grRow?.typical_increment != null ? (grRow.typical_increment >= 0 ? "+" : "") + fmtDisp(grRow.typical_increment) + unitSuffix : "—"}
-                                    {hasInflection(code) && (
-                                      <span title="grading_patterns: S→M 與 M→L 的跳碼不同,已改用非線性推導" style={{ marginLeft: "5px", fontSize: "9px", color: "#7e22ce", background: "#f5f3ff", padding: "1px 5px", borderRadius: "3px", fontWeight: 700, cursor: "help" }}>⟿</span>
-                                    )}
-                                  </td>
-                                )}
                                 {visibleSizes.map(s => {
                                   const val = sizeValueFor(code, s);
                                   const isMissyBase = s === "M";
