@@ -4452,6 +4452,27 @@ function App() {
                 if (base == null) return null;
                 return base + (msc.delta ?? 0);
               };
+              // 列出「bodytype 有非零 delta 但目前 tier 折疊中」的 POM,
+              // 當 +PETITE/+TALL 開啟時以 chip 提示,點擊展開全部 tier 讓 sub-row 浮現。
+              const btHiddenDiffs = (entry) => {
+                if (!entry?.m_size_comparison) return [];
+                const visible = new Set();
+                for (const t of tiersOrdered) {
+                  if (collapsedTiers.has(t)) continue;
+                  (codesByTier[t] || []).forEach(c => visible.add(c));
+                }
+                const out = [];
+                for (const [code, row] of Object.entries(entry.m_size_comparison)) {
+                  if (Math.abs(row.delta ?? 0) < 1e-9) continue;
+                  if (visible.has(code)) continue;
+                  if (mv[code]?.size_medians?.M == null) continue; // bucket 不含 → 無法顯示
+                  out.push({ code, delta: row.delta });
+                }
+                return out;
+              };
+              const petiteHiddenDiffs = (showPetite && hasPetiteData) ? btHiddenDiffs(petiteEntry) : [];
+              const tallHiddenDiffs   = (showTall && hasTallData)   ? btHiddenDiffs(tallEntry)   : [];
+              const expandAllTiers = () => setCollapsedTiers(new Set());
               const tierOf = code => mr.must?.[code] ? "must" : mr.recommend?.[code] ? "recommend" : (mr.optional?.[code] ? "optional" : "custom");
               // Foundational (tier-1 enforced) POM codes — 不管 rate 多少都被強制進 must。
               // UI 以 ★ 標示區別「歷史 rate 高進 must」vs「tier-1 強制進 must」。
@@ -4543,6 +4564,17 @@ function App() {
                           style={{ width: "14px", height: "14px", accentColor: "#7e22ce" }} />
                         +PETITE
                       </label>
+                      {petiteHiddenDiffs.length > 0 && (
+                        <button onClick={expandAllTiers}
+                          title={petiteHiddenDiffs.map(h => `${h.code} ${h.delta > 0 ? '+' : ''}${fmtDisp(h.delta)}${unitSuffix}`).join(' · ') + ' · 點擊展開所有 tier'}
+                          style={{
+                            padding: "4px 9px", fontSize: "10px", fontWeight: 600, fontFamily: "inherit",
+                            background: "#fff", border: "1px solid #c4b5fd", borderRadius: "999px",
+                            color: "#7e22ce", cursor: "pointer",
+                          }}>
+                          ⚠ 另有 {petiteHiddenDiffs.length} 項 Petite 差異在收合 tier 中
+                        </button>
+                      )}
                       <label
                         title={hasTallData ? "顯示與 Base(M) 有差異的 POM 之 Tall sub-row" : "此 GT × Gender 在 bodytype_variance 無 Tall 歷史資料"}
                         style={{
@@ -4559,6 +4591,17 @@ function App() {
                           style={{ width: "14px", height: "14px", accentColor: "#1d4ed8" }} />
                         +TALL
                       </label>
+                      {tallHiddenDiffs.length > 0 && (
+                        <button onClick={expandAllTiers}
+                          title={tallHiddenDiffs.map(h => `${h.code} ${h.delta > 0 ? '+' : ''}${fmtDisp(h.delta)}${unitSuffix}`).join(' · ') + ' · 點擊展開所有 tier'}
+                          style={{
+                            padding: "4px 9px", fontSize: "10px", fontWeight: 600, fontFamily: "inherit",
+                            background: "#fff", border: "1px solid #93c5fd", borderRadius: "999px",
+                            color: "#1d4ed8", cursor: "pointer",
+                          }}>
+                          ⚠ 另有 {tallHiddenDiffs.length} 項 Tall 差異在收合 tier 中
+                        </button>
+                      )}
                       {hasPlus && (
                         <label style={{
                           display: "flex", alignItems: "center", gap: "5px", padding: "6px 12px",
