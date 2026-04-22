@@ -4399,12 +4399,27 @@ function App() {
               const tiersOrdered = ["must", "recommend", "optional", "custom"];
               // 自訂 POM 放進「custom」tier,資料只存在 customPoms 陣列
               const customCodes = customPoms.map(p => p.code);
+              // Foundational 清單(★ 圖示):不論 measurement_rules 怎麼分類,UI 層強制進 must。
+              const tier1Set = new Set(currentBucket.foundational_measurements?.tier1_poms || []);
               const codesByTier = Object.fromEntries(
                 tiersOrdered.map(t => {
                   if (t === "custom") return [t, customCodes];
                   return [t, sortPomCodes(tierPoms(t), currentBucket.pom_sort_order)];
                 })
               );
+              // 保證 foundational ⊂ must:被資料錯放在 recommend/optional 或完全缺漏時自動拉回。
+              const mustSetNow = new Set(codesByTier.must);
+              const promotedFoundational = [];
+              for (const c of tier1Set) {
+                if (mustSetNow.has(c)) continue;
+                if (!keep(c)) continue; // universal mode filter 一致
+                promotedFoundational.push(c);
+              }
+              if (promotedFoundational.length) {
+                codesByTier.must = sortPomCodes([...codesByTier.must, ...promotedFoundational], currentBucket.pom_sort_order);
+                codesByTier.recommend = codesByTier.recommend.filter(c => !tier1Set.has(c) || mustSetNow.has(c));
+                codesByTier.optional  = codesByTier.optional .filter(c => !tier1Set.has(c) || mustSetNow.has(c));
+              }
               const totalPoms = tiersOrdered.reduce((s, t) => s + codesByTier[t].length, 0);
               const allCodesFlat = sortPomCodes(
                 ["must", "recommend", "optional"].flatMap(t => codesByTier[t]),
@@ -4464,10 +4479,8 @@ function App() {
               const petiteHiddenDiffs = (showPetite && hasPetiteData) ? btHiddenDiffs(petiteEntry) : [];
               const tallHiddenDiffs   = (showTall && hasTallData)   ? btHiddenDiffs(tallEntry)   : [];
               const expandAllTiers = () => setCollapsedTiers(new Set());
-              const tierOf = code => mr.must?.[code] ? "must" : mr.recommend?.[code] ? "recommend" : (mr.optional?.[code] ? "optional" : "custom");
-              // Foundational (tier-1 enforced) POM codes — 不管 rate 多少都被強制進 must。
-              // UI 以 ★ 標示區別「歷史 rate 高進 must」vs「tier-1 強制進 must」。
-              const tier1Set = new Set(currentBucket.foundational_measurements?.tier1_poms || []);
+              const tierOf = code => (mr.must?.[code] || tier1Set.has(code)) ? "must" : mr.recommend?.[code] ? "recommend" : (mr.optional?.[code] ? "optional" : "custom");
+              // tier1Set 已在 codesByTier 之前宣告並套用「foundational ⊂ must」保證。
               const tolStr = m => {
                 const t = m?.tolerance;
                 if (!t) return "—";
@@ -5217,13 +5230,20 @@ function App() {
               const keep = appMode === "universal" ? (c => universalBasicCodes.has(c) || userAddedCodes.has(c)) : (() => true);
               const tierPoms = tier => Object.keys(mr[tier] || {}).filter(c => mr[tier][c] != null && keep(c));
               const customCodes = customPoms.map(p => p.code);
-              const allCodesFlat = sortPomCodes(
-                tiersOrdered.flatMap(t => tierPoms(t)),
-                currentBucket.pom_sort_order
-              ).concat(customCodes);
+              // Foundational ⊂ must:若資料錯放或缺漏,UI 層補進來。跟基碼頁一致。
+              const tier1Set = new Set(currentBucket.foundational_measurements?.tier1_poms || []);
+              const baseFlat = sortPomCodes(tiersOrdered.flatMap(t => tierPoms(t)), currentBucket.pom_sort_order);
+              const inFlat = new Set(baseFlat);
+              const promoted = [];
+              for (const c of tier1Set) {
+                if (inFlat.has(c)) continue;
+                if (!keep(c)) continue;
+                promoted.push(c);
+              }
+              const allCodesFlat = sortPomCodes([...baseFlat, ...promoted], currentBucket.pom_sort_order).concat(customCodes);
               const gradingCodes = allCodesFlat.filter(c => !excluded.has(c));
               const sizes = currentBucket.size_range || [];
-              const tierOf = code => mr.must?.[code] ? "must" : mr.recommend?.[code] ? "recommend" : (mr.optional?.[code] ? "optional" : "custom");
+              const tierOf = code => (mr.must?.[code] || tier1Set.has(code)) ? "must" : mr.recommend?.[code] ? "recommend" : (mr.optional?.[code] ? "optional" : "custom");
               const tolStr = m => {
                 const t = m?.tolerance;
                 if (!t) return "—";

@@ -1,132 +1,158 @@
 #!/usr/bin/env python3
+"""Enforce foundational_measurements.tier1_poms ⊂ measurement_rules.must.
+
+For every bucket JSON in pom_rules/ where foundational_measurements.enforced
+is true, make sure every tier1_pom appears in measurement_rules.must:
+  - already in must        → mark tier1_enforced: true
+  - in recommend / optional → move to must, mark tier1_enforced: true
+  - completely absent       → insert placeholder {rate: 0, count: 0,
+                              tier1_enforced: true, tier1_absent: true}
+
+Also makes sure tier1 POMs are present in pom_sort_order (preserves existing
+order; appends missing ones at the end).
+
+Usage (from repo root):
+    python3 scripts/enforce_tier1.py             # fix everything in pom_rules/
+    python3 scripts/enforce_tier1.py --dry-run   # report what would change
 """
-Enforce Tier 1 foundational POMs as 'must' tier in all pom_rules bucket files.
+import argparse, json, sys
+from pathlib import Path
 
-Upper body GTs (TOP, OUTERWEAR, DRESS): F10, C1, J9, J10, E1, I5
-Lower body GTs (PANTS, LEGGINGS, SHORTS, SKIRT): H1, L2, L8, K1, K2, O4, N9
-Combined GTs (ROMPER_JUMPSUIT, SET, BODYSUIT): both sets
+REPO_ROOT = Path(__file__).resolve().parent.parent
+DEFAULT_RULES_DIR = REPO_ROOT / "pom_rules"
 
-Rules:
-- If Tier 1 POM exists in recommend/optional → move to must, add "tier1_enforced": true
-- If Tier 1 POM already in must → add "tier1_enforced": true (mark it)
-- If Tier 1 POM is completely absent → add to must with rate=0, count=0, tier1_enforced=true, tier1_absent=true
-- Preserve all existing fields (rate, count, tolerance)
-"""
+TIERS = ("must", "recommend", "optional")
 
-import json, glob, os
+# Default tier1 POM lists by garment type. Used only when a bucket is missing
+# its own foundational_measurements. Pipelines that already set
+# foundational_measurements on each bucket override this.
+UPPER_TIER1 = ["F10", "C1", "J9", "J10", "E1", "I5"]
+LOWER_TIER1 = ["H1", "L2", "L8", "K1", "K2", "O4", "N9"]
+UPPER_GTS = {"TOP", "OUTERWEAR", "DRESS"}
+LOWER_GTS = {"PANTS", "LEGGINGS", "SHORTS", "SKIRT"}
+COMBINED_GTS = {"ROMPER_JUMPSUIT", "SET", "BODYSUIT"}
 
-RULES_DIR = '/sessions/stoic-magical-curie/mnt/ONY/pom_rules'
 
-UPPER_TIER1 = ['F10', 'C1', 'J9', 'J10', 'E1', 'I5']
-LOWER_TIER1 = ['H1', 'L2', 'L8', 'K1', 'K2', 'O4', 'N9']
-
-UPPER_GTS = {'TOP', 'OUTERWEAR', 'DRESS'}
-LOWER_GTS = {'PANTS', 'LEGGINGS', 'SHORTS', 'SKIRT'}
-COMBINED_GTS = {'ROMPER_JUMPSUIT', 'SET', 'BODYSUIT'}
-
-def get_tier1_poms(gt):
+def default_tier1_for_gt(gt):
     if gt in UPPER_GTS:
         return UPPER_TIER1[:]
-    elif gt in LOWER_GTS:
+    if gt in LOWER_GTS:
         return LOWER_TIER1[:]
-    elif gt in COMBINED_GTS:
+    if gt in COMBINED_GTS:
         return UPPER_TIER1 + LOWER_TIER1
-    else:
-        return []
+    return []
 
-stats = {
-    'files_processed': 0,
-    'moved_from_recommend': 0,
-    'moved_from_optional': 0,
-    'already_in_must': 0,
-    'added_absent': 0,
-    'details': []
-}
 
-for fpath in sorted(glob.glob(os.path.join(RULES_DIR, '*.json'))):
-    fname = os.path.basename(fpath)
-    if fname.startswith('_') or fname == 'pom_names.json':
-        continue
+def enforce_bucket(data):
+    """Mutate one bucket dict in-place. Return (changed, stats_delta)."""
+    fm = data.get("foundational_measurements")
+    if fm is None:
+        tier1 = default_tier1_for_gt(data.get("garment_type"))
+        if not tier1:
+            return False, {}
+        data["foundational_measurements"] = {"tier1_poms": tier1, "enforced": True}
+        fm = data["foundational_measurements"]
+    if not fm.get("enforced"):
+        return False, {}
+    tier1 = list(fm.get("tier1_poms") or [])
+    if not tier1:
+        return False, {}
 
-    with open(fpath) as f:
-        data = json.load(f)
+    rules = data.setdefault("measurement_rules", {})
+    must = rules.setdefault("must", {})
+    recommend = rules.setdefault("recommend", {})
+    optional = rules.setdefault("optional", {})
 
-    gt = data.get('garment_type', '')
-    tier1_poms = get_tier1_poms(gt)
-    if not tier1_poms:
-        continue
-
-    stats['files_processed'] += 1
-    rules = data.get('measurement_rules', {})
-    must = rules.get('must', {})
-    recommend = rules.get('recommend', {})
-    optional = rules.get('optional', {})
-
+    delta = {"marked": 0, "from_recommend": 0, "from_optional": 0, "added_absent": 0}
     changed = False
 
-    for pom in tier1_poms:
+    for pom in tier1:
         if pom in must:
-            # Already in must — just mark it
-            must[pom]['tier1_enforced'] = True
-            stats['already_in_must'] += 1
-            changed = True
+            if must[pom].get("tier1_enforced") is not True:
+                must[pom]["tier1_enforced"] = True
+                delta["marked"] += 1
+                changed = True
         elif pom in recommend:
-            # Move from recommend to must
             entry = recommend.pop(pom)
-            entry['tier1_enforced'] = True
+            entry["tier1_enforced"] = True
             must[pom] = entry
-            stats['moved_from_recommend'] += 1
-            stats['details'].append(f"{fname}: {pom} recommend→must (rate={entry.get('rate', '?')})")
+            delta["from_recommend"] += 1
             changed = True
         elif pom in optional:
-            # Move from optional to must
             entry = optional.pop(pom)
-            entry['tier1_enforced'] = True
+            entry["tier1_enforced"] = True
             must[pom] = entry
-            stats['moved_from_optional'] += 1
-            stats['details'].append(f"{fname}: {pom} optional→must (rate={entry.get('rate', '?')})")
+            delta["from_optional"] += 1
             changed = True
         else:
-            # Completely absent — skip (user rule: don't add absent POMs)
-            stats['added_absent'] += 1
-
-    if changed:
-        rules['must'] = must
-        rules['recommend'] = recommend
-        rules['optional'] = optional
-        data['measurement_rules'] = rules
-
-        # Also update foundational_measurements section if it exists
-        if 'foundational_measurements' not in data:
-            data['foundational_measurements'] = {
-                'tier1_poms': tier1_poms,
-                'enforced': True
+            must[pom] = {
+                "rate": 0,
+                "count": 0,
+                "tier1_enforced": True,
+                "tier1_absent": True,
             }
+            delta["added_absent"] += 1
+            changed = True
 
-        with open(fpath, 'w') as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
+    # Keep pom_sort_order in sync: append tier1 POMs that aren't already ordered.
+    sort_order = data.get("pom_sort_order")
+    if isinstance(sort_order, list):
+        seen = set(sort_order)
+        appended = [pom for pom in tier1 if pom not in seen]
+        if appended:
+            data["pom_sort_order"] = sort_order + appended
+            delta["sort_order_appended"] = len(appended)
+            changed = True
 
-# Update _index.json version
-idx_path = os.path.join(RULES_DIR, '_index.json')
-with open(idx_path) as f:
-    idx = json.load(f)
-idx['_meta']['version'] = '5.2'
-idx['_meta']['tier1_enforcement'] = {
-    'upper_body': UPPER_TIER1,
-    'lower_body': LOWER_TIER1,
-    'combined_gts': list(COMBINED_GTS),
-    'rule': 'Tier 1 POMs forced to must tier regardless of hit rate'
-}
-with open(idx_path, 'w') as f:
-    json.dump(idx, f, indent=2, ensure_ascii=False)
+    return changed, delta
 
-# Print summary
-print(f"=== Tier 1 Enforcement Summary ===")
-print(f"Files processed: {stats['files_processed']}")
-print(f"Already in must (marked): {stats['already_in_must']}")
-print(f"Moved from recommend→must: {stats['moved_from_recommend']}")
-print(f"Moved from optional→must: {stats['moved_from_optional']}")
-print(f"Added absent POMs: {stats['added_absent']}")
-print(f"\n--- Details of changes ---")
-for d in stats['details']:
-    print(d)
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--rules-dir", type=Path, default=DEFAULT_RULES_DIR)
+    parser.add_argument("--dry-run", action="store_true")
+    args = parser.parse_args()
+
+    rules_dir = args.rules_dir
+    if not rules_dir.is_dir():
+        print(f"ERROR: not a directory: {rules_dir}", file=sys.stderr)
+        return 2
+
+    totals = {"files_scanned": 0, "files_changed": 0, "marked": 0,
+              "from_recommend": 0, "from_optional": 0, "added_absent": 0,
+              "sort_order_appended": 0}
+    changed_files = []
+
+    for fpath in sorted(rules_dir.glob("*.json")):
+        if fpath.name.startswith("_") or fpath.name == "pom_names.json":
+            continue
+        totals["files_scanned"] += 1
+        data = json.loads(fpath.read_text())
+        changed, delta = enforce_bucket(data)
+        if not changed:
+            continue
+        totals["files_changed"] += 1
+        for k, v in delta.items():
+            totals[k] = totals.get(k, 0) + v
+        changed_files.append((fpath.name, delta))
+        if not args.dry_run:
+            fpath.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
+
+    print("=== Tier 1 Enforcement ({}) ===".format("DRY-RUN" if args.dry_run else "APPLIED"))
+    print(f"scanned  : {totals['files_scanned']}")
+    print(f"changed  : {totals['files_changed']}")
+    print(f"  already in must, newly marked      : {totals['marked']}")
+    print(f"  moved from recommend -> must       : {totals['from_recommend']}")
+    print(f"  moved from optional  -> must       : {totals['from_optional']}")
+    print(f"  added absent placeholder           : {totals['added_absent']}")
+    print(f"  pom_sort_order entries appended    : {totals['sort_order_appended']}")
+    if totals["files_changed"]:
+        print("\n--- changed files ---")
+        for name, delta in changed_files:
+            parts = [f"{k}={v}" for k, v in delta.items() if v]
+            print(f"  {name}: {', '.join(parts)}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
