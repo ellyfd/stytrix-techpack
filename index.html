@@ -4452,9 +4452,35 @@ function App() {
               </div>
             )}
 
-            {/* Mode Cards:基碼 / 全碼 檢視切換(取代舊 tab) */}
+            {/* Mode Cards + 統一 Header:兩個 view 共用標題 / 計數 / 控制列,按 sizeView 切內容 */}
             {mDone && currentBucket && (() => {
-              const gradingDisabled = !(displayIncludedCount > 0);
+              const mr = currentBucket.measurement_rules || {};
+              const keep = appMode === "universal" ? (c => universalBasicCodes.has(c) || userAddedCodes.has(c)) : (() => true);
+              const tierPoms = tier => Object.keys(mr[tier] || {}).filter(c => mr[tier][c] != null && keep(c));
+              const tiersOrderedU = ["must", "recommend", "optional", "custom"];
+              const customCodes = customPoms.map(p => p.code);
+              const codesByTierU = Object.fromEntries(tiersOrderedU.map(t => {
+                if (t === "custom") return [t, customCodes];
+                return [t, sortPomCodes(tierPoms(t), currentBucket.pom_sort_order)];
+              }));
+              const totalPomsU = tiersOrderedU.reduce((s, t) => s + codesByTierU[t].length, 0);
+              const allCodesFlatU = sortPomCodes(
+                ["must", "recommend", "optional"].flatMap(t => codesByTierU[t]),
+                currentBucket.pom_sort_order
+              ).concat(customCodes);
+              const gradingCodesU = allCodesFlatU.filter(c => !excluded.has(c));
+              const bucketIncludedU = gradingCodesU.length;
+              const sizesU = currentBucket.size_range || [];
+              const isPlusU = s => /^\d+X$/.test(s);
+              const plusSeqU = sizesU.filter(isPlusU).slice().sort((a, b) => parseInt(a) - parseInt(b));
+              const hasPlusU = plusSeqU.length > 0;
+              const visibleSizesU = showPlus ? sizesU : sizesU.filter(s => !isPlusU(s));
+              const hasPetiteU = !!(bodytypeVariance?.[`${gender}|${gt}|PETITE`]?.m_size_comparison
+                && Object.keys(bodytypeVariance[`${gender}|${gt}|PETITE`].m_size_comparison).length > 0);
+              const hasTallU = !!(bodytypeVariance?.[`${gender}|${gt}|TALL`]?.m_size_comparison
+                && Object.keys(bodytypeVariance[`${gender}|${gt}|TALL`].m_size_comparison).length > 0);
+              const tier1SetU = new Set(currentBucket.foundational_measurements?.tier1_poms || []);
+              const gradingDisabled = !(bucketIncludedU > 0);
               const sizeRuleLabel = (() => {
                 const rule = currentBucket?.size_rule;
                 if (rule) return String(rule).replace(/_/g, " ").replace(/\b\w/g, ch => ch.toUpperCase());
@@ -4467,6 +4493,7 @@ function App() {
                   display: "flex", flexDirection: "column", gap: "10px",
                   marginBottom: isMobile ? "10px" : "14px",
                 }}>
+                  {/* Alpha label + Mode Cards row */}
                   <div style={{ display: "flex", justifyContent: "flex-end" }}>
                     <span style={{
                       padding: "3px 10px", borderRadius: "6px",
@@ -4494,6 +4521,147 @@ function App() {
                       subtitle="XS–XXL (+1X–4X) · 推導尺寸表"
                       onClick={() => setSizeView("grading")}
                     />
+                  </div>
+
+                  {/* 統一 Header:兩個 view 共用 */}
+                  <div style={{
+                    background: "#fff", border: "1px solid #eee", borderRadius: "12px",
+                    padding: isMobile ? "10px 12px" : "16px 20px",
+                  }}>
+                    <div style={{
+                      display: "flex",
+                      flexDirection: isMobile ? "column" : "row",
+                      justifyContent: "space-between",
+                      alignItems: isMobile ? "stretch" : "center",
+                      gap: isMobile ? "6px" : "16px"
+                    }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        {sizeView === "base" ? (
+                          <>
+                            <div style={{ display: "flex", alignItems: "baseline", gap: "8px", flexWrap: "wrap" }}>
+                              <div style={{ fontSize: isMobile ? "14px" : "17px", fontWeight: 700, color: "#1a1a1a" }}>基碼 / POM 確認</div>
+                              {!isMobile && <div style={{ fontSize: "13px", color: "#888" }}>POM 建議 × 公差 × Base (M)</div>}
+                            </div>
+                            <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginTop: isMobile ? "4px" : "8px", flexWrap: "wrap" }}>
+                              <span style={{ fontSize: isMobile ? "16px" : "26px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: "#1a1a1a", lineHeight: 1 }}>{bucketIncludedU}</span>
+                              <span style={{ fontSize: isMobile ? "12px" : "15px", color: "#888" }}>/ {totalPomsU} POMs</span>
+                              <span style={{ fontSize: isMobile ? "11px" : "13px", color: "#555", marginLeft: isMobile ? "4px" : "8px" }}>
+                                {codesByTierU.must.length} 必備 · {codesByTierU.recommend.length} 建議 · {codesByTierU.optional.length} 選配
+                              </span>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div style={{ display: "flex", alignItems: "baseline", gap: "8px", flexWrap: "wrap" }}>
+                              <div style={{ fontSize: isMobile ? "14px" : "17px", fontWeight: 700, color: "#1a1a1a" }}>全碼 / 尺寸表</div>
+                              {!isMobile && <div style={{ fontSize: "13px", color: "#888" }}>各 size 中位數 · 公差 · Grading 由 Base 推導</div>}
+                            </div>
+                            <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginTop: isMobile ? "4px" : "8px", flexWrap: "wrap" }}>
+                              <span style={{ fontSize: isMobile ? "16px" : "26px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: "#1a1a1a", lineHeight: 1 }}>{bucketIncludedU}</span>
+                              <span style={{ fontSize: isMobile ? "12px" : "15px", color: "#888" }}>POMs · {visibleSizesU.length} sizes</span>
+                              {hasPlusU && !showPlus && (
+                                <span style={{ fontSize: isMobile ? "11px" : "13px", color: "#b45309", marginLeft: "4px" }}>(+{plusSeqU.length} Plus)</span>
+                              )}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                      <button onClick={runMeasurement} style={btnStyle({ variant: 'secondary', isMobile })}>Re-generate</button>
+                    </div>
+
+                    {/* 控制列:單位 + mode-specific */}
+                    <div style={{ display: "flex", alignItems: "center", gap: isMobile ? "10px" : "14px", flexWrap: "wrap", marginTop: isMobile ? "8px" : "12px", paddingTop: isMobile ? "6px" : "10px", borderTop: "1px dashed #eee" }}>
+                      <UnitFormatToggle displayUnit={displayUnit} setDisplayUnit={changeUnit} displayFormat={displayFormat} setDisplayFormat={changeFormat} />
+
+                      {sizeView === "base" ? (
+                        <>
+                          <label
+                            title={hasPetiteU ? "顯示與 Base(M) 有差異的 POM 之 Petite sub-row" : "此 GT × Gender 在 bodytype_variance 無 Petite 歷史資料"}
+                            style={{
+                              display: "flex", alignItems: "center", gap: "5px", padding: "6px 12px",
+                              borderRadius: "6px", cursor: hasPetiteU ? "pointer" : "not-allowed",
+                              fontSize: "11px", fontWeight: 600, userSelect: "none",
+                              background: showPetite && hasPetiteU ? "#f5f3ff" : "#fff",
+                              border: showPetite && hasPetiteU ? "1.5px solid #c4b5fd" : "1.5px solid #e8e5e1",
+                              color: !hasPetiteU ? "#bbb" : (showPetite ? "#7e22ce" : "#888"),
+                              opacity: hasPetiteU ? 1 : 0.5, transition: "all 0.15s",
+                            }}>
+                            <input type="checkbox" checked={showPetite && hasPetiteU} disabled={!hasPetiteU}
+                              onChange={() => setShowPetite(!showPetite)}
+                              style={{ width: "14px", height: "14px", accentColor: "#7e22ce" }} />
+                            +PETITE
+                          </label>
+                          <label
+                            title={hasTallU ? "顯示與 Base(M) 有差異的 POM 之 Tall sub-row" : "此 GT × Gender 在 bodytype_variance 無 Tall 歷史資料"}
+                            style={{
+                              display: "flex", alignItems: "center", gap: "5px", padding: "6px 12px",
+                              borderRadius: "6px", cursor: hasTallU ? "pointer" : "not-allowed",
+                              fontSize: "11px", fontWeight: 600, userSelect: "none",
+                              background: showTall && hasTallU ? "#eff6ff" : "#fff",
+                              border: showTall && hasTallU ? "1.5px solid #93c5fd" : "1.5px solid #e8e5e1",
+                              color: !hasTallU ? "#bbb" : (showTall ? "#1d4ed8" : "#888"),
+                              opacity: hasTallU ? 1 : 0.5, transition: "all 0.15s",
+                            }}>
+                            <input type="checkbox" checked={showTall && hasTallU} disabled={!hasTallU}
+                              onChange={() => setShowTall(!showTall)}
+                              style={{ width: "14px", height: "14px", accentColor: "#1d4ed8" }} />
+                            +TALL
+                          </label>
+                        </>
+                      ) : (
+                        (hasPetiteU || hasTallU) && (
+                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                            <span style={{ fontSize: "11px", color: "#888", fontWeight: 500 }}>Body</span>
+                            <div style={pillGroupStyle}>
+                              {[
+                                { v: 'regular', label: 'Regular', activeBg: '#1a1a1a', activeFg: '#fff', enabled: true },
+                                { v: 'petite',  label: 'Petite',  activeBg: '#7e22ce', activeFg: '#fff', enabled: hasPetiteU },
+                                { v: 'tall',    label: 'Tall',    activeBg: '#1d4ed8', activeFg: '#fff', enabled: hasTallU },
+                              ].map((opt, i, arr) => {
+                                const active = gradingBodytype === opt.v;
+                                return (
+                                  <button key={opt.v}
+                                    disabled={!opt.enabled}
+                                    onClick={() => opt.enabled && setGradingBodytype(opt.v)}
+                                    title={opt.enabled ? "" : `此 GT × Gender 在 bodytype_variance 無 ${opt.label} 歷史資料`}
+                                    style={{
+                                      padding: "6px 14px", fontSize: "11px", fontWeight: 700,
+                                      border: "none", borderRight: i !== arr.length - 1 ? `1px solid ${T.c.border}` : "none",
+                                      background: active && opt.enabled ? opt.activeBg : "transparent",
+                                      color: !opt.enabled ? "#bbb" : (active ? opt.activeFg : "#555"),
+                                      cursor: opt.enabled ? "pointer" : "not-allowed",
+                                      opacity: opt.enabled ? 1 : 0.5,
+                                      fontFamily: "inherit", transition: "all 0.15s",
+                                    }}>{opt.label}</button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )
+                      )}
+
+                      {hasPlusU && (
+                        <label style={{
+                          display: "flex", alignItems: "center", gap: "5px", padding: "6px 12px",
+                          borderRadius: "6px", cursor: "pointer", fontSize: "11px", fontWeight: 600, userSelect: "none",
+                          background: showPlus ? "#fdf2f8" : "#fff",
+                          border: showPlus ? "1.5px solid #fbcfe8" : "1.5px solid #e8e5e1",
+                          color: showPlus ? "#be185d" : "#888",
+                          transition: "all 0.15s",
+                        }}>
+                          <input type="checkbox" checked={showPlus} onChange={e => setShowPlus(e.target.checked)}
+                            style={{ width: "14px", height: "14px", accentColor: "#be185d" }} />
+                          +PLUS
+                        </label>
+                      )}
+
+                      {sizeView === "grading" && tier1SetU.size > 0 && (
+                        <span style={{ fontSize: "11px", color: "#0891b2", background: "#ecfeff", padding: "2px 8px", borderRadius: "6px", fontWeight: 500, marginLeft: "auto" }}
+                          title="Foundational:歷史不論 rate 都強制納入,不能隱藏">
+                          ★ <span style={{ color: "#0e7490" }}>= Foundational</span>
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
@@ -4631,108 +4799,7 @@ function App() {
 
               return (
                 <div style={{ animation: "slideUp 0.3s ease", paddingBottom: "72px" }}>
-                  {/* Header:title + 計數明細 + bucket + Re-generate + Size controls(Run/Plus) */}
-                  <div style={{
-                    background: "#fff", border: "1px solid #eee", borderRadius: "12px",
-                    padding: isMobile ? "10px 12px" : "18px 22px",
-                    marginBottom: isMobile ? "8px" : "16px",
-                  }}>
-                    <div style={{
-                      display: "flex",
-                      flexDirection: isMobile ? "column" : "row",
-                      justifyContent: "space-between",
-                      alignItems: isMobile ? "stretch" : "center",
-                      gap: isMobile ? "6px" : "16px"
-                    }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: "flex", alignItems: "baseline", gap: "8px", flexWrap: "wrap" }}>
-                          <div style={{ fontSize: isMobile ? "14px" : "18px", fontWeight: 700, color: "#1a1a1a" }}>基碼 / POM 確認</div>
-                          {!isMobile && <div style={{ fontSize: "13px", color: "#888" }}>POM 建議 × 公差 × Base (M)</div>}
-                        </div>
-                        <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginTop: isMobile ? "4px" : "12px", flexWrap: "wrap" }}>
-                          <span style={{ fontSize: isMobile ? "16px" : "30px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: "#1a1a1a", lineHeight: 1 }}>{bucketIncluded}</span>
-                          <span style={{ fontSize: isMobile ? "12px" : "16px", color: "#888" }}>/ {totalPoms} POMs</span>
-                          <span style={{ fontSize: isMobile ? "11px" : "14px", color: "#555", marginLeft: isMobile ? "4px" : "8px" }}>
-                            {codesByTier.must.length} 必備 · {codesByTier.recommend.length} 建議 · {codesByTier.optional.length} 選配
-                          </span>
-                        </div>
-                      </div>
-                      <button onClick={runMeasurement} style={btnStyle({ variant: 'secondary', isMobile })}>Re-generate</button>
-                    </div>
-                    {/* Size 擴展控制列:Petite/Tall checkbox 開關「有差異的 POM 顯示 sub-row」,
-                        Plus 才真的加一欄(走 2X anchor,所有 POM 都有值)。 */}
-                    <div style={{ display: "flex", alignItems: "center", gap: isMobile ? "10px" : "14px", flexWrap: "wrap", marginTop: isMobile ? "8px" : "14px", paddingTop: isMobile ? "6px" : "12px", borderTop: "1px dashed #eee" }}>
-                      <UnitFormatToggle displayUnit={displayUnit} setDisplayUnit={changeUnit} displayFormat={displayFormat} setDisplayFormat={changeFormat} />
-                      <label
-                        title={hasPetiteData ? "顯示與 Base(M) 有差異的 POM 之 Petite sub-row" : "此 GT × Gender 在 bodytype_variance 無 Petite 歷史資料"}
-                        style={{
-                          display: "flex", alignItems: "center", gap: "5px", padding: "6px 12px",
-                          borderRadius: "6px", cursor: hasPetiteData ? "pointer" : "not-allowed",
-                          fontSize: "11px", fontWeight: 600, userSelect: "none",
-                          background: showPetite && hasPetiteData ? "#f5f3ff" : "#fff",
-                          border: showPetite && hasPetiteData ? "1.5px solid #c4b5fd" : "1.5px solid #e8e5e1",
-                          color: !hasPetiteData ? "#bbb" : (showPetite ? "#7e22ce" : "#888"),
-                          opacity: hasPetiteData ? 1 : 0.5, transition: "all 0.15s",
-                        }}>
-                        <input type="checkbox" checked={showPetite && hasPetiteData} disabled={!hasPetiteData}
-                          onChange={() => setShowPetite(!showPetite)}
-                          style={{ width: "14px", height: "14px", accentColor: "#7e22ce" }} />
-                        +PETITE
-                      </label>
-                      {petiteHiddenDiffs.length > 0 && (
-                        <button onClick={expandAllTiers}
-                          title={petiteHiddenDiffs.map(h => `${h.code} ${h.delta > 0 ? '+' : ''}${fmtDisp(h.delta)}${unitSuffix}`).join(' · ') + ' · 點擊展開所有 tier'}
-                          style={{
-                            padding: "4px 9px", fontSize: "10px", fontWeight: 600, fontFamily: "inherit",
-                            background: "#fff", border: "1px solid #c4b5fd", borderRadius: "999px",
-                            color: "#7e22ce", cursor: "pointer",
-                          }}>
-                          ⚠ 另有 {petiteHiddenDiffs.length} 項 Petite 差異在收合 tier 中
-                        </button>
-                      )}
-                      <label
-                        title={hasTallData ? "顯示與 Base(M) 有差異的 POM 之 Tall sub-row" : "此 GT × Gender 在 bodytype_variance 無 Tall 歷史資料"}
-                        style={{
-                          display: "flex", alignItems: "center", gap: "5px", padding: "6px 12px",
-                          borderRadius: "6px", cursor: hasTallData ? "pointer" : "not-allowed",
-                          fontSize: "11px", fontWeight: 600, userSelect: "none",
-                          background: showTall && hasTallData ? "#eff6ff" : "#fff",
-                          border: showTall && hasTallData ? "1.5px solid #93c5fd" : "1.5px solid #e8e5e1",
-                          color: !hasTallData ? "#bbb" : (showTall ? "#1d4ed8" : "#888"),
-                          opacity: hasTallData ? 1 : 0.5, transition: "all 0.15s",
-                        }}>
-                        <input type="checkbox" checked={showTall && hasTallData} disabled={!hasTallData}
-                          onChange={() => setShowTall(!showTall)}
-                          style={{ width: "14px", height: "14px", accentColor: "#1d4ed8" }} />
-                        +TALL
-                      </label>
-                      {tallHiddenDiffs.length > 0 && (
-                        <button onClick={expandAllTiers}
-                          title={tallHiddenDiffs.map(h => `${h.code} ${h.delta > 0 ? '+' : ''}${fmtDisp(h.delta)}${unitSuffix}`).join(' · ') + ' · 點擊展開所有 tier'}
-                          style={{
-                            padding: "4px 9px", fontSize: "10px", fontWeight: 600, fontFamily: "inherit",
-                            background: "#fff", border: "1px solid #93c5fd", borderRadius: "999px",
-                            color: "#1d4ed8", cursor: "pointer",
-                          }}>
-                          ⚠ 另有 {tallHiddenDiffs.length} 項 Tall 差異在收合 tier 中
-                        </button>
-                      )}
-                      {hasPlus && (
-                        <label style={{
-                          display: "flex", alignItems: "center", gap: "5px", padding: "6px 12px",
-                          borderRadius: "6px", cursor: "pointer", fontSize: "11px", fontWeight: 600, userSelect: "none",
-                          background: showPlus ? "#fdf2f8" : "#fff",
-                          border: showPlus ? "1.5px solid #fbcfe8" : "1.5px solid #e8e5e1",
-                          color: showPlus ? "#be185d" : "#888",
-                          transition: "all 0.15s",
-                        }}>
-                          <input type="checkbox" checked={showPlus} onChange={e => setShowPlus(e.target.checked)}
-                            style={{ width: "14px", height: "14px", accentColor: "#be185d" }} />
-                          +PLUS
-                        </label>
-                      )}
-                    </div>
-                  </div>
+                  {/* Header 已由上方統一 header 接手(標題/計數/Re-generate/Petite/Tall/Plus) */}
 
                     {/* 長度提示 Banner:GT 有多種長度(如 LEGGINGS 有 FULL/7-8/CAPRI/BIKER)
                         但使用者未選 Item Type 時,要求先選長度。選完會自動帶入對應的 Base M。 */}
@@ -5332,52 +5399,7 @@ function App() {
                 }}>← 回基碼 / POM 確認</button>
               </div>
             )}
-            {mDone && currentBucket && (() => {
-              // Mode Cards(與基碼 view 共用樣式,複製一份以便兩個視圖都看得到切換)
-              const gradingDisabled = !(displayIncludedCount > 0);
-              const sizeRuleLabel = (() => {
-                const rule = currentBucket?.size_rule;
-                if (rule) return String(rule).replace(/_/g, " ").replace(/\b\w/g, ch => ch.toUpperCase());
-                if (gender === "W") return "Womens Alpha";
-                if (gender === "M") return "Mens Alpha";
-                return "Alpha";
-              })();
-              return (
-                <div style={{
-                  display: "flex", flexDirection: "column", gap: "10px",
-                  marginBottom: isMobile ? "10px" : "14px",
-                }}>
-                  <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                    <span style={{
-                      padding: "3px 10px", borderRadius: "6px",
-                      background: "#f5f3ff", color: "#6d28d9",
-                      border: "1px solid #e9d5ff",
-                      fontSize: "11px", fontWeight: 600, letterSpacing: "0.02em",
-                    }}>{sizeRuleLabel}</span>
-                  </div>
-                  <div style={{
-                    display: "grid",
-                    gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
-                    gap: "10px",
-                  }}>
-                    <ModeCard
-                      active={sizeView === "base"}
-                      title="基碼 MISSY + PLUS 並列"
-                      subtitle="M size · 單一基準 · Petite / Tall sub-row"
-                      onClick={() => setSizeView("base")}
-                    />
-                    <ModeCard
-                      active={sizeView === "grading"}
-                      disabled={gradingDisabled}
-                      disabledHint="請先完成基碼 / POM 確認"
-                      title="全碼 Full Grading"
-                      subtitle="XS–XXL (+1X–4X) · 推導尺寸表"
-                      onClick={() => setSizeView("grading")}
-                    />
-                  </div>
-                </div>
-              );
-            })()}
+            {/* Mode Cards 只在基碼 panel 渲染一份,兩個 view 都看得到;此處不再重複 */}
             {mDone && currentBucket && (() => {
               const mv = currentBucket.median_values || {};
               const gr = currentBucket.grading_rules || {};
@@ -5567,87 +5589,7 @@ function App() {
 
               return (
                 <div style={{ animation: "slideUp 0.3s ease", paddingBottom: "24px" }}>
-                  {/* Header:跟基碼同一形式(title + 計數 + bucket + Size controls)*/}
-                  <div style={{
-                    background: "#fff", border: "1px solid #eee", borderRadius: "12px",
-                    padding: isMobile ? "10px 12px" : "18px 22px",
-                    marginBottom: isMobile ? "8px" : "16px",
-                  }}>
-                    <div style={{
-                      display: "flex",
-                      flexDirection: isMobile ? "column" : "row",
-                      justifyContent: "space-between",
-                      alignItems: isMobile ? "stretch" : "center",
-                      gap: isMobile ? "6px" : "16px"
-                    }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: "flex", alignItems: "baseline", gap: "8px", flexWrap: "wrap" }}>
-                          <div style={{ fontSize: isMobile ? "14px" : "18px", fontWeight: 700, color: "#1a1a1a" }}>全碼 / 尺寸表</div>
-                          {!isMobile && <div style={{ fontSize: "13px", color: "#888" }}>各 size 中位數 · 公差 · Grading 由 Base 推導</div>}
-                        </div>
-                        <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginTop: isMobile ? "4px" : "12px", flexWrap: "wrap" }}>
-                          <span style={{ fontSize: isMobile ? "16px" : "30px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: "#1a1a1a", lineHeight: 1 }}>{gradingCodes.length}</span>
-                          <span style={{ fontSize: isMobile ? "12px" : "16px", color: "#888" }}>POMs · {visibleSizes.length} sizes</span>
-                          {hasPlus && !showPlus && (
-                            <span style={{ fontSize: isMobile ? "11px" : "13px", color: "#b45309", marginLeft: "4px" }}>(+{plusSeq.length} Plus)</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    {/* Size 擴展控制列:Body Type sub-tab(單選)+ Plus checkbox(獨立加欄)+ 單位 */}
-                    <div style={{ display: "flex", alignItems: "center", gap: isMobile ? "10px" : "14px", flexWrap: "wrap", marginTop: isMobile ? "8px" : "14px", paddingTop: isMobile ? "6px" : "12px", borderTop: "1px dashed #eee" }}>
-                      {(hasGradingPetite || hasGradingTall) && (
-                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                          <span style={{ fontSize: "11px", color: "#888", fontWeight: 500 }}>Body</span>
-                          <div style={pillGroupStyle}>
-                            {[
-                              { v: 'regular', label: 'Regular', activeBg: '#1a1a1a', activeFg: '#fff', enabled: true },
-                              { v: 'petite',  label: 'Petite',  activeBg: '#7e22ce', activeFg: '#fff', enabled: hasGradingPetite },
-                              { v: 'tall',    label: 'Tall',    activeBg: '#1d4ed8', activeFg: '#fff', enabled: hasGradingTall },
-                            ].map((opt, i, arr) => {
-                              const active = gradingBodytype === opt.v;
-                              return (
-                                <button key={opt.v}
-                                  disabled={!opt.enabled}
-                                  onClick={() => opt.enabled && setGradingBodytype(opt.v)}
-                                  title={opt.enabled ? "" : `此 GT × Gender 在 bodytype_variance 無 ${opt.label} 歷史資料`}
-                                  style={{
-                                    padding: "6px 14px", fontSize: "11px", fontWeight: 700,
-                                    border: "none", borderRight: i !== arr.length - 1 ? `1px solid ${T.c.border}` : "none",
-                                    background: active && opt.enabled ? opt.activeBg : "transparent",
-                                    color: !opt.enabled ? "#bbb" : (active ? opt.activeFg : "#555"),
-                                    cursor: opt.enabled ? "pointer" : "not-allowed",
-                                    opacity: opt.enabled ? 1 : 0.5,
-                                    fontFamily: "inherit", transition: "all 0.15s",
-                                  }}>{opt.label}</button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-                      <UnitFormatToggle displayUnit={displayUnit} setDisplayUnit={changeUnit} displayFormat={displayFormat} setDisplayFormat={changeFormat} />
-                      {hasPlus && (
-                        <label style={{
-                          display: "flex", alignItems: "center", gap: "5px", padding: "6px 12px",
-                          borderRadius: "6px", cursor: "pointer", fontSize: "11px", fontWeight: 600, userSelect: "none",
-                          background: showPlus ? "#fdf2f8" : "#fff",
-                          border: showPlus ? "1.5px solid #fbcfe8" : "1.5px solid #e8e5e1",
-                          color: showPlus ? "#be185d" : "#888",
-                          transition: "all 0.15s",
-                        }}>
-                          <input type="checkbox" checked={showPlus} onChange={e => setShowPlus(e.target.checked)}
-                            style={{ width: "14px", height: "14px", accentColor: "#be185d" }} />
-                          +PLUS
-                        </label>
-                      )}
-                      {gradingTier1Set.size > 0 && (
-                        <span style={{ fontSize: "11px", color: "#0891b2", background: "#ecfeff", padding: "2px 8px", borderRadius: "6px", fontWeight: 500, marginLeft: "auto" }}
-                          title="Foundational:歷史不論 rate 都強制納入,不能隱藏">
-                          ★ <span style={{ color: "#0e7490" }}>= Foundational</span>
-                        </span>
-                      )}
-                    </div>
-                  </div>
+                  {/* Header 已由上方統一 header 接手(標題/計數/Body pill/Plus/Foundational) */}
 
                   {gradingCodes.length === 0 ? (
                     <div style={{ background: "#fff", border: "1px dashed #e8e5e1", borderRadius: "12px", padding: "20px", textAlign: "center", fontSize: "12px", color: "#888" }}>
