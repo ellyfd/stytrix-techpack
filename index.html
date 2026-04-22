@@ -1693,7 +1693,8 @@ function ModeCard({ active, disabled, title, subtitle, onClick, disabledHint }) 
         background: bg, color, border,
         cursor: disabled ? "not-allowed" : "pointer",
         opacity: disabled ? 0.55 : 1,
-        transition: "background 0.15s, color 0.15s, border-color 0.15s",
+        boxShadow: active && !disabled ? "0 4px 14px rgba(26,26,26,0.18)" : "none",
+        transition: "background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s",
         userSelect: "none",
         display: "flex", flexDirection: "column", gap: "4px",
         fontFamily: "inherit",
@@ -4398,39 +4399,41 @@ function App() {
 
         {activeTab === "measurement" && (
           <div style={{ animation: "fadeIn 0.2s ease" }}>
-            {/* Action bar — 僅在未完成 / 生成前顯示,完成後改在下方合併成一個 header */}
-            {!mDone && (
-              <div style={{
-                background: "#fff", border: "1px solid #eee", borderRadius: "12px",
-                padding: isMobile ? "14px 16px" : "18px 22px",
-                marginBottom: isMobile ? "12px" : "16px",
-                display: "flex",
-                flexDirection: isMobile ? "column" : "row",
-                justifyContent: "space-between",
-                alignItems: isMobile ? "stretch" : "center",
-                gap: isMobile ? "10px" : "16px"
-              }}>
-                <div>
-                  <div style={{ fontSize: isMobile ? "16px" : "18px", fontWeight: 700, marginBottom: "4px", color: "#1a1a1a" }}>基碼 / POM 確認</div>
-                  <div style={{ fontSize: isMobile ? "12px" : "13px", color: "#888" }}>POM 建議 × 公差 × Base (M)</div>
-                </div>
-                <button onClick={runMeasurement} disabled={!canGenerateSpec || mAnalyzing}
-                  style={btnStyle({ variant: 'brand', isMobile, disabled: !canGenerateSpec || mAnalyzing })}>
-                  {mAnalyzing ? "生成中…" : "Generate Spec"}
-                </button>
-              </div>
-            )}
-
-            {/* Main content */}
+            {/* 未 generate hero:單一 card,把標題/說明/Generate 按鈕集中,
+                取代原本「上方 action bar + 下方空 placeholder」兩塊重複 */}
             {!mDone && !mAnalyzing && (
               <div style={{
-                minHeight: "300px", display: "flex", alignItems: "center", justifyContent: "center",
-                flexDirection: "column", gap: "8px", color: "#bbb",
-                border: "1px solid #eee", borderRadius: "12px", background: "#fff"
+                background: "#fff", border: "1px solid #eee", borderRadius: "12px",
+                padding: isMobile ? "32px 20px" : "56px 32px",
+                marginBottom: isMobile ? "12px" : "16px",
+                display: "flex", flexDirection: "column",
+                alignItems: "center", justifyContent: "center", gap: isMobile ? "10px" : "14px",
+                minHeight: isMobile ? "220px" : "280px", textAlign: "center",
               }}>
-                <div style={{ fontSize: "13px", fontWeight: 500 }}>
-                  {canGenerateSpec ? "按上方 Generate Spec 開始" : "請先完成 filter"}
+                <div style={{
+                  width: "44px", height: "44px", borderRadius: "50%",
+                  background: canGenerateSpec ? "#ecfdf5" : "#f5f5f5",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  color: canGenerateSpec ? "#065f46" : "#bbb",
+                  fontSize: "20px", fontWeight: 700,
+                  marginBottom: "4px",
+                }} aria-hidden="true">📐</div>
+                <div style={{ fontSize: isMobile ? "15px" : "17px", fontWeight: 700, color: "#1a1a1a" }}>
+                  尚未生成尺寸規格
                 </div>
+                <div style={{ fontSize: isMobile ? "12px" : "13px", color: "#888", maxWidth: "360px", lineHeight: 1.6 }}>
+                  {canGenerateSpec
+                    ? "依據左方 filter 推導 POM 建議、公差與 Base (M)。生成後可以基碼 / 全碼兩種檢視切換。"
+                    : "請先在上方完成 Brand / Fabric / Gender / Department / Garment Type 等 filter 才能生成。"}
+                </div>
+                <button onClick={runMeasurement} disabled={!canGenerateSpec}
+                  style={{
+                    ...btnStyle({ variant: 'brand', isMobile, disabled: !canGenerateSpec }),
+                    marginTop: "8px", padding: isMobile ? "10px 24px" : "12px 32px",
+                    fontSize: isMobile ? "13px" : "14px",
+                  }}>
+                  Generate Spec
+                </button>
               </div>
             )}
 
@@ -4494,12 +4497,14 @@ function App() {
                   marginBottom: isMobile ? "10px" : "14px",
                 }}>
                   {/* Alpha label + Mode Cards row */}
-                  <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                  <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "6px" }}>
+                    <span style={{ fontSize: "10px", color: "#bbb", fontWeight: 500, letterSpacing: "0.05em", textTransform: "uppercase" }}>Size Rule</span>
                     <span style={{
-                      padding: "3px 10px", borderRadius: "6px",
-                      background: "#f5f3ff", color: "#6d28d9",
-                      border: "1px solid #e9d5ff",
+                      padding: "3px 10px", borderRadius: "4px",
+                      background: "#fafafa", color: "#525252",
+                      border: "1px solid #e8e5e1",
                       fontSize: "11px", fontWeight: 600, letterSpacing: "0.02em",
+                      fontFamily: "'JetBrains Mono',monospace",
                     }}>{sizeRuleLabel}</span>
                   </div>
                   <div style={{
@@ -4867,63 +4872,67 @@ function App() {
                           border: `1px dashed ${T.c.accent}`,
                         }}>+ 新增 POM</button>
                     </div>
-                    <div style={{ background: "#fff", border: "1px solid #e8e5e1", borderRadius: "12px", overflow: "auto", marginBottom: "12px" }}>
-                      <table style={{ width: "100%", minWidth: isMobile ? (showPlus && hasPlus ? "500px" : "420px") : "auto", borderCollapse: "collapse", fontSize: isMobile ? "12px" : "14px" }}>
-                        <thead>
-                          <tr style={{ background: "#faf9f7", borderBottom: "1.5px solid #e8e5e1" }}>
-                            <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#525252", width: isMobile ? "24px" : "30px" }}>✓</th>
-                            {appMode !== "universal" && (
-                              <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#525252", width: isMobile ? "38px" : "56px" }}>POM</th>
-                            )}
-                            {!isMobile && (
-                              <th style={{ padding: "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "13px", color: "#525252" }}>Name<span style={{ fontSize: "11px", fontWeight: 400, color: "#999", marginLeft: "4px" }}>(雙擊可改)</span></th>
-                            )}
-                            <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#525252", minWidth: isMobile ? "110px" : "140px" }}>中文{isMobile ? <span style={{ fontSize: "10px", fontWeight: 400, color: "#999", marginLeft: "3px" }}>/ EN</span> : <span style={{ fontSize: "11px", fontWeight: 400, color: "#999", marginLeft: "4px" }}>(雙擊可改)</span>}</th>
-                            <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#525252", width: isMobile ? "52px" : "80px" }}>公差</th>
-                            <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#065f46", width: isMobile ? "80px" : "110px" }}>Base (M)</th>
-                            {showPlus && hasPlus && (
-                              <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#be185d", width: isMobile ? "80px" : "110px" }}>Base ({plusAnchor}){!isMobile && <div style={{ fontSize: "11px", fontWeight: 400, color: "#be185d" }}>Plus 獨立</div>}</th>
-                            )}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {tiersOrdered.map(tier => {
-                            const codes = codesByTier[tier];
-                            if (!codes.length) return null;
-                            const tc = TIER[tier];
-                            const collapsed = collapsedTiers.has(tier);
-                            const selectedCount = codes.filter(c => !excluded.has(c)).length;
-                            const allOn = selectedCount === codes.length;
-                            const tierColspan = (isMobile ? 4 : 5)
-                              - (appMode === "universal" ? 1 : 0)
-                              + (showPlus && hasPlus ? 1 : 0);
-                            return (
-                              <React.Fragment key={tier}>
-                                <tr style={{ background: tc.bg, cursor: "pointer" }}>
-                                  <td style={{ padding: isMobile ? "7px 4px" : "10px 12px" }}>
-                                    <input
-                                      type="checkbox"
-                                      checked={allOn}
-                                      ref={el => { if (el) el.indeterminate = selectedCount > 0 && !allOn; }}
-                                      onClick={(e) => e.stopPropagation()}
-                                      onChange={() => setTierSelection(tier, !allOn)}
-                                      aria-label={`${tc.label} 全選/全部取消`}
-                                      style={{ width: "16px", height: "16px", accentColor: tc.c, cursor: "pointer" }}
-                                    />
-                                  </td>
-                                  <td colSpan={tierColspan}
-                                    role="button"
-                                    tabIndex={0}
-                                    aria-expanded={!collapsed}
-                                    aria-label={`${tc.label} 區,共 ${codes.length} 項,${collapsed ? "已折疊" : "已展開"}`}
-                                    onClick={() => toggleTier(tier)}
-                                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleTier(tier); } }}
-                                    style={{ padding: isMobile ? "7px 6px" : "10px 12px", fontSize: isMobile ? "11px" : "13px", fontWeight: 700, color: tc.c, letterSpacing: "0.03em" }}>
-                                    <span style={{ display: "inline-block", width: "14px", transform: collapsed ? "rotate(-90deg)" : "rotate(0)", transition: "transform 0.15s" }} aria-hidden="true">▾</span>
-                                    {" "}{tc.icon} {tc.label} · {codes.length} 項 · 已選 {selectedCount}/{codes.length}
-                                  </td>
-                                </tr>
-                                {!collapsed && codes.map(code => {
+                    {tiersOrdered.map(tier => {
+                      const codes = codesByTier[tier];
+                      if (!codes.length) return null;
+                      const tc = TIER[tier];
+                      const collapsed = collapsedTiers.has(tier);
+                      const selectedCount = codes.filter(c => !excluded.has(c)).length;
+                      const allOn = selectedCount === codes.length;
+                      return (
+                        <div key={tier} style={{ marginBottom: collapsed ? "8px" : "14px" }}>
+                          {/* Tier header block — 外移到 table 外,風格:● 標題 POM  N 項 */}
+                          <div style={{
+                            display: "flex", alignItems: "center", justifyContent: "space-between",
+                            gap: "10px", flexWrap: "wrap",
+                            padding: isMobile ? "10px 4px 6px" : "14px 4px 8px",
+                          }}>
+                            <div role="button" tabIndex={0}
+                              aria-expanded={!collapsed}
+                              aria-label={`${tc.label} 區,共 ${codes.length} 項,${collapsed ? "已折疊" : "已展開"}`}
+                              onClick={() => toggleTier(tier)}
+                              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleTier(tier); } }}
+                              style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", flex: 1, minWidth: 0, userSelect: "none" }}>
+                              <span style={{ display: "inline-block", width: "12px", fontSize: "10px", color: "#888", transform: collapsed ? "rotate(-90deg)" : "rotate(0)", transition: "transform 0.15s" }} aria-hidden="true">▾</span>
+                              <span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", background: tc.c, flexShrink: 0 }} aria-hidden="true" />
+                              <span style={{ fontSize: isMobile ? "13px" : "14px", fontWeight: 700, color: tc.c, letterSpacing: "0.02em" }}>{tc.label} POM</span>
+                              <span style={{ fontSize: "11px", color: "#888", fontWeight: 500 }}>{codes.length} 項</span>
+                            </div>
+                            <label onClick={(e) => e.stopPropagation()}
+                              style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "11px", color: "#888", cursor: "pointer", userSelect: "none" }}>
+                              <input
+                                type="checkbox"
+                                checked={allOn}
+                                ref={el => { if (el) el.indeterminate = selectedCount > 0 && !allOn; }}
+                                onChange={() => setTierSelection(tier, !allOn)}
+                                aria-label={`${tc.label} 全選/全部取消`}
+                                style={{ width: "14px", height: "14px", accentColor: tc.c, cursor: "pointer" }}
+                              />
+                              全選 {selectedCount}/{codes.length}
+                            </label>
+                          </div>
+                          {!collapsed && (
+                            <div style={{ background: "#fff", border: "1px solid #e8e5e1", borderRadius: "12px", overflow: "auto" }}>
+                              <table style={{ width: "100%", minWidth: isMobile ? (showPlus && hasPlus ? "500px" : "420px") : "auto", borderCollapse: "collapse", fontSize: isMobile ? "12px" : "14px" }}>
+                                <thead>
+                                  <tr style={{ background: "#faf9f7", borderBottom: "1.5px solid #e8e5e1" }}>
+                                    <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#525252", width: isMobile ? "24px" : "30px" }}>✓</th>
+                                    {appMode !== "universal" && (
+                                      <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#525252", width: isMobile ? "38px" : "56px" }}>POM</th>
+                                    )}
+                                    {!isMobile && (
+                                      <th style={{ padding: "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "13px", color: "#525252" }}>Name<span style={{ fontSize: "11px", fontWeight: 400, color: "#999", marginLeft: "4px" }}>(雙擊可改)</span></th>
+                                    )}
+                                    <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#525252", minWidth: isMobile ? "110px" : "140px" }}>中文{isMobile ? <span style={{ fontSize: "10px", fontWeight: 400, color: "#999", marginLeft: "3px" }}>/ EN</span> : <span style={{ fontSize: "11px", fontWeight: 400, color: "#999", marginLeft: "4px" }}>(雙擊可改)</span>}</th>
+                                    <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#525252", width: isMobile ? "52px" : "80px" }}>公差</th>
+                                    <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#065f46", width: isMobile ? "80px" : "110px" }}>Base (M)</th>
+                                    {showPlus && hasPlus && (
+                                      <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#be185d", width: isMobile ? "80px" : "110px" }}>Base ({plusAnchor}){!isMobile && <div style={{ fontSize: "11px", fontWeight: 400, color: "#be185d" }}>Plus 獨立</div>}</th>
+                                    )}
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                {codes.map(code => {
                                   const customMeta = tier === "custom" ? customPoms.find(p => p.code === code) : null;
                                   const m = tier === "custom" ? (customMeta ? { tolerance: customMeta.tolerance } : null) : mr[tier]?.[code];
                                   const mvRow = mv[code];
@@ -5037,7 +5046,7 @@ function App() {
                                         )}
                                       </td>
                                       <td style={{ padding: isMobile ? "5px 4px" : "9px 12px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "14px", color: "#7e22ce", fontWeight: 600, whiteSpace: "nowrap" }}>{tolStr(m)}</td>
-                                      <td style={{ padding: isMobile ? "4px 4px" : "6px 12px", textAlign: "right", background: "#ecfdf5" }}>
+                                      <td style={{ padding: isMobile ? "4px 6px" : "8px 16px", textAlign: "right", background: "#ecfdf5" }}>
                                         <input type="text" value={displayVal}
                                           onChange={(e) => setBaseOverrides(prev => ({ ...prev, [code]: e.target.value }))}
                                           onBlur={() => {
@@ -5071,7 +5080,7 @@ function App() {
                                         const invalid2 = ov2 !== "" && parseVal(ov2) == null;
                                         const display2 = ov2 !== "" ? ov2 : (base2X != null ? fmtDisp(base2X) : "");
                                         return (
-                                          <td style={{ padding: isMobile ? "4px 4px" : "6px 12px", textAlign: "right", background: "#fdf2f8" }}>
+                                          <td style={{ padding: isMobile ? "4px 6px" : "8px 16px", textAlign: "right", background: "#fdf2f8" }}>
                                             <input type="text" value={display2}
                                               onChange={(e) => setPlusBaseOverrides(prev => ({ ...prev, [code]: e.target.value }))}
                                               onBlur={() => {
@@ -5191,12 +5200,13 @@ function App() {
                                     </React.Fragment>
                                   );
                                 })}
-                              </React.Fragment>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
 
                   {/* 錯誤提示(僅在有格式錯誤時出現,狀態資訊已在 header) */}
                   {invalidOverrides.length > 0 && (
@@ -5404,22 +5414,21 @@ function App() {
               const mv = currentBucket.median_values || {};
               const gr = currentBucket.grading_rules || {};
               const mr = currentBucket.measurement_rules || {};
-              const tiersOrdered = ["must", "recommend", "optional"];
+              const tiersOrdered = ["must", "recommend", "optional", "custom"];
               // 通用模型過濾為基礎大尺寸 POM;被使用者加入的 userAddedCodes 可繞過。
               const keep = appMode === "universal" ? (c => universalBasicCodes.has(c) || userAddedCodes.has(c)) : (() => true);
               const tierPoms = tier => Object.keys(mr[tier] || {}).filter(c => mr[tier][c] != null && keep(c));
               const customCodes = customPoms.map(p => p.code);
-              // Foundational ⊂ must:若資料錯放或缺漏,UI 層補進來。跟基碼頁一致。
-              const tier1Set = new Set(currentBucket.foundational_measurements?.tier1_poms || []);
-              const baseFlat = sortPomCodes(tiersOrdered.flatMap(t => tierPoms(t)), currentBucket.pom_sort_order);
-              const inFlat = new Set(baseFlat);
-              const promoted = [];
-              for (const c of tier1Set) {
-                if (inFlat.has(c)) continue;
-                if (!keep(c)) continue;
-                promoted.push(c);
-              }
-              const allCodesFlat = sortPomCodes([...baseFlat, ...promoted], currentBucket.pom_sort_order).concat(customCodes);
+              const codesByTier = Object.fromEntries(
+                tiersOrdered.map(t => {
+                  if (t === "custom") return [t, customCodes];
+                  return [t, sortPomCodes(tierPoms(t), currentBucket.pom_sort_order)];
+                })
+              );
+              const allCodesFlat = sortPomCodes(
+                ["must", "recommend", "optional"].flatMap(t => tierPoms(t)),
+                currentBucket.pom_sort_order
+              ).concat(customCodes);
               const gradingCodes = allCodesFlat.filter(c => !excluded.has(c));
               const sizes = currentBucket.size_range || [];
               const tierOf = code => (mr.must?.[code] || tier1Set.has(code)) ? "must" : mr.recommend?.[code] ? "recommend" : (mr.optional?.[code] ? "optional" : "custom");
@@ -5596,31 +5605,43 @@ function App() {
                       尚未勾選任何 POM — 回基碼檢視勾選
                     </div>
                   ) : (
-                    /* 全碼表格:手機與桌機共用寬表格,手機橫向捲動(不折疊) */
-                    <div style={{ background: "#fff", border: "1px solid #e8e5e1", borderRadius: "12px", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-                      <table style={{ width: "100%", minWidth: isMobile ? `${220 + visibleSizes.length * 66}px` : "auto", borderCollapse: "collapse", fontSize: isMobile ? "12px" : "14px" }}>
-                        <thead>
-                          <tr style={{ background: "#faf9f7", borderBottom: "1.5px solid #e8e5e1" }}>
-                            {appMode !== "universal" && (
-                              <th style={{ padding: isMobile ? "6px 6px" : "10px 12px", textAlign: "left", fontWeight: 600, fontSize: isMobile ? "10px" : "12px", color: "#888", position: "sticky", left: 0, background: "#faf9f7", width: isMobile ? "42px" : "60px" }}>POM</th>
-                            )}
-                            {!isMobile && (
-                              <th style={{ padding: "10px 12px", textAlign: "left", fontWeight: 600, fontSize: "12px", color: "#888", minWidth: "120px" }}>Name<span style={{ fontSize: "10px", fontWeight: 400, color: "#bbb", marginLeft: "4px" }}>(雙擊可改)</span></th>
-                            )}
-                            <th style={{ padding: isMobile ? "6px 6px" : "10px 12px", textAlign: "left", fontWeight: 600, fontSize: isMobile ? "10px" : "12px", color: "#888", minWidth: isMobile ? "110px" : "140px" }}>中文{isMobile ? <span style={{ fontSize: "10px", fontWeight: 400, color: "#bbb", marginLeft: "3px" }}>/ EN</span> : <span style={{ fontSize: "10px", fontWeight: 400, color: "#bbb", marginLeft: "4px" }}>(雙擊可改)</span>}</th>
-                            <th style={{ padding: isMobile ? "6px 6px" : "10px 12px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? "10px" : "12px", color: "#7e22ce", width: isMobile ? "58px" : "90px" }}>公差</th>
-                            {visibleSizes.map(s => {
-                              const isBase = (s === "M") || (isPlus(s) && s === plusAnchor);
-                              return (
-                                <th key={s} style={{ padding: isMobile ? "6px 6px" : "10px 8px", textAlign: "center", fontWeight: 700, fontSize: isMobile ? "10px" : "12px", color: isBase ? "#065f46" : "#555", fontFamily: "'JetBrains Mono',monospace", background: isBase ? "#ecfdf5" : "transparent", minWidth: isBase ? (isMobile ? "78px" : "100px") : (isMobile ? "62px" : "56px"), whiteSpace: "nowrap" }}>{s}{isBase && <div style={{ fontSize: "10px", color: "#065f46" }}>BASE{!isMobile && " · 可編輯"}</div>}</th>
-                              );
-                            })}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {gradingCodes.map(code => {
-                            const tier = tierOf(code);
-                            const tc = TIER[tier];
+                    /* 全碼表格:分 tier 渲染,每個 tier 一個 header 外移 + 自己的 table */
+                    tiersOrdered.map(tier => {
+                      const tierCodes = codesByTier[tier].filter(c => !excluded.has(c));
+                      if (!tierCodes.length) return null;
+                      const tc = TIER[tier];
+                      return (
+                        <div key={tier} style={{ marginBottom: "14px" }}>
+                          <div style={{
+                            display: "flex", alignItems: "center", gap: "10px",
+                            padding: isMobile ? "10px 4px 6px" : "14px 4px 8px",
+                          }}>
+                            <span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", background: tc.c, flexShrink: 0 }} aria-hidden="true" />
+                            <span style={{ fontSize: isMobile ? "13px" : "14px", fontWeight: 700, color: tc.c, letterSpacing: "0.02em" }}>{tc.label} POM</span>
+                            <span style={{ fontSize: "11px", color: "#888", fontWeight: 500 }}>{tierCodes.length} 項</span>
+                          </div>
+                          <div style={{ background: "#fff", border: "1px solid #e8e5e1", borderRadius: "12px", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+                            <table style={{ width: "100%", minWidth: isMobile ? `${220 + visibleSizes.length * 66}px` : "auto", borderCollapse: "collapse", fontSize: isMobile ? "12px" : "14px" }}>
+                              <thead>
+                                <tr style={{ background: "#faf9f7", borderBottom: "1.5px solid #e8e5e1" }}>
+                                  {appMode !== "universal" && (
+                                    <th style={{ padding: isMobile ? "6px 6px" : "10px 12px", textAlign: "left", fontWeight: 600, fontSize: isMobile ? "10px" : "12px", color: "#888", position: "sticky", left: 0, background: "#faf9f7", width: isMobile ? "42px" : "60px" }}>POM</th>
+                                  )}
+                                  {!isMobile && (
+                                    <th style={{ padding: "10px 12px", textAlign: "left", fontWeight: 600, fontSize: "12px", color: "#888", minWidth: "120px" }}>Name<span style={{ fontSize: "10px", fontWeight: 400, color: "#bbb", marginLeft: "4px" }}>(雙擊可改)</span></th>
+                                  )}
+                                  <th style={{ padding: isMobile ? "6px 6px" : "10px 12px", textAlign: "left", fontWeight: 600, fontSize: isMobile ? "10px" : "12px", color: "#888", minWidth: isMobile ? "110px" : "140px" }}>中文{isMobile ? <span style={{ fontSize: "10px", fontWeight: 400, color: "#bbb", marginLeft: "3px" }}>/ EN</span> : <span style={{ fontSize: "10px", fontWeight: 400, color: "#bbb", marginLeft: "4px" }}>(雙擊可改)</span>}</th>
+                                  <th style={{ padding: isMobile ? "6px 6px" : "10px 12px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? "10px" : "12px", color: "#7e22ce", width: isMobile ? "58px" : "90px" }}>公差</th>
+                                  {visibleSizes.map(s => {
+                                    const isBase = (s === "M") || (isPlus(s) && s === plusAnchor);
+                                    return (
+                                      <th key={s} style={{ padding: isMobile ? "6px 6px" : "10px 8px", textAlign: "center", fontWeight: 700, fontSize: isMobile ? "10px" : "12px", color: isBase ? "#065f46" : "#555", fontFamily: "'JetBrains Mono',monospace", background: isBase ? "#ecfdf5" : "transparent", minWidth: isBase ? (isMobile ? "78px" : "100px") : (isMobile ? "62px" : "56px"), whiteSpace: "nowrap" }}>{s}{isBase && <div style={{ fontSize: "10px", color: "#065f46" }}>BASE{!isMobile && " · 可編輯"}</div>}</th>
+                                    );
+                                  })}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {tierCodes.map(code => {
                             const grRow = gr[code];
                             const m = mr[tier]?.[code];
                             const pn = pomNames[code] || {};
@@ -5745,7 +5766,7 @@ function App() {
                                         : "#065f46")
                                       : "#be185d";
                                     return (
-                                      <td key={s} style={{ padding: isMobile ? "4px 4px" : "6px 8px", textAlign: "center", background: cellBg }}>
+                                      <td key={s} style={{ padding: isMobile ? "4px 6px" : "8px 14px", textAlign: "center", background: cellBg }}>
                                         <input type="text" value={displayVal}
                                           onChange={(e) => setStore(prev => ({ ...prev, [code]: e.target.value }))}
                                           onBlur={() => {
@@ -5780,10 +5801,13 @@ function App() {
                                 })}
                               </tr>
                             );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      );
+                    })
                   )}
 
                 </div>
