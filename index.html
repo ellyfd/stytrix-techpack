@@ -4722,6 +4722,14 @@ function App() {
               const plusSeq = sizes.filter(isPlus).slice().sort((a, b) => parseInt(a) - parseInt(b));
               const plusAnchor = plusSeq[0] || "2X";
               const hasPlus = plusSeq.length > 0;
+              // inflection 查 grading_patterns:該 POM 的相鄰跳碼 median 變化 > 50% 算 true(資料端定義)。
+              // 供 基碼 / 全碼 兩邊 POM code 旁加 ⚡ 提示編輯者「這條跳碼不等距,改 M 不會等量平移」。
+              const inflectionCombo = (() => {
+                const k3d = (dept && gt && gender) ? `${dept}_${gt}|${gender}` : null;
+                const k2d = (gender && gt) ? `${gender}|${gt}` : null;
+                return (k3d && gradingPatterns?.[k3d]) || (k2d && gradingPatterns?.[k2d]) || null;
+              })();
+              const hasInflection = (code) => !!inflectionCombo?.[code]?.inflection;
               // bodytype_variance lookup(data/bodytype_variance.json):
               // key = GENDER|GT|<BT>,值為 { m_size_comparison, grading_deltas }。
               // m_size_comparison.<POM> 只含 { delta, n_pairs } — 絕對值用
@@ -4864,6 +4872,12 @@ function App() {
                           ★ <span style={{ color: "#0e7490" }}>= Foundational(強制納入)</span>
                         </span>
                       )}
+                      {inflectionCombo && Object.keys(inflectionCombo).some(c => c !== '_meta' && inflectionCombo[c]?.inflection) && (
+                        <span style={{ fontSize: isMobile ? "10px" : "11px", color: "#ea580c", background: "#fff7ed", padding: "2px 8px", borderRadius: "6px", fontWeight: 500 }}
+                          title="跳碼不等距:此 POM 在某些 size step 跳碼幅度不同,改 M 不會等量平移,見全碼頁">
+                          ⚡ <span style={{ color: "#c2410c" }}>= 跳碼不等距</span>
+                        </span>
+                      )}
                       <button onClick={() => setAddPomOpen(true)}
                         style={{
                           ...btnStyle({ variant: 'ghost', isMobile }),
@@ -4974,6 +4988,10 @@ function App() {
                                           {tier1Set.has(code) && (
                                             <span title="Tier-1 Foundational:不論 rate 多少都強制進 must,不能隱藏"
                                               style={{ marginLeft: "4px", color: "#0891b2", fontSize: "11px" }}>★</span>
+                                          )}
+                                          {hasInflection(code) && (
+                                            <span title="跳碼不等距 — 改 M 不會讓所有 size 等量平移,見全碼頁實際跳碼"
+                                              style={{ marginLeft: "3px", color: "#ea580c", fontSize: "11px" }}>⚡</span>
                                           )}
                                         </td>
                                       )}
@@ -5641,6 +5659,10 @@ function App() {
                                     {gradingTier1Set.has(code) && (
                                       <span title="Tier-1 Foundational:不論 rate 多少都強制進 must,不能隱藏"
                                         style={{ marginLeft: "4px", color: "#0891b2", fontSize: "11px" }}>★</span>
+                                    )}
+                                    {hasInflection(code) && (
+                                      <span title="跳碼不等距 — 某些 size step 跳碼幅度不同,編輯時注意"
+                                        style={{ marginLeft: "3px", color: "#ea580c", fontSize: "11px" }}>⚡</span>
                                     )}
                                     {isMobile && edited && <span style={{ marginLeft: "3px", fontSize: "10px", color: "#7e22ce", fontWeight: 600 }}>●</span>}
                                   </td>
