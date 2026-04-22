@@ -36,6 +36,7 @@ so the viewer can query by a single canonical key regardless of source casing.
 """
 from __future__ import annotations
 
+import argparse
 import json
 import re
 import sys
@@ -318,15 +319,26 @@ def build_from_bridge(bridge, zh_to_l1, warns):
     return entries, {"zone_count": zone_count, "no_iso_count": no_iso_count, "skipped_zones": skipped_zones}
 
 
-def load_ingest_entries(ingest_dir: Path, l1_std: dict, warns: list):
+def load_ingest_entries(ingest_dir: Path, l1_std: dict, warns: list, raw_tax: dict | None = None):
     """Scan data/ingest/<source>/entries.jsonl for pre-built master entries.
 
     Each line must already conform to the master entry schema (aggregation_level,
     source, key, n_total, iso_distribution, methods, design_ids). We validate and
     pass through unchanged — the source pipeline is responsible for schema + normKey.
 
+    If raw_tax is passed, additionally check each entry's bucket/fingerprint is
+    defined in the taxonomy. Unknown bucket/fp names are passed through (they'll
+    simply never match a UI query), but recorded as warns so --strict mode can fail.
+
     Returns (entries, per_source_stats).
     """
+    # Pre-compute canonical bucket/fp name sets from taxonomy (if given) so the
+    # per-entry check is O(1).
+    tax_buckets = set()
+    tax_fps = set()
+    if raw_tax:
+        tax_buckets = {norm(k) for k in (raw_tax.get("buckets") or {}) if norm(k)}
+        tax_fps = {norm(k) for k in (raw_tax.get("fingerprints") or {}) if norm(k)}
     if not ingest_dir.exists():
         return [], {}
     all_entries = []
@@ -373,6 +385,13 @@ def load_ingest_entries(ingest_dir: Path, l1_std: dict, warns: list):
                     k["bucket"] = norm(k["bucket"])
                 if "fingerprint" in k and k["fingerprint"]:
                     k["fingerprint"] = norm(k["fingerprint"])
+                # Taxonomy coverage check (non-fatal, flagged for --strict).
+                # An entry with a bucket not in taxonomy passes through but will
+                # never match a UI query via buckets_resolved.
+                if tax_buckets and k.get("bucket") and k["bucket"] not in tax_buckets:
+                    warns.append(f"ingest {src_name}:{lineno}: bucket {k['bucket']!r} not in bucket_taxonomy.json")
+                if tax_fps and k.get("fingerprint") and k["fingerprint"] not in tax_fps:
+                    warns.append(f"ingest {src_name}:{lineno}: fingerprint {k['fingerprint']!r} not in bucket_taxonomy.json")
                 all_entries.append(e)
                 count += 1
         per_source[src_name] = {"entries": count, "bad_l1": bad_l1}
@@ -428,6 +447,14 @@ def expand_bucket_taxonomy(raw_tax: dict):
 
 
 def main():
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--strict", action="store_true",
+                    help=("Exit 1 if any ingest-layer or taxonomy-coverage issue "
+                          "was raised (missing schema fields, bad JSON, l1 not in "
+                          "l1_standard_38, bucket/fingerprint not in taxonomy). "
+                          "Legacy recipe/bridge zone warnings are always soft."))
+    args = ap.parse_args()
+
     v43 = load_json(V43_PATH)
     v4 = load_json(V4_PATH)
     bridge = load_json(BRIDGE_PATH)
@@ -445,15 +472,16 @@ def main():
     v4_entries = build_from_v4(v4)
     bridge_entries, bridge_stats = build_from_bridge(bridge, zh_to_l1, warns)
 
-    # 2. External ingest sources (data/ingest/<source>/entries.jsonl) come in
-    #    already shaped as master entries — the source pipeline owns normalization.
-    ingest_entries, ingest_per_source = load_ingest_entries(INGEST_DIR, l1_std, warns)
-
     # 3. Bucket taxonomy (data/bucket_taxonomy.json) — embedded in master output
     #    so the viewer gets everything via one fetch. We expand BOYS/GIRLS→KIDS
     #    and BOTTOM→[PANTS,LEGGINGS,SHORTS,SKIRT] into `buckets_resolved` for queries.
     raw_tax = load_json(BUCKET_TAXONOMY_PATH) if BUCKET_TAXONOMY_PATH.exists() else None
     bucket_tax = expand_bucket_taxonomy(raw_tax) if raw_tax else None
+
+    # 2. External ingest sources (data/ingest/<source>/entries.jsonl) come in
+    #    already shaped as master entries — the source pipeline owns normalization.
+    #    raw_tax is passed in so unknown bucket/fp names are flagged (for --strict).
+    ingest_entries, ingest_per_source = load_ingest_entries(INGEST_DIR, l1_std, warns, raw_tax)
 
     all_entries = recipe_entries + v43_entries + v4_entries + bridge_entries + ingest_entries
 
@@ -510,6 +538,19 @@ def main():
         if len(warns) > 50:
             print(f"  ... and {len(warns) - 50} more", file=sys.stderr)
     print(f"[recipes_master] {len(all_entries)} entries → {OUT_MASTER.name}", file=sys.stderr)
+
+    # --strict: fail the build if any ingest-layer or taxonomy-coverage warn was
+    # raised. Legacy recipe/bridge unknown-zone warnings predate the ingest
+    # pipeline and stay soft — that's an old-data-cleanup job, not a CI gate.
+    if args.strict:
+        blocking = [w for w in warns if w.startswith("ingest ")]
+        if blocking:
+            print(f"\n[STRICT] {len(blocking)} ingest/taxonomy violations — failing build.",
+                  file=sys.stderr)
+            print("         (remove --strict or fix the source data to unblock)",
+                  file=sys.stderr)
+            sys.exit(1)
+        print("[STRICT] OK — no ingest/taxonomy violations.", file=sys.stderr)
 
 
 if __name__ == "__main__":
