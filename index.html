@@ -5540,30 +5540,17 @@ function App() {
               // 未選 Item Type 且 POM 屬於「會因長度而變」的 → 整列留空
               const isLengthPending = code =>
                 !it && IT_LENGTH_HINTS[gt] && IT_LENGTH_DEP_POMS[gt]?.has(code);
-              // grading_patterns category key: {CATEGORY|GENDER}
-              // CATEGORY 由 (GT, Fabric) 推:
-              //   TOP/BODYSUIT → KNIT_TOP / WOVEN_TOP
-              //   PANTS/LEGGINGS/SHORTS/SKIRT → KNIT_BOTTOM / WOVEN_BOTTOM
-              //   DRESS/OUTERWEAR/ROMPER_JUMPSUIT/SET → 同名
-              //   SWIM_PIECE → SWIM
-              //   其他 → UNKNOWN
-              const gradingCategory = (() => {
-                const isWoven = (fabric || "").toLowerCase() === "woven";
-                const prefix = isWoven ? "WOVEN" : "KNIT";
-                if (gt === "TOP" || gt === "BODYSUIT") return `${prefix}_TOP`;
-                if (["PANTS", "LEGGINGS", "SHORTS", "SKIRT"].includes(gt)) return `${prefix}_BOTTOM`;
-                if (["DRESS", "OUTERWEAR", "ROMPER_JUMPSUIT", "SET"].includes(gt)) return gt;
-                if (gt === "SWIM_PIECE") return "SWIM";
-                return "UNKNOWN";
-              })();
-              // Gender 對齊 grading_patterns(MATERNITY → WOMENS,BABY/TODDLER → UNKNOWN)
-              const gradingGender = (() => {
-                if (gender === "MATERNITY") return "WOMENS";
-                if (gender === "BABY/TODDLER") return "UNKNOWN";
-                return gender || "UNKNOWN";
-              })();
-              const gradingKey = `${gradingCategory}|${gradingGender}`;
-              const gradingCombo = gradingPatterns?.[gradingKey] || null;
+              // grading_patterns.json key:Dept_GT|Gender(對齊 pom_rules bucket key)
+              // 2D backward-compat fallback:Gender|GT(script 對低樣本 combo 另外 emit)
+              // 註:新資料不再以 fabric(knit/woven)區分跳碼;未來 pipeline 若補回 fabric 維度再加一層。
+              // MATERNITY / BABY/TODDLER 在新資料是 first-class gender,不再 remap 到 WOMENS / UNKNOWN。
+              const gradingKey3D = (dept && gt && gender) ? `${dept}_${gt}|${gender}` : null;
+              const gradingKey2D = (gender && gt) ? `${gender}|${gt}` : null;
+              const gradingKey = gradingKey3D;
+              const gradingCombo =
+                (gradingKey3D && gradingPatterns?.[gradingKey3D]) ||
+                (gradingKey2D && gradingPatterns?.[gradingKey2D]) ||
+                null;
               // 取某 POM 的 pairs(S→M / M→L / …),沒有回 null
               const pairsFor = (code) => gradingCombo?.[code]?.pairs || null;
               const hasInflection = (code) => !!gradingCombo?.[code]?.inflection;
