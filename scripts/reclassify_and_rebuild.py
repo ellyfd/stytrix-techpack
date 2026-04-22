@@ -12,8 +12,13 @@ Legacy fixes (v5.0-v5.5):
   4. LEGGINGS as separate GT (not PANTS)
   5. Centric 8 fraction parsing fix
 """
-import json, re, math, os
+import json, re, math, os, sys
 from collections import defaultdict, Counter
+
+# Pipeline post-step:強制 tier1 POM 進入 measurement_rules.must,跟
+# foundational_measurements.enforced 規則一致。這裡 import 同目錄下的模組。
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from enforce_tier1 import enforce_bucket  # noqa: E402
 
 # ─── Load ───
 BASE = '/sessions/stoic-magical-curie/mnt/ONY'
@@ -617,6 +622,12 @@ for bucket, designs in sorted(bucket_profiles.items(), key=lambda x: -len(x[1]))
         'tolerance_standards': tolerance_standards,
     }
 
+    # Enforce foundational ⊂ must before persisting. enforce_bucket adds
+    # foundational_measurements (based on GT) if missing, then guarantees
+    # every tier1 POM is in mr.must (moving from recommend/optional or
+    # inserting an absent placeholder).
+    enforce_bucket(bucket_data)
+
     fname = bucket_to_filename(bucket) + '.json'
     fpath = os.path.join(OUT_DIR, fname)
     with open(fpath, 'w') as f:
@@ -631,7 +642,7 @@ for bucket, designs in sorted(bucket_profiles.items(), key=lambda x: -len(x[1]))
         'garment_type': gt,
         'gender': gender,
         'pom_count': len(pom_freq),
-        'must_count': len(must_poms),
+        'must_count': len(bucket_data['measurement_rules']['must']),
         'size_kb': size_kb,
     })
 
