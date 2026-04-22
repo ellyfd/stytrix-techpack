@@ -4418,7 +4418,7 @@ function App() {
                   fontSize: "20px", fontWeight: 700,
                   marginBottom: "4px",
                 }} aria-hidden="true">📐</div>
-                <div style={{ fontSize: isMobile ? "15px" : "17px", fontWeight: 700, color: "#1a1a1a" }}>
+                <div style={{ fontSize: isMobile ? "14px" : "16px", fontWeight: 700, color: "#1a1a1a" }}>
                   尚未生成尺寸規格
                 </div>
                 <div style={{ fontSize: isMobile ? "12px" : "13px", color: "#888", maxWidth: "360px", lineHeight: 1.6 }}>
@@ -4501,7 +4501,7 @@ function App() {
                     <span style={{ fontSize: "10px", color: "#bbb", fontWeight: 500, letterSpacing: "0.05em", textTransform: "uppercase" }}>Size Rule</span>
                     <span style={{
                       padding: "3px 10px", borderRadius: "4px",
-                      background: "#fafafa", color: "#525252",
+                      background: "#faf9f7", color: "#555",
                       border: "1px solid #e8e5e1",
                       fontSize: "11px", fontWeight: 600, letterSpacing: "0.02em",
                       fontFamily: "'JetBrains Mono',monospace",
@@ -4544,12 +4544,12 @@ function App() {
                         {sizeView === "base" ? (
                           <>
                             <div style={{ display: "flex", alignItems: "baseline", gap: "8px", flexWrap: "wrap" }}>
-                              <div style={{ fontSize: isMobile ? "14px" : "17px", fontWeight: 700, color: "#1a1a1a" }}>基碼 / POM 確認</div>
+                              <div style={{ fontSize: isMobile ? "14px" : "16px", fontWeight: 700, color: "#1a1a1a" }}>基碼 / POM 確認</div>
                               {!isMobile && <div style={{ fontSize: "13px", color: "#888" }}>POM 建議 × 公差 × Base (M)</div>}
                             </div>
                             <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginTop: isMobile ? "4px" : "8px", flexWrap: "wrap" }}>
                               <span style={{ fontSize: isMobile ? "16px" : "26px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: "#1a1a1a", lineHeight: 1 }}>{bucketIncludedU}</span>
-                              <span style={{ fontSize: isMobile ? "12px" : "15px", color: "#888" }}>/ {totalPomsU} POMs</span>
+                              <span style={{ fontSize: isMobile ? "12px" : "14px", color: "#888" }}>/ {totalPomsU} POMs</span>
                               <span style={{ fontSize: isMobile ? "11px" : "13px", color: "#555", marginLeft: isMobile ? "4px" : "8px" }}>
                                 {codesByTierU.must.length} 必備 · {codesByTierU.recommend.length} 建議 · {codesByTierU.optional.length} 選配
                               </span>
@@ -4558,12 +4558,12 @@ function App() {
                         ) : (
                           <>
                             <div style={{ display: "flex", alignItems: "baseline", gap: "8px", flexWrap: "wrap" }}>
-                              <div style={{ fontSize: isMobile ? "14px" : "17px", fontWeight: 700, color: "#1a1a1a" }}>全碼 / 尺寸表</div>
+                              <div style={{ fontSize: isMobile ? "14px" : "16px", fontWeight: 700, color: "#1a1a1a" }}>全碼 / 尺寸表</div>
                               {!isMobile && <div style={{ fontSize: "13px", color: "#888" }}>各 size 中位數 · 公差 · Grading 由 Base 推導</div>}
                             </div>
                             <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginTop: isMobile ? "4px" : "8px", flexWrap: "wrap" }}>
                               <span style={{ fontSize: isMobile ? "16px" : "26px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: "#1a1a1a", lineHeight: 1 }}>{bucketIncludedU}</span>
-                              <span style={{ fontSize: isMobile ? "12px" : "15px", color: "#888" }}>POMs · {visibleSizesU.length} sizes</span>
+                              <span style={{ fontSize: isMobile ? "12px" : "14px", color: "#888" }}>POMs · {visibleSizesU.length} sizes</span>
                               {hasPlusU && !showPlus && (
                                 <span style={{ fontSize: isMobile ? "11px" : "13px", color: "#b45309", marginLeft: "4px" }}>(+{plusSeqU.length} Plus)</span>
                               )}
@@ -4819,11 +4819,9 @@ function App() {
                       );
                     })()}
 
-                    {/* 基碼 (Base M) table — 分區：必備 → 建議 → 選配（可折疊 / 全選 / 取消） */}
+                    {/* 基碼 table 工具列:Foundational legend + 新增 POM 按鈕。
+                        標題與計數已整合到上方統一 header,此列不再重複。 */}
                     <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: isMobile ? "2px" : "4px", marginBottom: isMobile ? "6px" : "8px", flexWrap: "wrap" }}>
-                      <div style={{ fontSize: isMobile ? "12px" : "15px", fontWeight: 700, color: "#1a1a1a" }}>
-                        基碼 <span style={{ fontSize: isMobile ? "10px" : "13px", color: "#888", fontWeight: 400 }}>{isMobile ? "M size · 勾選 POM" : "M size 基本尺寸 · 勾選要納入的 POM，並可手動調整尺寸"}</span>
-                      </div>
                       {tier1Set.size > 0 && (
                         <span style={{ fontSize: isMobile ? "10px" : "11px", color: "#0891b2", background: "#ecfeff", padding: "2px 8px", borderRadius: "6px", fontWeight: 500 }}
                           title="Foundational:歷史不論 rate 都強制納入,不能隱藏">
