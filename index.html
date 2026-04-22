@@ -263,7 +263,16 @@ function isoOptionsFor(master, dict, filters, l1Code) {
     ]);
     if (e && e.iso_distribution.length) return buildIsoOptions(e, dict);
   }
-  // Layer 2: same_gt (v4.3)
+  // Layer 2: same_bucket (consensus_v1 and other extraction sources)
+  //   buckets_resolved in master.bucket_taxonomy maps each bucket name → arrays of
+  //   {gender, dept, gt} already expanded for UI (BOYS/GIRLS→KIDS, BOTTOM→PANTS/…).
+  //   fingerprint → it lookup lets us narrow within a bucket. The cascade picks the
+  //   first bucket that contains this (g,d,gt) and has an entry at this l1.
+  {
+    const e = findBucketEntry(master, { genderN, deptN, gtN, itN, l1Code });
+    if (e && e.iso_distribution.length) return buildIsoOptions(e, dict);
+  }
+  // Layer 3: same_gt (v4.3)
   {
     const e = findMasterEntry(master, "same_gt", [
       k => k.gender === genderN && k.dept === deptRV && k.gt === gtN && k.l1 === l1Code,
@@ -291,6 +300,45 @@ function isoOptionsFor(master, dict, filters, l1Code) {
     if (e && e.iso_distribution.length) return buildIsoOptions(e, dict);
   }
   return [];
+}
+
+/* ─── same_bucket 層查詢:用 master.bucket_taxonomy.buckets_resolved 找出哪些
+   bucket 涵蓋當前 (gender, dept, gt),再用 fingerprint→it 縮小,最後在 master
+   的 same_bucket entries 裡找對應 (bucket, fingerprint, l1) 的 entry。 ─── */
+function findBucketEntry(master, { genderN, deptN, gtN, itN, l1Code }) {
+  const tax = master?.bucket_taxonomy;
+  if (!tax || !master.entries) return null;
+  const bucketsResolved = tax.buckets_resolved || {};
+  const fpMap = tax.fingerprints || {};
+  // candidate buckets: those whose resolved (gender, dept, gt) cover the query
+  const candidates = [];
+  for (const [bname, info] of Object.entries(bucketsResolved)) {
+    const gOk = !genderN || (info.gender || []).includes(genderN);
+    const dOk = !deptN || (info.dept || []).includes(deptN);
+    const tOk = !gtN || (info.gt || []).includes(gtN);
+    if (gOk && dOk && tOk) candidates.push(bname);
+  }
+  if (!candidates.length) return null;
+  // candidate fingerprints: those whose it list contains the query's itN
+  const fpCandidates = new Set();
+  if (itN) {
+    for (const [fp, info] of Object.entries(fpMap)) {
+      if ((info.it || []).includes(itN)) fpCandidates.add(fp);
+    }
+  }
+  // scan same_bucket entries in priority: (bucket, fingerprint) match > bucket only
+  const cand = new Set(candidates);
+  let fallbackNoFp = null;
+  for (const e of master.entries) {
+    if (e.aggregation_level !== "same_bucket") continue;
+    if (!cand.has(e.key?.bucket)) continue;
+    if (e.key?.l1 !== l1Code) continue;
+    const fp = e.key?.fingerprint;
+    // fingerprint match beats no-fp match
+    if (fp && fpCandidates.has(fp)) return e;
+    if (!fp && !fallbackNoFp) fallbackNoFp = e;
+  }
+  return fallbackNoFp;
 }
 
 /* ─── 取得指定 (gt, l1) 的常見工法。只從 cross_design(bridge)層拿,
@@ -1094,10 +1142,11 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
             // aggregation_level 標示主 ISO 來自哪一層樣本,n/n_total + pct 是客觀統計
             // 數字,取代舊版 strong/mixed/likely 的主觀標籤。
             const AGG_META = {
-              same_sub:     { label: "同細類", bg: "#ecfdf5", c: "#065f46", hint: "同性別+同部門+同大類+同細類 recipe 樣本" },
-              same_gt:      { label: "同大類", bg: "#eff6ff", c: "#1e40af", hint: "同部門+同性別+同大類 v4.3 樣本" },
-              general:      { label: "通用",   bg: "#fffbeb", c: "#b45309", hint: "v4 通用手冊推薦(curated,非統計)" },
-              cross_design: { label: "跨款",   bg: "#fef2f2", c: "#b91c1c", hint: "跨款 bridge 累積(僅 methods 可信)" },
+              same_sub:     { label: "同細類",  bg: "#ecfdf5", c: "#065f46", hint: "同性別+同部門+同大類+同細類 recipe 樣本" },
+              same_bucket:  { label: "同 bucket", bg: "#f0fdfa", c: "#0f766e", hint: "consensus extraction(bucket+fingerprint 維度)" },
+              same_gt:      { label: "同大類",  bg: "#eff6ff", c: "#1e40af", hint: "同部門+同性別+同大類 v4.3 樣本" },
+              general:      { label: "通用",    bg: "#fffbeb", c: "#b45309", hint: "v4 通用手冊推薦(curated,非統計)" },
+              cross_design: { label: "跨款",    bg: "#fef2f2", c: "#b91c1c", hint: "跨款 bridge 累積(僅 methods 可信)" },
             };
             const ACTION_META = {
               recommend: { label: "推薦", c: "#065f46", bg: "#ecfdf5", icon: "✓" },

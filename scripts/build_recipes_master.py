@@ -47,9 +47,24 @@ V43_PATH = ROOT / "General Model_Path2_Construction Suggestion" / "iso_lookup_fa
 V4_PATH = ROOT / "General Model_Path2_Construction Suggestion" / "iso_lookup_factory_v4.json"
 BRIDGE_PATH = ROOT / "data" / "construction_bridge_v6.json"
 RECIPES_DIR = ROOT / "recipes"
+INGEST_DIR = ROOT / "data" / "ingest"
+BUCKET_TAXONOMY_PATH = ROOT / "data" / "bucket_taxonomy.json"
 
 OUT_MASTER = ROOT / "data" / "recipes_master.json"
 OUT_L1_STD = ROOT / "data" / "l1_standard_38.json"
+
+# --- taxonomy normalization maps (applied when building bucket lookups) ---
+# BOYS/GIRLS/BABY_TODDLER bucket entries also match UI's KIDS gender.
+GENDER_UI_EXPAND = {
+    "BOYS": ["KIDS"],
+    "GIRLS": ["KIDS"],
+    "BABY_TODDLER": ["KIDS"],
+    "MATERNITY": ["WOMENS"],
+}
+# "BOTTOM" is an extraction shorthand covering all lower-body GTs.
+GT_EXPAND = {
+    "BOTTOM": ["PANTS", "LEGGINGS", "SHORTS", "SKIRT"],
+}
 
 
 def norm(s):
@@ -303,6 +318,93 @@ def build_from_bridge(bridge, zh_to_l1, warns):
     return entries, {"zone_count": zone_count, "no_iso_count": no_iso_count, "skipped_zones": skipped_zones}
 
 
+def load_ingest_entries(ingest_dir: Path, l1_std: dict, warns: list):
+    """Scan data/ingest/<source>/entries.jsonl for pre-built master entries.
+
+    Each line must already conform to the master entry schema (aggregation_level,
+    source, key, n_total, iso_distribution, methods, design_ids). We validate and
+    pass through unchanged — the source pipeline is responsible for schema + normKey.
+
+    Returns (entries, per_source_stats).
+    """
+    if not ingest_dir.exists():
+        return [], {}
+    all_entries = []
+    per_source = {}
+    l1_std_codes = set((l1_std.get("codes") or {}).keys())
+    for src_dir in sorted(ingest_dir.iterdir()):
+        if not src_dir.is_dir():
+            continue
+        jsonl = src_dir / "entries.jsonl"
+        if not jsonl.exists():
+            continue
+        src_name = src_dir.name
+        count = 0
+        bad_l1 = 0
+        with jsonl.open(encoding="utf-8") as f:
+            for lineno, line in enumerate(f, 1):
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    e = json.loads(line)
+                except json.JSONDecodeError as ex:
+                    warns.append(f"ingest {src_name}:{lineno}: bad JSON ({ex})")
+                    continue
+                # schema checks (soft: warn + skip bad entries, don't fail the build)
+                missing = [k for k in ("aggregation_level","source","key","n_total","iso_distribution","methods") if k not in e]
+                if missing:
+                    warns.append(f"ingest {src_name}:{lineno}: missing fields {missing}")
+                    continue
+                if not isinstance(e["iso_distribution"], list) or not isinstance(e["methods"], list):
+                    warns.append(f"ingest {src_name}:{lineno}: iso_distribution/methods must be array")
+                    continue
+                # tolerate l1 == "_DEFAULT" (bucket-level wildcard, UI skips it)
+                l1 = (e.get("key") or {}).get("l1")
+                if l1 and l1 != "_DEFAULT" and l1 not in l1_std_codes:
+                    bad_l1 += 1
+                    warns.append(f"ingest {src_name}:{lineno}: l1 {l1!r} not in l1_standard_38")
+                    continue
+                all_entries.append(e)
+                count += 1
+        per_source[src_name] = {"entries": count, "bad_l1": bad_l1}
+    return all_entries, per_source
+
+
+def expand_bucket_taxonomy(raw_tax: dict):
+    """Apply GENDER_UI_EXPAND + GT_EXPAND so UI queries using its own enum (KIDS /
+    PANTS etc.) can match buckets stored under extraction-native values (BOYS /
+    BOTTOM etc.).
+
+    Input: raw taxonomy from data/bucket_taxonomy.json (user-supplied).
+    Output: same shape + a parallel `buckets_resolved` block with expanded arrays.
+    The `buckets` block is kept verbatim for provenance; UI queries use `buckets_resolved`.
+    """
+    if not raw_tax:
+        return raw_tax
+    resolved = {}
+    for name, info in (raw_tax.get("buckets") or {}).items():
+        gender_in = [norm(g) for g in (info.get("gender") or []) if g]
+        dept_in = [norm(d) for d in (info.get("dept") or []) if d]
+        gt_in = [norm(g) for g in (info.get("gt") or []) if g]
+        gender_out = set(gender_in)
+        for g in gender_in:
+            gender_out.update(GENDER_UI_EXPAND.get(g, []))
+        gt_out = set(gt_in)
+        for g in gt_in:
+            gt_out.update(GT_EXPAND.get(g, []))
+            if g not in GT_EXPAND:
+                gt_out.add(g)
+        resolved[name] = {
+            "gender": sorted(gender_out),
+            "dept": sorted(set(dept_in)),
+            "gt": sorted(gt_out),
+        }
+    out = dict(raw_tax)
+    out["buckets_resolved"] = resolved
+    return out
+
+
 def main():
     v43 = load_json(V43_PATH)
     v4 = load_json(V4_PATH)
@@ -321,9 +423,31 @@ def main():
     v4_entries = build_from_v4(v4)
     bridge_entries, bridge_stats = build_from_bridge(bridge, zh_to_l1, warns)
 
-    all_entries = recipe_entries + v43_entries + v4_entries + bridge_entries
+    # 2. External ingest sources (data/ingest/<source>/entries.jsonl) come in
+    #    already shaped as master entries — the source pipeline owns normalization.
+    ingest_entries, ingest_per_source = load_ingest_entries(INGEST_DIR, l1_std, warns)
+
+    # 3. Bucket taxonomy (data/bucket_taxonomy.json) — embedded in master output
+    #    so the viewer gets everything via one fetch. We expand BOYS/GIRLS→KIDS
+    #    and BOTTOM→[PANTS,LEGGINGS,SHORTS,SKIRT] into `buckets_resolved` for queries.
+    raw_tax = load_json(BUCKET_TAXONOMY_PATH) if BUCKET_TAXONOMY_PATH.exists() else None
+    bucket_tax = expand_bucket_taxonomy(raw_tax) if raw_tax else None
+
+    all_entries = recipe_entries + v43_entries + v4_entries + bridge_entries + ingest_entries
 
     recipe_files = sorted(f.name for f in RECIPES_DIR.glob("recipe_*.json"))
+    ingest_manifest = {
+        src: {
+            "entries_file": f"data/ingest/{src}/entries.jsonl",
+            **stats,
+        }
+        for src, stats in ingest_per_source.items()
+    }
+
+    # stats by aggregation_level (all sources combined)
+    level_counts = {}
+    for e in all_entries:
+        level_counts[e["aggregation_level"]] = level_counts.get(e["aggregation_level"], 0) + 1
 
     out = {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -332,18 +456,19 @@ def main():
             "v4": str(V4_PATH.relative_to(ROOT)),
             "bridge": str(BRIDGE_PATH.relative_to(ROOT)),
             "recipes": recipe_files,
+            "ingest": ingest_manifest,
+            "bucket_taxonomy": str(BUCKET_TAXONOMY_PATH.relative_to(ROOT)) if bucket_tax else None,
         },
         "stats": {
-            "same_sub": len(recipe_entries),
-            "same_gt": len(v43_entries),
-            "general": len(v4_entries),
-            "cross_design": len(bridge_entries),
+            **{lvl: level_counts.get(lvl, 0) for lvl in ("same_sub","same_bucket","same_gt","general","cross_design")},
             "total": len(all_entries),
             "recipe_files_processed": recipe_stats["files_processed"],
             "bridge_zones": bridge_stats["zone_count"],
             "bridge_zones_no_iso": bridge_stats["no_iso_count"],
             "unknown_zone_warnings": len([w for w in warns if "unknown zone" in w]),
+            "ingest_warnings": len([w for w in warns if w.startswith("ingest ")]),
         },
+        "bucket_taxonomy": bucket_tax,
         "entries": all_entries,
     }
 
@@ -352,6 +477,10 @@ def main():
     print("--- stats ---", file=sys.stderr)
     for k, v in out["stats"].items():
         print(f"  {k}: {v}", file=sys.stderr)
+    if ingest_per_source:
+        print("--- ingest sources ---", file=sys.stderr)
+        for src, stats in ingest_per_source.items():
+            print(f"  {src}: {stats}", file=sys.stderr)
     if warns:
         print("--- warnings ---", file=sys.stderr)
         for w in warns[:50]:
