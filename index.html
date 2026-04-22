@@ -1862,8 +1862,6 @@ function AdminModal({ open, onClose, pomNames, onPushDict }) {
     }
   }, [open, pomNames]);
 
-  if (!open) return null;
-
   const saveToken = (t) => {
     setToken(t);
     try { t ? localStorage.setItem('stytrix.admin.token', t) : localStorage.removeItem('stytrix.admin.token'); } catch {}
@@ -2006,6 +2004,8 @@ function AdminModal({ open, onClose, pomNames, onPushDict }) {
     if (!parts.length) return `Update data/pom_dictionary.json via admin (${pomCount} entries, no content change)`;
     return `Update pom_dictionary: ${parts.join(' / ')}`;
   }, [diff, pomCount]);
+
+  if (!open) return null;
 
   return (
     <div onClick={onClose} role="dialog" aria-modal="true" aria-label="管理面板" style={{
