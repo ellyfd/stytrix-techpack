@@ -67,6 +67,47 @@ GT_EXPAND = {
     "BOTTOM": ["PANTS", "LEGGINGS", "SHORTS", "SKIRT"],
 }
 
+# --- source priority for same_bucket dedupe ---
+# When two ingest sources emit entries for the same (bucket, fingerprint, l1),
+# higher priority wins (kept in master, others dropped). Unknown sources get 0.
+# Rationale: curated/VLM-verified > OCR-extracted.
+SOURCE_PRIORITY = {
+    "consensus_v1": 100,   # curated, human-verified
+    "vlm_v1":       90,    # VLM-verified (future)
+    "ocr_v1":       50,    # OCR-extracted, unreviewed
+}
+
+# --- auto-derive bucket metadata when name not in bucket_taxonomy.json ---
+# Bucket names follow a rough <GENDER>_<FABRIC|DEPT>_<GT> convention. We scan
+# tokens and emit a best-effort (gender, dept, gt) triple. Unknown gt => [],
+# meaning findBucketEntry won't match unless no gt filter is active.
+BUCKET_TOKEN_GENDER = {
+    "MENS": "MENS", "WOMENS": "WOMENS",
+    "BOYS": "BOYS", "GIRLS": "GIRLS", "KIDS": "KIDS",
+    "MATERNITY": "MATERNITY",
+    "NEWBORN": "KIDS", "TODDLER": "KIDS", "BABY": "KIDS",
+}
+BUCKET_TOKEN_DEPT = {
+    "FLEECE": "FLEECE",
+    "PERF": "ACTIVE", "ACTIVE": "ACTIVE",
+    "RTW": "RTW",
+    "SLEEP": "SLEEPWEAR", "SLEEPWEAR": "SLEEPWEAR",
+    "SWIM": "SWIMWEAR", "SWIMWEAR": "SWIMWEAR",
+    "KNIT": "GENERAL",   # fabric-as-dept-shorthand, map to GENERAL
+    "WOVEN": "GENERAL",
+}
+BUCKET_TOKEN_GT = {
+    "TOPS": "TOP", "TOP": "TOP",
+    "BOTTOMS": "BOTTOM", "BOTTOM": "BOTTOM",
+    "OUTER": "OUTERWEAR", "OUTERWEAR": "OUTERWEAR",
+    "DRESS": "DRESS", "DRESSES": "DRESS",
+    "SET": "SET", "SETS": "SET",
+    "SHORTS": "SHORTS",
+    "SKIRT": "SKIRT", "SKIRTS": "SKIRT",
+    "PANTS": "PANTS",
+    "LEGGINGS": "LEGGINGS", "LEGGING": "LEGGINGS",
+}
+
 
 def norm(s):
     """Uppercase + collapse non-alphanumerics into underscores."""
@@ -197,11 +238,16 @@ def build_from_recipes(recipes_dir: Path, zh_to_l1: dict, warns: list):
     return entries, {"files_processed": processed, "skipped_zones": skipped_zones}
 
 
-def build_from_v43(v43):
+def build_from_v43(v43, l1_std_codes=None, warns=None):
     entries = []
+    std = l1_std_codes if l1_std_codes is not None else set()
     for e in v43.get("entries") or []:
         l1 = e.get("l1_code")
         if not l1:
+            continue
+        if std and l1 not in std:
+            if warns is not None:
+                warns.append(f"v4.3 entry: l1_code {l1!r} not in l1_standard_38, skipped")
             continue
         n_total = int(e.get("n_designs") or 0)
         iso_list = dist_dict_to_list(e.get("iso_distribution") or {}, n_total)
@@ -230,11 +276,16 @@ def build_from_v43(v43):
     return entries
 
 
-def build_from_v4(v4):
+def build_from_v4(v4, l1_std_codes=None, warns=None):
     entries = []
+    std = l1_std_codes if l1_std_codes is not None else set()
     for e in v4.get("entries") or []:
         l1 = e.get("l1_code")
         if not l1:
+            continue
+        if std and l1 not in std:
+            if warns is not None:
+                warns.append(f"v4 entry: l1_code {l1!r} not in l1_standard_38, skipped")
             continue
         iso = e.get("iso")
         if not iso_is_valid(iso):
@@ -371,9 +422,13 @@ def load_ingest_entries(ingest_dir: Path, l1_std: dict, warns: list, raw_tax: di
                 if not isinstance(e["iso_distribution"], list) or not isinstance(e["methods"], list):
                     warns.append(f"ingest {src_name}:{lineno}: iso_distribution/methods must be array")
                     continue
-                # tolerate l1 == "_DEFAULT" (bucket-level wildcard, UI skips it)
+                # Enforce 38-code invariant: every entry's key.l1 must be in
+                # l1_standard_38. `_DEFAULT` (bucket-wildcard from consensus) also
+                # skipped — master is zone-level-only.
                 l1 = (e.get("key") or {}).get("l1")
-                if l1 and l1 != "_DEFAULT" and l1 not in l1_std_codes:
+                if l1 == "_DEFAULT":
+                    continue  # silent skip — not an error, just not our grain
+                if not l1 or l1 not in l1_std_codes:
                     bad_l1 += 1
                     warns.append(f"ingest {src_name}:{lineno}: l1 {l1!r} not in l1_standard_38")
                     continue
@@ -396,6 +451,218 @@ def load_ingest_entries(ingest_dir: Path, l1_std: dict, warns: list, raw_tax: di
                 count += 1
         per_source[src_name] = {"entries": count, "bad_l1": bad_l1}
     return all_entries, per_source
+
+
+def load_ingest_facts(ingest_dir: Path, l1_std: dict, warns: list):
+    """Scan data/ingest/<source>/facts.jsonl for per-design observations.
+
+    Fact row schema:
+        {"design_id", "bucket", "fingerprint"?, "l1_code", "iso"?, "method"?,
+         "source_line"?}
+
+    Returns (facts_by_source, per_source_stats). Rows with l1_code outside
+    l1_standard_38 or equal to "_DEFAULT" are skipped with warns. Rows where
+    neither iso nor method is present are skipped (no information).
+
+    The caller (aggregate_facts_to_entries) groups these into same_bucket entries.
+    """
+    if not ingest_dir.exists():
+        return {}, {}
+    facts_by_source = {}
+    per_source = {}
+    l1_std_codes = set((l1_std.get("codes") or {}).keys())
+    for src_dir in sorted(ingest_dir.iterdir()):
+        if not src_dir.is_dir():
+            continue
+        jsonl = src_dir / "facts.jsonl"
+        if not jsonl.exists():
+            continue
+        src_name = src_dir.name
+        rows = []
+        n_skip_l1 = n_skip_default = n_skip_empty = n_skip_no_design = n_skip_bucket = 0
+        with jsonl.open(encoding="utf-8") as f:
+            for lineno, line in enumerate(f, 1):
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    r = json.loads(line)
+                except json.JSONDecodeError as ex:
+                    warns.append(f"ingest {src_name}/facts:{lineno}: bad JSON ({ex})")
+                    continue
+                design = r.get("design_id")
+                bucket = norm(r.get("bucket"))
+                fp = norm(r.get("fingerprint")) if r.get("fingerprint") else None
+                l1 = r.get("l1_code")
+                # Rows without design_id are pre-aggregated rules (e.g. consensus_rules
+                # format) — silently skip since they're not per-design observations.
+                # Such sources should ingest via entries.jsonl, not facts.jsonl.
+                if not design:
+                    n_skip_no_design += 1
+                    continue
+                if not bucket:
+                    n_skip_bucket += 1
+                    continue
+                if not l1:
+                    warns.append(f"ingest {src_name}/facts:{lineno}: missing l1_code")
+                    continue
+                if l1 == "_DEFAULT":
+                    n_skip_default += 1
+                    continue
+                if l1 not in l1_std_codes:
+                    n_skip_l1 += 1
+                    warns.append(f"ingest {src_name}/facts:{lineno}: l1_code {l1!r} not in l1_standard_38")
+                    continue
+                # ISO can live in either `iso` (numeric expected) or `combo` (compound
+                # like 514+605). If both, prefer combo if non-null. Non-numeric values
+                # in iso (BONDED/BINDING/RAW_EDGE) are lifted into `method`.
+                iso_raw = r.get("iso")
+                combo_raw = r.get("combo")
+                iso = None
+                if combo_raw and iso_is_valid(combo_raw):
+                    iso = combo_raw
+                elif iso_raw and iso_is_valid(iso_raw):
+                    iso = iso_raw
+                method = r.get("method")
+                if not iso and not method and iso_raw:
+                    method = iso_raw  # lift non-numeric iso to method
+                if not iso and not method:
+                    n_skip_empty += 1
+                    continue
+                rows.append({
+                    "design_id": design, "bucket": bucket, "fingerprint": fp,
+                    "l1_code": l1, "iso": iso, "method": method,
+                })
+        facts_by_source[src_name] = rows
+        per_source[src_name] = {
+            "facts": len(rows),
+            "skip_default": n_skip_default,
+            "skip_l1": n_skip_l1,
+            "skip_empty": n_skip_empty,
+            "skip_no_design": n_skip_no_design,
+            "skip_no_bucket": n_skip_bucket,
+        }
+    return facts_by_source, per_source
+
+
+def aggregate_facts_to_entries(facts_rows: list, src_name: str):
+    """Group facts (per-design observations) by (bucket, fingerprint, l1) and
+    emit same_bucket master entries. Counts are per-DESIGN (deduped), not per-row,
+    so a design with topstitch+seam-join for the same zone contributes once to
+    n_total but potentially twice to iso_distribution.
+    """
+    groups = {}
+    for r in facts_rows:
+        key = (r["bucket"], r["fingerprint"], r["l1_code"])
+        g = groups.setdefault(key, {
+            "designs": set(),
+            "iso_counts": {},   # iso_code -> set of design_ids (dedupe per design)
+            "method_counts": {},
+        })
+        g["designs"].add(r["design_id"])
+        if r["iso"]:
+            g["iso_counts"].setdefault(r["iso"], set()).add(r["design_id"])
+        if r["method"]:
+            g["method_counts"].setdefault(r["method"], set()).add(r["design_id"])
+
+    entries = []
+    for (bucket, fp, l1), g in groups.items():
+        n_total = len(g["designs"])
+        iso_list = []
+        for iso, designs in g["iso_counts"].items():
+            n = len(designs)
+            pct = round(n / n_total * 100.0, 1) if n_total else 0.0
+            iso_list.append({"iso": iso, "n": n, "pct": pct})
+        iso_list.sort(key=lambda x: -x["pct"])
+        method_list = []
+        for name, designs in g["method_counts"].items():
+            n = len(designs)
+            pct = round(n / n_total * 100.0, 1) if n_total else 0.0
+            method_list.append({"name": name, "n": n, "pct": pct})
+        method_list.sort(key=lambda x: -x["pct"])
+        entries.append({
+            "aggregation_level": "same_bucket",
+            "source": src_name,
+            "key": {"bucket": bucket, "fingerprint": fp, "l1": l1},
+            "n_total": n_total,
+            "iso_distribution": iso_list,
+            "methods": method_list,
+            "design_ids": sorted(g["designs"]),
+        })
+    return entries
+
+
+def auto_derive_buckets(bucket_names: set, raw_tax: dict, warns: list):
+    """For each bucket name NOT in raw_tax.buckets, parse tokens from the name
+    to infer (gender, dept, gt) arrays. Returns a dict of {bucket: info} that
+    the caller merges into raw_tax.buckets. Inferred entries get
+    `auto_derived: true` so humans can audit later.
+
+    Heuristic: split on _, scan tokens against GENDER/DEPT/GT vocabularies.
+    Unknown gt -> empty list (bucket will be emitted in taxonomy but won't
+    match any gt-filtered UI query until taxonomy is manually curated).
+    """
+    known = {norm(k) for k in (raw_tax.get("buckets") or {}) if norm(k)}
+    derived = {}
+    for raw_name in bucket_names:
+        nk = norm(raw_name)
+        if not nk or nk in known:
+            continue
+        tokens = nk.split("_")
+        genders, depts, gts = [], [], []
+        for t in tokens:
+            if t in BUCKET_TOKEN_GENDER and BUCKET_TOKEN_GENDER[t] not in genders:
+                genders.append(BUCKET_TOKEN_GENDER[t])
+            if t in BUCKET_TOKEN_DEPT and BUCKET_TOKEN_DEPT[t] not in depts:
+                depts.append(BUCKET_TOKEN_DEPT[t])
+            if t in BUCKET_TOKEN_GT and BUCKET_TOKEN_GT[t] not in gts:
+                gts.append(BUCKET_TOKEN_GT[t])
+        if not genders and not depts and not gts:
+            warns.append(f"auto-derive bucket {raw_name!r}: no tokens matched, skipped")
+            continue
+        derived[nk] = {
+            "gender": genders,
+            "dept": depts,
+            "gt": gts,
+            "auto_derived": True,
+        }
+        if not gts:
+            warns.append(f"auto-derive bucket {raw_name!r}: gt unknown, entry will not match gt-filtered queries")
+    return derived
+
+
+def dedupe_same_bucket_by_priority(entries: list, warns: list):
+    """Collapse multi-source collisions at same_bucket layer. Keep exactly one
+    entry per (bucket, fingerprint, l1); higher SOURCE_PRIORITY wins.
+
+    Non-same_bucket entries pass through unchanged.
+    """
+    winners = {}  # (bucket, fp, l1) -> entry
+    losers_by_key = {}
+    passthrough = []
+    for e in entries:
+        if e.get("aggregation_level") != "same_bucket":
+            passthrough.append(e)
+            continue
+        k = e.get("key") or {}
+        key = (k.get("bucket"), k.get("fingerprint"), k.get("l1"))
+        if not key[0] or not key[2]:
+            # malformed; skip (already warned earlier)
+            continue
+        src = e.get("source") or ""
+        prio = SOURCE_PRIORITY.get(src, 0)
+        cur = winners.get(key)
+        if cur is None or SOURCE_PRIORITY.get(cur.get("source"), 0) < prio:
+            if cur is not None:
+                losers_by_key.setdefault(key, []).append(cur)
+            winners[key] = e
+        else:
+            losers_by_key.setdefault(key, []).append(e)
+    # Summarize losers (useful for transparency)
+    collisions = sum(1 for _ in losers_by_key)
+    if collisions:
+        warns.append(f"same_bucket dedupe: {collisions} (bucket,fp,l1) keys had multi-source collision; kept higher-priority source")
+    return passthrough + list(winners.values())
 
 
 def expand_bucket_taxonomy(raw_tax: dict):
@@ -467,32 +734,60 @@ def main():
 
     warns = []
 
+    l1_std_codes = set((l1_std.get("codes") or {}).keys())
+
     recipe_entries, recipe_stats = build_from_recipes(RECIPES_DIR, zh_to_l1, warns)
-    v43_entries = build_from_v43(v43)
-    v4_entries = build_from_v4(v4)
+    v43_entries = build_from_v43(v43, l1_std_codes, warns)
+    v4_entries = build_from_v4(v4, l1_std_codes, warns)
     bridge_entries, bridge_stats = build_from_bridge(bridge, zh_to_l1, warns)
 
     # 3. Bucket taxonomy (data/bucket_taxonomy.json) — embedded in master output
     #    so the viewer gets everything via one fetch. We expand BOYS/GIRLS→KIDS
     #    and BOTTOM→[PANTS,LEGGINGS,SHORTS,SKIRT] into `buckets_resolved` for queries.
-    raw_tax = load_json(BUCKET_TAXONOMY_PATH) if BUCKET_TAXONOMY_PATH.exists() else None
-    bucket_tax = expand_bucket_taxonomy(raw_tax) if raw_tax else None
+    raw_tax = load_json(BUCKET_TAXONOMY_PATH) if BUCKET_TAXONOMY_PATH.exists() else {"buckets": {}, "fingerprints": {}}
 
-    # 2. External ingest sources (data/ingest/<source>/entries.jsonl) come in
-    #    already shaped as master entries — the source pipeline owns normalization.
-    #    raw_tax is passed in so unknown bucket/fp names are flagged (for --strict).
+    # 4. External ingest facts (data/ingest/<source>/facts.jsonl) — per-design
+    #    observations (e.g. OCR output). Aggregated into same_bucket entries
+    #    here so master consumers see the same schema regardless of raw vs
+    #    pre-aggregated upstream.
+    facts_by_source, facts_per_source = load_ingest_facts(INGEST_DIR, l1_std, warns)
+    fact_entries = []
+    # Auto-derive taxonomy for buckets present in facts but missing from user-supplied tax.
+    fact_bucket_names = set()
+    for rows in facts_by_source.values():
+        fact_bucket_names.update(r["bucket"] for r in rows)
+    if fact_bucket_names:
+        derived = auto_derive_buckets(fact_bucket_names, raw_tax, warns)
+        if derived:
+            raw_tax = dict(raw_tax)
+            raw_tax["buckets"] = {**(raw_tax.get("buckets") or {}), **derived}
+    for src_name, rows in facts_by_source.items():
+        fact_entries.extend(aggregate_facts_to_entries(rows, src_name))
+
+    # 5. External ingest entries (data/ingest/<source>/entries.jsonl) — already
+    #    pre-aggregated by the source pipeline. raw_tax (possibly expanded with
+    #    auto-derived buckets above) drives the taxonomy coverage check.
     ingest_entries, ingest_per_source = load_ingest_entries(INGEST_DIR, l1_std, warns, raw_tax)
 
-    all_entries = recipe_entries + v43_entries + v4_entries + bridge_entries + ingest_entries
+    # 6. Finalize bucket taxonomy (includes any auto-derived additions)
+    bucket_tax = expand_bucket_taxonomy(raw_tax) if raw_tax else None
+
+    # 7. Collect all same_bucket entries (from entries.jsonl + facts.jsonl) and
+    #    dedupe by (bucket, fp, l1) using SOURCE_PRIORITY.
+    same_bucket_all = [e for e in (ingest_entries + fact_entries) if e.get("aggregation_level") == "same_bucket"]
+    non_same_bucket = [e for e in (ingest_entries + fact_entries) if e.get("aggregation_level") != "same_bucket"]
+    same_bucket_deduped = dedupe_same_bucket_by_priority(same_bucket_all, warns)
+
+    all_entries = recipe_entries + v43_entries + v4_entries + bridge_entries + non_same_bucket + same_bucket_deduped
 
     recipe_files = sorted(f.name for f in RECIPES_DIR.glob("recipe_*.json"))
-    ingest_manifest = {
-        src: {
-            "entries_file": f"data/ingest/{src}/entries.jsonl",
-            **stats,
-        }
-        for src, stats in ingest_per_source.items()
-    }
+    ingest_manifest = {}
+    for src, stats in ingest_per_source.items():
+        ingest_manifest[src] = {"entries_file": f"data/ingest/{src}/entries.jsonl", **stats}
+    for src, stats in facts_per_source.items():
+        m = ingest_manifest.setdefault(src, {})
+        m["facts_file"] = f"data/ingest/{src}/facts.jsonl"
+        m.update(stats)
 
     # stats by aggregation_level (all sources combined)
     level_counts = {}
