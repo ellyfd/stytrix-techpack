@@ -365,6 +365,14 @@ def load_ingest_entries(ingest_dir: Path, l1_std: dict, warns: list):
                     bad_l1 += 1
                     warns.append(f"ingest {src_name}:{lineno}: l1 {l1!r} not in l1_standard_38")
                     continue
+                # Normalize bucket + fingerprint in the key so queries match
+                # regardless of input casing (entries.jsonl and bucket_taxonomy.json
+                # may come from different pipelines with different conventions).
+                k = e["key"]
+                if "bucket" in k and k["bucket"]:
+                    k["bucket"] = norm(k["bucket"])
+                if "fingerprint" in k and k["fingerprint"]:
+                    k["fingerprint"] = norm(k["fingerprint"])
                 all_entries.append(e)
                 count += 1
         per_source[src_name] = {"entries": count, "bad_l1": bad_l1}
@@ -374,16 +382,22 @@ def load_ingest_entries(ingest_dir: Path, l1_std: dict, warns: list):
 def expand_bucket_taxonomy(raw_tax: dict):
     """Apply GENDER_UI_EXPAND + GT_EXPAND so UI queries using its own enum (KIDS /
     PANTS etc.) can match buckets stored under extraction-native values (BOYS /
-    BOTTOM etc.).
+    BOTTOM etc.). Also normalize bucket + fingerprint NAMES with normKey so
+    mixed casing across taxonomy / entries drops (e.g. `boys_knit_tops` vs
+    `BOYS_KNIT_TOPS`) doesn't break the cascade.
 
     Input: raw taxonomy from data/bucket_taxonomy.json (user-supplied).
-    Output: same shape + a parallel `buckets_resolved` block with expanded arrays.
-    The `buckets` block is kept verbatim for provenance; UI queries use `buckets_resolved`.
+    Output: same shape + parallel `buckets_resolved` / `fingerprints_resolved`
+    blocks keyed by normKey'd names; verbatim `buckets` / `fingerprints` are
+    kept for provenance.
     """
     if not raw_tax:
         return raw_tax
     resolved = {}
     for name, info in (raw_tax.get("buckets") or {}).items():
+        norm_name = norm(name)
+        if not norm_name:
+            continue
         gender_in = [norm(g) for g in (info.get("gender") or []) if g]
         dept_in = [norm(d) for d in (info.get("dept") or []) if d]
         gt_in = [norm(g) for g in (info.get("gt") or []) if g]
@@ -395,13 +409,21 @@ def expand_bucket_taxonomy(raw_tax: dict):
             gt_out.update(GT_EXPAND.get(g, []))
             if g not in GT_EXPAND:
                 gt_out.add(g)
-        resolved[name] = {
+        resolved[norm_name] = {
             "gender": sorted(gender_out),
             "dept": sorted(set(dept_in)),
             "gt": sorted(gt_out),
         }
+    fp_resolved = {}
+    for name, info in (raw_tax.get("fingerprints") or {}).items():
+        norm_name = norm(name)
+        if not norm_name:
+            continue
+        it_out = [norm(i) for i in (info.get("it") or []) if i]
+        fp_resolved[norm_name] = {"it": sorted(set(it_out))}
     out = dict(raw_tax)
     out["buckets_resolved"] = resolved
+    out["fingerprints_resolved"] = fp_resolved
     return out
 
 
