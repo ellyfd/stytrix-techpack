@@ -2768,66 +2768,104 @@ function OnboardingModal({ open, onDismiss }) {
 }
 
 /* ManualsModal:權威靜態手冊登記表(read-only)
-   來源:網站架構圖.md 第 8 節。改動手冊前請先看「消費者」決定是否要重建下游資料。 */
+   服裝業術語優先,技術路徑為次要資訊。來源:網站架構圖.md 第 8 節。 */
 function ManualsModal({ open, onClose }) {
-  const [filter, setFilter] = React.useState('all'); // 'all' | 'A' | 'B'
+  const [filter, setFilter] = React.useState('all'); // 'all' | 'ai' | 'rule'
   React.useEffect(() => { if (open) setFilter('all'); }, [open]);
   if (!open) return null;
 
   const REPO = "https://github.com/ellyfd/stytrix-techpack/blob/main/";
   const ghLink = (p) => REPO + p.split('/').map(encodeURIComponent).join('/');
 
+  // 每份手冊:用服裝業語言講「這是什麼、給誰看、改了會怎樣」
+  // kind: 'ai' = AI 系統直接吃的規格(改動會影響 AI 辨識能力)
+  //       'rule' = 規則/術語文件(改動會影響資料分類或命名)
   const manuals = [
-    { tier: 'A', name: "L2_VLM_Decision_Tree_Prompts_v2.md", path: "L2_VLM_Decision_Tree_Prompts_v2.md",
-      consumer: "scripts/build_l2_decision_trees.py",
-      output: "data/l2_decision_trees.json · Pass 2",
-      refs: ["L2_Confusion_Pairs_Matrix.md", "CLAUDE.md"] },
-    { tier: 'A', name: "L2_Visual_Differentiation_FullAnalysis_修正版.md", path: "L2_Visual_Differentiation_FullAnalysis_修正版.md",
-      consumer: "scripts/build_l2_visual_guide.py",
-      output: "data/l2_visual_guide.json · Pass 1/2",
-      refs: ["L2_VLM_Decision_Tree_Prompts_v2.md", "scripts/build_l2_visual_guide.py"] },
-    { tier: 'A', name: "L1_部位定義_Sketch視覺指引.md", path: "L1_部位定義_Sketch視覺指引.md",
-      consumer: "api/analyze.js(Pass 1 prompt) · star_schema/scripts/vlm_pipeline.py",
-      output: "VLM Pass 1 辨識能力",
-      refs: ["PATH2_通用模型_做工推薦Pipeline.md", "README.md (×2)", "L2_VLM_Decision_Tree_Prompts_v2.md"],
-      note: "同 MD5 副本在 General Model_Path2_Construction Suggestion/" },
-    { tier: 'A', name: "L2_Confusion_Pairs_Matrix.md", path: "L2_Confusion_Pairs_Matrix.md",
-      consumer: "build_l2_decision_trees.py · 49 組 hard-negative",
-      output: "data/l2_decision_trees.json 的辨識精度",
-      refs: ["L2_VLM_Decision_Tree_Prompts_v2.md(第 4、7 行)", "CLAUDE.md"] },
+    {
+      kind: 'ai',
+      title: 'L2 零件判斷樹',
+      file: 'L2_VLM_Decision_Tree_Prompts_v2.md',
+      what: '教 AI 看 sketch 時,每個部位要怎麼一步步決定是哪一種零件。像打版師教新人:「看到袖接合處,先判斷它是直接合(SET-IN)還是斜接(RAGLAN)、是整片還是分片...」',
+      who: 'AI 辨識 Pass 2 的判斷依據',
+      impact: '影響 AI 對 282 個 L2 零件(袖型、公主線、口袋、門襟等)的辨識準度。',
+    },
+    {
+      kind: 'ai',
+      title: 'L2 零件視覺辨識圖鑑',
+      file: 'L2_Visual_Differentiation_FullAnalysis_修正版.md',
+      what: '每一種 L2 零件在 sketch 上的外觀描述——輪廓怎麼走、接合線在哪、跟哪些容易混淆。是 AI 辨識零件時的視覺語言手冊。',
+      who: 'AI 辨識 Pass 1/2 的視覺指引來源',
+      impact: '跟「L2 零件判斷樹」是姊妹文件,282 個零件的判斷標準。',
+    },
+    {
+      kind: 'ai',
+      title: 'L1 部位定義 · 38 部位視覺指引',
+      file: 'L1_部位定義_Sketch視覺指引.md',
+      what: '把一件衣服拆成 38 個部位(前領、後領、肩、前身、後身、袖襱、袖身、袖口、下襬、側縫、前襠、後襠、腰頭...),每個部位在草圖上長什麼樣、要框哪一塊。',
+      who: 'AI 辨識 Pass 1 的第一層分類依據',
+      impact: 'AI 看 sketch 的第一件事就是依這份定義決定「這個框起來的是什麼部位」。',
+      note: '同一份在根目錄與 General Model_Path2 兩處各有一份(MD5 相同)。',
+    },
+    {
+      kind: 'ai',
+      title: 'L2 混淆對照表 · 49 組容易看錯',
+      file: 'L2_Confusion_Pairs_Matrix.md',
+      what: '列出 49 組「長得像、要特別分辨」的零件配對。例如 RAGLAN ↔ SET-IN、公主線 ↔ 剪接片——看錯會讓整份工法表跑掉。每組告訴 AI 要抓的關鍵差異。',
+      who: 'AI 辨識的精度保險',
+      impact: '防止 AI 把 A 零件誤判為 B 零件。',
+    },
 
-    { tier: 'B', name: "pom_rules_v55_classification_logic.md", path: "pom_rules_v55_classification_logic.md",
-      consumer: "v5.5.1 分類邏輯完整說明 · Gender / Dept / GT / Fabric 四維度",
-      refs: ["README.md", "pom_rules_pipeline_guide_v2.md", "scripts/reclassify_and_rebuild.py"],
-      note: "改分類邏輯必讀" },
-    { tier: 'B', name: "pom_rules_pipeline_guide_v2.md", path: "pom_rules_pipeline_guide_v2.md",
-      consumer: "線下規則產線五階段操作手冊 · extract → rebuild → enforce → fix → push",
-      refs: ["CLAUDE.md", "README.md", "scripts/reclassify_and_rebuild.py", "scripts/enforce_tier1.py"],
-      note: "2026-04-23 升為 primary(v1 已刪)" },
-    { tier: 'B', name: "pom_translation_style_guide.md", path: "pom_translation_style_guide.md",
-      consumer: "四客戶 10,035 筆翻譯的統一術語裁決 · 袖襱 / 門襟 / 克夫 / …",
-      refs: ["README.md", "data/pom_dictionary.json(正本位置說明)", "admin 端點備注"],
-      note: "新增 POM 中文名前必查" },
-    { tier: 'B', name: "五階層展開項目_20260402.xlsx", path: "五階層展開項目_20260402.xlsx",
-      consumer: "L2–L5 層展開的原始規格底稿(9.5 MB)",
-      refs: ["pom_rules_pipeline_guide_v2.md (×2)", "CLAUDE.md"],
-      note: "無腳本直接讀;屬人工參考底稿" },
+    {
+      kind: 'rule',
+      title: 'POM 規則分類邏輯 (v5.5.1)',
+      file: 'pom_rules_v55_classification_logic.md',
+      what: '同一件衣服為什麼要依「性別 × 部門 × 品類 × 布料」分成 81 個 bucket?為什麼 Active 跟 Casual 的 POM 要分開、什麼時候 GT 要細分(PANTS / LEGGINGS / SHORTS)、什麼時候可合併。',
+      who: '打版室 / IE / 資料管理者理解分類邏輯',
+      impact: '改這份會影響整個 pom_rules/ 怎麼被產出來。',
+    },
+    {
+      kind: 'rule',
+      title: 'POM 規則庫更新 SOP',
+      file: 'pom_rules_pipeline_guide_v2.md',
+      what: '新一季的 techpack PDF / PPTX 進來了,要怎麼重建整個 81 bucket POM 規則庫的五階段 SOP:抽料 → 重分類 → 套 tier-1 必備 POM → 修排序 → push 上線。',
+      who: '資料管理者跑產線照這份',
+      impact: '從原始 PDF 到線上可用的 pom_rules/,每一步都照這份走。',
+      note: '2026-04-23 升為 primary(舊版 v1 已刪)。',
+    },
+    {
+      kind: 'rule',
+      title: 'POM 翻譯統一字典',
+      file: 'pom_translation_style_guide.md',
+      what: '四家客戶(ONY / ATH / BNN / GAP)各有一套翻法,系統採哪家的裁決。例如 Armhole 用「袖襱」不用「袖窿」、Rise 用「襠」不用「檔」、Cuff 用「克夫」不用「袖口羅紋」。基礎共 10,035 筆翻譯。',
+      who: '打版室 / POM 建檔人員 / 翻譯者',
+      impact: '新增 POM 中文名之前先查這份,避免四家風格混進系統。',
+    },
+    {
+      kind: 'rule',
+      title: 'L2–L5 + IE 秒數原始展開表',
+      file: '五階層展開項目_20260402.xlsx',
+      what: '部位(L1) → 零件(L2) → 形狀(L3) → 工法(L4) → 工段(L5) + 每個工段的 IE 秒數 的完整展開表。9.5 MB 的 Excel,是所有 l2_l3_ie/*.json 的原始底稿。',
+      who: 'IE / 打版室 / 工段部的參考底稿',
+      impact: '線下重建 l2_l3_ie/ 時的人工參考,不會被腳本直接讀。',
+    },
   ];
 
-  const countA = manuals.filter(m => m.tier === 'A').length;
-  const countB = manuals.filter(m => m.tier === 'B').length;
-  const visible = filter === 'all' ? manuals : manuals.filter(m => m.tier === filter);
-  const showAWarning = visible.some(m => m.tier === 'A');
+  const countAI = manuals.filter(m => m.kind === 'ai').length;
+  const countRule = manuals.filter(m => m.kind === 'rule').length;
+  const visible = filter === 'all' ? manuals : manuals.filter(m => m.kind === filter);
+  const hasAI = visible.some(m => m.kind === 'ai');
 
-  const TierChip = ({ tier }) => (
+  const KindChip = ({ kind }) => (
     <span style={{
-      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-      width: '20px', height: '20px', borderRadius: '4px', flexShrink: 0,
-      fontSize: '10px', fontWeight: 700, fontFamily: "'JetBrains Mono',monospace",
-      background: tier === 'A' ? '#ecfdf5' : '#f5f3ff',
-      color: tier === 'A' ? '#065f46' : '#7e22ce',
-      border: `1px solid ${tier === 'A' ? '#a7f3d0' : '#ddd6fe'}`,
-    }}>{tier}</span>
+      display: 'inline-flex', alignItems: 'center', gap: '4px',
+      padding: '2px 8px', borderRadius: '999px', flexShrink: 0,
+      fontSize: '10px', fontWeight: 600, letterSpacing: '0.02em',
+      background: kind === 'ai' ? '#ecfdf5' : '#f5f3ff',
+      color: kind === 'ai' ? '#065f46' : '#7e22ce',
+      border: `1px solid ${kind === 'ai' ? '#a7f3d0' : '#ddd6fe'}`,
+    }}>
+      {kind === 'ai' ? 'AI 系統規格' : '規則 / 術語'}
+    </span>
   );
 
   const chip = (key, label, count) => {
@@ -2852,7 +2890,7 @@ function ManualsModal({ open, onClose }) {
     }}>
       <div onClick={e => e.stopPropagation()} style={{
         background: T.c.bg, borderRadius: T.r.xl, padding: '20px',
-        maxWidth: '880px', width: '100%', maxHeight: '90vh',
+        maxWidth: '780px', width: '100%', maxHeight: '90vh',
         display: 'flex', flexDirection: 'column',
         boxShadow: T.shadow.md,
       }}>
@@ -2866,76 +2904,71 @@ function ManualsModal({ open, onClose }) {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
           {chip('all', '全部', manuals.length)}
-          {chip('A', 'A 級', countA)}
-          {chip('B', 'B 級', countB)}
+          {chip('ai', 'AI 系統規格', countAI)}
+          {chip('rule', '規則 / 術語', countRule)}
           <span style={{ fontSize: '11px', color: '#888', marginLeft: '6px' }}>
-            改動前先確認「消費者」是否需同步重建下游資料。
+            每份手冊告訴你:這是什麼、給誰看、改了會怎樣。
           </span>
         </div>
 
-        {showAWarning && (
-          <div style={{ marginBottom: '10px', padding: '8px 12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', fontSize: '12px', color: '#92400e' }}>
-            ⚠ A 級手冊改動後,需重跑對應 <code style={{ fontFamily: "'JetBrains Mono',monospace" }}>scripts/build_l2_*.py</code> 並 push 新 <code style={{ fontFamily: "'JetBrains Mono',monospace" }}>data/*.json</code>;Vercel 需重新部署才生效(非熱更新)。
+        {hasAI && (
+          <div style={{ marginBottom: '10px', padding: '8px 12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', fontSize: '11px', color: '#92400e', lineHeight: 1.55 }}>
+            ⚠ <strong>AI 系統規格</strong>類的手冊改動後,需要讓工程師重跑產線並重新部署,AI 辨識能力才會吃到新版。不是改了就馬上生效。
           </div>
         )}
 
-        <div style={{ flex: 1, overflow: 'auto', border: '1px solid #e8e5e1', borderRadius: '8px', background: '#fff', minHeight: '200px' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
-            <thead style={{ position: 'sticky', top: 0, background: '#faf9f7', zIndex: 1 }}>
-              <tr style={{ borderBottom: '1.5px solid #e8e5e1' }}>
-                <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, fontSize: '11px', color: '#525252', width: '40px' }}>級</th>
-                <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, fontSize: '11px', color: '#525252' }}>手冊 · 消費者 · 輸出</th>
-                <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, fontSize: '11px', color: '#525252', width: '34%' }}>引用</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visible.length === 0 && (
-                <tr><td colSpan={3} style={{ padding: '24px', textAlign: 'center', color: '#888', fontSize: '12px' }}>
-                  沒有符合篩選的項目
-                </td></tr>
+        <div style={{ flex: 1, overflow: 'auto', minHeight: '200px',
+          display: 'flex', flexDirection: 'column', gap: '10px',
+          padding: '2px' }}>
+          {visible.length === 0 && (
+            <div style={{ padding: '24px', textAlign: 'center', color: '#888', fontSize: '12px' }}>
+              沒有符合篩選的項目
+            </div>
+          )}
+          {visible.map((m, i) => (
+            <div key={i} style={{
+              border: '1px solid #e8e5e1', borderRadius: '8px', background: '#fff',
+              padding: '12px 14px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                <KindChip kind={m.kind} />
+                <span style={{ fontSize: '14px', fontWeight: 700, color: '#1a1a1a' }}>
+                  {m.title}
+                </span>
+              </div>
+
+              <div style={{ fontSize: '12.5px', color: '#374151', lineHeight: 1.65, marginBottom: '8px' }}>
+                {m.what}
+              </div>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px',
+                fontSize: '11px', color: '#525252', marginBottom: m.note ? '6px' : '8px' }}>
+                <div><span style={{ color: '#888' }}>用於　</span>{m.who}</div>
+                <div><span style={{ color: '#888' }}>影響　</span>{m.impact}</div>
+              </div>
+
+              {m.note && (
+                <div style={{ fontSize: '11px', color: '#888', marginBottom: '8px' }}>
+                  ※ {m.note}
+                </div>
               )}
-              {visible.map((m, i) => (
-                <tr key={i} style={{ borderBottom: '1px solid #f0eeeb', verticalAlign: 'top' }}>
-                  <td style={{ padding: '10px 10px' }}>
-                    <TierChip tier={m.tier} />
-                  </td>
-                  <td style={{ padding: '10px 10px' }}>
-                    <a href={ghLink(m.path)} target="_blank" rel="noopener noreferrer"
-                      style={{ fontSize: '13px', fontWeight: 700, color: '#0891b2',
-                        fontFamily: "'JetBrains Mono',monospace", textDecoration: 'none',
-                        wordBreak: 'break-all' }}>
-                      {m.name} <span style={{ fontFamily: 'inherit', color: '#bbb' }}>↗</span>
-                    </a>
-                    <div style={{ fontSize: '12px', color: '#374151', marginTop: '4px', lineHeight: 1.5 }}>
-                      {m.consumer}
-                    </div>
-                    {m.output && (
-                      <div style={{ fontSize: '11px', color: '#065f46', marginTop: '3px',
-                        fontFamily: "'JetBrains Mono',monospace" }}>
-                        → {m.output}
-                      </div>
-                    )}
-                    {m.note && (
-                      <div style={{ fontSize: '11px', color: '#888', marginTop: '4px', lineHeight: 1.5 }}>
-                        ※ {m.note}
-                      </div>
-                    )}
-                  </td>
-                  <td style={{ padding: '10px 10px', fontSize: '11px', color: '#525252', lineHeight: 1.6 }}>
-                    {m.refs.map((r, j) => (
-                      <div key={j} style={{ fontFamily: "'JetBrains Mono',monospace", wordBreak: 'break-all' }}>
-                        {r}
-                      </div>
-                    ))}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+
+              <div style={{ paddingTop: '8px', borderTop: '1px dashed #f0eeeb',
+                fontSize: '10.5px', color: '#9ca3af',
+                display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                <span>檔案</span>
+                <a href={ghLink(m.file)} target="_blank" rel="noopener noreferrer"
+                  style={{ color: '#0891b2', textDecoration: 'none',
+                    fontFamily: "'JetBrains Mono',monospace", wordBreak: 'break-all' }}>
+                  {m.file} ↗
+                </a>
+              </div>
+            </div>
+          ))}
         </div>
 
-        <div style={{ marginTop: '10px', fontSize: '11px', color: '#888', textAlign: 'center' }}>
-          正本:<a href={ghLink("網站架構圖.md")} target="_blank" rel="noopener noreferrer"
+        <div style={{ marginTop: '12px', fontSize: '11px', color: '#888', textAlign: 'center' }}>
+          完整技術依賴圖:<a href={ghLink("網站架構圖.md")} target="_blank" rel="noopener noreferrer"
             style={{ color: '#525252', textDecoration: 'underline' }}>網站架構圖.md § 8</a>
         </div>
       </div>
@@ -4210,37 +4243,33 @@ function App() {
             {mgmtMenuOpen && (
               <div style={{
                 position: 'absolute', right: 0, top: 'calc(100% + 4px)',
-                background: '#fff', border: '1px solid #e5e5e5', borderRadius: '8px',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.12)', minWidth: '180px',
-                zIndex: 100, overflow: 'hidden',
+                background: '#fff', border: '1px solid #e8e5e1', borderRadius: '8px',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.12)', minWidth: '200px',
+                zIndex: 100, overflow: 'hidden', padding: '4px',
               }}>
-                <button onClick={() => { setUploadOpen(true); setMgmtMenuOpen(false); }}
-                  style={{ display: 'block', width: '100%', padding: '10px 16px', textAlign: 'left',
-                    fontSize: '13px', fontWeight: 600, background: 'none', border: 'none',
-                    cursor: 'pointer', fontFamily: 'inherit', color: '#166534' }}>
-                  📤 上傳 Techpack
-                </button>
-                <div style={{ height: '1px', background: '#f0f0f0', margin: '0 8px' }} />
-                <button onClick={() => { setPatchOpen(true); setMgmtMenuOpen(false); }}
-                  style={{ display: 'block', width: '100%', padding: '10px 16px', textAlign: 'left',
-                    fontSize: '13px', fontWeight: 600, background: 'none', border: 'none',
-                    cursor: 'pointer', fontFamily: 'inherit', color: '#4338ca' }}>
-                  🩹 上傳 Patch (JSON)
-                </button>
-                <div style={{ height: '1px', background: '#f0f0f0', margin: '0 8px' }} />
-                <button onClick={() => { setAdminOpen(true); setMgmtMenuOpen(false); }}
-                  style={{ display: 'block', width: '100%', padding: '10px 16px', textAlign: 'left',
-                    fontSize: '13px', fontWeight: 600, background: 'none', border: 'none',
-                    cursor: 'pointer', fontFamily: 'inherit', color: '#374151' }}>
-                  📝 POM 翻譯表編輯
-                </button>
-                <div style={{ height: '1px', background: '#f0f0f0', margin: '0 8px' }} />
-                <button onClick={() => { setManualsOpen(true); setMgmtMenuOpen(false); }}
-                  style={{ display: 'block', width: '100%', padding: '10px 16px', textAlign: 'left',
-                    fontSize: '13px', fontWeight: 600, background: 'none', border: 'none',
-                    cursor: 'pointer', fontFamily: 'inherit', color: '#065f46' }}>
-                  📚 權威手冊登記表
-                </button>
+                {[
+                  { key: 'upload',  label: '上傳 Techpack',      hint: 'PDF / PPTX',     dot: '#16a34a', onClick: () => setUploadOpen(true) },
+                  { key: 'patch',   label: '上傳 Patch',         hint: 'JSON',            dot: '#4338ca', onClick: () => setPatchOpen(true) },
+                  { key: 'dict',    label: 'POM 翻譯表編輯',     hint: '中英對照',        dot: '#0891b2', onClick: () => setAdminOpen(true) },
+                  { key: 'manuals', label: '權威手冊登記表',     hint: '8 份規格手冊',    dot: '#7e22ce', onClick: () => setManualsOpen(true) },
+                ].map(item => (
+                  <button key={item.key}
+                    onClick={() => { item.onClick(); setMgmtMenuOpen(false); }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#faf9f7'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                    style={{ display: 'flex', alignItems: 'center', gap: '10px',
+                      width: '100%', padding: '9px 12px', textAlign: 'left',
+                      fontSize: '13px', fontWeight: 500, background: 'transparent', border: 'none',
+                      borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit',
+                      color: '#1a1a1a', transition: 'background 0.12s' }}>
+                    <span aria-hidden="true" style={{
+                      width: '6px', height: '6px', borderRadius: '50%', flexShrink: 0,
+                      background: item.dot,
+                    }} />
+                    <span style={{ flex: 1 }}>{item.label}</span>
+                    <span style={{ fontSize: '10px', color: '#999', fontWeight: 400 }}>{item.hint}</span>
+                  </button>
+                ))}
               </div>
             )}
           </div>
