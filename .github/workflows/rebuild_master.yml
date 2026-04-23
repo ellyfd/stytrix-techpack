@@ -81,7 +81,7 @@ jobs:
       # Writes data/recipes_master.json + data/iso_dictionary.json + data/l1_standard_38.json
       # --strict: exits 1 on any ingest/taxonomy violation → blocks commit
       - name: Step 3 — rebuild recipes_master
-        run: python scripts/build_recipes_master.py --strict
+        run: python star_schema/scripts/build_recipes_master.py --strict
 
       # ── Commit derived outputs ─────────────────────────────────────────────
       - name: Commit updated data
