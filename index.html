@@ -2822,6 +2822,175 @@ function OnboardingModal({ open, onDismiss }) {
   );
 }
 
+/* ManualsModal:權威靜態手冊登記表(read-only)
+   來源:網站架構圖.md 第 8 節。改動手冊前請先看「被誰消費」決定是否要重建下游資料。 */
+function ManualsModal({ open, onClose }) {
+  if (!open) return null;
+  const REPO = "https://github.com/ellyfd/stytrix-techpack/blob/main/";
+  const ghLink = (p) => REPO + p.split('/').map(encodeURIComponent).join('/');
+
+  const tierA = [
+    {
+      name: "L2_VLM_Decision_Tree_Prompts_v2.md",
+      path: "L2_VLM_Decision_Tree_Prompts_v2.md",
+      consumer: "scripts/build_l2_decision_trees.py",
+      output: "data/l2_decision_trees.json(AI Pass 2)",
+      refs: ["L2_Confusion_Pairs_Matrix.md", "CLAUDE.md"],
+    },
+    {
+      name: "L2_Visual_Differentiation_FullAnalysis_修正版.md",
+      path: "L2_Visual_Differentiation_FullAnalysis_修正版.md",
+      consumer: "scripts/build_l2_visual_guide.py",
+      output: "data/l2_visual_guide.json(AI Pass 1/2)",
+      refs: ["L2_VLM_Decision_Tree_Prompts_v2.md", "scripts/build_l2_visual_guide.py"],
+    },
+    {
+      name: "L1_部位定義_Sketch視覺指引.md",
+      path: "L1_部位定義_Sketch視覺指引.md",
+      consumer: "api/analyze.js(Pass 1 prompt)、star_schema/scripts/vlm_pipeline.py",
+      output: "VLM Pass 1 辨識能力",
+      refs: ["PATH2_通用模型_做工推薦Pipeline.md", "README.md (×2)", "L2_VLM_Decision_Tree_Prompts_v2.md"],
+      note: "另一份同 MD5 副本在 General Model_Path2_Construction Suggestion/",
+    },
+    {
+      name: "L2_Confusion_Pairs_Matrix.md",
+      path: "L2_Confusion_Pairs_Matrix.md",
+      consumer: "build_l2_decision_trees.py(49 組 hard-negative)",
+      output: "data/l2_decision_trees.json 的辨識精度",
+      refs: ["L2_VLM_Decision_Tree_Prompts_v2.md(第 4、7 行)", "CLAUDE.md"],
+    },
+  ];
+  const tierB = [
+    {
+      name: "pom_rules_v55_classification_logic.md",
+      path: "pom_rules_v55_classification_logic.md",
+      purpose: "v5.5.1 分類邏輯完整說明(Gender / Dept / GT / Fabric 四維度)",
+      refs: ["README.md", "pom_rules_pipeline_guide_v2.md", "scripts/reclassify_and_rebuild.py"],
+      note: "改分類邏輯必讀",
+    },
+    {
+      name: "pom_rules_pipeline_guide_v2.md",
+      path: "pom_rules_pipeline_guide_v2.md",
+      purpose: "線下規則產線五階段操作手冊(extract → rebuild → enforce → fix → push)",
+      refs: ["CLAUDE.md", "README.md", "scripts/reclassify_and_rebuild.py", "scripts/enforce_tier1.py"],
+      note: "2026-04-23 升為 primary(v1 已刪)",
+    },
+    {
+      name: "pom_translation_style_guide.md",
+      path: "pom_translation_style_guide.md",
+      purpose: "四客戶 10,035 筆翻譯的統一術語裁決(袖襱 / 門襟 / 克夫 / …)",
+      refs: ["README.md", "data/pom_dictionary.json(正本位置說明)", "admin 端點備注"],
+      note: "新增 POM 中文名前必查",
+    },
+    {
+      name: "五階層展開項目_20260402.xlsx",
+      path: "五階層展開項目_20260402.xlsx",
+      purpose: "L2–L5 層展開的原始規格底稿(9.5 MB)",
+      refs: ["pom_rules_pipeline_guide_v2.md (×2)", "CLAUDE.md"],
+      note: "無腳本直接讀;屬人工參考底稿",
+    },
+  ];
+
+  const rowWrap = { padding: "12px 14px", borderTop: `1px solid ${T.c.border3}`, display: "flex", flexDirection: "column", gap: "6px" };
+  const labelStyle = { fontSize: T.fs.xs, color: T.c.text3, fontWeight: 600, letterSpacing: "0.04em" };
+  const valStyle = { fontSize: T.fs.base, color: T.c.text2, lineHeight: 1.5 };
+  const tierHeader = (lv, color, desc) => (
+    <div style={{
+      padding: "10px 14px", background: T.c.bg2,
+      borderTop: `1px solid ${T.c.border}`, borderBottom: `1px solid ${T.c.border}`,
+      display: "flex", alignItems: "center", gap: "8px",
+    }}>
+      <span style={{
+        background: color, color: "#fff", fontSize: T.fs.xs, fontWeight: 700,
+        padding: "2px 8px", borderRadius: T.r.xs, letterSpacing: "0.05em",
+      }}>{lv} 級</span>
+      <span style={{ fontSize: T.fs.sm, color: T.c.text2 }}>{desc}</span>
+    </div>
+  );
+
+  return (
+    <div onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="manuals-title" style={{
+      position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      zIndex: 150, padding: "20px", animation: "fadeIn 0.15s ease",
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background: T.c.bg, borderRadius: T.r.xl,
+        maxWidth: "780px", width: "100%", maxHeight: "88vh",
+        boxShadow: T.shadow.md,
+        display: "flex", flexDirection: "column",
+      }}>
+        <div style={{
+          padding: "18px 20px 14px", borderBottom: `1px solid ${T.c.border}`,
+          display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px",
+        }}>
+          <div>
+            <div style={{ fontSize: T.fs.xs, color: T.c.green, fontWeight: 700, letterSpacing: "0.1em", marginBottom: "2px" }}>
+              STYTRIX · TECHPACK
+            </div>
+            <h2 id="manuals-title" style={{ margin: 0, fontSize: "17px", fontWeight: 700, color: T.c.text }}>
+              📚 權威靜態手冊登記表
+            </h2>
+            <div style={{ fontSize: T.fs.sm, color: T.c.text2, marginTop: "4px" }}>
+              改動任一手冊前,先確認「被誰消費」是否需同步重建下游資料。
+            </div>
+          </div>
+          <button onClick={onClose} aria-label="關閉登記表" style={{
+            background: "none", border: "none", fontSize: "22px", cursor: "pointer",
+            color: T.c.text3, padding: "0 4px", lineHeight: 1,
+          }}>×</button>
+        </div>
+
+        <div style={{ overflowY: "auto", flex: 1 }}>
+          {tierHeader("A", T.c.green, "腳本直接消費,輸出線上 runtime 資料")}
+          {tierA.map((m, i) => (
+            <div key={"a" + i} style={rowWrap}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                <a href={ghLink(m.path)} target="_blank" rel="noopener noreferrer"
+                  style={{ fontSize: T.fs.md, fontWeight: 700, color: T.c.green, textDecoration: "none" }}>
+                  {m.name} ↗
+                </a>
+              </div>
+              <div style={valStyle}><span style={labelStyle}>被誰消費　</span>{m.consumer}</div>
+              <div style={valStyle}><span style={labelStyle}>輸出　　　</span>{m.output}</div>
+              <div style={valStyle}><span style={labelStyle}>引用檔案　</span>{m.refs.join("、")}</div>
+              {m.note && <div style={{ ...valStyle, color: T.c.text3, fontSize: T.fs.sm }}>※ {m.note}</div>}
+            </div>
+          ))}
+          <div style={{
+            padding: "10px 14px", background: T.c.warningBg,
+            borderTop: `1px solid ${T.c.border3}`,
+            fontSize: T.fs.sm, color: "#92400e", lineHeight: 1.55,
+          }}>
+            ⚠ A 級手冊改動後,需重跑對應 <code>scripts/build_l2_*.py</code> 並 push 新的 <code>data/*.json</code>;Vercel function bundle 需重新部署才會生效(非熱更新)。
+          </div>
+
+          {tierHeader("B", T.c.accent, "跨模組規格文件,制定規則與術語")}
+          {tierB.map((m, i) => (
+            <div key={"b" + i} style={rowWrap}>
+              <a href={ghLink(m.path)} target="_blank" rel="noopener noreferrer"
+                style={{ fontSize: T.fs.md, fontWeight: 700, color: T.c.accent, textDecoration: "none" }}>
+                {m.name} ↗
+              </a>
+              <div style={valStyle}><span style={labelStyle}>作用　　　</span>{m.purpose}</div>
+              <div style={valStyle}><span style={labelStyle}>引用檔案　</span>{m.refs.join("、")}</div>
+              {m.note && <div style={{ ...valStyle, color: T.c.text3, fontSize: T.fs.sm }}>※ {m.note}</div>}
+            </div>
+          ))}
+        </div>
+
+        <div style={{
+          padding: "10px 14px", borderTop: `1px solid ${T.c.border}`,
+          fontSize: T.fs.xs, color: T.c.text3, textAlign: "center",
+        }}>
+          登記表正本:<a href={ghLink("網站架構圖.md")} target="_blank" rel="noopener noreferrer"
+            style={{ color: T.c.text2, textDecoration: "underline" }}>網站架構圖.md § 8</a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   /* ── 共用 filter state + 鎖 + localStorage persistence ── */
   const loadSaved = () => {
@@ -2886,6 +3055,7 @@ function App() {
   const [adminOpen, setAdminOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [patchOpen, setPatchOpen] = useState(false);
+  const [manualsOpen, setManualsOpen] = useState(false);
   const [mgmtMenuOpen, setMgmtMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [adminToken, setAdminToken] = useState(() => {
@@ -4131,6 +4301,13 @@ function App() {
                     fontSize: '13px', fontWeight: 600, background: 'none', border: 'none',
                     cursor: 'pointer', fontFamily: 'inherit', color: '#374151' }}>
                   📝 POM 翻譯表編輯
+                </button>
+                <div style={{ height: '1px', background: '#f0f0f0', margin: '0 8px' }} />
+                <button onClick={() => { setManualsOpen(true); setMgmtMenuOpen(false); }}
+                  style={{ display: 'block', width: '100%', padding: '10px 16px', textAlign: 'left',
+                    fontSize: '13px', fontWeight: 600, background: 'none', border: 'none',
+                    cursor: 'pointer', fontFamily: 'inherit', color: '#065f46' }}>
+                  📚 權威手冊登記表
                 </button>
               </div>
             )}
@@ -6533,6 +6710,7 @@ function App() {
         onPushDict={pushPomDict}
         token={adminToken}
       />
+      <ManualsModal open={manualsOpen} onClose={() => setManualsOpen(false)} />
       <OnboardingModal open={onboardingOpen} onDismiss={dismissOnboarding} />
 
       {undoToast && (
