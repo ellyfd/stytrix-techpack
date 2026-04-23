@@ -5589,13 +5589,13 @@ function App() {
                       <button onClick={runMeasurement} style={btnStyle({ variant: 'secondary', isMobile })}>Re-generate</button>
                     </div>
 
-                    {/* B.5 — 控制列:分成「單位/格式」與「身型變體」兩群,每群帶 label,群與群之間有 divider
-                        行動版改成單行橫向捲動(flexWrap:nowrap + overflowX:auto),避免吃兩行。 */}
+                    {/* B.5 — 控制列:分成「單位/格式」與「身型變體」兩群。
+                        裝得下就併一行,裝不下就 wrap 換行(不用橫向捲動 — 橫向捲邊緣會看不到後面的東西)。 */}
                     <div style={{
                       display: "flex", alignItems: "center",
                       gap: isMobile ? "6px" : "12px",
-                      flexWrap: isMobile ? "nowrap" : "wrap",
-                      overflowX: isMobile ? "auto" : "visible",
+                      flexWrap: "wrap",
+                      rowGap: isMobile ? "6px" : "8px",
                       marginTop: isMobile ? "6px" : "12px",
                       paddingTop: isMobile ? "6px" : "10px",
                       borderTop: "1px dashed #eee",
@@ -5618,8 +5618,8 @@ function App() {
                                ON:邊框深黑 + 淺灰底;OFF:灰邊 + 白底。
                                失效(無資料):虛化。*/
                             const neutralChipStyle = (on, enabled) => ({
-                              display: "flex", alignItems: "center", gap: "5px",
-                              padding: "6px 12px", borderRadius: T.r.sm,
+                              display: "flex", alignItems: "center", gap: "4px",
+                              padding: isMobile ? "5px 9px" : "6px 12px", borderRadius: T.r.sm,
                               cursor: enabled ? "pointer" : "not-allowed",
                               fontSize: T.fs.base, fontWeight: 600, userSelect: "none",
                               background: on && enabled ? T.c.bg2 : T.c.bg,
@@ -5669,13 +5669,14 @@ function App() {
                                     ? (opt.v === 'plus' ? "Plus size run(1X–4X,2X 為 BASE)" : "")
                                     : (opt.v === 'plus' ? "此 bucket 無 Plus size_range" : `此 GT × Gender 在 bodytype_variance 無 ${opt.label} 歷史資料`)}
                                   style={{
-                                    padding: "6px 14px", fontSize: T.fs.base, fontWeight: 700,
+                                    padding: isMobile ? "5px 10px" : "6px 14px", fontSize: T.fs.base, fontWeight: 700,
                                     border: "none", borderRight: i !== arr.length - 1 ? `1px solid ${T.c.border}` : "none",
                                     background: active && opt.enabled ? T.c.text : "transparent",
                                     color: !opt.enabled ? T.c.text4 : (active ? T.c.bg : T.c.text2),
                                     cursor: opt.enabled ? "pointer" : "not-allowed",
                                     opacity: opt.enabled ? 1 : 0.5,
                                     fontFamily: "inherit", transition: "all 0.15s",
+                                    whiteSpace: "nowrap",
                                   }}>{opt.label}</button>
                               );
                             })}
@@ -5683,10 +5684,12 @@ function App() {
                         )
                       )}
 
-                      {hasPlusU && (
+                      {/* PLUS checkbox:只在基碼檢視顯示(開啟加出 Base(2X) 欄位)。
+                          全碼的 Plus 已合到身型 radio(Regular/Petite/Tall/Plus),不再重複顯示。 */}
+                      {sizeView === "base" && hasPlusU && (
                         <label style={{
-                          display: "flex", alignItems: "center", gap: "5px",
-                          padding: "6px 12px", borderRadius: T.r.sm,
+                          display: "flex", alignItems: "center", gap: "4px",
+                          padding: isMobile ? "5px 9px" : "6px 12px", borderRadius: T.r.sm,
                           cursor: "pointer", fontSize: T.fs.base, fontWeight: 600, userSelect: "none",
                           background: showPlus ? T.c.bg2 : T.c.bg,
                           border: `1px solid ${showPlus ? T.c.text : T.c.border}`,
