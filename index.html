@@ -2830,10 +2830,10 @@ function ManualsModal({ open, onClose }) {
     {
       kind: 'rule',
       title: 'POM 翻譯統一字典',
-      file: 'pom_translation_style_guide.md',
-      what: '四家客戶(ONY / ATH / BNN / GAP)各有一套翻法,系統採哪家的裁決。例如 Armhole 用「袖襱」不用「袖窿」、Rise 用「襠」不用「檔」、Cuff 用「克夫」不用「袖口羅紋」。基礎共 10,035 筆翻譯。',
-      who: '打版室 / POM 建檔人員 / 翻譯者',
-      impact: '新增 POM 中文名之前先查這份,避免四家風格混進系統。',
+      file: 'techpack-translation-style-guide.md',
+      what: '四家客戶(ONY / ATH / BNN / GAP)各有一套翻法,系統採哪家的裁決。例如 Armhole 用「袖襱」不用「袖窿」、Rise 用「襠」不用「檔」、Cuff 用「克夫」不用「袖口羅紋」。基礎共 10,035 筆翻譯。這份現在會被 api/analyze.js 在啟動時讀入 system prompt,所以 AI 回覆的中文都會依這份風格。',
+      who: 'api/analyze.js 在 runtime 吃 · 打版室 / POM 建檔人員 / 翻譯者',
+      impact: '新增 POM 中文名之前先查這份,避免四家風格混進系統;2026-04-23 起此檔也影響 AI 回覆用字。',
     },
     {
       kind: 'rule',

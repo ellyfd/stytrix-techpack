@@ -124,7 +124,7 @@ python star_schema/scripts/extract_unified.py \
 ```bash
 python star_schema/scripts/vlm_pipeline.py \
   --map-iso \
-  --out data/ingest/vlm_v1 \
+  --out data/ingest/vlm \
   --callout-dir data/ingest/pdf/callout_images \
   --allow-empty
 ```
