@@ -1913,55 +1913,129 @@ function SettingsModal({ open, onClose, token, onSaveToken }) {
   );
 }
 
-/* UploadModal:上傳 Techpack PDF / PPTX → /api/ingest_upload → GitHub Actions rebuild */
+/* UploadModal:上傳 Techpack PDF / PPTX → GitHub → 追蹤 CI pipeline 每步驟狀態 */
+const CI_STEP_LABELS = {
+  'Step 1 — extract raw text & callout images': '1｜拆解文字 & callout 圖片',
+  'Step 2a — unified extraction':               '2a｜統一萃取 (PPTX)',
+  'Step 2b — VLM callout extraction':           '2b｜VLM 分析 callout (PDF)',
+  'Step 3 — rebuild recipes_master':            '3｜重建 recipes_master',
+  'Commit updated data':                             '提交資料',
+};
+
 function UploadModal({ open, onClose, token }) {
   const [uploadFile, setUploadFile] = React.useState(null);
-  const [uploadStatus, setUploadStatus] = React.useState({ status: 'idle', msg: '' });
+  const [phase, setPhase]           = React.useState('idle'); // idle|uploading|ci|done|error
+  const [statusMsg, setStatusMsg]   = React.useState('');
+  const [ciSteps, setCiSteps]       = React.useState([]);
+  const [elapsed, setElapsed]       = React.useState(0);
+  const cancelRef = React.useRef(false);
+  const timerRef  = React.useRef(null);
 
   React.useEffect(() => {
-    if (open) { setUploadFile(null); setUploadStatus({ status: 'idle', msg: '' }); }
+    if (open) {
+      cancelRef.current = false;
+      setUploadFile(null); setPhase('idle'); setStatusMsg(''); setCiSteps([]); setElapsed(0);
+    } else {
+      cancelRef.current = true;
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
   }, [open]);
+
+  React.useEffect(() => {
+    if (phase === 'ci') {
+      timerRef.current = setInterval(() => setElapsed(s => s + 1), 1000);
+    } else {
+      if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+    }
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [phase]);
+
+  const pollCi = async (sha, pat) => {
+    const OWNER = 'ellyfd', REPO = 'stytrix-techpack';
+    const ghH = { Authorization: `token ${pat}`, Accept: 'application/vnd.github.v3+json' };
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+    // Wait up to 45s for the run to appear
+    let runId = null;
+    for (let i = 0; i < 15 && !cancelRef.current; i++) {
+      await sleep(3000);
+      try {
+        const r = await fetch(
+          `https://api.github.com/repos/${OWNER}/${REPO}/actions/runs?head_sha=${sha}&per_page=1`,
+          { headers: ghH });
+        if (r.ok) { const d = await r.json(); if (d.workflow_runs?.length) { runId = d.workflow_runs[0].id; break; } }
+      } catch {}
+    }
+    if (!runId) {
+      if (!cancelRef.current) { setPhase('error'); setStatusMsg(prev => prev + '\n⚠ CI 未啟動（超過 45 秒）'); }
+      return;
+    }
+
+    // Poll until completed (max 15 min)
+    for (let tick = 0; tick < 180 && !cancelRef.current; tick++) {
+      await sleep(5000);
+      if (cancelRef.current) return;
+      try {
+        const [runR, jobsR] = await Promise.all([
+          fetch(`https://api.github.com/repos/${OWNER}/${REPO}/actions/runs/${runId}`, { headers: ghH }),
+          fetch(`https://api.github.com/repos/${OWNER}/${REPO}/actions/runs/${runId}/jobs`, { headers: ghH }),
+        ]);
+        if (!runR.ok) continue;
+        const run = await runR.json();
+
+        if (jobsR.ok) {
+          const jobsData = await jobsR.json();
+          const job = jobsData.jobs?.find(j => j.name === 'rebuild') || jobsData.jobs?.[0];
+          if (job?.steps) {
+            setCiSteps(job.steps
+              .filter(s => CI_STEP_LABELS[s.name])
+              .map(s => ({ label: CI_STEP_LABELS[s.name], status: s.status, conclusion: s.conclusion })));
+          }
+        }
+
+        if (run.status === 'completed') {
+          setPhase(run.conclusion === 'success' ? 'done' : 'error');
+          setStatusMsg(prev =>
+            run.conclusion === 'success'
+              ? prev + '\n✓ Pipeline 全部完成！'
+              : prev + `\n❌ Pipeline 失敗 (${run.conclusion})，請看下方步驟`);
+          return;
+        }
+      } catch {}
+    }
+    if (!cancelRef.current) { setPhase('error'); setStatusMsg(prev => prev + '\n⚠ 追蹤逾時（15 分鐘）'); }
+  };
 
   const handleUpload = async () => {
     if (!uploadFile) return;
-    if (!token) { setUploadStatus({ status: 'error', msg: '請先至「⚙ 設定」填入 Admin Token' }); return; }
-    setUploadStatus({ status: 'uploading', msg: '準備上傳...' });
+    if (!token) { setPhase('error'); setStatusMsg('請先至「⚙ 設定」填入 Admin Token'); return; }
+    setPhase('uploading'); setStatusMsg('準備上傳...');
     try {
-      // Step 1: get GitHub PAT from server (bypasses Vercel 4.5MB body limit)
-      const tokResp = await fetch('/api/ingest_token', {
-        method: 'POST',
-        headers: { 'x-admin-token': token },
-      });
+      const tokResp = await fetch('/api/ingest_token', { method: 'POST', headers: { 'x-admin-token': token } });
       if (!tokResp.ok) {
         const t = await tokResp.text();
         throw new Error(tokResp.status === 401 ? 'Admin Token 錯誤' : `Token 端點錯誤: ${t}`);
       }
       const { github_pat } = await tokResp.json();
 
-      // Step 2: encode file
-      setUploadStatus({ status: 'uploading', msg: '編碼中...' });
+      setStatusMsg('編碼中...');
       const buf = await uploadFile.arrayBuffer();
       const bytes = new Uint8Array(buf);
       let binary = '';
-      for (let i = 0; i < bytes.length; i += 8192) {
+      for (let i = 0; i < bytes.length; i += 8192)
         binary += String.fromCharCode(...bytes.subarray(i, Math.min(i + 8192, bytes.length)));
-      }
       const b64 = btoa(binary);
 
-      // Step 3: push directly to GitHub Contents API (no Vercel size limit)
       const OWNER = 'ellyfd', REPO = 'stytrix-techpack', BRANCH = 'main';
       const safeName = uploadFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
       const filePath = `data/ingest/uploads/${safeName}`;
-      const apiUrl   = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${filePath}`;
+      const apiUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${filePath}`;
       const ghHeaders = {
-        Authorization: `token ${github_pat}`,
-        Accept: 'application/vnd.github.v3+json',
-        'Content-Type': 'application/json',
-        'User-Agent': 'stytrix-ingest-upload/1.0',
+        Authorization: `token ${github_pat}`, Accept: 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json', 'User-Agent': 'stytrix-ingest-upload/1.0',
       };
 
-      setUploadStatus({ status: 'uploading', msg: '推送至 GitHub...' });
-      // Check existing SHA
+      setStatusMsg('推送至 GitHub...');
       let sha;
       const getResp = await fetch(apiUrl, { headers: ghHeaders });
       if (getResp.ok) { const ex = await getResp.json(); sha = ex.sha; }
@@ -1970,15 +2044,17 @@ function UploadModal({ open, onClose, token }) {
       if (sha) putBody.sha = sha;
 
       const putResp = await fetch(apiUrl, { method: 'PUT', headers: ghHeaders, body: JSON.stringify(putBody) });
-      if (!putResp.ok) {
-        const errText = await putResp.text();
-        throw new Error(`GitHub API ${putResp.status}: ${errText.slice(0, 120)}`);
-      }
+      if (!putResp.ok) throw new Error(`GitHub API ${putResp.status}: ${(await putResp.text()).slice(0, 120)}`);
+
       const result = await putResp.json();
-      setUploadStatus({ status: 'ok', msg: `✓ 已推送 ${filePath}  — Pipeline 約 2 分鐘後自動更新` });
+      const commitSha = result.commit?.sha;
       setUploadFile(null);
+      setPhase('ci'); setElapsed(0); setCiSteps([]);
+      setStatusMsg(`✓ 已推送 ${filePath}`);
+      if (commitSha) pollCi(commitSha, github_pat);
+      else setStatusMsg(`✓ 已推送 ${filePath} — 無法追蹤 CI (無 commit SHA)`);
     } catch (e) {
-      setUploadStatus({ status: 'error', msg: `錯誤: ${e.message}` });
+      setPhase('error'); setStatusMsg(`錯誤: ${e.message}`);
     }
   };
 
@@ -2003,23 +2079,56 @@ function UploadModal({ open, onClose, token }) {
           </div>
         )}
 
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '16px' }}>
-          <label style={{ padding: '7px 14px', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
-            border: '1px solid #86efac', background: '#fff', color: '#15803d', borderRadius: '6px' }}>
-            選擇檔案
-            <input type="file" accept=".pdf,.pptx" style={{ display: 'none' }}
-              onChange={e => { setUploadFile(e.target.files?.[0] || null); setUploadStatus({ status: 'idle', msg: '' }); e.target.value = ''; }} />
-          </label>
-          {uploadFile && <span style={{ fontSize: '13px', color: '#374151', maxWidth: '260px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{uploadFile.name}</span>}
-        </div>
+        {phase === 'idle' || phase === 'uploading' ? (
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '16px' }}>
+            <label style={{ padding: '7px 14px', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+              border: '1px solid #86efac', background: '#fff', color: '#15803d', borderRadius: '6px' }}>
+              選擇檔案
+              <input type="file" accept=".pdf,.pptx" style={{ display: 'none' }}
+                onChange={e => { setUploadFile(e.target.files?.[0] || null); setPhase('idle'); setStatusMsg(''); e.target.value = ''; }} />
+            </label>
+            {uploadFile && <span style={{ fontSize: '13px', color: '#374151', maxWidth: '260px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{uploadFile.name}</span>}
+          </div>
+        ) : null}
 
-        {uploadStatus.msg && (
-          <div style={{ marginBottom: '14px', padding: '8px 12px', borderRadius: '6px', fontSize: '12px',
-            background: uploadStatus.status === 'ok' ? '#f0fdf4' : uploadStatus.status === 'error' ? '#fef2f2' : '#f9fafb',
-            color: uploadStatus.status === 'ok' ? '#166534' : uploadStatus.status === 'error' ? '#dc2626' : '#374151',
-            border: `1px solid ${uploadStatus.status === 'ok' ? '#bbf7d0' : uploadStatus.status === 'error' ? '#fecaca' : '#e5e5e5'}`,
+        {statusMsg && (
+          <div style={{ marginBottom: '10px', padding: '8px 12px', borderRadius: '6px', fontSize: '12px',
+            whiteSpace: 'pre-wrap',
+            background: phase === 'done' ? '#f0fdf4' : phase === 'error' ? '#fef2f2' : '#f9fafb',
+            color: phase === 'done' ? '#166534' : phase === 'error' ? '#dc2626' : '#374151',
+            border: `1px solid ${phase === 'done' ? '#bbf7d0' : phase === 'error' ? '#fecaca' : '#e5e5e5'}`,
           }}>
-            {uploadStatus.msg}
+            {statusMsg}
+          </div>
+        )}
+
+        {(phase === 'ci' || phase === 'done' || phase === 'error') && (
+          <div style={{ marginBottom: '14px' }}>
+            <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '6px' }}>
+              CI Pipeline{phase === 'ci' ? ` — ${Math.floor(elapsed/60)}:${String(elapsed%60).padStart(2,'0')} 等待中...` : ''}
+            </div>
+            {ciSteps.length === 0 && phase === 'ci' && (
+              <div style={{ fontSize: '12px', color: '#9ca3af', padding: '6px 0' }}>等待 CI 啟動...</div>
+            )}
+            {ciSteps.map((s, i) => {
+              const icon = s.status === 'completed'
+                ? s.conclusion === 'success' ? '✓' : s.conclusion === 'skipped' ? '⏭' : '❌'
+                : s.status === 'in_progress' ? '⚙' : '○';
+              const clr = s.conclusion === 'failure' ? '#dc2626' : s.conclusion === 'skipped' ? '#9ca3af' : s.status === 'in_progress' ? '#2563eb' : s.conclusion === 'success' ? '#16a34a' : '#6b7280';
+              return (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '5px 10px',
+                  marginBottom: '2px', borderRadius: '5px',
+                  background: s.conclusion === 'failure' ? '#fef2f2' : s.status === 'in_progress' ? '#eff6ff' : '#f9fafb',
+                  border: `1px solid ${s.conclusion === 'failure' ? '#fecaca' : s.status === 'in_progress' ? '#bfdbfe' : '#f3f4f6'}` }}>
+                  <span style={{ fontSize: '13px', color: clr, width: '14px', flexShrink: 0 }}>{icon}</span>
+                  <span style={{ fontSize: '12px', flex: 1, color: s.conclusion === 'failure' ? '#dc2626' : '#374151', fontWeight: s.conclusion === 'failure' ? 600 : 400 }}>
+                    {s.label}
+                  </span>
+                  {s.conclusion === 'skipped' && <span style={{ fontSize: '11px', color: '#9ca3af' }}>已跳過</span>}
+                  {s.conclusion === 'failure' && <span style={{ fontSize: '11px', color: '#dc2626', fontWeight: 700 }}>失敗</span>}
+                </div>
+              );
+            })}
           </div>
         )}
 
@@ -2028,12 +2137,22 @@ function UploadModal({ open, onClose, token }) {
             style={{ padding: '8px 16px', fontSize: '13px', border: '1px solid #d1d5db', background: '#f9fafb', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit' }}>
             關閉
           </button>
-          <button onClick={handleUpload} disabled={!uploadFile || uploadStatus.status === 'uploading'}
-            style={{ padding: '8px 20px', fontSize: '13px', fontWeight: 600, cursor: uploadFile ? 'pointer' : 'not-allowed',
-              border: 'none', background: uploadFile ? '#16a34a' : '#d1fae5', color: uploadFile ? '#fff' : '#9ca3af',
-              borderRadius: '6px', fontFamily: 'inherit' }}>
-            {uploadStatus.status === 'uploading' ? '上傳中...' : '上傳'}
-          </button>
+          {(phase === 'idle' || phase === 'uploading') && (
+            <button onClick={handleUpload} disabled={!uploadFile || phase === 'uploading'}
+              style={{ padding: '8px 20px', fontSize: '13px', fontWeight: 600, cursor: uploadFile && phase !== 'uploading' ? 'pointer' : 'not-allowed',
+                border: 'none', background: uploadFile && phase !== 'uploading' ? '#16a34a' : '#d1fae5',
+                color: uploadFile && phase !== 'uploading' ? '#fff' : '#9ca3af',
+                borderRadius: '6px', fontFamily: 'inherit' }}>
+              {phase === 'uploading' ? '上傳中...' : '上傳'}
+            </button>
+          )}
+          {(phase === 'done' || phase === 'error') && (
+            <button onClick={() => { setPhase('idle'); setStatusMsg(''); setCiSteps([]); setElapsed(0); }}
+              style={{ padding: '8px 20px', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+                border: 'none', background: '#6366f1', color: '#fff', borderRadius: '6px', fontFamily: 'inherit' }}>
+              再上傳
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -2093,19 +2212,38 @@ function PatchUploadModal({ open, onClose, token }) {
         'User-Agent': 'stytrix-ingest-upload/1.0',
       };
 
-      setStatus({ status: 'uploading', msg: '下載現有版本合併...' });
-      let sha, finalText = text;
+      setStatus({ status: 'uploading', msg: '下載現有版本...' });
+      let sha, finalText = text, mergeStats = null;
       const getResp = await fetch(apiUrl, { headers: ghHeaders });
       if (getResp.ok) {
         const ex = await getResp.json();
         sha = ex.sha;
-        if (ex.content) {
-          const existingJson = JSON.parse(atob(ex.content.replace(/\n/g, '')));
-          const prevCount = existingJson.entries?.length || 0;
+
+        // GitHub Contents API only returns content for files ≤1MB.
+        // For larger files, fall back to the Git Blob API using the blob SHA.
+        let rawB64 = ex.content?.replace(/\n/g, '');
+        if (!rawB64 && ex.sha) {
+          setStatus({ status: 'uploading', msg: '檔案較大，改用 Blob API 下載...' });
+          const blobR = await fetch(
+            `https://api.github.com/repos/${OWNER}/${REPO}/git/blobs/${ex.sha}`,
+            { headers: ghHeaders });
+          if (blobR.ok) { const b = await blobR.json(); rawB64 = b.content?.replace(/\n/g, ''); }
+        }
+
+        if (rawB64) {
+          const existingJson = JSON.parse(atob(rawB64));
+          const makeKey = e => [e.aggregation_level||'', e.key?.gender||'', e.key?.dept||'',
+                                 e.key?.gt||'', e.key?.it||'', e.key?.l1||''].join('|');
+          const existingKeys = new Set((existingJson.entries||[]).map(makeKey));
+          const patchKeys    = new Set(parsed.entries.map(makeKey));
+          const newCount     = [...patchKeys].filter(k => !existingKeys.has(k)).length;
+          const updCount     = [...patchKeys].filter(k =>  existingKeys.has(k)).length;
           const merged = mergeRecipesMaster(existingJson, parsed);
-          const added = merged.entries.length - prevCount;
           finalText = JSON.stringify(merged, null, 2);
-          setStatus({ status: 'uploading', msg: `合併完成(原 ${prevCount} + 新增 ${added})，推送中...` });
+          mergeStats = { prev: existingJson.entries?.length || 0, newEntries: newCount, updated: updCount, total: merged.entries.length };
+          setStatus({ status: 'uploading', msg: `合併：原 ${mergeStats.prev} 筆，新增 ${newCount}、更新 ${updCount}，推送中...` });
+        } else {
+          setStatus({ status: 'uploading', msg: '⚠ 無法下載現有版本，以新版覆寫，推送中...' });
         }
       }
 
@@ -2116,7 +2254,10 @@ function PatchUploadModal({ open, onClose, token }) {
       const putResp = await fetch(apiUrl, { method: 'PUT', headers: ghHeaders, body: JSON.stringify(putBody) });
       if (!putResp.ok) throw new Error(`GitHub API ${putResp.status}: ${(await putResp.text()).slice(0, 120)}`);
 
-      setStatus({ status: 'ok', msg: `✓ 合併推送完成 — Vercel 重新部署後生效` });
+      const okMsg = mergeStats
+        ? `✓ 合併完成：原 ${mergeStats.prev} 筆，新增 ${mergeStats.newEntries}、更新 ${mergeStats.updated} → 合計 ${mergeStats.total} 筆\nVercel 約 1~2 分鐘後自動重新部署生效。`
+        : `✓ 推送完成（覆寫）— Vercel 約 1~2 分鐘後自動重新部署生效。`;
+      setStatus({ status: 'ok', msg: okMsg });
       setPatchFile(null);
     } catch (e) {
       setStatus({ status: 'error', msg: `錯誤: ${e.message}` });
@@ -2156,6 +2297,7 @@ function PatchUploadModal({ open, onClose, token }) {
 
         {status.msg && (
           <div style={{ marginBottom: '14px', padding: '8px 12px', borderRadius: '6px', fontSize: '12px',
+            whiteSpace: 'pre-wrap',
             background: status.status === 'ok' ? '#f0fdf4' : status.status === 'error' ? '#fef2f2' : '#f9fafb',
             color: status.status === 'ok' ? '#166534' : status.status === 'error' ? '#dc2626' : '#374151',
             border: `1px solid ${status.status === 'ok' ? '#bbf7d0' : status.status === 'error' ? '#fecaca' : '#e5e5e5'}` }}>
