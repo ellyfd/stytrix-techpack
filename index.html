@@ -313,9 +313,15 @@ function findBucketEntry(master, { genderN, deptN, gtN, itN, l1Code }) {
   // candidate buckets: those whose resolved (gender, dept, gt) cover the query
   const candidates = [];
   for (const [bname, info] of Object.entries(bucketsResolved)) {
-    const gOk = !genderN || (info.gender || []).includes(genderN);
-    const dOk = !deptN || (info.dept || []).includes(deptN);
-    const tOk = !gtN || (info.gt || []).includes(gtN);
+    // Empty array = wildcard (for auto-derived buckets where a dimension couldn't
+    // be inferred from the name). If bucket specifies values for a dimension, the
+    // query's value must be in that list; if not specified (length 0), skip check.
+    const gArr = info.gender || [];
+    const dArr = info.dept || [];
+    const tArr = info.gt || [];
+    const gOk = !genderN || gArr.length === 0 || gArr.includes(genderN);
+    const dOk = !deptN || dArr.length === 0 || dArr.includes(deptN);
+    const tOk = !gtN || tArr.length === 0 || tArr.includes(gtN);
     if (gOk && dOk && tOk) candidates.push(bname);
   }
   if (!candidates.length) return null;
