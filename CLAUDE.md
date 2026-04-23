@@ -28,7 +28,7 @@
 | `General Model_Path2_Construction Suggestion/` | **通用模型(不分客戶/品牌)的做工推薦資料源**。ISO 工藝代號查表、knit/woven 做工紀錄、PATH2 pipeline 文件 | `iso_lookup_factory_v4.3.json`、`knit_pptx_construction_context.json`、`PATH2_通用模型_做工推薦Pipeline.md` | 前端 runtime fetch 的檔(那該放 `data/`) |
 | `scripts/` | **資料產線腳本**。像後勤的「資料重建 SOP」,在內部環境跑,重建上面幾個資料夾的內容 | `reclassify_and_rebuild.py`、`build_l2_visual_guide.py` | 一次性 ad-hoc 腳本 |
 | `api/` | **線上系統後端 endpoint**。目前只有 `analyze.js`,接 Claude Vision 做 AI 辨識 | `api/analyze.js` | 靜態資料 |
-| repo 根目錄 `.md` | **跨模組共用規格文件**。像打版室跟工段部都要翻的中央規格手冊 | `L1_部位定義_Sketch視覺指引.md`、`L2_VLM_Decision_Tree_Prompts_v2.md`、`pom_rules_v55_classification_logic.md`、`pom_rules_pipeline_guide.md` | 只有子系統自己用的文件 |
+| repo 根目錄 `.md` | **跨模組共用規格文件**。像打版室跟工段部都要翻的中央規格手冊 | `L1_部位定義_Sketch視覺指引.md`、`L2_VLM_Decision_Tree_Prompts_v2.md`、`pom_rules_v55_classification_logic.md`、`pom_rules_pipeline_guide_v2.md` | 只有子系統自己用的文件 |
 
 ### 新資料進來時,該放哪?
 
@@ -148,7 +148,6 @@ git commit -m "chore: 移除孤兒 $CANDIDATE (已通過 grep gate 驗證)"
 | 候選 | 現況 | SOP 預期結果 |
 |------|------|--------------|
 | `recipes/`(72 檔) | 根目錄 namespace,PATH2 實際會用 `construction_recipes/`(不同名),無人引用 | 應通過 gate → 可丟 |
-| `pom_rules_pipeline_guide_v2.md` | 0 外部引用,但使用者指定暫留,等 v2 成主流後更新 README 引用再處理 | 看 README 是否已切到 v2 |
 | `iso_lookup_factory_v4.json` vs `v4.3.json` | v4 仍作 fallback 被 `index.html` 引用,非孤兒;只是舊版 | 仍會過 gate = 不可丟,維持 fallback |
 
 **不會是清理候選的(避免誤判)**:
