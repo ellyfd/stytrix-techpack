@@ -205,10 +205,21 @@ class GateReport:
         if total_iso:
             lines.append(f"      top values: {self._top(self.a_iso_rejected)}")
 
+        # Split catch-all rules by iso value shape — numeric (real ISO) vs
+        # categorical placeholder (BINDING / BONDED / LASER_CUT / RAW_EDGE;
+        # see vlm_pipeline.py:666 — these mean "this method has no single
+        # canonical ISO, context-dependent").
+        CATEGORICAL = {"BINDING", "BONDED", "LASER_CUT", "RAW_EDGE"}
+        numeric = Counter({k: v for k, v in self.a_default_rules.items()
+                           if k not in CATEGORICAL})
+        categorical = Counter({k: v for k, v in self.a_default_rules.items()
+                               if k in CATEGORICAL})
         total_def = sum(self.a_default_rules.values())
-        lines.append(f"  ◯ _DEFAULT catch-all 規則: {total_def} 筆  (legit catch-all 「全款 body seam 為 ISO X」)")
-        if total_def:
-            lines.append(f"      ISO 分布: {self._top(self.a_default_rules)}")
+        lines.append(f"  ◯ _DEFAULT catch-all 規則: {total_def} 筆  (legit catch-all「全款 body seam 為 X」)")
+        if sum(numeric.values()):
+            lines.append(f"      ISO 數字分布:   {self._top(numeric)}")
+        if sum(categorical.values()):
+            lines.append(f"      categorical:   {self._top(categorical)}  (非 ISO 數字,表示該工法 context-dependent)")
 
         lines.append("")
         lines.append(f"  總計:  A-tier  {self.a_total()} 筆  ← 未來 --strict-all 會擋,此版僅記錄")
