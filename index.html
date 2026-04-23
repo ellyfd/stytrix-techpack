@@ -4987,32 +4987,21 @@ function App() {
                       );
                     })()}
 
-                    {/* B.6 — 基碼 table 工具列:★/⚡ 兩張 legend chip 收成單一 ⓘ tooltip,減少視覺干擾。
-                        每列 ★/⚡ icon 本身已有 title,仍可 hover 看詳細說明。 */}
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: isMobile ? "2px" : "4px", marginBottom: isMobile ? "4px" : "8px", flexWrap: "wrap" }}>
+                    {/* 工具列:★/⚡ 圖示說明改為內嵌小字(always visible,無需 hover/click);
+                        每列 ★/⚡ icon 本身仍有 title tooltip 可看更詳細說明。 */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: isMobile ? "2px" : "4px", marginBottom: isMobile ? "4px" : "8px", flexWrap: "wrap" }}>
                       {(() => {
                         const hasTier1 = tier1Set.size > 0;
                         const hasInflectionAny = inflectionCombo && Object.keys(inflectionCombo).some(c => c !== '_meta' && inflectionCombo[c]?.inflection);
                         if (!hasTier1 && !hasInflectionAny) return null;
-                        const parts = [];
-                        if (hasTier1) parts.push("★ Foundational:歷史不論 rate 都強制納入");
-                        if (hasInflectionAny) parts.push("⚡ 跳碼不等距:改 M 不會讓所有 size 等量平移");
                         return (
-                          <span
-                            title={parts.join("  ·  ")}
-                            aria-label="圖示說明"
-                            style={{
-                              display: "inline-flex", alignItems: "center", gap: "4px",
-                              fontSize: T.fs.sm,
-                              color: T.c.text3, background: T.c.bg2,
-                              padding: "2px 8px", borderRadius: T.r.sm,
-                              border: `1px solid ${T.c.border}`,
-                              fontWeight: 500, cursor: "help",
-                              userSelect: "none",
-                            }}>
-                            <span aria-hidden="true">ⓘ</span>
-                            <span>圖示說明</span>
-                          </span>
+                          <div style={{
+                            display: "inline-flex", alignItems: "center", gap: "10px",
+                            fontSize: T.fs.sm, color: T.c.text3, userSelect: "none",
+                          }}>
+                            {hasTier1 && <span><span style={{ color: T.c.text2, fontWeight: 700 }}>★</span> Foundational</span>}
+                            {hasInflectionAny && <span><span style={{ color: T.c.text2, fontWeight: 700 }}>⚡</span> 跳碼不等距</span>}
+                          </div>
                         );
                       })()}
                       <button onClick={() => setAddPomOpen(true)}
@@ -5215,7 +5204,7 @@ function App() {
                                         )}
                                       </td>
                                       <td style={{ padding: isMobile ? "5px 4px" : "9px 12px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", fontSize: T.fs.md, color: T.c.text2, fontWeight: 600, whiteSpace: "nowrap" }}>{tolStr(m)}</td>
-                                      <td style={{ padding: isMobile ? "4px 6px" : "8px 16px", textAlign: "right", background: "#ecfdf5" }}>
+                                      <td style={{ padding: isMobile ? "4px 6px" : "8px 16px", textAlign: "right" }}>
                                         <input type="text" value={displayVal}
                                           onChange={(e) => setBaseOverrides(prev => ({ ...prev, [code]: e.target.value }))}
                                           onBlur={() => {
@@ -5249,7 +5238,7 @@ function App() {
                                         const invalid2 = ov2 !== "" && parseVal(ov2) == null;
                                         const display2 = ov2 !== "" ? ov2 : (base2X != null ? fmtDisp(base2X) : "");
                                         return (
-                                          <td style={{ padding: isMobile ? "4px 6px" : "8px 16px", textAlign: "right", background: "#fdf2f8" }}>
+                                          <td style={{ padding: isMobile ? "4px 6px" : "8px 16px", textAlign: "right" }}>
                                             <input type="text" value={display2}
                                               onChange={(e) => setPlusBaseOverrides(prev => ({ ...prev, [code]: e.target.value }))}
                                               onBlur={() => {
@@ -5808,7 +5797,7 @@ function App() {
                                   {visibleSizes.map(s => {
                                     const isBase = (s === "M") || (isPlus(s) && s === plusAnchor);
                                     return (
-                                      <th key={s} style={{ padding: isMobile ? "6px 6px" : "10px 8px", textAlign: "center", fontWeight: 700, fontSize: T.fs.base, color: isBase ? T.c.green : T.c.text2, fontFamily: "'JetBrains Mono',monospace", background: isBase ? T.c.greenBg : "transparent", whiteSpace: "nowrap" }}>{s}{isBase && <div style={{ fontSize: T.fs.xs, color: T.c.green, fontWeight: 500 }}>BASE{!isMobile && " · 可編輯"}</div>}</th>
+                                      <th key={s} style={{ padding: isMobile ? "6px 6px" : "10px 8px", textAlign: "center", fontWeight: 700, fontSize: T.fs.base, color: isBase ? T.c.green : T.c.text2, fontFamily: "'JetBrains Mono',monospace", whiteSpace: "nowrap" }}>{s}{isBase && <div style={{ fontSize: T.fs.xs, color: T.c.green, fontWeight: 500 }}>BASE</div>}</th>
                                     );
                                   })}
                                 </tr>
@@ -5929,24 +5918,11 @@ function App() {
                                     const ov = storeMap[code] ?? "";
                                     const invalid = ov !== "" && parseVal(ov) == null;
                                     const displayVal = ov !== "" ? ov : (rawBase != null ? fmtDisp(rawBase) : "");
-                                    // Missy M 欄位底色依 bodytype 顯示(紫/藍/綠)
-                                    const cellBg = isMissyBase
-                                      ? (gradingBodytype === 'petite' ? "#faf5ff"
-                                        : gradingBodytype === 'tall' ? "#eff6ff"
-                                        : "#ecfdf5")
-                                      : "#fdf2f8"; // Plus 2X
-                                    const borderColor = isMissyBase
-                                      ? (gradingBodytype === 'petite' ? "#c4b5fd"
-                                        : gradingBodytype === 'tall' ? "#93c5fd"
-                                        : "#a7f3d0")
-                                      : "#fbcfe8";
-                                    const fgColor = isMissyBase
-                                      ? (gradingBodytype === 'petite' ? "#7e22ce"
-                                        : gradingBodytype === 'tall' ? "#1d4ed8"
-                                        : "#065f46")
-                                      : "#be185d";
+                                    // 不再用大色塊底色;只透過 input border/color 區分身型,避免整欄色塊
+                                    const borderColor = T.c.green;   // 綠色 border = 可編 BASE
+                                    const fgColor = T.c.green;
                                     return (
-                                      <td key={s} style={{ padding: isMobile ? "4px 6px" : "8px 14px", textAlign: "center", background: cellBg }}>
+                                      <td key={s} style={{ padding: isMobile ? "4px 6px" : "8px 14px", textAlign: "center" }}>
                                         <input type="text" value={displayVal}
                                           onChange={(e) => setStore(prev => ({ ...prev, [code]: e.target.value }))}
                                           onBlur={() => {
