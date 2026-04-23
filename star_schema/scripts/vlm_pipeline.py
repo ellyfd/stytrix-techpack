@@ -18,7 +18,7 @@ Usage (future API mode):
     python vlm_pipeline.py --api-key=xxx   # Full auto with Claude Vision API
 """
 
-import os, re, json, sys
+import os, re, json, sys, base64
 from pathlib import Path
 from collections import defaultdict
 
@@ -326,6 +326,185 @@ ZONE_TO_L1 = {
     '肩帶': 'ST',
     '拇指洞': 'TH',
 }
+
+
+# ============================================================
+# PART 1b: DESIGN METADATA + BUCKET + CLAUDE VISION API
+# ============================================================
+
+# System prompt for Claude Vision analysis of callout pages
+CLAUDE_VLM_SYSTEM_PROMPT = """You are a garment manufacturing expert analyzing construction callout pages from Centric 8 technical specification PDFs.
+
+Each image shows a garment diagram with callout annotations pointing to construction zones (NECK, HEM, SHOULDER, ARMHOLE, SIDE SEAM, WAISTBAND, CUFF, INSEAM, FRONT RISE, LEG OPENING, POCKET, etc.).
+
+For each callout annotation extract:
+- zone: garment part name exactly as written (e.g. "NECK", "HEM", "SIDE SEAM", "WAISTBAND", "CUFF", "ARMHOLE")
+- construction: the full construction method text (e.g. "1/4\" 2N COVERSTITCH", "514 4T OVERLOCK", "SINGLE TURNBACK W/ 406")
+- iso: ISO stitch code if explicitly stated as a number (e.g. "406", "514", "301"), otherwise null
+
+Return ONLY a JSON array with no markdown fences, no prose:
+[{"zone":"NECK","construction":"1/8\\\" 2N 406 COVERSTITCH","iso":"406"},...]
+
+If the image has no readable callout annotations, return: []"""
+
+
+# Bucket computation (mirrors _build_bucket_from_metadata in extract_unified.py)
+_SUB_MAP = {
+    "PERFORMANCE BOTTOMS": "perf_bottoms", "PERFORMANCE TOPS": "perf_tops",
+    "PERFORMANCE OUTERWEAR": "perf_outer", "PERFORMANCE DRESS": "perf_dress",
+    "PERFORMANCE SET": "perf_set",         "KNIT TOPS": "knit_tops",
+    "KNIT BOTTOMS": "knit_bottoms",        "WOVEN TOPS": "woven_tops",
+    "WOVEN BOTTOMS": "woven_bottoms",      "WOVEN DRESS": "woven_dress",
+    "FLEECE TOPS": "fleece_tops",          "FLEECE BOTTOMS": "fleece_bottoms",
+    "FLEECE OUTERWEAR": "fleece_outer",    "FLEECE SET": "fleece_set",
+    "SWIMWEAR": "swim",                    "SLEEP": "sleep",
+    "DRESS": "dress",
+}
+_DEPT_MAP = {
+    "PERFORMANCE ACTIVE": "perf", "ACTIVE/FLEECE": "fleece",
+    "FLEECE": "fleece",           "SLEEP": "sleep",
+    "SWIM": "swim",               "BOTTOMS": "bottoms",
+    "TOPS": "tops",               "OUTERWEAR": "outer",
+    "SET": "set",
+}
+
+
+def _compute_bucket(department: str, sub_category: str, brand_division: str) -> str:
+    dept = department.upper()
+    sub = sub_category.upper()
+    brand = brand_division.upper()
+
+    gender = ""
+    for g in ["WOMENS", "MENS", "GIRLS", "BOYS", "MATERNITY", "TODDLER", "BABY", "NEWBORN"]:
+        if g in dept or g in brand:
+            gender = g.lower()
+            break
+    if not gender:
+        return ""
+    if gender in ("baby", "toddler", "newborn"):
+        gender = "toddler"
+
+    cat = ""
+    for pattern, bucket_cat in _SUB_MAP.items():
+        if pattern in sub:
+            cat = bucket_cat
+            break
+    if not cat:
+        for pattern, bucket_cat in _DEPT_MAP.items():
+            if pattern in dept:
+                cat = bucket_cat
+                break
+    if not cat:
+        return ""
+    return f"{gender}_{cat}"
+
+
+def load_design_metadata(designs_jsonl_path: str) -> dict:
+    """Load designs.jsonl → {design_id_upper: {department, sub_category, brand_division, fabric}}"""
+    meta = {}
+    if not os.path.exists(designs_jsonl_path):
+        print(f"[VLM] designs.jsonl not found: {designs_jsonl_path}", file=sys.stderr)
+        return meta
+    with open(designs_jsonl_path, encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                row = json.loads(line)
+                did = (row.get('design_id') or '').upper()
+                if did:
+                    meta[did] = {
+                        'department':     row.get('department', ''),
+                        'sub_category':   row.get('sub_category', ''),
+                        'brand_division': row.get('brand_division', ''),
+                        'fabric':         row.get('fabric', ''),
+                    }
+            except Exception:
+                pass
+    print(f"[VLM] Loaded metadata for {len(meta)} designs from designs.jsonl")
+    return meta
+
+
+def analyze_callout_images_with_claude(callout_dir: str, api_key: str, metadata: dict) -> dict:
+    """
+    Call Claude Vision API on each PNG in callout_dir.
+    Groups images by design_id (extracted from filename {DID}_p{N}.png).
+    Returns vlm_raw_extracts dict: {design_id: {fabric, callouts: [{zone, construction, iso}]}}
+    """
+    try:
+        import anthropic as _anthropic
+    except ImportError:
+        print("[VLM] anthropic package not installed — pip install anthropic>=0.25.0", file=sys.stderr)
+        return {}
+
+    client = _anthropic.Anthropic(api_key=api_key)
+
+    # Group PNGs by design_id (filename pattern: {DID}_p{page}.png)
+    design_images: dict[str, list[str]] = defaultdict(list)
+    for fname in sorted(os.listdir(callout_dir)):
+        if not fname.lower().endswith('.png'):
+            continue
+        m = re.match(r'^(D\d+)_p\d+\.png$', fname, re.IGNORECASE)
+        if m:
+            did = m.group(1).upper()
+            design_images[did].append(os.path.join(callout_dir, fname))
+        else:
+            print(f"[VLM] Skipping unrecognized filename: {fname}")
+
+    if not design_images:
+        print(f"[VLM] No callout PNGs found in {callout_dir}")
+        return {}
+
+    print(f"[VLM] Analyzing {len(design_images)} designs ({sum(len(v) for v in design_images.values())} images) with Claude...")
+    results = {}
+    errors = 0
+
+    for did, img_paths in sorted(design_images.items()):
+        dm = metadata.get(did, {})
+        fabric = dm.get('fabric', '')
+        all_callouts = []
+
+        for img_path in img_paths[:4]:  # max 4 pages per design
+            try:
+                with open(img_path, 'rb') as fh:
+                    img_b64 = base64.b64encode(fh.read()).decode()
+
+                msg = client.messages.create(
+                    model="claude-haiku-4-5-20251001",
+                    max_tokens=1500,
+                    system=CLAUDE_VLM_SYSTEM_PROMPT,
+                    messages=[{
+                        "role": "user",
+                        "content": [
+                            {"type": "image", "source": {
+                                "type": "base64", "media_type": "image/png", "data": img_b64
+                            }},
+                            {"type": "text", "text": "Extract all construction callout annotations. Return JSON array only."}
+                        ]
+                    }]
+                )
+
+                raw_text = msg.content[0].text.strip()
+                # Strip markdown fences if present
+                raw_text = re.sub(r'^```[a-z]*\s*', '', raw_text)
+                raw_text = re.sub(r'\s*```$', '', raw_text)
+                page_callouts = json.loads(raw_text)
+                if isinstance(page_callouts, list):
+                    all_callouts.extend(page_callouts)
+                    print(f"  {did} {os.path.basename(img_path)}: {len(page_callouts)} callouts")
+            except json.JSONDecodeError:
+                print(f"  [WARN] {did} {os.path.basename(img_path)}: non-JSON response", file=sys.stderr)
+                errors += 1
+            except Exception as e:
+                print(f"  [WARN] {did} {os.path.basename(img_path)}: {e}", file=sys.stderr)
+                errors += 1
+
+        if all_callouts:
+            results[did] = {'fabric': fabric, 'callouts': all_callouts}
+
+    print(f"[VLM] Claude analysis done: {len(results)} designs extracted, {errors} errors")
+    return results
 
 
 # ============================================================
@@ -713,6 +892,8 @@ def main():
                    help='PDF scan directory (repeatable). Default: legacy BASE/2024-2026')
     p.add_argument('--api-key', default=None,
                    help='Anthropic API key (or set ANTHROPIC_API_KEY env)')
+    p.add_argument('--ingest-dir', default=None,
+                   help='Ingest root dir (contains metadata/designs.jsonl). Default: callout-dir/../..')
     p.add_argument('--allow-empty', action='store_true',
                    help='Exit 0 if callout-dir missing/empty (CI first-run)')
 
@@ -740,17 +921,56 @@ def main():
         detect_and_render_batch(pilot_ids, out_dir)
 
     elif args.map_iso:
+        api_key = args.api_key or os.environ.get('ANTHROPIC_API_KEY')
         raw_path = os.path.join(out_dir, 'vlm_raw_extracts.json')
+
+        # ── Determine designs.jsonl path ──
+        if args.ingest_dir:
+            designs_jsonl = os.path.join(args.ingest_dir, 'metadata', 'designs.jsonl')
+        else:
+            # Fallback: callout_dir is data/ingest/pdf/callout_images → go up 3 levels
+            designs_jsonl = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.dirname(callout_dir))),
+                'metadata', 'designs.jsonl'
+            )
+
+        # ── Auto-generate vlm_raw_extracts.json if callout images exist + API key set ──
+        if not os.path.exists(raw_path):
+            has_images = (
+                os.path.isdir(callout_dir) and
+                any(f.lower().endswith('.png') for f in os.listdir(callout_dir))
+            )
+            if has_images and api_key:
+                metadata = load_design_metadata(designs_jsonl)
+                raw = analyze_callout_images_with_claude(callout_dir, api_key, metadata)
+                if raw:
+                    os.makedirs(out_dir, exist_ok=True)
+                    with open(raw_path, 'w', encoding='utf-8') as f:
+                        json.dump(raw, f, indent=2, ensure_ascii=False)
+                    print(f"[VLM] Auto-extracted {len(raw)} designs → {raw_path}")
+                elif args.allow_empty:
+                    print("[VLM] No callouts extracted — exiting cleanly (--allow-empty).")
+                    return 0
+            elif args.allow_empty:
+                reason = "no callout images" if not has_images else "no ANTHROPIC_API_KEY"
+                print(f"[WARN] {raw_path} not found ({reason}) — exiting cleanly (--allow-empty).")
+                return 0
+            else:
+                print(f"[ERROR] {raw_path} not found. Run VLM extraction or set ANTHROPIC_API_KEY.", file=sys.stderr)
+                return 1
+
         if not os.path.exists(raw_path):
             if args.allow_empty:
-                print(f"[WARN] {raw_path} not found — exiting cleanly (--allow-empty).")
                 return 0
-            print(f"[ERROR] {raw_path} not found. Run VLM extraction first.", file=sys.stderr)
             return 1
 
         with open(raw_path) as f:
             raw = json.load(f)
 
+        # ── Load design metadata for bucket computation ──
+        metadata = load_design_metadata(designs_jsonl)
+
+        # ── Map ISO ──
         results = {}
         for did, vlm_data in raw.items():
             fabric = vlm_data.get('fabric')
@@ -764,23 +984,30 @@ def main():
         print(f"Mapped results: {out_path}")
         print(f"Designs: {len(results)}")
 
-        # Write facts.jsonl for extract_unified.py (flat JSONL, one row per design×zone)
+        # ── Write facts.jsonl WITH bucket field ──
         facts_path = os.path.join(out_dir, 'facts.jsonl')
         facts_count = 0
         with open(facts_path, 'w', encoding='utf-8') as ff:
             for did, zones in results.items():
+                dm = metadata.get(did.upper(), {})
+                bucket = _compute_bucket(
+                    dm.get('department', ''),
+                    dm.get('sub_category', ''),
+                    dm.get('brand_division', ''),
+                )
                 for l1_code, info in zones.items():
                     ff.write(json.dumps({
                         'design_id': did,
-                        'l1_code': l1_code,
-                        'iso': info.get('iso', ''),
-                        'zone_zh': info.get('zone_name', ''),
+                        'l1_code':   l1_code,
+                        'iso':        info.get('iso', ''),
+                        'zone_zh':    info.get('zone_name', ''),
                         'construction': info.get('construction', ''),
-                        'source': 'ocr',
+                        'source':     'ocr',
                         'confidence': info.get('source', 'glossary'),
+                        'bucket':     bucket,
                     }, ensure_ascii=False) + '\n')
                     facts_count += 1
-        print(f"Facts JSONL: {facts_path} ({facts_count} rows)")
+        print(f"Facts JSONL: {facts_path} ({facts_count} rows, bucket included)")
 
     else:
         print("Specify a mode: --detect-only | --map-iso", file=sys.stderr)

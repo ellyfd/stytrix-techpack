@@ -53,18 +53,10 @@ jobs:
           echo "Step 1 summary:"
           cat /tmp/step1_summary.json
 
-      # ── Step 2a: unified extraction (PPTX + metadata → facts) ─────────────
-      # Reads data/ingest/pptx/ + data/ingest/metadata/designs.jsonl
-      # Writes data/ingest/unified/dim.jsonl + facts.jsonl (full rebuild from all sources)
-      - name: Step 2a — unified extraction
-        run: |
-          python star_schema/scripts/extract_unified.py \
-            --ingest-dir data/ingest \
-            --out data/ingest/unified
-
-      # ── Step 2b: VLM callout extraction (optional) ────────────────────────
-      # Reads vlm_raw_extracts.json (pre-populated via PoC or future API mode).
-      # --allow-empty: exits 0 if nothing to process; errors don't block build.
+      # ── Step 2b: VLM callout extraction (runs BEFORE 2a so unified can merge fresh VLM facts)
+      # Auto-analyzes data/ingest/pdf/callout_images/*.png with Claude Vision API.
+      # Falls back to vlm_raw_extracts.json if it exists (PoC/manual mode).
+      # --allow-empty: exits 0 if no images and no pre-built extracts (first run or PPTX-only upload).
       - name: Step 2b — VLM callout extraction
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -73,8 +65,19 @@ jobs:
             --map-iso \
             --out data/ingest/vlm \
             --callout-dir data/ingest/pdf/callout_images \
+            --ingest-dir data/ingest \
             --allow-empty
         continue-on-error: true
+
+      # ── Step 2a: unified extraction (PPTX + metadata → facts) ─────────────
+      # Runs AFTER Step 2b so it can merge fresh VLM facts from data/ingest/vlm/facts.jsonl.
+      # Reads data/ingest/pptx/ + data/ingest/metadata/designs.jsonl
+      # Writes data/ingest/unified/dim.jsonl + facts.jsonl (full rebuild from all sources)
+      - name: Step 2a — unified extraction
+        run: |
+          python star_schema/scripts/extract_unified.py \
+            --ingest-dir data/ingest \
+            --out data/ingest/unified
 
       # ── Step 3: rebuild recipes_master ────────────────────────────────────
       # Reads data/ingest/*/facts.jsonl + 4 source handbooks
@@ -100,7 +103,7 @@ jobs:
           git add data/ingest/metadata/designs.jsonl || true
           git add data/ingest/pptx/ || true
           git add data/ingest/unified/ || true
-          git add data/ingest/pdf/callout_manifest.jsonl || true
+          git add data/ingest/vlm/ || true
 
           # Only commit if something actually changed
           if git diff --cached --quiet; then
