@@ -5927,20 +5927,19 @@ function App() {
                     <div style={{
                       display: "flex",
                       flexDirection: "row",
-                      justifyContent: "space-between",
                       alignItems: "center",
+                      flexWrap: "wrap",
+                      rowGap: isMobile ? "6px" : "8px",
                       gap: isMobile ? "8px" : "16px"
                     }}>
-                      {/* 標題「基碼/全碼」已由上方 tab pill 表示,這裡不再重複。
-                          桌機留計數+副標作為補充資訊;手機全部省掉,直接 unit toggle + Re-generate。 */}
-                      <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "baseline", gap: "10px", flexWrap: "wrap" }}>
-                        {!isMobile && (
+                      {/* 桌機:計數 + 副標補充資訊,靠左對齊;右側 unit toggle + Re-generate 靠右
+                          手機:沒有計數,unit toggle + Re-generate 直接從左邊開始 */}
+                      {!isMobile && (
+                        <div style={{ display: "flex", alignItems: "baseline", gap: "10px", flexWrap: "wrap" }}>
                           <div style={{ fontSize: T.fs.md, color: T.c.text3, fontFamily: "'JetBrains Mono',monospace" }}>
                             <span style={{ color: T.c.text, fontWeight: 700 }}>{bucketIncludedU}</span>
                             <span> / {totalPomsU}</span>
                           </div>
-                        )}
-                        {!isMobile && (
                           <div style={{ fontSize: T.fs.base, color: T.c.text3 }}>
                             {sizeView === "base"
                               ? `${codesByTierU.must.length} 必備 · ${codesByTierU.recommend.length} 建議 · ${codesByTierU.optional.length} 選配`
@@ -5948,9 +5947,9 @@ function App() {
                                 ? `Plus · ${plusSeqU.length} sizes(2X BASE)`
                                 : `${sizesU.filter(s => !isPlusU(s)).length} sizes${hasPlusU ? `  (Plus 可切換)` : ""}`)}
                           </div>
-                        )}
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: isMobile ? "6px" : "10px", flexShrink: 0, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                        </div>
+                      )}
+                      <div style={{ display: "flex", alignItems: "center", gap: isMobile ? "6px" : "10px", flexShrink: 0, flexWrap: "wrap", marginLeft: !isMobile ? "auto" : 0 }}>
                         <UnitFormatToggle displayUnit={displayUnit} setDisplayUnit={changeUnit} displayFormat={displayFormat} setDisplayFormat={changeFormat} />
                         <button onClick={runMeasurement} style={btnStyle({ variant: 'secondary', isMobile })}>Re-generate</button>
                       </div>
