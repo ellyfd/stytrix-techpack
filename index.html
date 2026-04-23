@@ -1913,40 +1913,28 @@ function SettingsModal({ open, onClose, token, onSaveToken }) {
   );
 }
 
-/* AdminModal:POM 翻譯表編輯器(data/pom_dictionary.json)
-   - 上方「GitHub 推送 Token」:shared 密碼,存 localStorage['stytrix.admin.token']
-   - 中間表格:code / en / zh 三欄,可搜尋 / 編輯 / 刪列 / 新增列
-   - 工具:匯入 Excel(code/en/zh 三欄)、匯出 Excel
-   - 下方:commit message + 推送到 GitHub
-   - pomNames 是目前線上版 dict(read-only seed),draft 是草稿 */
-function AdminModal({ open, onClose, pomNames, onPushDict, token, onSaveToken }) {
-  const [draft, setDraft] = React.useState({});
-  const [search, setSearch] = React.useState('');
-  const [commitMsg, setCommitMsg] = React.useState('');
-  const [pushState, setPushState] = React.useState({ status: 'idle', msg: '' });
+/* UploadModal:上傳 Techpack PDF / PPTX → /api/ingest_upload → GitHub Actions rebuild */
+function UploadModal({ open, onClose, token }) {
   const [uploadFile, setUploadFile] = React.useState(null);
   const [uploadSeason, setUploadSeason] = React.useState('misc');
   const [uploadStatus, setUploadStatus] = React.useState({ status: 'idle', msg: '' });
 
-  // 開啟時用當前 pomNames 初始化 draft
   React.useEffect(() => {
-    if (open) {
-      setDraft({ ...(pomNames || {}) });
-      setSearch('');
-      setCommitMsg('');
-      setPushState({ status: 'idle', msg: '' });
-      setUploadFile(null);
-      setUploadStatus({ status: 'idle', msg: '' });
-    }
-  }, [open, pomNames]);
+    if (open) { setUploadFile(null); setUploadStatus({ status: 'idle', msg: '' }); }
+  }, [open]);
 
   const handleUpload = async () => {
     if (!uploadFile) return;
-    if (!token) { setUploadStatus({ status: 'error', msg: '請先至「設定」填入 Admin Token' }); return; }
+    if (!token) { setUploadStatus({ status: 'error', msg: '請先至「⚙ 設定」填入 Admin Token' }); return; }
     setUploadStatus({ status: 'uploading', msg: '上傳中...' });
     try {
       const buf = await uploadFile.arrayBuffer();
-      const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+      const bytes = new Uint8Array(buf);
+      let binary = '';
+      for (let i = 0; i < bytes.length; i += 8192) {
+        binary += String.fromCharCode(...bytes.subarray(i, Math.min(i + 8192, bytes.length)));
+      }
+      const b64 = btoa(binary);
       const resp = await fetch('/api/ingest_upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
@@ -1960,6 +1948,88 @@ function AdminModal({ open, onClose, pomNames, onPushDict, token, onSaveToken })
       setUploadStatus({ status: 'error', msg: `錯誤: ${e.message}` });
     }
   };
+
+  if (!open) return null;
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: '20px',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background: '#fff', borderRadius: '12px', padding: '24px',
+        width: '100%', maxWidth: '480px', boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '18px' }}>
+          <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 700 }}>📤 上傳 Techpack (PDF / PPTX)</h2>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '22px', color: '#999', lineHeight: 1, padding: '0 4px', fontFamily: 'inherit' }}>×</button>
+        </div>
+
+        {!token && (
+          <div style={{ marginBottom: '14px', padding: '8px 12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', fontSize: '12px', color: '#92400e' }}>
+            ⚠ Admin Token 尚未設定 — 請先點右上角 <strong>⚙ 設定</strong> 填入。
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '10px' }}>
+          <label style={{ padding: '7px 14px', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+            border: '1px solid #86efac', background: '#fff', color: '#15803d', borderRadius: '6px' }}>
+            選擇檔案
+            <input type="file" accept=".pdf,.pptx" style={{ display: 'none' }}
+              onChange={e => { setUploadFile(e.target.files?.[0] || null); setUploadStatus({ status: 'idle', msg: '' }); e.target.value = ''; }} />
+          </label>
+          {uploadFile && <span style={{ fontSize: '13px', color: '#374151', maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{uploadFile.name}</span>}
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+          <label style={{ fontSize: '13px', color: '#374151', whiteSpace: 'nowrap' }}>季別</label>
+          <input value={uploadSeason} onChange={e => setUploadSeason(e.target.value)}
+            placeholder="e.g. SP26"
+            style={{ width: '120px', padding: '7px 10px', fontSize: '13px', border: '1px solid #d1d5db', borderRadius: '6px' }} />
+        </div>
+
+        {uploadStatus.msg && (
+          <div style={{ marginBottom: '14px', padding: '8px 12px', borderRadius: '6px', fontSize: '12px',
+            background: uploadStatus.status === 'ok' ? '#f0fdf4' : uploadStatus.status === 'error' ? '#fef2f2' : '#f9fafb',
+            color: uploadStatus.status === 'ok' ? '#166534' : uploadStatus.status === 'error' ? '#dc2626' : '#374151',
+            border: `1px solid ${uploadStatus.status === 'ok' ? '#bbf7d0' : uploadStatus.status === 'error' ? '#fecaca' : '#e5e5e5'}`,
+          }}>
+            {uploadStatus.msg}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+          <button onClick={onClose}
+            style={{ padding: '8px 16px', fontSize: '13px', border: '1px solid #d1d5db', background: '#f9fafb', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit' }}>
+            關閉
+          </button>
+          <button onClick={handleUpload} disabled={!uploadFile || uploadStatus.status === 'uploading'}
+            style={{ padding: '8px 20px', fontSize: '13px', fontWeight: 600, cursor: uploadFile ? 'pointer' : 'not-allowed',
+              border: 'none', background: uploadFile ? '#16a34a' : '#d1fae5', color: uploadFile ? '#fff' : '#9ca3af',
+              borderRadius: '6px', fontFamily: 'inherit' }}>
+            {uploadStatus.status === 'uploading' ? '上傳中...' : '上傳'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* AdminModal:POM 翻譯表編輯器(data/pom_dictionary.json) */
+function AdminModal({ open, onClose, pomNames, onPushDict, token }) {
+  const [draft, setDraft] = React.useState({});
+  const [search, setSearch] = React.useState('');
+  const [commitMsg, setCommitMsg] = React.useState('');
+  const [pushState, setPushState] = React.useState({ status: 'idle', msg: '' });
+
+  // 開啟時用當前 pomNames 初始化 draft
+  React.useEffect(() => {
+    if (open) {
+      setDraft({ ...(pomNames || {}) });
+      setSearch('');
+      setCommitMsg('');
+      setPushState({ status: 'idle', msg: '' });
+    }
+  }, [open, pomNames]);
 
   // Draft helpers
   const updateRow = (code, field, value) => {
@@ -2113,7 +2183,7 @@ function AdminModal({ open, onClose, pomNames, onPushDict, token, onSaveToken })
         boxShadow: T.shadow.md,
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '10px' }}>
-          <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 700 }}>管理 · POM 翻譯表編輯</h2>
+          <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 700 }}>POM 翻譯表編輯</h2>
           <button onClick={onClose} aria-label="關閉管理面板" style={{
             background: 'none', border: 'none', cursor: 'pointer',
             fontSize: '22px', color: '#999', padding: '0 4px', lineHeight: 1, fontFamily: 'inherit',
@@ -2126,35 +2196,6 @@ function AdminModal({ open, onClose, pomNames, onPushDict, token, onSaveToken })
             ⚠ Admin Token 尚未設定 — 請先點右上角 <strong>⚙ 設定</strong> 填入。
           </div>
         )}
-
-        {/* Techpack 上傳 */}
-        <div style={{ marginBottom: '12px', padding: '12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px' }}>
-          <div style={{ fontSize: '12px', fontWeight: 600, color: '#166534', marginBottom: '8px' }}>📤 上傳 Techpack (PDF / PPTX)</div>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-            <label style={{ padding: '5px 12px', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
-              border: '1px solid #86efac', background: '#fff', color: '#15803d', borderRadius: '6px' }}>
-              選擇檔案
-              <input type="file" accept=".pdf,.pptx" style={{ display: 'none' }}
-                onChange={e => { setUploadFile(e.target.files?.[0] || null); setUploadStatus({ status: 'idle', msg: '' }); e.target.value = ''; }} />
-            </label>
-            {uploadFile && <span style={{ fontSize: '12px', color: '#374151', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{uploadFile.name}</span>}
-            <input value={uploadSeason} onChange={e => setUploadSeason(e.target.value)}
-              placeholder="季別 (e.g. SP26)"
-              style={{ width: '90px', padding: '5px 8px', fontSize: '12px', border: '1px solid #86efac', borderRadius: '6px' }} />
-            <button onClick={handleUpload} disabled={!uploadFile || uploadStatus.status === 'uploading'}
-              style={{ padding: '5px 14px', fontSize: '12px', fontWeight: 600, cursor: uploadFile ? 'pointer' : 'not-allowed',
-                border: '1px solid #86efac', background: uploadFile ? '#16a34a' : '#d1fae5', color: uploadFile ? '#fff' : '#9ca3af',
-                borderRadius: '6px', fontFamily: 'inherit' }}>
-              {uploadStatus.status === 'uploading' ? '上傳中...' : '上傳'}
-            </button>
-          </div>
-          {uploadStatus.msg && (
-            <div style={{ marginTop: '6px', fontSize: '11px',
-              color: uploadStatus.status === 'ok' ? '#166534' : uploadStatus.status === 'error' ? '#dc2626' : '#374151' }}>
-              {uploadStatus.msg}
-            </div>
-          )}
-        </div>
 
         {/* 工具列:搜尋 / 匯入 / 匯出 / 新增 */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
@@ -2417,6 +2458,8 @@ function App() {
   const [sketchSrc, setSketchSrc] = useState(null);
   const [pomRules, setPomRules] = useState(null);
   const [adminOpen, setAdminOpen] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [mgmtMenuOpen, setMgmtMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [adminToken, setAdminToken] = useState(() => {
     try { return localStorage.getItem('stytrix.admin.token') || ''; } catch { return ''; }
@@ -3608,19 +3651,48 @@ function App() {
             }}>
             ⚙{!adminToken && <span style={{ fontSize: "10px", marginLeft: "2px" }}>!</span>}
           </button>
-          <button onClick={() => setAdminOpen(true)}
-            aria-label="開啟管理面板"
-            title="管理"
-            style={{
-              background: "#fff", border: "1px solid #e8e5e1", borderRadius: "6px",
-              padding: isMobile ? "6px 12px" : "8px 14px", fontSize: isMobile ? "12px" : "13px", fontWeight: 700,
-              color: "#555",
-              cursor: "pointer", fontFamily: "inherit",
-              display: "inline-flex", alignItems: "center", gap: "4px", justifyContent: "center",
-              transition: "border-color 0.15s",
-            }}>
-            管理
-          </button>
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={() => setMgmtMenuOpen(v => !v)}
+              aria-label="開啟管理選單"
+              style={{
+                background: "#fff", border: "1px solid #e8e5e1", borderRadius: "6px",
+                padding: isMobile ? "6px 12px" : "8px 14px", fontSize: isMobile ? "12px" : "13px", fontWeight: 700,
+                color: "#555", cursor: "pointer", fontFamily: "inherit",
+                display: "inline-flex", alignItems: "center", gap: "4px",
+              }}>
+              管理 ▾
+            </button>
+            {mgmtMenuOpen && (
+              <div
+                onClick={() => setMgmtMenuOpen(false)}
+                style={{
+                  position: 'fixed', inset: 0, zIndex: 90,
+                }} />
+            )}
+            {mgmtMenuOpen && (
+              <div style={{
+                position: 'absolute', right: 0, top: 'calc(100% + 4px)',
+                background: '#fff', border: '1px solid #e5e5e5', borderRadius: '8px',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.12)', minWidth: '180px',
+                zIndex: 100, overflow: 'hidden',
+              }}>
+                <button onClick={() => { setUploadOpen(true); setMgmtMenuOpen(false); }}
+                  style={{ display: 'block', width: '100%', padding: '10px 16px', textAlign: 'left',
+                    fontSize: '13px', fontWeight: 600, background: 'none', border: 'none',
+                    cursor: 'pointer', fontFamily: 'inherit', color: '#166534' }}>
+                  📤 上傳 Techpack
+                </button>
+                <div style={{ height: '1px', background: '#f0f0f0', margin: '0 8px' }} />
+                <button onClick={() => { setAdminOpen(true); setMgmtMenuOpen(false); }}
+                  style={{ display: 'block', width: '100%', padding: '10px 16px', textAlign: 'left',
+                    fontSize: '13px', fontWeight: 600, background: 'none', border: 'none',
+                    cursor: 'pointer', fontFamily: 'inherit', color: '#374151' }}>
+                  📝 POM 翻譯表編輯
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
       </div>
@@ -6038,13 +6110,17 @@ function App() {
         token={adminToken}
         onSaveToken={saveAdminToken}
       />
+      <UploadModal
+        open={uploadOpen}
+        onClose={() => setUploadOpen(false)}
+        token={adminToken}
+      />
       <AdminModal
         open={adminOpen}
         onClose={() => setAdminOpen(false)}
         pomNames={pomNames}
         onPushDict={pushPomDict}
         token={adminToken}
-        onSaveToken={saveAdminToken}
       />
       <OnboardingModal open={onboardingOpen} onDismiss={dismissOnboarding} />
 
