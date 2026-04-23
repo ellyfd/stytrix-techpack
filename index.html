@@ -2648,8 +2648,8 @@ function App() {
   const [mAnalyzing, setMAnalyzing] = useState(false);
   const [mStage, setMStage] = useState(0);
   const [sizeRun, setSizeRun] = useState("missy"); // "missy" | "plus"
-  const [showPetite, setShowPetite] = useState(true);
-  const [showTall, setShowTall] = useState(true);
+  const [showPetite, setShowPetite] = useState(false);
+  const [showTall, setShowTall] = useState(false);
   const [openPom, setOpenPom] = useState(null);
   const [excluded, setExcluded] = useState(new Set());
   // 使用者手動加入的 POM codes(通用模型 keep 會略過 universalBasicCodes 限制)
@@ -3441,8 +3441,20 @@ function App() {
 
   const runMeasurement = () => {
     setMStep(1); setMAnalyzing(true); setMStage(0);
-    setExcluded(new Set()); setOpenPom(null); setSizeRun("missy");
-    setShowPetite(true); setShowTall(true);
+    setOpenPom(null); setSizeRun("missy");
+    setShowPetite(false); setShowTall(false);
+    // 預設只勾「必備」tier;「建議 / 選配」預先加入 excluded 且折疊起來,
+    // 使用者要擴展時自行展開/勾選。
+    const _mr = currentBucket?.measurement_rules || {};
+    const _keep = appMode === "universal"
+      ? (c => universalBasicCodes.has(c) || userAddedCodes.has(c))
+      : (() => true);
+    const _defaultExcluded = new Set(
+      ["recommend", "optional"]
+        .flatMap(t => Object.keys(_mr[t] || {}).filter(c => _mr[t][c] != null && _keep(c)))
+    );
+    setExcluded(_defaultExcluded);
+    setCollapsedTiers(new Set(["recommend", "optional"]));
     const si = setInterval(() => setMStage(s => s < 5 ? s + 1 : s), 350);
     setTimeout(() => { clearInterval(si); setMAnalyzing(false); setMStep(2); }, 2200);
   };
@@ -4963,21 +4975,32 @@ function App() {
                           {!collapsed && (
                             /* B.7 — 彩色左邊條 (3px) 強化 tier 視覺分群:必備紅、建議橘、選配藍、自訂紫 */
                             <div style={{ background: "#fff", border: "1px solid #e8e5e1", borderLeft: `3px solid ${tc.c}`, borderRadius: "12px", overflow: "auto" }}>
-                              <table style={{ width: "100%", minWidth: isMobile ? (showPlus && hasPlus ? "500px" : "420px") : "auto", borderCollapse: "collapse", fontSize: T.fs.md }}>
+                              <table style={{ width: "100%", minWidth: isMobile ? (showPlus && hasPlus ? "500px" : "420px") : "auto", borderCollapse: "collapse", fontSize: T.fs.md, tableLayout: "fixed" }}>
+                                {/* colgroup 固定每欄寬度,所有 tier 表格共用同一套比例,避免漂移。
+                                    Name 不給 width → 接收剩餘空間;其餘欄位寬度由 px 定死。 */}
+                                <colgroup>
+                                  <col style={{ width: isMobile ? "28px" : "34px" }} />{/* ✓ */}
+                                  {appMode !== "universal" && <col style={{ width: isMobile ? "44px" : "64px" }} />}{/* POM */}
+                                  {!isMobile && <col />}{/* Name: flex */}
+                                  <col style={{ width: isMobile ? "120px" : "200px" }} />{/* 中文 */}
+                                  <col style={{ width: isMobile ? "56px" : "84px" }} />{/* 公差 */}
+                                  <col style={{ width: isMobile ? "84px" : "110px" }} />{/* Base (M) */}
+                                  {showPlus && hasPlus && <col style={{ width: isMobile ? "84px" : "110px" }} />}{/* Base (Plus) */}
+                                </colgroup>
                                 <thead>
                                   <tr style={{ background: T.c.bg2, borderBottom: `1px solid ${T.c.border}` }}>
-                                    <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: T.fs.md, color: T.c.text2, width: isMobile ? "24px" : "30px" }}>✓</th>
+                                    <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: T.fs.md, color: T.c.text2 }}>✓</th>
                                     {appMode !== "universal" && (
-                                      <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: T.fs.md, color: T.c.text2, width: isMobile ? "38px" : "56px" }}>POM</th>
+                                      <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: T.fs.md, color: T.c.text2 }}>POM</th>
                                     )}
                                     {!isMobile && (
                                       <th style={{ padding: "8px 10px", textAlign: "left", fontWeight: 600, fontSize: T.fs.md, color: T.c.text2 }}>Name<span style={{ fontSize: T.fs.sm, fontWeight: 400, color: T.c.text3, marginLeft: "4px" }}>(雙擊可改)</span></th>
                                     )}
-                                    <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: T.fs.md, color: T.c.text2, minWidth: isMobile ? "110px" : "140px" }}>中文<span style={{ fontSize: T.fs.sm, fontWeight: 400, color: T.c.text3, marginLeft: "4px" }}>{isMobile ? "/ EN" : "(雙擊可改)"}</span></th>
-                                    <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: T.fs.md, color: T.c.text2, width: isMobile ? "52px" : "80px" }}>公差</th>
-                                    <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: T.fs.md, color: T.c.green, width: isMobile ? "80px" : "110px" }}>Base (M)</th>
+                                    <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: T.fs.md, color: T.c.text2 }}>中文<span style={{ fontSize: T.fs.sm, fontWeight: 400, color: T.c.text3, marginLeft: "4px" }}>{isMobile ? "/ EN" : "(雙擊可改)"}</span></th>
+                                    <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: T.fs.md, color: T.c.text2 }}>公差</th>
+                                    <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: T.fs.md, color: T.c.green }}>Base (M)</th>
                                     {showPlus && hasPlus && (
-                                      <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: T.fs.md, color: T.c.text2, width: isMobile ? "80px" : "110px" }}>Base ({plusAnchor}){!isMobile && <div style={{ fontSize: T.fs.sm, fontWeight: 400, color: T.c.text3 }}>Plus 獨立</div>}</th>
+                                      <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: T.fs.md, color: T.c.text2 }}>Base ({plusAnchor}){!isMobile && <div style={{ fontSize: T.fs.sm, fontWeight: 400, color: T.c.text3 }}>Plus 獨立</div>}</th>
                                     )}
                                   </tr>
                                 </thead>
