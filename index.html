@@ -1991,21 +1991,34 @@ function UploadModal({ open, onClose, token }) {
 
   const pollCi = async (sha, pat) => {
     const OWNER = 'ellyfd', REPO = 'stytrix-techpack';
-    // Actions API on public repos works without auth; avoid 403 from restricted tokens
-    const actH = { Accept: 'application/vnd.github.v3+json' };
+    const actionsBase = `https://api.github.com/repos/${OWNER}/${REPO}/actions`;
+    const ghActionsUrl = `https://github.com/${OWNER}/${REPO}/actions`;
+    // Try with auth first (required for private repos); fall back gracefully on 403/404
+    const actH = { Authorization: `token ${pat}`, Accept: 'application/vnd.github.v3+json' };
     const sleep = ms => new Promise(r => setTimeout(r, ms));
 
     // Wait up to 45s for the run to appear
     let runId = null;
+    let authDenied = false;
     for (let i = 0; i < 15 && !cancelRef.current; i++) {
       await sleep(3000);
       try {
-        const r = await fetch(
-          `https://api.github.com/repos/${OWNER}/${REPO}/actions/runs?head_sha=${sha}&per_page=1`,
-          { headers: actH });
+        const r = await fetch(`${actionsBase}/runs?head_sha=${sha}&per_page=1`, { headers: actH });
+        if (r.status === 403 || r.status === 404) { authDenied = true; break; }
         if (r.ok) { const d = await r.json(); if (d.workflow_runs?.length) { runId = d.workflow_runs[0].id; break; } }
       } catch {}
     }
+
+    if (authDenied) {
+      // Token lacks actions:read — show link to GitHub Actions page instead
+      if (!cancelRef.current) {
+        setPhase('done');
+        setStatusMsg(prev => prev + '\n✓ 檔案已推送。CI Pipeline 已啟動，請至 GitHub Actions 查看進度 →');
+        setCiSteps([{ label: '查看 GitHub Actions', status: 'completed', conclusion: 'link', url: ghActionsUrl }]);
+      }
+      return;
+    }
+
     if (!runId) {
       if (!cancelRef.current) { setPhase('error'); setStatusMsg(prev => prev + '\n⚠ CI 未啟動（超過 45 秒）'); }
       return;
@@ -2017,8 +2030,8 @@ function UploadModal({ open, onClose, token }) {
       if (cancelRef.current) return;
       try {
         const [runR, jobsR] = await Promise.all([
-          fetch(`https://api.github.com/repos/${OWNER}/${REPO}/actions/runs/${runId}`, { headers: actH }),
-          fetch(`https://api.github.com/repos/${OWNER}/${REPO}/actions/runs/${runId}/jobs`, { headers: actH }),
+          fetch(`${actionsBase}/runs/${runId}`, { headers: actH }),
+          fetch(`${actionsBase}/runs/${runId}/jobs`, { headers: actH }),
         ]);
         if (!runR.ok) continue;
         const run = await runR.json();
@@ -2151,6 +2164,16 @@ function UploadModal({ open, onClose, token }) {
               <div style={{ fontSize: '12px', color: '#9ca3af', padding: '6px 0' }}>等待 CI 啟動...</div>
             )}
             {ciSteps.map((s, i) => {
+              if (s.conclusion === 'link') {
+                return (
+                  <div key={i} style={{ padding: '8px 10px', borderRadius: '5px', background: '#eff6ff', border: '1px solid #bfdbfe', fontSize: '12px' }}>
+                    <a href={s.url} target="_blank" rel="noopener noreferrer"
+                      style={{ color: '#2563eb', textDecoration: 'underline', fontWeight: 500 }}>
+                      前往 GitHub Actions 查看 Pipeline 進度 →
+                    </a>
+                  </div>
+                );
+              }
               const icon = s.status === 'completed'
                 ? s.conclusion === 'success' ? '✓' : s.conclusion === 'skipped' ? '⏭' : '❌'
                 : s.status === 'in_progress' ? '⚙' : '○';
