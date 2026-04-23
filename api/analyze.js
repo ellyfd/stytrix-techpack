@@ -3,29 +3,22 @@ export const config = { runtime: "nodejs", maxDuration: 300 };
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const L1_CODES = {
-  AE: "袖孔", AH: "袖圍", BM: "下襬", BN: "貼合", BP: "襬叉",
-  BS: "釦鎖", DC: "繩類", DP: "裝飾片", FP: "袋蓋", FY: "前立",
-  HD: "帽子", HL: "釦環", KH: "Keyhole", LB: "商標", LI: "裡布",
-  LO: "褲口", LP: "帶絆", NK: "領", NP: "領襟", NT: "領貼條",
-  OT: "其它", PD: "褶", PK: "口袋", PL: "門襟", PS: "褲合身",
-  QT: "行縫(固定棉)", RS: "褲襠", SA: "剪接線_上身類", SB: "剪接線_下身類",
-  SH: "肩", SL: "袖口", SP: "袖叉", SR: "裙合身", SS: "脅邊",
-  ST: "肩帶", TH: "拇指洞", WB: "腰頭", ZP: "拉鍊"
-};
-
-// Load L2 guide + decision trees from deployment filesystem at module init.
-// Previous version used fetch("/data/*.json") against request.url, which on
-// Vercel Node.js runtime + Fluid Compute caused the handler to hang for the
-// full maxDuration without issuing a single outgoing request (log showed
-// "External APIs: No outgoing requests" + FUNCTION_INVOCATION_TIMEOUT).
-// vercel.json includeFiles bundles data/*.json into the function so fs works.
+// Load L2 guide + decision trees + L1 code table from deployment filesystem
+// at module init. Previous version used fetch("/data/*.json") against
+// request.url, which on Vercel Node.js runtime + Fluid Compute caused the
+// handler to hang for the full maxDuration without issuing a single outgoing
+// request. vercel.json includeFiles bundles data/*.json into the function
+// so fs works.
 const DATA_DIR = join(process.cwd(), "data");
-let GUIDE = null, TREES = null;
+let GUIDE = null, TREES = null, L1_CODES = {};
 try { GUIDE = JSON.parse(readFileSync(join(DATA_DIR, "l2_visual_guide.json"), "utf8")); }
 catch (e) { console.warn("[analyze] guide not loaded:", e.message); }
 try { TREES = JSON.parse(readFileSync(join(DATA_DIR, "l2_decision_trees.json"), "utf8")); }
 catch (e) { console.warn("[analyze] trees not loaded:", e.message); }
+try {
+  const std = JSON.parse(readFileSync(join(DATA_DIR, "l1_standard_38.json"), "utf8"));
+  for (const [k, v] of Object.entries(std.codes || {})) L1_CODES[k] = v.zh;
+} catch (e) { console.warn("[analyze] l1_standard_38 not loaded:", e.message); }
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
