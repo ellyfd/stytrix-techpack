@@ -20,6 +20,15 @@ try {
   for (const [k, v] of Object.entries(std.codes || {})) L1_CODES[k] = v.zh;
 } catch (e) { console.warn("[analyze] l1_standard_38 not loaded:", e.message); }
 
+let STYLE_GUIDE_TERMS = '';
+try {
+  const raw = readFileSync(join(process.cwd(), 'techpack-translation-style-guide.md'), 'utf8');
+  // Extract Part A1 (ISO terms table) and Part C1 (L1 code table) for prompt injection
+  const partA1 = raw.match(/### A1\..*?(?=### A2\.)/s)?.[0] || '';
+  const partC1 = raw.match(/### C1\..*?(?=### C2\.)/s)?.[0] || '';
+  STYLE_GUIDE_TERMS = [partA1, partC1].filter(Boolean).join('\n\n');
+} catch (e) { console.warn('[analyze] style guide not loaded:', e.message); }
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "method not allowed" });
@@ -144,7 +153,9 @@ async function identifyL2(apiKey, mediaType, b64, detectedL1s, guide, trees) {
   }
   if (!blocks.length) return { error: "no decision tree matched any detected L1" };
 
-  const system = trees.common;
+  const system = STYLE_GUIDE_TERMS
+    ? `${trees.common}\n\n---\n**ISO Construction Terms Reference:**\n${STYLE_GUIDE_TERMS}`
+    : trees.common;
 
   const detectedCodes = detectedL1s.map(d => d.code).join(", ");
   const userText = `以下是本次 sketch 偵測到的 ${detectedL1s.length} 個 L1 部位（${detectedCodes}）的判定邏輯樹。針對 **每個** L1 套用其 decision tree 找出最可能的 L2 零件。

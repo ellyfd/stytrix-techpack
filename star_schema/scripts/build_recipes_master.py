@@ -123,6 +123,16 @@ def build_zh_to_l1(l1_std: dict) -> dict:
         "車縫(通則)": "OT", # 通用車線 → OT 其它
         "剪接線": "SS",    # 接合線（無上下分時）→ SS 脅邊
         "褲襠": "RS",      # 股下/crotch → RS 褲襠 (same as standard)
+        # Style guide Part C1 additions
+        "袖襱": "AE",       # Armhole per style guide
+        "袖圍": "AH",
+        "袖衩": "SP",       # Sleeve placket
+        "肩帶": "ST",       # Strap
+        "抽繩": "DC",       # Drawcord
+        "裙合身": "SR",     # Skirt fit
+        "帽子": "HD",       # Hood
+        "裙擺": "BM",       # Skirt hem
+        "前立": "PL",       # Fly/placket (bottoms)
     }
     for zh, code in ZH_ALIASES.items():
         if zh not in out:  # don't override standard names

@@ -180,6 +180,23 @@ GLOSSARY_TO_ISO = {
     'RAW EDGE': 'RAW_EDGE',
     'BINDING': 'BINDING',       # need context for ISO
     'CONTRAST BINDING': 'BINDING',
+
+    # === Chinese terms from techpack-translation-style-guide.md ===
+    # (used when VLM/OCR output contains Chinese text)
+    '單針平車': '301',    '平車': '301',
+    '鎖鏈車': '401',      '鎖鍊車': '401',    '鎖鏈': '401',
+    '三本雙針': '406',    '三本': '406',
+    '三線拷克': '504',
+    '四線拷克': '514',    '拷克': '514',
+    '五線拷克': '516',
+    '兩針四線爬網': '602', '爬網': '605',      '扒網': '605',
+    '三針五線爬網': '605',
+    '四針六線併縫': '607', '併縫': '607',       '并缝': '607',
+    '人字車': '304',
+    '熱貼合': 'BONDED',
+    '雷切邊': 'LASER_CUT',
+    '毛邊': 'RAW_EDGE',
+    '滾條': 'BINDING',
 }
 
 # ONY default seam rules
@@ -287,6 +304,27 @@ ZONE_TO_L1 = {
     # Binding / Tape
     'NECK BINDING': 'NK',
     'ARMHOLE BINDING': 'AH',
+
+    # Chinese zone names from style guide
+    '領': 'NK',         '领': 'NK',
+    '肩': 'SH',
+    '袖襱': 'AE',       '袖孔': 'AE',
+    '袖圍': 'AH',       '袖围': 'AH',
+    '袖口': 'SL',       '克夫': 'SL',
+    '下襬': 'BM',       '下摆': 'BM',
+    '腰頭': 'WB',       '腰头': 'WB',
+    '口袋': 'PK',
+    '側縫': 'SS',       '脅邊': 'SS',       '側邊': 'SS',
+    '前襠': 'RS',       '後襠': 'RS',       '襠': 'RS',
+    '褲口': 'LO',       '裤口': 'LO',
+    '帽子': 'HD',       '帽': 'HD',
+    '門襟': 'PL',       '门襟': 'PL',
+    '約克': 'SA',       '约克': 'SA',
+    '拉鍊': 'ZP',       '拉链': 'ZP',
+    '抽繩': 'DC',       '腰繩': 'DC',
+    '商標': 'LB',
+    '肩帶': 'ST',
+    '拇指洞': 'TH',
 }
 
 

@@ -167,6 +167,16 @@ ZH_ZONE_TO_L1_TOPS = {
     # Binding
     "滾邊": ("NT", "領貼條"), "滚边": ("NT", "領貼條"),
     "貼條": ("NT", "領貼條"), "贴条": ("NT", "領貼條"),
+    # Style guide aliases
+    "袖襱": ("AE", "袖孔"),
+    "袖圍": ("AH", "袖圍"),      "袖围": ("AH", "袖圍"),
+    "袖衩": ("SP", "袖叉"),
+    "肩帶": ("ST", "肩帶"),      "肩带": ("ST", "肩帶"),
+    "腰繩": ("DC", "繩類"),      "腰绳": ("DC", "繩類"),
+    "抽繩": ("DC", "繩類"),      "抽绳": ("DC", "繩類"),
+    "帽頂": ("HD", "帽子"),      "帽顶": ("HD", "帽子"),
+    "帽沿": ("HD", "帽子"),
+    "帽繩": ("DC", "繩類"),      "帽绳": ("DC", "繩類"),
 }
 
 ZH_ZONE_TO_L1_BOTTOMS = {
@@ -207,6 +217,11 @@ ZH_ZONE_TO_L1_BOTTOMS = {
     # Binding
     "滾邊": ("NT", "領貼條"), "滚边": ("NT", "領貼條"),
     "貼條": ("NT", "領貼條"), "贴条": ("NT", "領貼條"),
+    # Style guide aliases
+    "裙合身": ("SR", "裙合身"),
+    "裙擺": ("BM", "下襬"),     "裙摆": ("BM", "下襬"),
+    "抽繩": ("DC", "繩類"),     "抽绳": ("DC", "繩類"),
+    "腰帶": ("DC", "繩類"),     "腰带": ("DC", "繩類"),
 }
 
 # ── Chinese Method → ISO mapping ──
@@ -234,13 +249,30 @@ ZH_METHOD_TO_ISO = {
     "双针": ("406", "COVERSTITCH"),
     "單針": ("301", "TOPSTITCH"),     # single needle = 301 lockstitch
     "单针": ("301", "TOPSTITCH"),
+    # From style guide Part A — additional Chinese ISO terms
+    "三線拷克": ("504", "OVERLOCK"),
+    "三线拷克": ("504", "OVERLOCK"),
+    "五線拷克": ("516", "SAFETY"),
+    "五线拷克": ("516", "SAFETY"),
+    "爬網": ("605", "COVERSTITCH"),
+    "爬网": ("605", "COVERSTITCH"),
+    "扒網": ("605", "COVERSTITCH"),
+    "扒网": ("605", "COVERSTITCH"),
+    "四線拷克": ("514", "OVERLOCK"),
+    "四线拷克": ("514", "OVERLOCK"),
+    "壓明線": ("301", "TOPSTITCH"),
+    "压明线": ("301", "TOPSTITCH"),
+    "臨邊線": ("301", "TOPSTITCH"),
+    "临边线": ("301", "TOPSTITCH"),
+    "安全車": ("516", "SAFETY"),
+    "安全车": ("516", "SAFETY"),
 }
 
 # Secondary method keywords (provide method info but don't map to ISO alone)
 ZH_METHOD_KEYWORDS = {
     "壓線": "TOPSTITCH", "压线": "TOPSTITCH",
     "面線": "TOPSTITCH", "面线": "TOPSTITCH",
-    "跨壓": "TOPSTITCH", "跨压": "TOPSTITCH",
+    "跨壓": "STRADDLE",  "跨压": "STRADDLE",
     "反折": "TURN_BACK", "反摺": "TURN_BACK", "翻折": "TURN_BACK",
     "打結車": "BARTACK", "打结车": "BARTACK",
     "套結": "BARTACK", "套结": "BARTACK",
@@ -249,6 +281,11 @@ ZH_METHOD_KEYWORDS = {
     "包縫": "FELLED_SEAM", "包缝": "FELLED_SEAM",
     "車縫": "STITCH", "车缝": "STITCH",
     "底線": "BOBBIN_THREAD", "底线": "BOBBIN_THREAD",
+    "包光": "CLEAN_FINISH", "做光": "CLEAN_FINISH",
+    "臨邊線": "EDGESTITCH", "临边线": "EDGESTITCH",
+    "熱貼合": "BONDED",     "热贴合": "BONDED",
+    "雷切邊": "LASER_CUT",  "雷切边": "LASER_CUT",
+    "毛邊": "RAW_EDGE",     "毛边": "RAW_EDGE",
 }
 
 # ── English ISO extraction regexes ──
