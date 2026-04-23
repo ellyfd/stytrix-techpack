@@ -38,9 +38,12 @@ so the viewer can query by a single canonical key regardless of source casing.
 """
 from __future__ import annotations
 
+import argparse
 import json
+import os
 import re
 import sys
+from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -70,6 +73,134 @@ L1_VALID_38 = frozenset(
 
 OUT_MASTER = REPO_ROOT / "data" / "recipes_master.json"
 OUT_L1_STD = REPO_ROOT / "data" / "l1_standard_38.json"
+
+
+# ── Gate Report ────────────────────────────────────────────────────────────
+# Two-tier classification of build issues.
+#
+# B-tier = silent data loss. --strict blocks the build on any B-tier hit.
+#   • b_l1_not_38        facts row with L1 code outside the 38 standard
+#   • b_bucket_consensus consensus row whose bucket isn't in bucket_taxonomy
+#   • b_bucket_facts     facts row whose bucket isn't in bucket_taxonomy
+#   • b_recipe_parse     recipe file that failed json.load
+#
+# A-tier = observability only. Tracked for future extract/translation-table
+# optimisation; never blocks (unless --strict-all, reserved for future).
+#   • a_zone_recipe      recipe zh zone name not resolvable to L1
+#   • a_zone_bridge      bridge zh zone name not resolvable to L1
+#   • a_recipe_missing_fields  recipe missing gender/dept/gt/it
+#   • a_consensus_missing      consensus row missing bucket or l1
+#   • a_iso_rejected     ISO value rejected by iso_is_valid()
+class GateReport:
+    def __init__(self):
+        # B-tier: value → count of the offending key (L1 code / bucket name / filename)
+        self.b_l1_not_38 = Counter()
+        self.b_bucket_consensus = Counter()
+        self.b_bucket_facts = Counter()
+        self.b_recipe_parse: list[tuple[str, str]] = []
+        # A-tier
+        self.a_zone_recipe = Counter()
+        self.a_zone_bridge = Counter()
+        self.a_recipe_missing_fields: list[str] = []
+        self.a_consensus_missing = 0
+        self.a_iso_rejected = Counter()
+
+    def b_total(self) -> int:
+        return (
+            sum(self.b_l1_not_38.values())
+            + sum(self.b_bucket_consensus.values())
+            + sum(self.b_bucket_facts.values())
+            + len(self.b_recipe_parse)
+        )
+
+    def a_total(self) -> int:
+        return (
+            sum(self.a_zone_recipe.values())
+            + sum(self.a_zone_bridge.values())
+            + len(self.a_recipe_missing_fields)
+            + self.a_consensus_missing
+            + sum(self.a_iso_rejected.values())
+        )
+
+    @staticmethod
+    def _top(counter: Counter, n: int = 5) -> str:
+        items = counter.most_common(n)
+        if not items:
+            return ""
+        rest = sum(counter.values()) - sum(c for _, c in items)
+        parts = [f"{k} ×{c}" for k, c in items]
+        if rest:
+            parts.append(f"… +{rest} more")
+        return "  ".join(parts)
+
+    def format(self) -> str:
+        bar = "━" * 60
+        lines = [
+            bar,
+            "  Gate Report  —  recipes_master build",
+            bar,
+            "",
+            "[B-tier]  硬違規（--strict 會擋 commit）",
+        ]
+
+        # B.1 L1 not in 38
+        total_l1 = sum(self.b_l1_not_38.values())
+        lines.append(f"  ◯ L1 不在 38 標準:       {total_l1} 筆 facts 被丟")
+        if total_l1:
+            lines.append(f"      top codes: {self._top(self.b_l1_not_38)}")
+
+        # B.2 bucket not in taxonomy
+        total_bc = sum(self.b_bucket_consensus.values())
+        total_bf = sum(self.b_bucket_facts.values())
+        lines.append(f"  ◯ bucket 不在 taxonomy:")
+        lines.append(f"      • consensus  {total_bc} 筆  {len(self.b_bucket_consensus)} 個 bucket")
+        if self.b_bucket_consensus:
+            for b, c in self.b_bucket_consensus.most_common(10):
+                lines.append(f"          {b}  ×{c}")
+        lines.append(f"      • facts-agg  {total_bf} 筆  {len(self.b_bucket_facts)} 個 bucket")
+        if self.b_bucket_facts:
+            for b, c in self.b_bucket_facts.most_common(10):
+                lines.append(f"          {b}  ×{c}")
+
+        # B.3 recipe parse fail
+        lines.append(f"  ◯ recipe 檔 parse 壞:    {len(self.b_recipe_parse)} 檔")
+        for fname, err in self.b_recipe_parse:
+            lines.append(f"      • {fname}  ({err})")
+
+        lines.append("")
+        lines.append(f"  總計:  B-tier  {self.b_total()} 筆  ← --strict 會據此決定 exit code")
+
+        # A-tier
+        lines += ["", "[A-tier]  軟提醒（未來優化用；--strict 不擋）"]
+
+        total_zr = sum(self.a_zone_recipe.values())
+        total_zb = sum(self.a_zone_bridge.values())
+        lines.append(f"  ◯ 中文 zone 名對不上 L1:  {total_zr + total_zb} 次")
+        if total_zr:
+            lines.append(f"      • recipe {total_zr} 次  top: {self._top(self.a_zone_recipe)}")
+        if total_zb:
+            lines.append(f"      • bridge {total_zb} 次  top: {self._top(self.a_zone_bridge)}")
+
+        lines.append(f"  ◯ recipe 少必要欄位:       {len(self.a_recipe_missing_fields)} 檔")
+        for fname in self.a_recipe_missing_fields[:10]:
+            lines.append(f"      • {fname}")
+
+        lines.append(f"  ◯ consensus 少 bucket/l1:  {self.a_consensus_missing} 筆")
+
+        total_iso = sum(self.a_iso_rejected.values())
+        lines.append(f"  ◯ ISO 非數字被拒:          {total_iso} 筆")
+        if total_iso:
+            lines.append(f"      top values: {self._top(self.a_iso_rejected)}")
+
+        lines.append("")
+        lines.append(f"  總計:  A-tier  {self.a_total()} 筆  ← 未來 --strict-all 會擋,此版僅記錄")
+        lines.append("")
+        lines.append(bar)
+        return "\n".join(lines)
+
+
+# Module-level singleton. Functions in this file mutate it during the build.
+GATE = GateReport()
 
 
 def norm(s):
@@ -173,6 +304,7 @@ def dist_dict_to_list(dist: dict, n_total: int):
     items = []
     for iso, v in dist.items():
         if not iso_is_valid(iso):
+            GATE.a_iso_rejected[str(iso)] += 1
             continue
         if as_counts:
             n = int(v)
@@ -205,6 +337,7 @@ def build_from_recipes(recipes_dir: Path, zh_to_l1: dict, warns: list):
             r = load_json(f)
         except Exception as e:
             warns.append(f"recipe {f.name}: failed to parse ({e})")
+            GATE.b_recipe_parse.append((f.name, str(e)))
             continue
         processed += 1
         gender = norm(r.get("gender"))
@@ -213,11 +346,13 @@ def build_from_recipes(recipes_dir: Path, zh_to_l1: dict, warns: list):
         it = norm(r.get("item_type") or r.get("it"))
         if not (gender and dept and gt and it):
             warns.append(f"recipe {f.name}: missing key fields")
+            GATE.a_recipe_missing_fields.append(f.name)
             continue
         for zh_zone, zd in (r.get("zones") or {}).items():
             l1 = zh_to_l1.get(zh_zone)
             if not l1:
                 warns.append(f"recipe {f.name}: unknown zone zh {zh_zone!r}")
+                GATE.a_zone_recipe[zh_zone] += 1
                 skipped_zones += 1
                 continue
             dist = zd.get("iso_distribution") or {}
@@ -278,6 +413,7 @@ def build_from_v4(v4):
             continue
         iso = e.get("iso")
         if not iso_is_valid(iso):
+            GATE.a_iso_rejected[str(iso)] += 1
             continue
         votes = e.get("pptx_2025_votes") or {}
         n_votes_total = sum(votes.values())
@@ -332,6 +468,7 @@ def build_from_bridge(bridge, zh_to_l1, warns):
             l1 = zh_to_l1.get(zh_zone)
             if not l1:
                 warns.append(f"bridge {gt_raw}: unknown zone zh {zh_zone!r}")
+                GATE.a_zone_bridge[zh_zone] += 1
                 skipped_zones += 1
                 continue
             zone_count += 1
@@ -360,9 +497,18 @@ def build_from_bridge(bridge, zh_to_l1, warns):
 
 
 def load_bucket_taxonomy(path: Path) -> dict:
-    """Load bucket_taxonomy.json → {bucket_lower: {gender: [...], dept: [...], gt: [...]}}."""
+    """Load bucket_taxonomy.json → {BUCKET_UPPER: {gender: [...], dept: [...], gt: [...]}}.
+
+    Keys in the source file are lowercase (womens_perf_bottoms), but both
+    consensus rows and facts rows carry bucket names in uppercase. Normalising
+    at load time lets all call sites just do bucket_tax.get(bucket_upper)
+    without per-site .upper() dances — and fixes the long-standing miss where
+    build_from_consensus silently fell through to the None-taxonomy fallback
+    for every one of its 275 rows.
+    """
     raw = load_json(path)
-    return raw.get("buckets") or {}
+    buckets = raw.get("buckets") or {}
+    return {k.upper(): v for k, v in buckets.items()}
 
 
 def build_from_consensus(consensus_path: Path, bucket_tax: dict, warns: list):
@@ -389,10 +535,12 @@ def build_from_consensus(consensus_path: Path, bucket_tax: dict, warns: list):
             l1 = key.get("l1")
             if not (bucket and l1):
                 warns.append(f"consensus: missing bucket or l1 in row {loaded}")
+                GATE.a_consensus_missing += 1
                 continue
             tax = bucket_tax.get(bucket)
             if not tax:
                 warns.append(f"consensus: no taxonomy for bucket {bucket!r}")
+                GATE.b_bucket_consensus[bucket] += 1
                 no_taxonomy += 1
                 # Still emit with None gender/dept/gt so data isn't lost
                 tax = {"gender": [None], "dept": [None], "gt": [None]}
@@ -454,10 +602,12 @@ def aggregate_facts_to_entries(
                 row = json.loads(line)
                 l1 = row.get("l1_code", "")
                 if l1 not in L1_VALID_38:
+                    GATE.b_l1_not_38[l1 or "<empty>"] += 1
                     skipped_l1 += 1
                     continue
                 bucket_raw = row.get("bucket", "").upper()
                 if bucket_raw not in valid_buckets_upper:
+                    GATE.b_bucket_facts[bucket_raw or "<empty>"] += 1
                     skipped_bucket += 1
                     continue
                 if (bucket_raw, l1) in consensus_keys:
@@ -525,6 +675,23 @@ def aggregate_facts_to_entries(
 
 
 def main():
+    parser = argparse.ArgumentParser(
+        description="Build data/recipes_master.json from 5 construction handbooks.",
+    )
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Exit 1 if any B-tier (silent-data-loss) violation is detected: "
+             "L1 not in 38 standard / bucket not in taxonomy / recipe parse fail.",
+    )
+    parser.add_argument(
+        "--strict-all",
+        action="store_true",
+        help="Exit 1 on A-tier OR B-tier violations. Reserved for future use "
+             "once A-tier backlog (zh-zone aliases, iso rejects, …) is drained.",
+    )
+    args = parser.parse_args()
+
     v43 = load_json(V43_PATH)
     v4 = load_json(V4_PATH)
     bridge = load_json(BRIDGE_PATH)
@@ -637,6 +804,48 @@ def main():
         if len(warns) > 50:
             print(f"  ... and {len(warns) - 50} more", file=sys.stderr)
     print(f"[recipes_master] {len(all_entries)} entries → {OUT_MASTER.name}", file=sys.stderr)
+
+    # ── Gate Report ──
+    # Always print (unconditional observability). Exit code depends on flags.
+    gate_text = GATE.format()
+    print("\n" + gate_text, file=sys.stderr)
+
+    # Also surface in GitHub Actions run page (Summary tab, first screen)
+    summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+    if summary_path:
+        try:
+            with open(summary_path, "a", encoding="utf-8") as sf:
+                sf.write("\n## Gate Report — `recipes_master`\n\n")
+                sf.write("```\n" + gate_text + "\n```\n")
+        except Exception as e:
+            print(f"[gate] failed to write GITHUB_STEP_SUMMARY: {e}", file=sys.stderr)
+
+    # Exit decision
+    b_total = GATE.b_total()
+    a_total = GATE.a_total()
+    if args.strict_all and (b_total + a_total) > 0:
+        print(
+            f"\n🛑 STRICT-ALL MODE BLOCKED — B:{b_total} + A:{a_total} "
+            f"件違規\n   see Gate Report above for details.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    if args.strict and b_total > 0:
+        hints = []
+        if sum(GATE.b_l1_not_38.values()):
+            hints.append(f"• {sum(GATE.b_l1_not_38.values())} 筆 L1 錯 → 檢查 extract 的 L1 分類")
+        if sum(GATE.b_bucket_consensus.values()) or sum(GATE.b_bucket_facts.values()):
+            missing = set(GATE.b_bucket_consensus) | set(GATE.b_bucket_facts)
+            hints.append(f"• {len(missing)} 個 bucket 未登錄 → 加進 data/bucket_taxonomy.json")
+        if GATE.b_recipe_parse:
+            hints.append(f"• {len(GATE.b_recipe_parse)} 檔 recipe 語法壞 → 開檔修 JSON")
+        print(f"\n🛑 STRICT MODE BLOCKED — {b_total} 件 B-tier 違規", file=sys.stderr)
+        if hints:
+            print("   修法建議:", file=sys.stderr)
+            for h in hints:
+                print(f"     {h}", file=sys.stderr)
+        print("   修完 commit 重推即可觸發 Actions 重跑。", file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
