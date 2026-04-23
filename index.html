@@ -22,6 +22,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
   <!-- SheetJS for Excel import/export in the admin POM-dictionary editor -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script type="text/babel" data-presets="react">
 const { useState, useMemo, useEffect, useRef } = React;
 
@@ -1961,6 +1962,88 @@ const CI_STEP_LABELS = {
   'Commit updated data':                             '提交資料',
 };
 
+/* 把 GitHub API 錯誤分類給 UI 顯示;UploadModal / PackageModal / ResultsUploadModal 共用 */
+async function classifyActionsError(res, thrown) {
+  if (thrown) {
+    return { kind: 'network', title: '無法連到 GitHub API',
+      hint: '檢查瀏覽器連線 / VPN;也可能是瀏覽器被擴充套件攔截。', detail: String(thrown?.message || thrown) };
+  }
+  const status = res.status;
+  let body = ''; let json = null;
+  try { body = await res.text(); json = JSON.parse(body); } catch {}
+  const msg = json?.message || body.slice(0, 240);
+  if (status === 403 && res.headers.get('x-ratelimit-remaining') === '0') {
+    const reset = res.headers.get('x-ratelimit-reset');
+    const when = reset ? new Date(parseInt(reset, 10) * 1000).toLocaleTimeString() : '稍後';
+    return { kind: 'ratelimit', title: 'GitHub API rate limit',
+      hint: `API 配額用完,${when} 會重置。在 Actions 頁面會看得到實際狀態。`, detail: msg };
+  }
+  if (status === 403 && /scope|resource not accessible|workflow|actions/i.test(msg)) {
+    return { kind: 'scope', title: 'PAT 權限不足',
+      hint: 'PAT 缺 actions:read 權限。到 GitHub Settings → Developer settings → PAT,重新產一把,勾選 repo (contents: write) 和 actions:read。',
+      detail: msg };
+  }
+  if (status === 403) {
+    return { kind: 'forbidden', title: `GitHub API 回 403`,
+      hint: '可能是 PAT 權限 / CORS / 存取被拒,請比對 detail。', detail: msg };
+  }
+  if (status === 404) {
+    return { kind: 'notfound', title: '找不到 resource',
+      hint: 'repo 可能是 private 且 PAT 無對應權限;或目標路徑 / commit sha 不存在。',
+      detail: msg };
+  }
+  if (status === 401) {
+    return { kind: 'scope', title: 'PAT 無效或過期',
+      hint: 'PAT 可能過期或被 revoke。重新到 GitHub Settings 產一把。', detail: msg };
+  }
+  if (status >= 500) {
+    return { kind: 'server', title: `GitHub API 回 ${status}`,
+      hint: 'GitHub 暫時異常,等幾分鐘重試。', detail: msg };
+  }
+  return { kind: 'unknown', title: `HTTP ${status}`,
+    hint: '未預期狀態。展開詳情看原始訊息。', detail: msg || '(no body)' };
+}
+
+/* 診斷框:三個 modal 的錯誤 UI 共用(接 classifyActionsError 的回傳) */
+function DiagnosticBox({ diagnostic, expanded, onToggleExpand }) {
+  if (!diagnostic) return null;
+  const style = ({
+    scope:     { bg: '#fef2f2', border: '#fecaca', color: '#991b1b', icon: '🔒' },
+    ratelimit: { bg: '#fef3c7', border: '#fde68a', color: '#92400e', icon: '⏱' },
+    notfound:  { bg: '#f3f4f6', border: '#d1d5db', color: '#374151', icon: '🔍' },
+    forbidden: { bg: '#fef2f2', border: '#fecaca', color: '#991b1b', icon: '🔒' },
+    network:   { bg: '#f3f4f6', border: '#d1d5db', color: '#374151', icon: '🌐' },
+    server:    { bg: '#fef3c7', border: '#fde68a', color: '#92400e', icon: '💥' },
+    timeout:   { bg: '#f3f4f6', border: '#d1d5db', color: '#374151', icon: '⏱' },
+    unknown:   { bg: '#f3f4f6', border: '#d1d5db', color: '#374151', icon: '?' },
+  })[diagnostic.kind] || { bg: '#f3f4f6', border: '#d1d5db', color: '#374151', icon: '?' };
+  return (
+    <div style={{ padding: '8px 10px', borderRadius: '5px',
+        background: style.bg, border: `1px solid ${style.border}`, fontSize: '12px', marginTop: '6px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: style.color, fontWeight: 600 }}>
+        <span>{style.icon}</span>
+        <span>{diagnostic.title}</span>
+        <button onClick={onToggleExpand}
+          style={{ marginLeft: 'auto', background: 'none', border: 'none', color: style.color,
+            fontSize: '11px', cursor: 'pointer', padding: 0, textDecoration: 'underline', fontFamily: 'inherit' }}>
+          {expanded ? '收起' : '展開詳情'}
+        </button>
+      </div>
+      <div style={{ fontSize: '11px', color: style.color, marginTop: '4px', lineHeight: 1.5 }}>
+        {diagnostic.hint}
+      </div>
+      {expanded && diagnostic.detail && (
+        <pre style={{ margin: '6px 0 0 0', padding: '6px 8px', background: '#fff',
+            border: `1px solid ${style.border}`, borderRadius: '3px',
+            fontSize: '10px', fontFamily: "'JetBrains Mono', monospace",
+            color: '#374151', whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: '120px', overflow: 'auto' }}>
+          {diagnostic.detail}
+        </pre>
+      )}
+    </div>
+  );
+}
+
 function UploadModal({ open, onClose, token }) {
   const [uploadFile, setUploadFile] = React.useState(null);
   const [phase, setPhase]           = React.useState('idle'); // idle|uploading|ci|done|error
@@ -1991,44 +2074,6 @@ function UploadModal({ open, onClose, token }) {
     }
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [phase]);
-
-  // 把 Actions API 的失敗分類成人看得懂的 bucket,給實際原因 + 可行動作
-  const classifyActionsError = async (res, thrown) => {
-    if (thrown) {
-      return { kind: 'network', title: '無法連到 GitHub API',
-        hint: '檢查瀏覽器連線 / VPN;也可能是瀏覽器被擴充套件攔截。', detail: String(thrown?.message || thrown) };
-    }
-    const status = res.status;
-    let body = ''; let json = null;
-    try { body = await res.text(); json = JSON.parse(body); } catch {}
-    const msg = json?.message || body.slice(0, 240);
-    if (status === 403 && res.headers.get('x-ratelimit-remaining') === '0') {
-      const reset = res.headers.get('x-ratelimit-reset');
-      const when = reset ? new Date(parseInt(reset, 10) * 1000).toLocaleTimeString() : '稍後';
-      return { kind: 'ratelimit', title: 'GitHub API rate limit',
-        hint: `API 配額用完,${when} 會重置。在 Actions 頁面會看得到實際狀態。`, detail: msg };
-    }
-    if (status === 403 && /scope|resource not accessible|workflow|actions/i.test(msg)) {
-      return { kind: 'scope', title: 'PAT 權限不足',
-        hint: 'PAT 缺 actions:read 權限。到 GitHub Settings → Developer settings → PAT,重新產一把,勾選 repo (contents: write) 和 actions:read。',
-        detail: msg };
-    }
-    if (status === 403) {
-      return { kind: 'forbidden', title: `GitHub API 回 403`,
-        hint: '可能是 PAT 權限 / CORS / 存取被拒,請比對 detail。', detail: msg };
-    }
-    if (status === 404) {
-      return { kind: 'notfound', title: '找不到 workflow run',
-        hint: 'repo 可能是 private 且 PAT 無 actions:read 權限;或 commit sha 還沒被 GitHub 建 run(稀有情況,可等幾秒再試)。',
-        detail: msg };
-    }
-    if (status >= 500) {
-      return { kind: 'server', title: `GitHub API 回 ${status}`,
-        hint: 'GitHub 暫時異常,到 GitHub Actions 頁面看,或等幾分鐘重試。', detail: msg };
-    }
-    return { kind: 'unknown', title: `HTTP ${status}`,
-      hint: '未預期狀態。展開詳情看原始訊息。', detail: msg || '(no body)' };
-  };
 
   const pollCi = async (sha, pat) => {
     const OWNER = 'ellyfd', REPO = 'stytrix-techpack';
@@ -2326,163 +2371,470 @@ function UploadModal({ open, onClose, token }) {
   );
 }
 
-/* PatchUploadModal:本地跑完 pipeline 後，把 recipes_master.json 合併推送到 GitHub
-   合併模式:下載現有版本 → upsert 新 entry(同 key 更新、舊 entry 保留) → 上傳 */
-const PATCH_TARGET = { path: 'data/recipes_master.json' };
+/* PackageModal:組 zip 讓外部單位離線跑 pipeline
+   scripts + reference data + 自動產 README/VERSION/.env.example/run.sh */
+const PACKAGE_FILES = [
+  'star_schema/scripts/extract_raw_text.py',
+  'star_schema/scripts/extract_unified.py',
+  'star_schema/scripts/vlm_pipeline.py',
+  'star_schema/scripts/build_recipes_master.py',
+  'requirements-pipeline.txt',
+  'techpack-translation-style-guide.md',
+  'data/construction_bridge_v6.json',
+  'data/bucket_taxonomy.json',
+  'data/l1_standard_38.json',
+  'data/ingest/consensus_v1/entries.jsonl',
+  'General Model_Path2_Construction Suggestion/iso_lookup_factory_v4.3.json',
+  'General Model_Path2_Construction Suggestion/iso_lookup_factory_v4.json',
+];
 
-function mergeRecipesMaster(existing, patch) {
-  const makeKey = e => [
-    e.aggregation_level || '',
-    e.key?.gender || '', e.key?.dept || '',
-    e.key?.gt || '', e.key?.it || '', e.key?.l1 || '',
-  ].join('|');
-  const map = new Map();
-  (existing.entries || []).forEach(e => map.set(makeKey(e), e));
-  (patch.entries || []).forEach(e => map.set(makeKey(e), e));
-  return {
-    ...existing,
-    generated_at: patch.generated_at || existing.generated_at,
-    source_versions: { ...existing.source_versions, ...(patch.source_versions || {}) },
-    entries: Array.from(map.values()),
-  };
-}
+const PKG_README = (sha, date) => `# StyTrix Techpack Pipeline 外送包
 
-function PatchUploadModal({ open, onClose, token }) {
-  const [patchFile, setPatchFile] = React.useState(null);
-  const [status, setStatus] = React.useState({ status: 'idle', msg: '' });
+> 版本: ${sha} · 產出: ${date}
+
+這包含線上 recipes_master pipeline 的完整腳本 + 參考資料,讓協作單位在本機跑 PDF/PPTX → facts → recipes。
+
+## ⚠ 前置條件 — 需自備 Anthropic API Key
+
+Step 2b 會呼叫 Claude Vision 分析 PDF callout 圖。請先到 https://console.anthropic.com → API Keys → 建一組自己的 key,**不要用 Stytrix 團隊的 key**。
+
+沒 key 也能跑,Step 2b 會安靜跳過,callout 訊號不進資料。
+
+## 環境
+
+Python 3.10+ · pip / venv · 約 500 MB 空間
+
+## Setup
+
+\`\`\`bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements-pipeline.txt
+cp .env.example .env
+# 編輯 .env 填入 ANTHROPIC_API_KEY
+\`\`\`
+
+## 跑 Pipeline
+
+\`\`\`bash
+# 把 PDF/PPTX 放進 data/ingest/uploads/
+./run.sh
+\`\`\`
+
+順序照線上 workflow:Step 1(抽文字+圖) → 2b(VLM callout) → 2a(合併 unified) → 3(重建 recipes_master)。
+
+## 產出 & 回傳
+
+跑完 \`data/ingest/{metadata/designs.jsonl, unified/facts.jsonl, vlm/facts.jsonl}\` 打成一包 zip,到 Stytrix 前台管理選單 → 📥 上傳 Pipeline 結果 → 拖入 → 合併。
+
+## 常見問題
+
+- **沒 ANTHROPIC_API_KEY**: Step 2b 跳過,2a + 3 仍會跑。
+- **PDF 讀不進去**: 確認有文字層(非掃描件)。
+- **PPTX 空白**: 文字需是 text frame,不是圖片。
+`;
+
+const PKG_VERSION = (sha, shortSha, date) => `StyTrix Techpack Pipeline Package
+commit: ${sha}
+short:  ${shortSha}
+built:  ${date}
+source: https://github.com/ellyfd/stytrix-techpack
+`;
+
+const PKG_ENV_EXAMPLE = `# 需自備 Anthropic API Key
+# 取得: https://console.anthropic.com → API Keys → Create Key
+# 請勿使用 Stytrix 團隊的 key
+ANTHROPIC_API_KEY=sk-ant-YOUR-KEY-HERE
+`;
+
+const PKG_RUN_SH = `#!/usr/bin/env bash
+set -e
+[ -f .env ] && export $(grep -v '^#' .env | xargs)
+mkdir -p data/ingest/{uploads,metadata,pptx,pdf/callout_images,unified,vlm}
+
+echo "→ Step 1: extract_raw_text.py"
+python star_schema/scripts/extract_raw_text.py --output-dir data/ingest --allow-empty --force
+
+echo "→ Step 2b: vlm_pipeline.py"
+python star_schema/scripts/vlm_pipeline.py --map-iso \\
+  --out data/ingest/vlm \\
+  --callout-dir data/ingest/pdf/callout_images \\
+  --ingest-dir data/ingest --allow-empty || echo "⚠ Step 2b 失敗,繼續"
+
+echo "→ Step 2a: extract_unified.py"
+python star_schema/scripts/extract_unified.py --ingest-dir data/ingest --out data/ingest/unified
+
+echo "→ Step 3: build_recipes_master.py"
+python star_schema/scripts/build_recipes_master.py --strict
+
+echo "✓ 完成:data/recipes_master.json + data/ingest/{unified,vlm}/facts.jsonl"
+`;
+
+function PackageModal({ open, onClose, token }) {
+  const [phase, setPhase] = React.useState('idle');
+  const [pat, setPat] = React.useState(null);
+  const [sha, setSha] = React.useState(null);
+  const [recipesList, setRecipesList] = React.useState([]);
+  const [progress, setProgress] = React.useState({ fetched: 0, total: 0 });
+  const [diagnostic, setDiagnostic] = React.useState(null);
+  const [diagExpanded, setDiagExpanded] = React.useState(false);
+  const OWNER = 'ellyfd', REPO = 'stytrix-techpack';
 
   React.useEffect(() => {
-    if (open) { setPatchFile(null); setStatus({ status: 'idle', msg: '' }); }
+    if (!open) return;
+    setPhase('fetching'); setDiagnostic(null); setDiagExpanded(false);
+    setProgress({ fetched: 0, total: 0 });
+    (async () => {
+      if (!token) { setPhase('error'); setDiagnostic({ kind: 'scope', title: '未設定 Admin Token', hint: '請先至「⚙ 設定」填入。', detail: '' }); return; }
+      try {
+        const tokResp = await fetch('/api/ingest_token', { method: 'POST', headers: { 'x-admin-token': token } });
+        if (!tokResp.ok) throw new Error(tokResp.status === 401 ? 'Admin Token 錯誤' : `Token 端點 ${tokResp.status}`);
+        const { github_pat } = await tokResp.json();
+        const ghH = { Authorization: `token ${github_pat}`, Accept: 'application/vnd.github.v3+json' };
+        const commitResp = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/commits/main`, { headers: ghH });
+        if (!commitResp.ok) { setDiagnostic(await classifyActionsError(commitResp)); setPhase('error'); return; }
+        const { sha: commitSha } = await commitResp.json();
+        const listResp = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/recipes?ref=${commitSha}`, { headers: ghH });
+        if (!listResp.ok) { setDiagnostic(await classifyActionsError(listResp)); setPhase('error'); return; }
+        const entries = await listResp.json();
+        setPat(github_pat); setSha(commitSha);
+        setRecipesList(entries.filter(f => f.type === 'file' && f.name.endsWith('.json')));
+        setPhase('ready');
+      } catch (err) {
+        setDiagnostic(await classifyActionsError(null, err));
+        setPhase('error');
+      }
+    })();
+  }, [open, token]);
+
+  const handleBuild = async () => {
+    if (!pat || !sha) return;
+    setPhase('building'); setDiagnostic(null);
+    try {
+      if (typeof JSZip === 'undefined') throw new Error('JSZip 未載入');
+      const zip = new JSZip();
+      const rawBase = `https://raw.githubusercontent.com/${OWNER}/${REPO}/${sha}`;
+      const headers = { Authorization: `token ${pat}` };
+      const paths = [...PACKAGE_FILES, ...recipesList.map(r => `recipes/${r.name}`)];
+      setProgress({ fetched: 0, total: paths.length });
+      await Promise.all(paths.map(async (p) => {
+        const r = await fetch(`${rawBase}/${p.split('/').map(encodeURIComponent).join('/')}`, { headers });
+        if (!r.ok) throw new Error(`${p}: HTTP ${r.status}`);
+        zip.file(p, await r.blob());
+        setProgress(pr => ({ fetched: pr.fetched + 1, total: pr.total }));
+      }));
+      const shortSha = sha.slice(0, 7);
+      const date = new Date().toISOString().slice(0, 19).replace('T', ' ');
+      const dayStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      zip.file('README.md', PKG_README(shortSha, date));
+      zip.file('VERSION', PKG_VERSION(sha, shortSha, date));
+      zip.file('.env.example', PKG_ENV_EXAMPLE);
+      zip.file('run.sh', PKG_RUN_SH, { unixPermissions: '755' });
+      zip.file('data/ingest/uploads/.gitkeep', '');
+      const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+      const filename = `stytrix-pipeline-${shortSha}-${dayStr}.zip`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+      setPhase('done');
+    } catch (err) {
+      setDiagnostic(await classifyActionsError(null, err));
+      setPhase('error');
+    }
+  };
+
+  if (!open) return null;
+  const shortSha = sha ? sha.slice(0, 7) : '...';
+  return (
+    <div onClick={onClose} role="dialog" aria-modal="true" style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: '20px',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background: '#fff', borderRadius: '12px', padding: '24px',
+        width: '100%', maxWidth: '520px', boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
+          <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 700 }}>📦 下載 Pipeline 包</h2>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '22px', color: '#999', lineHeight: 1, padding: '0 4px', fontFamily: 'inherit' }}>×</button>
+        </div>
+
+        <div style={{ marginBottom: '14px', padding: '10px 12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', fontSize: '12px', color: '#92400e', lineHeight: 1.6 }}>
+          ⚠ 外部單位需<strong>自備 ANTHROPIC_API_KEY</strong>(Step 2b 用)。請在 README 引導他們到 console.anthropic.com 建 key,<strong>不要共享 Stytrix 的 key</strong>。
+        </div>
+
+        <div style={{ marginBottom: '14px', padding: '10px 12px', background: '#f9fafb', border: '1px solid #e5e5e5', borderRadius: '8px', fontSize: '12px', color: '#374151', lineHeight: 1.7 }}>
+          <div><strong>版本</strong>:<code style={{ fontFamily: "'JetBrains Mono',monospace" }}>{shortSha}</code> (main 最新)</div>
+          <div><strong>包含</strong>:{PACKAGE_FILES.length} 份固定檔 + {recipesList.length} 個 recipe JSON + 自動產 README / VERSION / .env.example / run.sh</div>
+          <div><strong>格式</strong>:zip,~5 MB</div>
+        </div>
+
+        {phase === 'building' && (
+          <div style={{ marginBottom: '14px', padding: '10px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '6px', fontSize: '12px', color: '#1d4ed8' }}>
+            打包中... {progress.fetched}/{progress.total} 檔
+          </div>
+        )}
+        {phase === 'done' && (
+          <div style={{ marginBottom: '14px', padding: '10px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', color: '#166534' }}>
+            ✓ zip 已下載。交給外部單位即可。
+          </div>
+        )}
+
+        <DiagnosticBox diagnostic={diagnostic} expanded={diagExpanded} onToggleExpand={() => setDiagExpanded(v => !v)} />
+
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '16px' }}>
+          <button onClick={onClose} style={{ padding: '8px 16px', fontSize: '13px', border: '1px solid #d1d5db', background: '#f9fafb', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit' }}>關閉</button>
+          {phase === 'ready' && (
+            <button onClick={handleBuild} style={{ padding: '8px 20px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', border: 'none', background: '#d97706', color: '#fff', borderRadius: '6px', fontFamily: 'inherit' }}>
+              Build & Download
+            </button>
+          )}
+          {phase === 'fetching' && (
+            <button disabled style={{ padding: '8px 20px', fontSize: '13px', fontWeight: 600, border: 'none', background: '#e5e7eb', color: '#9ca3af', borderRadius: '6px', fontFamily: 'inherit' }}>
+              取版本資訊中...
+            </button>
+          )}
+          {phase === 'building' && (
+            <button disabled style={{ padding: '8px 20px', fontSize: '13px', fontWeight: 600, border: 'none', background: '#e5e7eb', color: '#9ca3af', borderRadius: '6px', fontFamily: 'inherit' }}>
+              打包中...
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ResultsUploadModal:吃外部單位送回的 zip,merge 到 data/ingest/{unified,vlm,metadata}/
+   走 PatchUploadModal 相同的直連 GitHub PUT 模式,不經 Vercel endpoint */
+const RESULT_TARGETS = {
+  'data/ingest/unified/facts.jsonl':     { label: 'Unified facts',  mode: 'append' },
+  'data/ingest/vlm/facts.jsonl':         { label: 'VLM facts',      mode: 'append' },
+  'data/ingest/metadata/designs.jsonl':  { label: '設計 metadata',  mode: 'append-dedup', dedupKey: 'design_id' },
+};
+
+function ResultsUploadModal({ open, onClose, token }) {
+  const [phase, setPhase] = React.useState('idle'); // idle | reading | preview | uploading | done | error
+  const [inputFile, setInputFile] = React.useState(null);
+  const [preview, setPreview] = React.useState(null); // { recognized: [{target, count}], unknown: [filename] }
+  const [uploadResults, setUploadResults] = React.useState([]);
+  const [diagnostic, setDiagnostic] = React.useState(null);
+  const [diagExpanded, setDiagExpanded] = React.useState(false);
+  const OWNER = 'ellyfd', REPO = 'stytrix-techpack';
+
+  React.useEffect(() => {
+    if (!open) return;
+    setPhase('idle'); setInputFile(null); setPreview(null);
+    setUploadResults([]); setDiagnostic(null); setDiagExpanded(false);
   }, [open]);
 
-  const handlePatch = async () => {
-    if (!patchFile) return;
-    if (!token) { setStatus({ status: 'error', msg: '請先至「⚙ 設定」填入 Admin Token' }); return; }
-    setStatus({ status: 'uploading', msg: '準備...' });
+  const readZip = async (file) => {
+    if (typeof JSZip === 'undefined') throw new Error('JSZip 未載入');
+    const zip = await JSZip.loadAsync(file);
+    const recognized = [];
+    const unknown = [];
+    const contents = {}; // path → string
+    for (const [path, entry] of Object.entries(zip.files)) {
+      if (entry.dir) continue;
+      // 標準化路徑(移除開頭 dir)
+      const normalized = path.replace(/^[^/]+\//, ''); // 剝一層若有
+      const key = Object.keys(RESULT_TARGETS).find(k => normalized === k || path === k || path.endsWith(k));
+      if (key) {
+        const text = await entry.async('string');
+        const lines = text.split('\n').filter(l => l.trim());
+        contents[key] = text;
+        recognized.push({ target: key, count: lines.length, label: RESULT_TARGETS[key].label });
+      } else if (!path.startsWith('.') && !path.includes('/.')) {
+        unknown.push(path);
+      }
+    }
+    return { recognized, unknown, contents };
+  };
+
+  const handleFile = async (file) => {
+    setInputFile(file); setPhase('reading'); setDiagnostic(null);
+    try {
+      let recognized = [], unknown = [], contents = {};
+      if (file.name.endsWith('.jsonl')) {
+        // 單檔 jsonl — 根據檔名推斷 target
+        const guess = Object.keys(RESULT_TARGETS).find(k => file.name === k.split('/').pop());
+        if (!guess) throw new Error(`認不出 ${file.name} 屬於哪個 target。請包進 zip 並保留 data/ingest/... 路徑。`);
+        const text = await file.text();
+        const lines = text.split('\n').filter(l => l.trim());
+        recognized = [{ target: guess, count: lines.length, label: RESULT_TARGETS[guess].label }];
+        contents[guess] = text;
+      } else if (file.name.endsWith('.zip')) {
+        ({ recognized, unknown, contents } = await readZip(file));
+      } else {
+        throw new Error('僅支援 .zip 或 .jsonl');
+      }
+      if (recognized.length === 0) throw new Error('zip 內沒認出任何可合併的檔。預期含 data/ingest/{unified,vlm}/facts.jsonl 或 metadata/designs.jsonl。');
+      setPreview({ recognized, unknown, contents });
+      setPhase('preview');
+    } catch (err) {
+      setDiagnostic({ kind: 'unknown', title: '讀檔失敗', hint: err.message, detail: String(err) });
+      setPhase('error');
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!preview || !token) return;
+    setPhase('uploading'); setDiagnostic(null); setUploadResults([]);
     try {
       const tokResp = await fetch('/api/ingest_token', { method: 'POST', headers: { 'x-admin-token': token } });
-      if (!tokResp.ok) throw new Error(tokResp.status === 401 ? 'Admin Token 錯誤' : `Token 端點錯誤: ${await tokResp.text()}`);
+      if (!tokResp.ok) throw new Error(tokResp.status === 401 ? 'Admin Token 錯誤' : `Token 端點 ${tokResp.status}`);
       const { github_pat } = await tokResp.json();
+      const ghH = { Authorization: `token ${github_pat}`, Accept: 'application/vnd.github.v3+json' };
+      const results = [];
 
-      setStatus({ status: 'uploading', msg: '讀取檔案...' });
-      const text = await patchFile.text();
-      let parsed;
-      try { parsed = JSON.parse(text); } catch { throw new Error('不是有效的 JSON 檔案'); }
-      if (!Array.isArray(parsed.entries)) throw new Error('不是有效的 recipes_master.json（缺少 entries）');
-
-      const OWNER = 'ellyfd', REPO = 'stytrix-techpack', BRANCH = 'main';
-      const apiUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${PATCH_TARGET.path}`;
-      const ghHeaders = {
-        Authorization: `token ${github_pat}`,
-        Accept: 'application/vnd.github.v3+json',
-        'Content-Type': 'application/json',
-        'User-Agent': 'stytrix-ingest-upload/1.0',
-      };
-
-      setStatus({ status: 'uploading', msg: '下載現有版本...' });
-      let sha, finalText = text, mergeStats = null;
-      const getResp = await fetch(apiUrl, { headers: ghHeaders });
-      if (getResp.ok) {
-        const ex = await getResp.json();
-        sha = ex.sha;
-
-        // GitHub Contents API only returns content for files ≤1MB.
-        // For larger files, fall back to the Git Blob API using the blob SHA.
-        let rawB64 = ex.content?.replace(/\n/g, '');
-        if (!rawB64 && ex.sha) {
-          setStatus({ status: 'uploading', msg: '檔案較大，改用 Blob API 下載...' });
-          const blobR = await fetch(
-            `https://api.github.com/repos/${OWNER}/${REPO}/git/blobs/${ex.sha}`,
-            { headers: ghHeaders });
-          if (blobR.ok) { const b = await blobR.json(); rawB64 = b.content?.replace(/\n/g, ''); }
+      for (const item of preview.recognized) {
+        const path = item.target;
+        const target = RESULT_TARGETS[path];
+        const apiUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`;
+        // 1. 抓現有版本
+        let existingText = '', sha = null;
+        const getResp = await fetch(apiUrl, { headers: ghH });
+        if (getResp.ok) {
+          const d = await getResp.json();
+          sha = d.sha;
+          existingText = atob(d.content.replace(/\n/g, ''));
+        } else if (getResp.status !== 404) {
+          setDiagnostic(await classifyActionsError(getResp));
+          setPhase('error'); return;
         }
-
-        if (rawB64) {
-          const existingJson = JSON.parse(atob(rawB64));
-          const makeKey = e => [e.aggregation_level||'', e.key?.gender||'', e.key?.dept||'',
-                                 e.key?.gt||'', e.key?.it||'', e.key?.l1||''].join('|');
-          const existingKeys = new Set((existingJson.entries||[]).map(makeKey));
-          const patchKeys    = new Set(parsed.entries.map(makeKey));
-          const newCount     = [...patchKeys].filter(k => !existingKeys.has(k)).length;
-          const updCount     = [...patchKeys].filter(k =>  existingKeys.has(k)).length;
-          const merged = mergeRecipesMaster(existingJson, parsed);
-          finalText = JSON.stringify(merged, null, 2);
-          mergeStats = { prev: existingJson.entries?.length || 0, newEntries: newCount, updated: updCount, total: merged.entries.length };
-          setStatus({ status: 'uploading', msg: `合併：原 ${mergeStats.prev} 筆，新增 ${newCount}、更新 ${updCount}，推送中...` });
+        // 2. 合併
+        let mergedText;
+        if (target.mode === 'append-dedup' && target.dedupKey) {
+          const existingLines = existingText.split('\n').filter(l => l.trim());
+          const existingKeys = new Set(existingLines.map(l => { try { return JSON.parse(l)[target.dedupKey]; } catch { return null; } }).filter(Boolean));
+          const newLines = preview.contents[path].split('\n').filter(l => {
+            if (!l.trim()) return false;
+            try { const k = JSON.parse(l)[target.dedupKey]; return k && !existingKeys.has(k); } catch { return false; }
+          });
+          mergedText = existingLines.concat(newLines).join('\n') + (newLines.length ? '\n' : '');
+          results.push({ path, added: newLines.length, skipped: item.count - newLines.length });
         } else {
-          setStatus({ status: 'uploading', msg: '⚠ 無法下載現有版本，以新版覆寫，推送中...' });
+          const newLines = preview.contents[path].split('\n').filter(l => l.trim());
+          mergedText = (existingText.trim() ? existingText.trimEnd() + '\n' : '') + newLines.join('\n') + '\n';
+          results.push({ path, added: newLines.length, skipped: 0 });
         }
+        // 3. PUT
+        const b64 = btoa(unescape(encodeURIComponent(mergedText)));
+        const putResp = await fetch(apiUrl, {
+          method: 'PUT', headers: { ...ghH, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: `chore(ingest): merge external results into ${path.split('/').pop()}`,
+            content: b64, sha, branch: 'main',
+          }),
+        });
+        if (!putResp.ok) {
+          setDiagnostic(await classifyActionsError(putResp));
+          setPhase('error'); setUploadResults(results); return;
+        }
+        setUploadResults([...results]);
       }
-
-      const b64 = btoa(unescape(encodeURIComponent(finalText)));
-      const putBody = { message: 'chore(data): merge recipes_master via admin', content: b64, branch: BRANCH };
-      if (sha) putBody.sha = sha;
-
-      const putResp = await fetch(apiUrl, { method: 'PUT', headers: ghHeaders, body: JSON.stringify(putBody) });
-      if (!putResp.ok) throw new Error(`GitHub API ${putResp.status}: ${(await putResp.text()).slice(0, 120)}`);
-
-      const okMsg = mergeStats
-        ? `✓ 合併完成：原 ${mergeStats.prev} 筆，新增 ${mergeStats.newEntries}、更新 ${mergeStats.updated} → 合計 ${mergeStats.total} 筆\nVercel 約 1~2 分鐘後自動重新部署生效。`
-        : `✓ 推送完成（覆寫）— Vercel 約 1~2 分鐘後自動重新部署生效。`;
-      setStatus({ status: 'ok', msg: okMsg });
-      setPatchFile(null);
-    } catch (e) {
-      setStatus({ status: 'error', msg: `錯誤: ${e.message}` });
+      setUploadResults(results);
+      setPhase('done');
+    } catch (err) {
+      setDiagnostic(await classifyActionsError(null, err));
+      setPhase('error');
     }
   };
 
   if (!open) return null;
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: '20px' }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: '12px', padding: '24px',
-        width: '100%', maxWidth: '480px', boxShadow: '0 8px 32px rgba(0,0,0,0.18)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '6px' }}>
-          <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 700 }}>🩹 上傳 Patch (JSON)</h2>
+    <div onClick={onClose} role="dialog" aria-modal="true" style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: '20px',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background: '#fff', borderRadius: '12px', padding: '24px',
+        width: '100%', maxWidth: '520px', boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '14px' }}>
+          <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 700 }}>📥 上傳 Pipeline 結果</h2>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '22px', color: '#999', lineHeight: 1, padding: '0 4px', fontFamily: 'inherit' }}>×</button>
-        </div>
-        <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '16px' }}>
-          本地跑完 pipeline 後，把 <code>recipes_master.json</code> 合併進 GitHub。
-          新 entry 會 upsert，舊 entry 保留，不蓋掉歷史資料。
         </div>
 
         {!token && (
-          <div style={{ marginBottom: '14px', padding: '8px 12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', fontSize: '12px', color: '#92400e' }}>
+          <div style={{ marginBottom: '12px', padding: '8px 12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', fontSize: '12px', color: '#92400e' }}>
             ⚠ Admin Token 尚未設定 — 請先點右上角 <strong>⚙ 設定</strong> 填入。
           </div>
         )}
 
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '16px' }}>
-          <label style={{ padding: '7px 14px', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
-            border: '1px solid #c7d2fe', background: '#fff', color: '#4338ca', borderRadius: '6px' }}>
-            選擇 recipes_master.json
-            <input type="file" accept=".json" style={{ display: 'none' }}
-              onChange={e => { setPatchFile(e.target.files?.[0] || null); setStatus({ status: 'idle', msg: '' }); e.target.value = ''; }} />
-          </label>
-          {patchFile && <span style={{ fontSize: '13px', color: '#374151', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{patchFile.name}</span>}
-        </div>
-
-        {status.msg && (
-          <div style={{ marginBottom: '14px', padding: '8px 12px', borderRadius: '6px', fontSize: '12px',
-            whiteSpace: 'pre-wrap',
-            background: status.status === 'ok' ? '#f0fdf4' : status.status === 'error' ? '#fef2f2' : '#f9fafb',
-            color: status.status === 'ok' ? '#166534' : status.status === 'error' ? '#dc2626' : '#374151',
-            border: `1px solid ${status.status === 'ok' ? '#bbf7d0' : status.status === 'error' ? '#fecaca' : '#e5e5e5'}` }}>
-            {status.msg}
+        {phase === 'idle' && (
+          <div>
+            <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '10px', lineHeight: 1.6 }}>
+              拖入外部單位送回的 <code>.zip</code>(含 data/ingest/... 路徑)或單一 <code>.jsonl</code>。合併後到 GitHub Actions 手動觸發 <code>rebuild_master</code> 重建 recipes_master。
+            </div>
+            <label style={{ display: 'inline-block', padding: '8px 14px', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+              border: '1px solid #7dd3fc', background: '#f0f9ff', color: '#0369a1', borderRadius: '6px' }}>
+              選擇檔案
+              <input type="file" accept=".zip,.jsonl" style={{ display: 'none' }}
+                onChange={e => { const f = e.target.files?.[0]; if (f) { handleFile(f); e.target.value = ''; } }} />
+            </label>
           </div>
         )}
 
-        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-          <button onClick={onClose}
-            style={{ padding: '8px 16px', fontSize: '13px', border: '1px solid #d1d5db', background: '#f9fafb', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit' }}>
-            關閉
-          </button>
-          <button onClick={handlePatch} disabled={!patchFile || status.status === 'uploading'}
-            style={{ padding: '8px 20px', fontSize: '13px', fontWeight: 600, cursor: patchFile ? 'pointer' : 'not-allowed',
-              border: 'none', background: patchFile ? '#4338ca' : '#e0e7ff', color: patchFile ? '#fff' : '#9ca3af',
-              borderRadius: '6px', fontFamily: 'inherit' }}>
-            {status.status === 'uploading' ? '推送中...' : '推送'}
-          </button>
+        {(phase === 'reading') && (
+          <div style={{ fontSize: '12px', color: '#6b7280', padding: '12px 0' }}>讀檔中... {inputFile?.name}</div>
+        )}
+
+        {phase === 'preview' && preview && (
+          <div>
+            <div style={{ fontSize: '12px', color: '#374151', marginBottom: '8px' }}>
+              檔案:<code style={{ fontFamily: "'JetBrains Mono',monospace" }}>{inputFile.name}</code>
+            </div>
+            <div style={{ padding: '10px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', marginBottom: '8px' }}>
+              <div style={{ fontSize: '11px', color: '#166534', fontWeight: 600, marginBottom: '4px' }}>可合併({preview.recognized.length} 項)</div>
+              {preview.recognized.map((r, i) => (
+                <div key={i} style={{ fontSize: '11px', color: '#15803d', fontFamily: "'JetBrains Mono',monospace" }}>
+                  + {r.label}:{r.count} 筆 → {r.target}
+                </div>
+              ))}
+            </div>
+            {preview.unknown.length > 0 && (
+              <div style={{ padding: '10px', background: '#f9fafb', border: '1px solid #e5e5e5', borderRadius: '6px', marginBottom: '8px' }}>
+                <div style={{ fontSize: '11px', color: '#6b7280', fontWeight: 600, marginBottom: '4px' }}>忽略({preview.unknown.length} 項,認不出的路徑)</div>
+                {preview.unknown.slice(0, 5).map((p, i) => (
+                  <div key={i} style={{ fontSize: '10px', color: '#9ca3af', fontFamily: "'JetBrains Mono',monospace" }}>{p}</div>
+                ))}
+                {preview.unknown.length > 5 && <div style={{ fontSize: '10px', color: '#9ca3af' }}>...及另 {preview.unknown.length - 5} 個</div>}
+              </div>
+            )}
+          </div>
+        )}
+
+        {(phase === 'uploading' || phase === 'done' || (phase === 'error' && uploadResults.length)) && (
+          <div style={{ padding: '10px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '6px', marginBottom: '8px' }}>
+            <div style={{ fontSize: '11px', color: '#1d4ed8', fontWeight: 600, marginBottom: '4px' }}>合併進度</div>
+            {uploadResults.map((r, i) => (
+              <div key={i} style={{ fontSize: '11px', color: '#1e40af', fontFamily: "'JetBrains Mono',monospace" }}>
+                ✓ {r.path}:+{r.added}{r.skipped > 0 ? `,略過 ${r.skipped}(重複)` : ''}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {phase === 'done' && (
+          <div style={{ padding: '10px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', color: '#166534', lineHeight: 1.6 }}>
+            ✓ 全部合併完成。到 <a href={`https://github.com/${OWNER}/${REPO}/actions/workflows/rebuild_master.yml`} target="_blank" rel="noopener noreferrer" style={{ color: '#065f46', textDecoration: 'underline' }}>GitHub Actions</a> 手動 <code>workflow_dispatch</code> 觸發 rebuild,或等下次上傳 Techpack 時自動重建。
+          </div>
+        )}
+
+        <DiagnosticBox diagnostic={diagnostic} expanded={diagExpanded} onToggleExpand={() => setDiagExpanded(v => !v)} />
+
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '14px' }}>
+          <button onClick={onClose} style={{ padding: '8px 16px', fontSize: '13px', border: '1px solid #d1d5db', background: '#f9fafb', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit' }}>關閉</button>
+          {phase === 'preview' && (
+            <button onClick={handleUpload} disabled={!token} style={{ padding: '8px 20px', fontSize: '13px', fontWeight: 600, cursor: token ? 'pointer' : 'not-allowed', border: 'none', background: token ? '#0369a1' : '#e5e7eb', color: token ? '#fff' : '#9ca3af', borderRadius: '6px', fontFamily: 'inherit' }}>
+              確認合併 ({preview.recognized.length} 檔)
+            </button>
+          )}
+          {phase === 'uploading' && (
+            <button disabled style={{ padding: '8px 20px', fontSize: '13px', fontWeight: 600, border: 'none', background: '#e5e7eb', color: '#9ca3af', borderRadius: '6px', fontFamily: 'inherit' }}>合併中...</button>
+          )}
         </div>
       </div>
     </div>
@@ -3138,7 +3490,8 @@ function App() {
   const [pomRules, setPomRules] = useState(null);
   const [adminOpen, setAdminOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
-  const [patchOpen, setPatchOpen] = useState(false);
+  const [packageOpen, setPackageOpen] = useState(false);
+  const [resultsOpen, setResultsOpen] = useState(false);
   const [manualsOpen, setManualsOpen] = useState(false);
   const [mgmtMenuOpen, setMgmtMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -4347,11 +4700,17 @@ function App() {
                 zIndex: 100, overflow: 'hidden', padding: '4px',
               }}>
                 {[
+                  { key: 'package', label: '下載 Pipeline 包',   hint: '送給外部單位',    dot: '#d97706', onClick: () => setPackageOpen(true) },
+                  { key: 'results', label: '上傳 Pipeline 結果', hint: '外部送回的 facts', dot: '#0369a1', onClick: () => setResultsOpen(true) },
                   { key: 'upload',  label: '上傳 Techpack',      hint: 'PDF / PPTX',     dot: '#16a34a', onClick: () => setUploadOpen(true) },
-                  { key: 'patch',   label: '上傳 Patch',         hint: 'JSON',            dot: '#4338ca', onClick: () => setPatchOpen(true) },
+                  { key: '_divider', divider: true },
                   { key: 'dict',    label: 'POM 翻譯表編輯',     hint: '中英對照',        dot: '#0891b2', onClick: () => setAdminOpen(true) },
                   { key: 'manuals', label: '權威手冊登記表',     hint: '8 份規格手冊',    dot: '#7e22ce', onClick: () => setManualsOpen(true) },
-                ].map(item => (
+                ].map(item => item.divider ? (
+                  <div key={item.key} style={{
+                    height: '1px', background: '#e8e5e1', margin: '4px 8px',
+                  }} />
+                ) : (
                   <button key={item.key}
                     onClick={() => { item.onClick(); setMgmtMenuOpen(false); }}
                     onMouseEnter={(e) => e.currentTarget.style.background = '#faf9f7'}
@@ -6736,9 +7095,14 @@ function App() {
         onClose={() => setUploadOpen(false)}
         token={adminToken}
       />
-      <PatchUploadModal
-        open={patchOpen}
-        onClose={() => setPatchOpen(false)}
+      <PackageModal
+        open={packageOpen}
+        onClose={() => setPackageOpen(false)}
+        token={adminToken}
+      />
+      <ResultsUploadModal
+        open={resultsOpen}
+        onClose={() => setResultsOpen(false)}
         token={adminToken}
       />
       <AdminModal
