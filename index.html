@@ -1955,7 +1955,6 @@ function SettingsModal({ open, onClose, token, onSaveToken }) {
 /* UploadModal:上傳 Techpack PDF / PPTX → /api/ingest_upload → GitHub Actions rebuild */
 function UploadModal({ open, onClose, token }) {
   const [uploadFile, setUploadFile] = React.useState(null);
-  const [uploadSeason, setUploadSeason] = React.useState('misc');
   const [uploadStatus, setUploadStatus] = React.useState({ status: 'idle', msg: '' });
 
   React.useEffect(() => {
@@ -1990,11 +1989,10 @@ function UploadModal({ open, onClose, token }) {
 
       // Step 3: push directly to GitHub Contents API (no Vercel size limit)
       const OWNER = 'ellyfd', REPO = 'stytrix-techpack', BRANCH = 'main';
-      const safeName   = uploadFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-      const seasonSlug = (uploadSeason || 'misc').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 16);
-      const filePath   = `data/ingest/uploads/${seasonSlug}/${safeName}`;
-      const apiUrl     = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${filePath}`;
-      const ghHeaders  = {
+      const safeName = uploadFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const filePath = `data/ingest/uploads/${safeName}`;
+      const apiUrl   = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${filePath}`;
+      const ghHeaders = {
         Authorization: `token ${github_pat}`,
         Accept: 'application/vnd.github.v3+json',
         'Content-Type': 'application/json',
@@ -2007,7 +2005,7 @@ function UploadModal({ open, onClose, token }) {
       const getResp = await fetch(apiUrl, { headers: ghHeaders });
       if (getResp.ok) { const ex = await getResp.json(); sha = ex.sha; }
 
-      const putBody = { message: `chore(ingest): upload ${safeName} (${seasonSlug})`, content: b64, branch: BRANCH };
+      const putBody = { message: `chore(ingest): upload ${safeName}`, content: b64, branch: BRANCH };
       if (sha) putBody.sha = sha;
 
       const putResp = await fetch(apiUrl, { method: 'PUT', headers: ghHeaders, body: JSON.stringify(putBody) });
@@ -2044,21 +2042,14 @@ function UploadModal({ open, onClose, token }) {
           </div>
         )}
 
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '10px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '16px' }}>
           <label style={{ padding: '7px 14px', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
             border: '1px solid #86efac', background: '#fff', color: '#15803d', borderRadius: '6px' }}>
             選擇檔案
             <input type="file" accept=".pdf,.pptx" style={{ display: 'none' }}
               onChange={e => { setUploadFile(e.target.files?.[0] || null); setUploadStatus({ status: 'idle', msg: '' }); e.target.value = ''; }} />
           </label>
-          {uploadFile && <span style={{ fontSize: '13px', color: '#374151', maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{uploadFile.name}</span>}
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-          <label style={{ fontSize: '13px', color: '#374151', whiteSpace: 'nowrap' }}>季別</label>
-          <input value={uploadSeason} onChange={e => setUploadSeason(e.target.value)}
-            placeholder="e.g. SP26"
-            style={{ width: '120px', padding: '7px 10px', fontSize: '13px', border: '1px solid #d1d5db', borderRadius: '6px' }} />
+          {uploadFile && <span style={{ fontSize: '13px', color: '#374151', maxWidth: '260px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{uploadFile.name}</span>}
         </div>
 
         {uploadStatus.msg && (

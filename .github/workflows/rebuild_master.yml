@@ -3,7 +3,7 @@ name: Rebuild recipes_master
 on:
   push:
     paths:
-      - "data/ingest/uploads/**"  # triggered when new PDF/PPTX is uploaded
+      - "data/ingest/uploads/**"
   workflow_dispatch:
     inputs:
       force:
@@ -89,7 +89,11 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Stage derived outputs only (not the source uploads, already committed)
+          # Delete processed uploads (keep .gitkeep to preserve directory)
+          find data/ingest/uploads -maxdepth 1 -type f ! -name '.gitkeep' \
+            -exec git rm --force {} \; 2>/dev/null || true
+
+          # Stage derived outputs
           git add data/recipes_master.json
           git add data/iso_dictionary.json
           git add data/l1_standard_38.json
