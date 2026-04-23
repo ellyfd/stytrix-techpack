@@ -71,6 +71,15 @@ L1_VALID_38 = frozenset(
     "PD PK PL PS QT RS SA SB SH SL SP SR SS ST TH WB ZP".split()
 )
 
+# Special L1 codes that are NOT in the 38-part standard but carry real data.
+# "_DEFAULT" = catch-all bucket-level rule emitted by extract_unified when a
+# techpack writes "All body seams are <ISO>". The rule applies to every
+# L1 part's body seam for that design; we preserve it as an entry with
+# l1="_DEFAULT" so the frontend can use it as a final fallback when
+# per-L1 lookups miss.
+L1_SPECIAL = frozenset({"_DEFAULT"})
+L1_ACCEPTED = L1_VALID_38 | L1_SPECIAL
+
 OUT_MASTER = REPO_ROOT / "data" / "recipes_master.json"
 OUT_L1_STD = REPO_ROOT / "data" / "l1_standard_38.json"
 
@@ -104,6 +113,9 @@ class GateReport:
         self.a_recipe_missing_fields: list[str] = []
         self.a_consensus_missing = 0
         self.a_iso_rejected = Counter()
+        # L1 catch-all rules — real data (techpack's "all body seams are <ISO>"),
+        # tracked here for visibility but intentionally not a violation.
+        self.a_default_rules = Counter()  # ISO value → count
 
     def b_total(self) -> int:
         return (
@@ -120,6 +132,7 @@ class GateReport:
             + len(self.a_recipe_missing_fields)
             + self.a_consensus_missing
             + sum(self.a_iso_rejected.values())
+            + sum(self.a_default_rules.values())
         )
 
     @staticmethod
@@ -191,6 +204,11 @@ class GateReport:
         lines.append(f"  ◯ ISO 非數字被拒:          {total_iso} 筆")
         if total_iso:
             lines.append(f"      top values: {self._top(self.a_iso_rejected)}")
+
+        total_def = sum(self.a_default_rules.values())
+        lines.append(f"  ◯ _DEFAULT catch-all 規則: {total_def} 筆  (legit catch-all 「全款 body seam 為 ISO X」)")
+        if total_def:
+            lines.append(f"      ISO 分布: {self._top(self.a_default_rules)}")
 
         lines.append("")
         lines.append(f"  總計:  A-tier  {self.a_total()} 筆  ← 未來 --strict-all 會擋,此版僅記錄")
@@ -578,9 +596,14 @@ def aggregate_facts_to_entries(
 
     Scans data/ingest/*/facts.jsonl.  Groups by (BUCKET, l1_code) and computes
     iso_distribution (numeric ISO only) + methods.  Skips:
-      - l1_code not in L1_VALID_38 (incl. _DEFAULT)
+      - l1_code not in L1_ACCEPTED (L1_VALID_38 + L1_SPECIAL={_DEFAULT})
       - bucket not in bucket_taxonomy (seasonal codes, empty, temp labels)
       - (bucket, l1) keys already covered by consensus_v1 (consensus wins)
+
+    L1 "_DEFAULT" passes through and aggregates normally — it represents the
+    techpack's "all body seams are <ISO>" catch-all rule and is valuable data,
+    not a violation.  Frontend can use l1=_DEFAULT entries as final fallback
+    when per-L1 lookups miss.
     """
     from collections import defaultdict
 
@@ -601,10 +624,16 @@ def aggregate_facts_to_entries(
                 total_rows += 1
                 row = json.loads(line)
                 l1 = row.get("l1_code", "")
-                if l1 not in L1_VALID_38:
+                if l1 not in L1_ACCEPTED:
                     GATE.b_l1_not_38[l1 or "<empty>"] += 1
                     skipped_l1 += 1
                     continue
+                if l1 in L1_SPECIAL:
+                    # Legit catch-all rule — track in A-tier for visibility
+                    # (grouped by ISO value), then let it aggregate like any L1.
+                    iso_raw = row.get("iso", "")
+                    if iso_raw:
+                        GATE.a_default_rules[str(iso_raw)] += 1
                 bucket_raw = row.get("bucket", "").upper()
                 if bucket_raw not in valid_buckets_upper:
                     GATE.b_bucket_facts[bucket_raw or "<empty>"] += 1
