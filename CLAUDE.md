@@ -156,3 +156,47 @@ git commit -m "chore: 移除孤兒 $CANDIDATE (已通過 grep gate 驗證)"
 - ~~`L2_Confusion_Pairs_Matrix.md`~~ — 2026-04-23 已合併入 `L2_VLM_Decision_Tree_Prompts_v2.md` 末尾(§ 混淆對照表)
 - `L1_部位定義_Sketch視覺指引.md`(根目錄 + PATH2 兩份,MD5 相同) — 兩個 pipeline 各自 CWD 相對讀,保守留雙份
 - `scripts/` 裡路徑寫死 `/sessions/` 的腳本 — README 明列為「內部環境再生 pom_rules/ 來源參考」,不可刪
+
+---
+
+## Part C — 審計 / Code Review Checklist
+
+給下次跑 audit 的人(AI 或工程師)的必讀清單。每條都是吃過虧來的,不是紙上談兵。
+
+### C1. `index.html` 是 7000+ 行 inline React — 深度掃它,不要只靠 agent 摘要
+
+2026-04-23 第一輪審計把 `index.html` 丟給 Explore agent 掃 "完成度",回報結論是「生產可用,零 stub」— 漏掉了一個真 bug:
+
+> `ResultsUploadModal` 用 `atob(d.content)` decode 含中文的 `facts.jsonl`,>0x7F byte 被截斷,合併後寫壞線上檔。code review 才抓到(commit `c78b3f9`)。
+
+Agent 掃「功能完成度」會看到所有 Modal 都在,不會展開字串處理細節。靜態單檔 SPA 的這些陷阱在 agent 摘要裡隱形:
+
+**掃 `index.html` 時必須人工 grep 的陷阱清單**:
+
+| 陷阱 | grep 指令 | 風險 |
+|------|----------|------|
+| `atob` / `btoa` **跟 UTF-8 資料** 同用 | `grep -n 'atob\|btoa' index.html`,每個非 helper 位置看上下文:是處理 binary 檔(✅)還是文字(⚠ 要走 `TextEncoder`) | 含中文的 markdown / jsonl base64 來回會壞字元 |
+| `String.fromCharCode` 無 chunk | `grep -n 'String.fromCharCode' index.html`,大檔 spread 會爆 stack | 大 PDF / jsonl 上傳時 stack overflow |
+| `localStorage` 讀無 try/catch | `grep -n 'localStorage.getItem\|localStorage.setItem' index.html` | 隱私瀏覽 / quota 超出時 throw |
+| `JSON.parse(fetch)` 無 catch | `grep -n 'JSON.parse' index.html` | 後端錯誤回 HTML,SPA 整個白屏 |
+| 硬編 API endpoint 路徑 | `grep -n "'/api/" index.html` | endpoint 改名時漏改 |
+
+### C2. 靜態/衍生資料檔的 skew 檢查
+
+每次 audit 要同時驗 **source → build → derived** 三份檔一致:
+
+- `bucket_taxonomy.json`(source)→ `build_recipes_master.py`(code)→ `recipes_master.json`(derived)
+- source / code 有任一改動,derived 可能是 **stale commit** 而不是正確結果
+- 2026-04-23 發現 `recipes_master.json` 比 source 落後 5 個 commits,理由是 Actions workflow 只在 `data/ingest/uploads/**` push 時觸發,沒人上傳 techpack 時 derived 檔就永遠停在舊版
+- **SOP**:audit 時本地跑一次 `python3 star_schema/scripts/build_recipes_master.py`,`git diff data/recipes_master.json` 應為空。有 diff = source 跟 derived 已 skew,要麼 commit 新產物,要麼查清楚為何不一致
+
+### C3. CLI flag 宣稱 vs 實作
+
+文件/workflow 宣稱某個 flag(如 `--strict`)有行為,**必須實際進程式碼確認**。2026-04-23 發現:
+
+- workflow `.github/workflows/rebuild_master.yml:87` 傳 `--strict`
+- README / 網站架構圖都寫「違規 exit 1 擋住 commit」
+- 但 `build_recipes_master.py` 的 `main()` 完全沒 argparse,flag 被 Python 吞掉
+- **gate 是假的** — 任何 schema 違規都靜默成功,直到 commit `7bda79f` 才修
+
+**SOP**:audit 時對每個 workflow step 的命令列,grep 被呼叫 script 的 argparse,對比 README 描述。缺一邊就是文件債。
