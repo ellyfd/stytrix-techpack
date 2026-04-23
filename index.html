@@ -1966,6 +1966,8 @@ function UploadModal({ open, onClose, token }) {
   const [phase, setPhase]           = React.useState('idle'); // idle|uploading|ci|done|error
   const [statusMsg, setStatusMsg]   = React.useState('');
   const [ciSteps, setCiSteps]       = React.useState([]);
+  const [ciDiagnostic, setCiDiagnostic] = React.useState(null); // { kind, title, hint, detail }
+  const [diagExpanded, setDiagExpanded] = React.useState(false);
   const [elapsed, setElapsed]       = React.useState(0);
   const cancelRef = React.useRef(false);
   const timerRef  = React.useRef(null);
@@ -1973,7 +1975,8 @@ function UploadModal({ open, onClose, token }) {
   React.useEffect(() => {
     if (open) {
       cancelRef.current = false;
-      setUploadFile(null); setPhase('idle'); setStatusMsg(''); setCiSteps([]); setElapsed(0);
+      setUploadFile(null); setPhase('idle'); setStatusMsg(''); setCiSteps([]);
+      setCiDiagnostic(null); setDiagExpanded(false); setElapsed(0);
     } else {
       cancelRef.current = true;
       if (timerRef.current) clearInterval(timerRef.current);
@@ -1989,6 +1992,44 @@ function UploadModal({ open, onClose, token }) {
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [phase]);
 
+  // 把 Actions API 的失敗分類成人看得懂的 bucket,給實際原因 + 可行動作
+  const classifyActionsError = async (res, thrown) => {
+    if (thrown) {
+      return { kind: 'network', title: '無法連到 GitHub API',
+        hint: '檢查瀏覽器連線 / VPN;也可能是瀏覽器被擴充套件攔截。', detail: String(thrown?.message || thrown) };
+    }
+    const status = res.status;
+    let body = ''; let json = null;
+    try { body = await res.text(); json = JSON.parse(body); } catch {}
+    const msg = json?.message || body.slice(0, 240);
+    if (status === 403 && res.headers.get('x-ratelimit-remaining') === '0') {
+      const reset = res.headers.get('x-ratelimit-reset');
+      const when = reset ? new Date(parseInt(reset, 10) * 1000).toLocaleTimeString() : '稍後';
+      return { kind: 'ratelimit', title: 'GitHub API rate limit',
+        hint: `API 配額用完,${when} 會重置。在 Actions 頁面會看得到實際狀態。`, detail: msg };
+    }
+    if (status === 403 && /scope|resource not accessible|workflow|actions/i.test(msg)) {
+      return { kind: 'scope', title: 'PAT 權限不足',
+        hint: 'PAT 缺 actions:read 權限。到 GitHub Settings → Developer settings → PAT,重新產一把,勾選 repo (contents: write) 和 actions:read。',
+        detail: msg };
+    }
+    if (status === 403) {
+      return { kind: 'forbidden', title: `GitHub API 回 403`,
+        hint: '可能是 PAT 權限 / CORS / 存取被拒,請比對 detail。', detail: msg };
+    }
+    if (status === 404) {
+      return { kind: 'notfound', title: '找不到 workflow run',
+        hint: 'repo 可能是 private 且 PAT 無 actions:read 權限;或 commit sha 還沒被 GitHub 建 run(稀有情況,可等幾秒再試)。',
+        detail: msg };
+    }
+    if (status >= 500) {
+      return { kind: 'server', title: `GitHub API 回 ${status}`,
+        hint: 'GitHub 暫時異常,到 GitHub Actions 頁面看,或等幾分鐘重試。', detail: msg };
+    }
+    return { kind: 'unknown', title: `HTTP ${status}`,
+      hint: '未預期狀態。展開詳情看原始訊息。', detail: msg || '(no body)' };
+  };
+
   const pollCi = async (sha, pat) => {
     const OWNER = 'ellyfd', REPO = 'stytrix-techpack';
     const actionsBase = `https://api.github.com/repos/${OWNER}/${REPO}/actions`;
@@ -1999,28 +2040,40 @@ function UploadModal({ open, onClose, token }) {
 
     // Wait up to 45s for the run to appear
     let runId = null;
-    let authDenied = false;
+    let diagnosis = null; // 捕捉最後一次失敗,供 fallback 顯示
     for (let i = 0; i < 15 && !cancelRef.current; i++) {
       await sleep(3000);
       try {
         const r = await fetch(`${actionsBase}/runs?head_sha=${sha}&per_page=1`, { headers: actH });
-        if (r.status === 403 || r.status === 404) { authDenied = true; break; }
+        if (r.status === 403 || r.status === 404) {
+          diagnosis = await classifyActionsError(r);
+          break;
+        }
         if (r.ok) { const d = await r.json(); if (d.workflow_runs?.length) { runId = d.workflow_runs[0].id; break; } }
-      } catch {}
+        // 其他非 ok 狀態(5xx 之類):記錄但繼續 retry
+        if (!r.ok) diagnosis = await classifyActionsError(r);
+      } catch (err) {
+        diagnosis = await classifyActionsError(null, err);
+      }
     }
 
-    if (authDenied) {
-      // Token lacks actions:read — show link to GitHub Actions page instead
+    if (diagnosis && !runId) {
+      // 無法取得 runId — 顯示診斷 + 仍給 GitHub Actions 連結當 fallback
       if (!cancelRef.current) {
         setPhase('done');
-        setStatusMsg(prev => prev + '\n✓ 檔案已推送。CI Pipeline 已啟動，請至 GitHub Actions 查看進度 →');
-        setCiSteps([{ label: '查看 GitHub Actions', status: 'completed', conclusion: 'link', url: ghActionsUrl }]);
+        setStatusMsg(prev => prev + '\n✓ 檔案已推送。無法在此追蹤 CI,已把診斷資訊列在下方。');
+        setCiDiagnostic(diagnosis);
+        setCiSteps([{ label: '前往 GitHub Actions 看實際進度', status: 'completed', conclusion: 'link', url: ghActionsUrl }]);
       }
       return;
     }
 
     if (!runId) {
-      if (!cancelRef.current) { setPhase('error'); setStatusMsg(prev => prev + '\n⚠ CI 未啟動（超過 45 秒）'); }
+      if (!cancelRef.current) {
+        setPhase('error');
+        setStatusMsg(prev => prev + '\n⚠ CI 未啟動(超過 45 秒)');
+        setCiDiagnostic({ kind: 'timeout', title: 'CI 未啟動', hint: 'workflow 可能未觸發,或 GitHub 延遲。到 Actions 頁面確認。', detail: `head_sha=${sha}` });
+      }
       return;
     }
 
@@ -2033,7 +2086,14 @@ function UploadModal({ open, onClose, token }) {
           fetch(`${actionsBase}/runs/${runId}`, { headers: actH }),
           fetch(`${actionsBase}/runs/${runId}/jobs`, { headers: actH }),
         ]);
-        if (!runR.ok) continue;
+        if (!runR.ok) {
+          // Poll 中遇錯也分類一次;若是 rate limit / 權限問題,顯示 diagnostic 讓使用者能去看 GH
+          if (runR.status === 403 || runR.status === 404 || runR.status >= 500) {
+            const d = await classifyActionsError(runR);
+            setCiDiagnostic(d);
+          }
+          continue;
+        }
         const run = await runR.json();
 
         if (jobsR.ok) {
@@ -2050,13 +2110,19 @@ function UploadModal({ open, onClose, token }) {
           setPhase(run.conclusion === 'success' ? 'done' : 'error');
           setStatusMsg(prev =>
             run.conclusion === 'success'
-              ? prev + '\n✓ Pipeline 全部完成！'
-              : prev + `\n❌ Pipeline 失敗 (${run.conclusion})，請看下方步驟`);
+              ? prev + '\n✓ Pipeline 全部完成!'
+              : prev + `\n❌ Pipeline 失敗 (${run.conclusion}),請看下方步驟`);
           return;
         }
-      } catch {}
+      } catch (err) {
+        setCiDiagnostic(await classifyActionsError(null, err));
+      }
     }
-    if (!cancelRef.current) { setPhase('error'); setStatusMsg(prev => prev + '\n⚠ 追蹤逾時（15 分鐘）'); }
+    if (!cancelRef.current) {
+      setPhase('error');
+      setStatusMsg(prev => prev + '\n⚠ 追蹤逾時(15 分鐘)');
+      if (!ciDiagnostic) setCiDiagnostic({ kind: 'timeout', title: '追蹤逾時', hint: 'CI 跑超過 15 分鐘,到 Actions 頁面看實際狀態。', detail: `runId=${runId}` });
+    }
   };
 
   const handleUpload = async () => {
@@ -2165,12 +2231,50 @@ function UploadModal({ open, onClose, token }) {
             )}
             {ciSteps.map((s, i) => {
               if (s.conclusion === 'link') {
+                // 診斷資訊的 bucket 配色
+                const kindStyle = ciDiagnostic ? ({
+                  scope:     { bg: '#fef2f2', border: '#fecaca', color: '#991b1b', icon: '🔒' },
+                  ratelimit: { bg: '#fef3c7', border: '#fde68a', color: '#92400e', icon: '⏱' },
+                  notfound:  { bg: '#f3f4f6', border: '#d1d5db', color: '#374151', icon: '🔍' },
+                  forbidden: { bg: '#fef2f2', border: '#fecaca', color: '#991b1b', icon: '🔒' },
+                  network:   { bg: '#f3f4f6', border: '#d1d5db', color: '#374151', icon: '🌐' },
+                  server:    { bg: '#fef3c7', border: '#fde68a', color: '#92400e', icon: '💥' },
+                  timeout:   { bg: '#f3f4f6', border: '#d1d5db', color: '#374151', icon: '⏱' },
+                  unknown:   { bg: '#f3f4f6', border: '#d1d5db', color: '#374151', icon: '?' },
+                })[ciDiagnostic.kind] || { bg: '#f3f4f6', border: '#d1d5db', color: '#374151', icon: '?' } : null;
                 return (
-                  <div key={i} style={{ padding: '8px 10px', borderRadius: '5px', background: '#eff6ff', border: '1px solid #bfdbfe', fontSize: '12px' }}>
-                    <a href={s.url} target="_blank" rel="noopener noreferrer"
-                      style={{ color: '#2563eb', textDecoration: 'underline', fontWeight: 500 }}>
-                      前往 GitHub Actions 查看 Pipeline 進度 →
-                    </a>
+                  <div key={i}>
+                    <div style={{ padding: '8px 10px', borderRadius: '5px', background: '#eff6ff', border: '1px solid #bfdbfe', fontSize: '12px', marginBottom: ciDiagnostic ? '6px' : 0 }}>
+                      <a href={s.url} target="_blank" rel="noopener noreferrer"
+                        style={{ color: '#2563eb', textDecoration: 'underline', fontWeight: 500 }}>
+                        {s.label || '前往 GitHub Actions 查看 Pipeline 進度'} →
+                      </a>
+                    </div>
+                    {ciDiagnostic && kindStyle && (
+                      <div style={{ padding: '8px 10px', borderRadius: '5px',
+                          background: kindStyle.bg, border: `1px solid ${kindStyle.border}`, fontSize: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: kindStyle.color, fontWeight: 600 }}>
+                          <span>{kindStyle.icon}</span>
+                          <span>{ciDiagnostic.title}</span>
+                          <button onClick={() => setDiagExpanded(v => !v)}
+                            style={{ marginLeft: 'auto', background: 'none', border: 'none', color: kindStyle.color,
+                              fontSize: '11px', cursor: 'pointer', padding: '0', textDecoration: 'underline', fontFamily: 'inherit' }}>
+                            {diagExpanded ? '收起' : '展開詳情'}
+                          </button>
+                        </div>
+                        <div style={{ fontSize: '11px', color: kindStyle.color, marginTop: '4px', lineHeight: 1.5 }}>
+                          {ciDiagnostic.hint}
+                        </div>
+                        {diagExpanded && ciDiagnostic.detail && (
+                          <pre style={{ margin: '6px 0 0 0', padding: '6px 8px', background: '#fff',
+                              border: `1px solid ${kindStyle.border}`, borderRadius: '3px',
+                              fontSize: '10px', fontFamily: "'JetBrains Mono', monospace",
+                              color: '#374151', whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: '120px', overflow: 'auto' }}>
+                            {ciDiagnostic.detail}
+                          </pre>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               }
@@ -2210,7 +2314,7 @@ function UploadModal({ open, onClose, token }) {
             </button>
           )}
           {(phase === 'done' || phase === 'error') && (
-            <button onClick={() => { setPhase('idle'); setStatusMsg(''); setCiSteps([]); setElapsed(0); }}
+            <button onClick={() => { setPhase('idle'); setStatusMsg(''); setCiSteps([]); setCiDiagnostic(null); setDiagExpanded(false); setElapsed(0); }}
               style={{ padding: '8px 20px', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
                 border: 'none', background: '#6366f1', color: '#fff', borderRadius: '6px', fontFamily: 'inherit' }}>
               再上傳
