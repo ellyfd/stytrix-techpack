@@ -5670,29 +5670,15 @@ function App() {
                       尚未勾選任何 POM — 回基碼檢視勾選
                     </div>
                   ) : (
-                    /* 全碼表格:分 tier 渲染,每個 tier 一個 header 外移 + 自己的 table */
-                    tiersOrdered.map(tier => {
-                      const tierCodes = codesByTier[tier].filter(c => !excluded.has(c));
-                      if (!tierCodes.length) return null;
-                      const tc = TIER[tier];
-                      return (
-                        <div key={tier} style={{ marginBottom: "14px" }}>
-                          <div style={{
-                            display: "flex", alignItems: "center", gap: "10px",
-                            padding: isMobile ? "10px 4px 6px" : "14px 4px 8px",
-                          }}>
-                            <span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", background: tc.c, flexShrink: 0 }} aria-hidden="true" />
-                            <span style={{ fontSize: T.fs.md, fontWeight: 700, color: T.c.text, letterSpacing: "0.02em" }}>{tc.label}</span>
-                            <span style={{ fontSize: T.fs.base, color: T.c.text3, fontWeight: 500 }}>{tierCodes.length} 項</span>
-                          </div>
-                          {/* B.7 — 彩色左邊條同基碼視圖,全碼 table 也用同樣 tier 色系 */}
-                          <div style={{ background: "#fff", border: "1px solid #e8e5e1", borderLeft: `3px solid ${tc.c}`, borderRadius: "12px", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-                            <table style={{
-                              width: "auto",
-                              minWidth: isMobile ? `${220 + visibleSizes.length * 66}px` : "100%",
-                              maxWidth: "100%",
-                              borderCollapse: "collapse", fontSize: T.fs.md, tableLayout: "fixed",
-                            }}>
+                    /* 全碼表格:單一 table,不分 tier 區塊(基碼已確認 tier,全碼只做 grading)。
+                       列順序:allCodesFlat(must → recommend → optional → custom)排序後過濾 excluded。 */
+                    <div style={{ background: "#fff", border: `1px solid ${T.c.border}`, borderRadius: "12px", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+                      <table style={{
+                        width: "auto",
+                        minWidth: isMobile ? `${220 + visibleSizes.length * 66}px` : "100%",
+                        maxWidth: "100%",
+                        borderCollapse: "collapse", fontSize: T.fs.md, tableLayout: "fixed",
+                      }}>
                               {/* 全碼 table 欄寬跟基碼一致:用 colgroup + tableLayout:fixed 鎖住,
                                   所有 tier 共用同一套比例。size 欄 BASE 稍寬(可編輯輸入框),其餘等寬。 */}
                               <colgroup>
@@ -5730,9 +5716,12 @@ function App() {
                                 </tr>
                               </thead>
                               <tbody>
-                                {tierCodes.map(code => {
+                                {gradingCodes.map(code => {
+                            const tier = tierOf(code);
                             const grRow = gr[code];
-                            const m = mr[tier]?.[code];
+                            const m = tier === "custom"
+                              ? (() => { const cm = customPoms.find(p => p.code === code); return cm ? { tolerance: cm.tolerance } : null; })()
+                              : mr[tier]?.[code];
                             const pn = pomNames[code] || {};
                             const edited = baseOverrides[code] != null && baseOverrides[code] !== "" && parseVal(baseOverrides[code]) != null;
                             return (
@@ -5897,10 +5886,7 @@ function App() {
                                 })}
                               </tbody>
                             </table>
-                          </div>
-                        </div>
-                      );
-                    })
+                    </div>
                   )}
 
                 </div>
