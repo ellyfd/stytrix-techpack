@@ -5532,7 +5532,13 @@ function App() {
               ).concat(customCodes);
               const gradingCodes = allCodesFlat.filter(c => !excluded.has(c));
               const sizes = currentBucket.size_range || [];
-              const tierOf = code => (mr.must?.[code] || tier1Set.has(code)) ? "must" : mr.recommend?.[code] ? "recommend" : (mr.optional?.[code] ? "optional" : "custom");
+              /* 注意:grading closure 的 foundational set 叫 gradingTier1Set(在 5550 宣告),
+                 這裡用 bucket 直查避免 TDZ / 跨行 ordering 問題。 */
+              const _foundationalPoms = new Set(currentBucket.foundational_measurements?.tier1_poms || []);
+              const tierOf = code => (mr.must?.[code] || _foundationalPoms.has(code)) ? "must"
+                : mr.recommend?.[code] ? "recommend"
+                : mr.optional?.[code] ? "optional"
+                : "custom";
               const tolStr = m => {
                 const t = m?.tolerance;
                 if (!t) return "—";
