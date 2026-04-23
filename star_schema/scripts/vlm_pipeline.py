@@ -19,21 +19,40 @@ Usage (future API mode):
 """
 
 import os, re, json, sys
+from pathlib import Path
 from collections import defaultdict
 
 # ============================================================
-# CONFIG
+# CONFIG — defaults only; CLI flags override
 # ============================================================
-# Paths relative to script location (star_schema/scripts/)
-_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-_STAR_SCHEMA = os.path.dirname(_SCRIPT_DIR)       # star_schema/
-_ONY_ROOT = os.path.dirname(_STAR_SCHEMA)          # ONY/
-_INGEST = os.path.join(_STAR_SCHEMA, "data", "ingest")
 
-BASE = _ONY_ROOT
-OUT_DIR = os.path.join(_INGEST, "vlm")             # → star_schema/data/ingest/vlm/
-CALLOUT_IMG_DIR = os.path.join(_INGEST, "pdf", "callout_images")  # read PNGs from Step 1
-CLASS_FILE = os.path.join(_ONY_ROOT, "pom_analysis_v5.5.1", "data", "all_designs_gt_it_classification.json")
+def _find_repo_root(start: Path) -> Path | None:
+    """Walk up from `start` until we find a `.git` directory."""
+    for p in [start, *start.parents]:
+        if (p / ".git").exists():
+            return p
+    return None
+
+
+_SCRIPT_DIR = Path(__file__).resolve().parent
+_STAR_SCHEMA = _SCRIPT_DIR.parent               # star_schema/
+_REPO_ROOT = _find_repo_root(_SCRIPT_DIR)       # stytrix-techpack/ (or None)
+
+# Default ingest root: <repo_root>/data/ingest/ if in a checkout, else
+# star_schema/data/ingest/ (legacy local dev)
+if _REPO_ROOT and (_REPO_ROOT / "data").exists():
+    _INGEST = str(_REPO_ROOT / "data" / "ingest")
+else:
+    _INGEST = str(_STAR_SCHEMA / "data" / "ingest")
+
+# Legacy ONY scan root (local dev only; CLI should pass --scan-dir explicitly in CI)
+BASE = str(_STAR_SCHEMA.parent)
+
+# Defaults — overridable via CLI
+OUT_DIR = os.path.join(_INGEST, "vlm")                              # vlm outputs
+CALLOUT_IMG_DIR = os.path.join(_INGEST, "pdf", "callout_images")     # read PNGs from Step 1
+CLASS_FILE = os.path.join(BASE, "pom_analysis_v5.5.1", "data",
+                          "all_designs_gt_it_classification.json")
 
 # ============================================================
 # PART 1: GAP/ONY GLOSSARY → ISO MAPPING
@@ -499,11 +518,13 @@ def process_vlm_output(vlm_json, design_id, fabric=None):
 # ============================================================
 
 def find_pdfs_for_designs(design_ids, search_dirs=None):
-    """Find original PDF files for a list of design IDs."""
+    """Find original PDF files for a list of design IDs.
+
+    If search_dirs is None, walks legacy BASE/{2024,2025,2026}; in CI pass an
+    explicit list (e.g. ['data/ingest/uploads']).
+    """
     if search_dirs is None:
-        search_dirs = [
-            f"{BASE}/2024", f"{BASE}/2025", f"{BASE}/2026"
-        ]
+        search_dirs = [f"{BASE}/2024", f"{BASE}/2025", f"{BASE}/2026"]
 
     design_pdfs = defaultdict(list)
 
@@ -588,57 +609,6 @@ def detect_and_render_batch(design_ids, output_dir):
 # MAIN
 # ============================================================
 
-if __name__ == '__main__':
-    import argparse
-    parser = argparse.ArgumentParser(description='VLM Construction Callout Pipeline')
-    parser.add_argument('--detect-only', action='store_true',
-                       help='Step 1: detect callout pages and render images')
-    parser.add_argument('--map-iso', action='store_true',
-                       help='Step 2: apply Glossary mapping to VLM extracts')
-    parser.add_argument('--design', type=str, help='Process single design ID')
-    parser.add_argument('--pilot', action='store_true',
-                       help='Process pilot batch of 20 designs')
-    args = parser.parse_args()
-
-    if args.detect_only or args.pilot:
-        # Load classifications for pilot selection
-        with open(CLASS_FILE) as f:
-            cls_map = json.load(f)
-
-        if args.design:
-            pilot_ids = [args.design]
-        elif args.pilot:
-            # Select diverse 20-design pilot
-            pilot_ids = select_pilot_batch(cls_map, n=20)
-        else:
-            print("Specify --design or --pilot")
-            sys.exit(1)
-
-        detect_and_render_batch(pilot_ids, OUT_DIR)
-
-    elif args.map_iso:
-        # Read VLM raw extracts and apply Glossary mapping
-        raw_path = os.path.join(OUT_DIR, 'vlm_raw_extracts.json')
-        if not os.path.exists(raw_path):
-            print(f"Error: {raw_path} not found. Run VLM extraction first.")
-            sys.exit(1)
-
-        with open(raw_path) as f:
-            raw = json.load(f)
-
-        results = {}
-        for did, vlm_data in raw.items():
-            fabric = vlm_data.get('fabric')
-            mapped = process_vlm_output(vlm_data.get('callouts', []), did, fabric=fabric)
-            results[did] = mapped
-
-        out_path = os.path.join(OUT_DIR, 'vlm_callout_extracts.json')
-        with open(out_path, 'w') as f:
-            json.dump(results, f, indent=2, ensure_ascii=False)
-        print(f"Mapped results: {out_path}")
-        print(f"Designs: {len(results)}")
-
-
 def select_pilot_batch(cls_map, n=20):
     """Select diverse pilot batch covering different GT, gender, fabric combos."""
     import random
@@ -672,3 +642,96 @@ def select_pilot_batch(cls_map, n=20):
         selected.extend(random.sample(all_remaining, min(remaining_need, len(all_remaining))))
 
     return selected[:n]
+
+
+# ============================================================
+# MAIN — CLI entry point
+# ============================================================
+
+def main():
+    import argparse
+    p = argparse.ArgumentParser(description='VLM Construction Callout Pipeline (STEP 2b)')
+
+    # Modes
+    p.add_argument('--detect-only', action='store_true',
+                   help='Step 1: detect callout pages and render images')
+    p.add_argument('--map-iso', action='store_true',
+                   help='Step 2: apply Glossary mapping to VLM extracts')
+
+    # Selection
+    p.add_argument('--design', type=str, help='Process single design ID')
+    p.add_argument('--pilot', action='store_true',
+                   help='Process pilot batch of 20 designs')
+
+    # Paths (CI-overridable)
+    p.add_argument('--out', default=None,
+                   help=f'Output dir for vlm_raw_extracts + vlm_callout_extracts '
+                        f'(default: {OUT_DIR})')
+    p.add_argument('--callout-dir', default=None,
+                   help=f'Callout PNG directory from Step 1 (default: {CALLOUT_IMG_DIR})')
+    p.add_argument('--classification-file', default=None,
+                   help=f'GT classification JSON for pilot selection (default: {CLASS_FILE})')
+    p.add_argument('--scan-dir', action='append', default=None,
+                   help='PDF scan directory (repeatable). Default: legacy BASE/2024-2026')
+    p.add_argument('--api-key', default=None,
+                   help='Anthropic API key (or set ANTHROPIC_API_KEY env)')
+    p.add_argument('--allow-empty', action='store_true',
+                   help='Exit 0 if callout-dir missing/empty (CI first-run)')
+
+    args = p.parse_args()
+
+    out_dir = args.out or OUT_DIR
+    callout_dir = args.callout_dir or CALLOUT_IMG_DIR
+    class_file = args.classification_file or CLASS_FILE
+
+    if args.detect_only or args.pilot:
+        if not os.path.exists(class_file):
+            print(f"[ERROR] classification file not found: {class_file}", file=sys.stderr)
+            return 2
+        with open(class_file) as f:
+            cls_map = json.load(f)
+
+        if args.design:
+            pilot_ids = [args.design]
+        elif args.pilot:
+            pilot_ids = select_pilot_batch(cls_map, n=20)
+        else:
+            print("Specify --design or --pilot", file=sys.stderr)
+            return 1
+
+        detect_and_render_batch(pilot_ids, out_dir)
+
+    elif args.map_iso:
+        raw_path = os.path.join(out_dir, 'vlm_raw_extracts.json')
+        if not os.path.exists(raw_path):
+            if args.allow_empty:
+                print(f"[WARN] {raw_path} not found — exiting cleanly (--allow-empty).")
+                return 0
+            print(f"[ERROR] {raw_path} not found. Run VLM extraction first.", file=sys.stderr)
+            return 1
+
+        with open(raw_path) as f:
+            raw = json.load(f)
+
+        results = {}
+        for did, vlm_data in raw.items():
+            fabric = vlm_data.get('fabric')
+            mapped = process_vlm_output(vlm_data.get('callouts', []), did, fabric=fabric)
+            results[did] = mapped
+
+        os.makedirs(out_dir, exist_ok=True)
+        out_path = os.path.join(out_dir, 'vlm_callout_extracts.json')
+        with open(out_path, 'w') as f:
+            json.dump(results, f, indent=2, ensure_ascii=False)
+        print(f"Mapped results: {out_path}")
+        print(f"Designs: {len(results)}")
+
+    else:
+        print("Specify a mode: --detect-only | --map-iso", file=sys.stderr)
+        return 1
+
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main() or 0)
