@@ -5416,60 +5416,43 @@ function App() {
                   {/* 統一 Header:兩個 view 共用 */}
                   <div style={{
                     background: "#fff", border: "1px solid #eee", borderRadius: "12px",
-                    padding: isMobile ? "8px 10px" : "16px 20px",
+                    padding: isMobile ? "10px 12px" : "16px 20px",
                   }}>
                     <div style={{
                       display: "flex",
                       flexDirection: "row",
                       justifyContent: "space-between",
                       alignItems: "center",
-                      gap: isMobile ? "8px" : "16px"
+                      gap: isMobile ? "10px" : "16px"
                     }}>
                       {/* 統一 header:標題只留「基碼」/「全碼」,計數移到副標列,移除冗餘描述 */}
-                      <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "baseline", gap: isMobile ? "6px" : "10px", flexWrap: isMobile ? "nowrap" : "wrap", overflow: "hidden" }}>
-                        <div style={{ fontSize: isMobile ? T.fs.lg : T.fs.xl, fontWeight: 700, color: T.c.text, lineHeight: 1.2, flexShrink: 0 }}>
+                      <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "baseline", gap: "10px", flexWrap: "wrap" }}>
+                        <div style={{ fontSize: T.fs.xl, fontWeight: 700, color: T.c.text, lineHeight: 1.2 }}>
                           {sizeView === "base" ? "基碼" : "全碼"}
                         </div>
-                        <div style={{ fontSize: isMobile ? T.fs.sm : T.fs.md, color: T.c.text3, fontFamily: "'JetBrains Mono',monospace", flexShrink: 0 }}>
+                        <div style={{ fontSize: T.fs.md, color: T.c.text3, fontFamily: "'JetBrains Mono',monospace" }}>
                           <span style={{ color: T.c.text, fontWeight: 700 }}>{bucketIncludedU}</span>
                           <span> / {totalPomsU}</span>
                         </div>
-                        <div style={{ fontSize: isMobile ? T.fs.xs : T.fs.base, color: T.c.text3, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        <div style={{ fontSize: T.fs.base, color: T.c.text3 }}>
                           {sizeView === "base"
-                            ? (isMobile
-                                ? `${codesByTierU.must.length}必/${codesByTierU.recommend.length}建/${codesByTierU.optional.length}選`
-                                : `${codesByTierU.must.length} 必備 · ${codesByTierU.recommend.length} 建議 · ${codesByTierU.optional.length} 選配`)
+                            ? `${codesByTierU.must.length} 必備 · ${codesByTierU.recommend.length} 建議 · ${codesByTierU.optional.length} 選配`
                             : (gradingBodytype === 'plus'
-                                ? (isMobile ? `Plus·${plusSeqU.length}碼` : `Plus · ${plusSeqU.length} sizes(2X BASE)`)
-                                : (isMobile
-                                    ? `${sizesU.filter(s => !isPlusU(s)).length}碼${hasPlusU ? "+P" : ""}`
-                                    : `${sizesU.filter(s => !isPlusU(s)).length} sizes${hasPlusU ? `  (Plus 可切換)` : ""}`))}
+                                ? `Plus · ${plusSeqU.length} sizes(2X BASE)`
+                                : `${sizesU.filter(s => !isPlusU(s)).length} sizes${hasPlusU ? `  (Plus 可切換)` : ""}`)}
                         </div>
                       </div>
-                      <div style={{ display: "flex", gap: isMobile ? "4px" : "8px", flexShrink: 0 }}>
-                        {isMobile && sizeView === "base" && (
-                          <button onClick={() => setAddPomOpen(true)}
-                            style={{
-                              ...btnStyle({ variant: 'ghost', isMobile }),
-                              padding: "6px 8px", fontSize: T.fs.sm,
-                              color: T.c.accent,
-                              border: `1px dashed ${T.c.accent}`,
-                              whiteSpace: "nowrap",
-                            }}
-                            title="新增 POM">+ POM</button>
-                        )}
-                        <button onClick={runMeasurement} style={{ ...btnStyle({ variant: 'secondary', isMobile }), ...(isMobile ? { padding: "6px 10px", fontSize: T.fs.sm } : {}) }}>Re-generate</button>
-                      </div>
+                      <button onClick={runMeasurement} style={btnStyle({ variant: 'secondary', isMobile })}>Re-generate</button>
                     </div>
 
-                    {/* B.5 — 控制列:分成「單位/格式」與「身型變體」兩群,每群帶 label,群與群之間有 divider */}
+                    {/* B.5 — 控制列:分成「單位/格式」與「身型變體」兩群,每群帶 label,群與群之間有 divider
+                        行動版改成單行橫向捲動(flexWrap:nowrap + overflowX:auto),避免吃兩行。 */}
                     <div style={{
                       display: "flex", alignItems: "center",
                       gap: isMobile ? "6px" : "12px",
                       flexWrap: isMobile ? "nowrap" : "wrap",
                       overflowX: isMobile ? "auto" : "visible",
-                      WebkitOverflowScrolling: "touch",
-                      marginTop: isMobile ? "6px" : "12px",
+                      marginTop: isMobile ? "8px" : "12px",
                       paddingTop: isMobile ? "6px" : "10px",
                       borderTop: "1px dashed #eee",
                     }}>
@@ -5491,10 +5474,10 @@ function App() {
                                ON:邊框深黑 + 淺灰底;OFF:灰邊 + 白底。
                                失效(無資料):虛化。*/
                             const neutralChipStyle = (on, enabled) => ({
-                              display: "flex", alignItems: "center", gap: "4px",
-                              padding: isMobile ? "5px 9px" : "6px 12px", borderRadius: T.r.sm,
+                              display: "flex", alignItems: "center", gap: "5px",
+                              padding: "6px 12px", borderRadius: T.r.sm,
                               cursor: enabled ? "pointer" : "not-allowed",
-                              fontSize: isMobile ? T.fs.sm : T.fs.base, fontWeight: 600, userSelect: "none",
+                              fontSize: T.fs.base, fontWeight: 600, userSelect: "none",
                               background: on && enabled ? T.c.bg2 : T.c.bg,
                               border: `1px solid ${on && enabled ? T.c.text : T.c.border}`,
                               color: !enabled ? T.c.text4 : (on ? T.c.text : T.c.text3),
@@ -5542,14 +5525,13 @@ function App() {
                                     ? (opt.v === 'plus' ? "Plus size run(1X–4X,2X 為 BASE)" : "")
                                     : (opt.v === 'plus' ? "此 bucket 無 Plus size_range" : `此 GT × Gender 在 bodytype_variance 無 ${opt.label} 歷史資料`)}
                                   style={{
-                                    padding: isMobile ? "5px 10px" : "6px 14px", fontSize: isMobile ? T.fs.sm : T.fs.base, fontWeight: 700,
+                                    padding: "6px 14px", fontSize: T.fs.base, fontWeight: 700,
                                     border: "none", borderRight: i !== arr.length - 1 ? `1px solid ${T.c.border}` : "none",
                                     background: active && opt.enabled ? T.c.text : "transparent",
                                     color: !opt.enabled ? T.c.text4 : (active ? T.c.bg : T.c.text2),
                                     cursor: opt.enabled ? "pointer" : "not-allowed",
                                     opacity: opt.enabled ? 1 : 0.5,
                                     fontFamily: "inherit", transition: "all 0.15s",
-                                    whiteSpace: "nowrap",
                                   }}>{opt.label}</button>
                               );
                             })}
@@ -5559,9 +5541,9 @@ function App() {
 
                       {hasPlusU && (
                         <label style={{
-                          display: "flex", alignItems: "center", gap: "4px",
-                          padding: isMobile ? "5px 9px" : "6px 12px", borderRadius: T.r.sm,
-                          cursor: "pointer", fontSize: isMobile ? T.fs.sm : T.fs.base, fontWeight: 600, userSelect: "none",
+                          display: "flex", alignItems: "center", gap: "5px",
+                          padding: "6px 12px", borderRadius: T.r.sm,
+                          cursor: "pointer", fontSize: T.fs.base, fontWeight: 600, userSelect: "none",
                           background: showPlus ? T.c.bg2 : T.c.bg,
                           border: `1px solid ${showPlus ? T.c.text : T.c.border}`,
                           color: showPlus ? T.c.text : T.c.text3,
@@ -5776,33 +5758,33 @@ function App() {
                     })()}
 
                     {/* 工具列:★/⚡ 圖示說明改為內嵌小字(always visible,無需 hover/click);
-                        每列 ★/⚡ icon 本身仍有 title tooltip 可看更詳細說明。
-                        行動版:整列收合 — 圖示靠每列 tooltip,新增 POM 已移到統一 header 右側。 */}
-                    {!isMobile && (
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "4px", marginBottom: "8px", flexWrap: "wrap" }}>
-                        {(() => {
-                          const hasTier1 = tier1Set.size > 0;
-                          const hasInflectionAny = inflectionCombo && Object.keys(inflectionCombo).some(c => c !== '_meta' && inflectionCombo[c]?.inflection);
-                          if (!hasTier1 && !hasInflectionAny) return null;
-                          return (
-                            <div style={{
-                              display: "inline-flex", alignItems: "center", gap: "10px",
-                              fontSize: T.fs.sm, color: T.c.text3, userSelect: "none",
-                            }}>
-                              {hasTier1 && <span><span style={{ color: T.c.text2, fontWeight: 700 }}>★</span> Foundational</span>}
-                              {hasInflectionAny && <span><span style={{ color: T.c.text2, fontWeight: 700 }}>⚡</span> 跳碼不等距</span>}
-                            </div>
-                          );
-                        })()}
-                        <button onClick={() => setAddPomOpen(true)}
-                          style={{
-                            ...btnStyle({ variant: 'ghost', isMobile }),
-                            marginLeft: "auto",
-                            color: T.c.accent,
-                            border: `1px dashed ${T.c.accent}`,
-                          }}>+ 新增 POM</button>
-                      </div>
-                    )}
+                        每列 ★/⚡ icon 本身仍有 title tooltip 可看更詳細說明。 */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: isMobile ? "2px" : "4px", marginBottom: isMobile ? "4px" : "8px", flexWrap: "wrap" }}>
+                      {(() => {
+                        if (isMobile) return null;
+                        const hasTier1 = tier1Set.size > 0;
+                        const hasInflectionAny = inflectionCombo && Object.keys(inflectionCombo).some(c => c !== '_meta' && inflectionCombo[c]?.inflection);
+                        if (!hasTier1 && !hasInflectionAny) return null;
+                        return (
+                          <div style={{
+                            display: "inline-flex", alignItems: "center", gap: "10px",
+                            fontSize: T.fs.sm, color: T.c.text3, userSelect: "none",
+                          }}>
+                            {hasTier1 && <span><span style={{ color: T.c.text2, fontWeight: 700 }}>★</span> Foundational</span>}
+                            {hasInflectionAny && <span><span style={{ color: T.c.text2, fontWeight: 700 }}>⚡</span> 跳碼不等距</span>}
+                          </div>
+                        );
+                      })()}
+                      <button onClick={() => setAddPomOpen(true)}
+                        style={{
+                          ...btnStyle({ variant: 'ghost', isMobile }),
+                          marginLeft: "auto",
+                          padding: isMobile ? "4px 10px" : undefined,
+                          fontSize: isMobile ? "11px" : undefined,
+                          color: T.c.accent,
+                          border: `1px dashed ${T.c.accent}`,
+                        }}>+ 新增 POM</button>
+                    </div>
                     {tiersOrdered.map(tier => {
                       const codes = codesByTier[tier];
                       if (!codes.length) return null;
