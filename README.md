@@ -148,15 +148,28 @@ Admin 在前端「📤 上傳 Techpack」丟一份 PDF/PPTX：
 
 ## Admin 通道
 
-所有 admin 入口都要 `x-admin-token`（對應 Vercel 的 `ADMIN_TOKEN` 環境變數）；進到前端管理選單先在「⚙ 設定」填。
+所有 admin 入口都要 `x-admin-token`（對應 Vercel 的 `ADMIN_TOKEN` 環境變數）；進到前端管理選單先在「⚙ 設定」填。管理選單分兩組:**Pipeline 對外協作** + **管理工具**。
 
 | 入口 | 做什麼 | 走哪 | Body 大小 |
 |---|---|---|---|
-| 📝 POM 翻譯表編輯（AdminModal） | 編 `data/pom_dictionary.json`,自動 diff + commit msg | `POST /api/push-pom-dict`(Vercel endpoint) | 小 |
+| 📦 下載 Pipeline 包（PackageModal） | 組 zip 給外部協作單位在本機跑整套 ingest pipeline。含 4 個 py + ~84 個 reference JSON + 自動產 README / VERSION / `.env.example` / `run.sh` | 取 PAT → GitHub API 抓 main sha + recipes/ 列表 → 並行拉 raw.githubusercontent.com → JSZip 瀏覽器組 zip → 觸發下載 | — |
+| 📥 上傳 Pipeline 結果（ResultsUploadModal） | 吃外部送回的 zip / jsonl,merge 到 `data/ingest/{unified,vlm}/facts.jsonl` + `metadata/designs.jsonl`(append 或 append-dedup by design_id) | JSZip 瀏覽器解壓 → 比對 path → GET 現有 → merge → 直連 `PUT contents` | 無實質上限 |
 | 📤 上傳 Techpack（UploadModal） | 丟 PDF/PPTX 進 `data/ingest/uploads/`,觸發 Actions 重建 recipes_master | ≤ 4.5 MB: `POST /api/ingest_upload`(Vercel)<br/>\> 4.5 MB: `POST /api/ingest_token` → 瀏覽器直連 GitHub `PUT` | 無實質上限 |
-| 🩹 上傳 Patch (JSON)（PatchUploadModal） | 本地跑完 pipeline 後,把 `recipes_master.json` 合併推送,靠 6-field key(`aggregation_level\|gender\|dept\|gt\|it\|l1`)upsert | **全程瀏覽器直連 GitHub**,不經 Vercel endpoint;大檔（>1MB）用 Blob API | 無實質上限 |
+| 📝 POM 翻譯表編輯（AdminModal） | 編 `data/pom_dictionary.json`,自動 diff + commit msg | `POST /api/push-pom-dict`(Vercel endpoint) | 小 |
+| 📚 權威手冊登記表（ManualsModal） | Read-only,顯示 7 份權威手冊的角色 / 引用鏈 | 無後端呼叫 | — |
+
+> ~~🩹 上傳 Patch (JSON)（PatchUploadModal）~~ — 2026-04-23 移除,由 📥 上傳 Pipeline 結果取代(新通道吃 raw facts.jsonl 而非 recipes_master.json patch,更符合外部協作實際流程)。
 
 所有直連 GitHub 的路徑共用 `/api/ingest_token` 發出的 `GITHUB_PAT`(需 `contents: write`);PAT 只在 admin 瀏覽器 session 裡活著。
+
+### Pipeline 外送包
+
+📦 下載後交給協作單位,內含:
+- `star_schema/scripts/*.py`(4 檔)、`requirements-pipeline.txt`、`techpack-translation-style-guide.md`
+- 所有 reference JSON(construction_bridge / bucket_taxonomy / l1_standard_38 / consensus / iso_lookup × 2 / recipes × 72)
+- 動態產:`README.md`(繁中含 setup/run/回傳步驟)、`VERSION`(commit sha)、`.env.example`(提醒自備 ANTHROPIC_API_KEY)、`run.sh`(照 workflow 順序一鍵跑)
+
+外部跑完 `./run.sh` 後,把 `data/ingest/{metadata,unified,vlm}/*.jsonl` 打成 zip → 📥 上傳回來 → 到 Actions 手動 workflow_dispatch 重建 recipes_master。
 
 ## 本機預覽
 
