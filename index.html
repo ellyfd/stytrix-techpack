@@ -5361,28 +5361,25 @@ function App() {
                   display: "flex", flexDirection: "column", gap: "10px",
                   marginBottom: isMobile ? "10px" : "14px",
                 }}>
-                  {/* Alpha label + Mode Cards row */}
-                  <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "6px" }}>
-                    {!isMobile && <span style={{ fontSize: "10px", color: "#bbb", fontWeight: 500, letterSpacing: "0.05em", textTransform: "uppercase" }}>Size Rule</span>}
-                    <span style={{
-                      padding: "3px 10px", borderRadius: "4px",
-                      background: "#faf9f7", color: "#555",
-                      border: "1px solid #e8e5e1",
-                      fontSize: "11px", fontWeight: 600, letterSpacing: "0.02em",
-                      fontFamily: "'JetBrains Mono',monospace",
-                    }}>{sizeRuleLabel}</span>
-                  </div>
-                  {isMobile ? (
-                    /* 行動版:compact 2-segment pill 取代兩張堆疊的 Mode Cards,省約 120px 垂直空間 */
-                    <div style={{ display: "flex", width: "100%", border: `1px solid ${T.c.border}`, borderRadius: T.r.sm, overflow: "hidden" }}>
+                  {/* B.4 — 基碼/全碼 segmented control + size rule meta 合併成一列 */}
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: isMobile ? "8px" : "14px",
+                    flexWrap: "wrap",
+                  }}>
+                    <div style={{
+                      display: "inline-flex",
+                      border: `1px solid ${T.c.border}`, borderRadius: T.r.sm, overflow: "hidden",
+                      width: isMobile ? "100%" : "auto",
+                    }}>
                       <button onClick={() => setSizeView("base")}
                         aria-pressed={sizeView === "base"}
                         style={{
-                          flex: 1, padding: isMobile ? "6px 12px" : "9px 12px",
+                          flex: isMobile ? 1 : "0 0 auto",
+                          padding: isMobile ? "6px 14px" : "10px 24px",
                           background: sizeView === "base" ? T.c.text : T.c.bg,
                           color: sizeView === "base" ? T.c.bg : T.c.text2,
                           border: "none", borderRight: `1px solid ${T.c.border}`,
-                          fontSize: T.fs.base, fontWeight: 700, cursor: "pointer",
+                          fontSize: T.fs.md, fontWeight: 700, cursor: "pointer",
                           fontFamily: "inherit", transition: "background 0.15s, color 0.15s",
                         }}>基碼</button>
                       <button onClick={() => !gradingDisabled && setSizeView("grading")}
@@ -5390,11 +5387,12 @@ function App() {
                         aria-pressed={sizeView === "grading"}
                         title={gradingDisabled ? "請先完成基碼 / POM 確認" : ""}
                         style={{
-                          flex: 1, padding: isMobile ? "6px 12px" : "9px 12px",
+                          flex: isMobile ? 1 : "0 0 auto",
+                          padding: isMobile ? "6px 14px" : "10px 24px",
                           background: sizeView === "grading" ? T.c.text : T.c.bg,
                           color: gradingDisabled ? T.c.text4 : (sizeView === "grading" ? T.c.bg : T.c.text2),
                           border: "none",
-                          fontSize: T.fs.base, fontWeight: 700,
+                          fontSize: T.fs.md, fontWeight: 700,
                           cursor: gradingDisabled ? "not-allowed" : "pointer",
                           opacity: gradingDisabled ? 0.55 : 1,
                           fontFamily: "inherit", transition: "background 0.15s, color 0.15s",
