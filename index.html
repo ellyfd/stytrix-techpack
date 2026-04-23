@@ -3295,13 +3295,13 @@ function App() {
   useEffect(() => {
     if (!sketchSrc) return;
     if (!isoRec) {
-      fetch('./l1_iso_recommendations_v1.json')
+      fetch('./data/l1_iso_recommendations_v1.json')
         .then(r => r.ok ? r.json() : Promise.reject(r.status))
         .then(setIsoRec)
         .catch(err => console.error('載入 l1_iso_recommendations 失敗:', err));
     }
     if (!partPresence) {
-      fetch('./l1_part_presence_v1.json')
+      fetch('./data/l1_part_presence_v1.json')
         .then(r => r.ok ? r.json() : Promise.reject(r.status))
         .then(setPartPresence)
         .catch(err => console.error('載入 l1_part_presence 失敗:', err));

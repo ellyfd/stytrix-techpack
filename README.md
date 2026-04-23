@@ -58,8 +58,8 @@ data/
       ├─ consensus_v1/entries.jsonl           ←   手動 bucket consensus 規則（275 條，被 build_recipes_master 吃）
       ├─ construction_by_bucket/              ←   外部資料源（688 設計，Step 2a 讀）
       └─ ocr_v1/                              ←   舊 OCR 輸出（未用，歷史保留）
-l1_part_presence_v1.json                      ← 聚陽模型：GT×IT 下每個部位出現率（歷史位置，還在 repo 根目錄）
-l1_iso_recommendations_v1.json                ← 聚陽模型：部位名 → ISO 建議（同上）
+data/l1_part_presence_v1.json                 ← 聚陽模型：GT×IT 下每個部位出現率（2026-04-23 從根目錄搬入）
+data/l1_iso_recommendations_v1.json           ← 聚陽模型：部位名 → ISO 建議（同上）
 l2_l3_ie/*.json                               ← 聚陽模型：38 個 L1 部位的 L2-L3-IE 規則（39 檔 = 38 L1 + 1 index）
 pom_rules/*.json                              ← POM 規則（81 bucket + _index.json = 82 檔，由 scripts/reclassify_and_rebuild.py 產出）
 General Model_Path2_Construction Suggestion/

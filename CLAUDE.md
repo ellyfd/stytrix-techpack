@@ -46,7 +46,7 @@
 │       Yes → General Model_Path2_Construction Suggestion/
 │
 ├── 是 construction recipe / pattern(做工配方)?
-│       ├── 由 PATH2 pipeline 產生  → construction_recipes/(新建,PATH2 README 已預留此名)
+│       ├── 由 PATH2 pipeline 產生  → recipes/（根目錄 72 檔,`build_recipes_master.py` 實際會吃)
 │       └── 臨時上傳的一次性檔       → 不要進 repo,放 Notion / Drive
 │
 ├── 是跨模組都要讀的規格文件?
@@ -59,8 +59,8 @@
         先在 PR 裡問,不要直接 merge。
 ```
 
-> ⚠ **重要**:**不要再用根目錄 `recipes/` 這個名字**。PATH2 規劃用的是 `construction_recipes/`(不同名)。
-> 現有的 `recipes/` 裡那 72 檔目前無人引用,屬於下輪要審的遺留,不要在上面加新檔。
+> ⚠ **重要**:`recipes/`(根目錄 72 檔)是 `build_recipes_master.py` 實際讀的路徑,
+> 是活檔不是遺留。PATH2 規劃階段曾用 `construction_recipes/` 這個名字,已棄用統一回 `recipes/`。
 
 ### 版本化命名規則
 
@@ -148,7 +148,7 @@ git commit -m "chore: 移除孤兒 $CANDIDATE (已通過 grep gate 驗證)"
 
 | 候選 | 現況 | SOP 預期結果 |
 |------|------|--------------|
-| `recipes/`(72 檔) | 根目錄 namespace,PATH2 實際會用 `construction_recipes/`(不同名),無人引用 | 應通過 gate → 可丟 |
+| ~~`recipes/`~~ | 2026-04-23 確認是活檔:`star_schema/scripts/build_recipes_master.py` 每次 CI 都會掃 72 檔餵進 recipes_master.json | **不是候選** |
 | `iso_lookup_factory_v4.json` vs `v4.3.json` | v4 仍作 fallback 被 `index.html` 引用,非孤兒;只是舊版 | 仍會過 gate = 不可丟,維持 fallback |
 
 **不會是清理候選的(避免誤判)**:
