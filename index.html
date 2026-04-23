@@ -1926,8 +1926,21 @@ function UploadModal({ open, onClose, token }) {
   const handleUpload = async () => {
     if (!uploadFile) return;
     if (!token) { setUploadStatus({ status: 'error', msg: '請先至「⚙ 設定」填入 Admin Token' }); return; }
-    setUploadStatus({ status: 'uploading', msg: '上傳中...' });
+    setUploadStatus({ status: 'uploading', msg: '準備上傳...' });
     try {
+      // Step 1: get GitHub PAT from server (bypasses Vercel 4.5MB body limit)
+      const tokResp = await fetch('/api/ingest_token', {
+        method: 'POST',
+        headers: { 'x-admin-token': token },
+      });
+      if (!tokResp.ok) {
+        const t = await tokResp.text();
+        throw new Error(tokResp.status === 401 ? 'Admin Token 錯誤' : `Token 端點錯誤: ${t}`);
+      }
+      const { github_pat } = await tokResp.json();
+
+      // Step 2: encode file
+      setUploadStatus({ status: 'uploading', msg: '編碼中...' });
       const buf = await uploadFile.arrayBuffer();
       const bytes = new Uint8Array(buf);
       let binary = '';
@@ -1935,14 +1948,36 @@ function UploadModal({ open, onClose, token }) {
         binary += String.fromCharCode(...bytes.subarray(i, Math.min(i + 8192, bytes.length)));
       }
       const b64 = btoa(binary);
-      const resp = await fetch('/api/ingest_upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
-        body: JSON.stringify({ filename: uploadFile.name, content_b64: b64, season: uploadSeason }),
-      });
-      const json = await resp.json();
-      if (!resp.ok) throw new Error(json.error || resp.statusText);
-      setUploadStatus({ status: 'ok', msg: `✓ 已推送 ${json.path}  — Pipeline 約 2 分鐘後自動更新` });
+
+      // Step 3: push directly to GitHub Contents API (no Vercel size limit)
+      const OWNER = 'ellyfd', REPO = 'stytrix-techpack', BRANCH = 'main';
+      const safeName   = uploadFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const seasonSlug = (uploadSeason || 'misc').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 16);
+      const filePath   = `data/ingest/uploads/${seasonSlug}/${safeName}`;
+      const apiUrl     = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${filePath}`;
+      const ghHeaders  = {
+        Authorization: `token ${github_pat}`,
+        Accept: 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json',
+        'User-Agent': 'stytrix-ingest-upload/1.0',
+      };
+
+      setUploadStatus({ status: 'uploading', msg: '推送至 GitHub...' });
+      // Check existing SHA
+      let sha;
+      const getResp = await fetch(apiUrl, { headers: ghHeaders });
+      if (getResp.ok) { const ex = await getResp.json(); sha = ex.sha; }
+
+      const putBody = { message: `chore(ingest): upload ${safeName} (${seasonSlug})`, content: b64, branch: BRANCH };
+      if (sha) putBody.sha = sha;
+
+      const putResp = await fetch(apiUrl, { method: 'PUT', headers: ghHeaders, body: JSON.stringify(putBody) });
+      if (!putResp.ok) {
+        const errText = await putResp.text();
+        throw new Error(`GitHub API ${putResp.status}: ${errText.slice(0, 120)}`);
+      }
+      const result = await putResp.json();
+      setUploadStatus({ status: 'ok', msg: `✓ 已推送 ${filePath}  — Pipeline 約 2 分鐘後自動更新` });
       setUploadFile(null);
     } catch (e) {
       setUploadStatus({ status: 'error', msg: `錯誤: ${e.message}` });
