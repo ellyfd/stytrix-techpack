@@ -130,21 +130,21 @@ Admin 在前端「📤 上傳 Techpack」丟一份 PDF/PPTX：
 1. **上傳路徑（前端自動分流）**：
    - 檔案 ≤ 4.5 MB：`POST /api/ingest_upload`，Vercel 代 commit 到 `data/ingest/uploads/`
    - 檔案 > 4.5 MB：`POST /api/ingest_token` 取 `GITHUB_PAT`，瀏覽器直連 GitHub `PUT contents`
-2. **GitHub Actions 觸發**（`.github/workflows/rebuild_master.yml`，`push: paths: data/ingest/uploads/**`）：
+2. **GitHub Actions 觸發**（`.github/workflows/rebuild_master.yml`，`push: paths: data/ingest/uploads/**`）。實際步驟順序是 **1 → 2b → 2a → 3**（2b 刻意排在 2a 前，讓 2a 的 unified 合併能吃到本次 run 剛產出的 VLM facts）：
    - **Step 1** `extract_raw_text.py` — 掃 uploads/；PDF 讀首頁元資料（季節 / 品牌 / 類型）+ 抽 D-number，PPTX 逐頁取文字，PDF callout 頁面評分後 216 DPI 渲染成 PNG。`--allow-empty` 允許首次空掃，`--force` 忽略已處理重跑。
-   - **Step 2a** `extract_unified.py` — **全量**合併 4 來源（PPTX 中文 / PDF 英文 / construction_by_bucket / construction_from_dir5）→ `unified/{dim,facts}.jsonl`。中文 / 英文各自 parse zone + ISO，優先級：PPTX JSON > PPTX txt > 其他。
-   - **Step 2b** `vlm_pipeline.py --map-iso` — 讀 `vlm_raw_extracts.json`（手填或 API 預填）→ 對映 200+ ISO 術語 + 30+ zone 名稱 → `data/ingest/vlm/facts.jsonl`。**資料夾是 `vlm/`，不是 `vlm_v1/`**。`continue-on-error`，失敗不擋 build。
+   - **Step 2b** `vlm_pipeline.py --map-iso --ingest-dir data/ingest --out data/ingest/vlm` — 若沒預填 `vlm_raw_extracts.json` 但 `ANTHROPIC_API_KEY` 有設，會對每張 callout PNG 呼叫 Claude Haiku 自動分析（`requirements-pipeline.txt` 加 `anthropic>=0.25.0`）；否則讀既有 `vlm_raw_extracts.json` 走手填路徑。輸出 `vlm/facts.jsonl`（含 `bucket` 欄位，Step 3 才能用）+ `vlm_callout_extracts.json`。**資料夾是 `vlm/`，不是 `vlm_v1/`**。`continue-on-error`，失敗不擋 build。
+   - **Step 2a** `extract_unified.py` — **全量**合併 4 來源（PPTX 中文 / PDF 英文 / construction_by_bucket / construction_from_dir5）+ Step 2b 剛產的 VLM facts → `unified/{dim,facts}.jsonl`。中文 / 英文各自 parse zone + ISO，優先級：PPTX JSON > PPTX txt > 其他。
    - **Step 3** `build_recipes_master.py --strict` — 合併 5 份來源 → 全量重建：
      - `iso_lookup_factory_v4.3.json`（primary，230 條）
      - `iso_lookup_factory_v4.json`（fallback，282 條）
      - `data/construction_bridge_v6.json`（跨設計 GT × zone 統計）
      - `recipes/*.json`（71 檔）
      - `data/ingest/consensus_v1/entries.jsonl`（275 條 bucket consensus）
-     - 加上 `data/ingest/*/facts.jsonl`；L1 必須在 38 標準內、bucket 必須在 taxonomy 內。違規 exit 1，擋住 commit。
+     - 加上 `data/ingest/*/facts.jsonl`（含 vlm/）；L1 必須在 38 標準內、bucket 必須在 taxonomy 內。違規 exit 1，擋住 commit。
      - 輸出：`data/recipes_master.json` + `data/iso_dictionary.json` + `data/l1_standard_38.json`
-3. **Commit 回 `main`**：`git rm data/ingest/uploads/*` + `git add` 重建結果，訊息 `chore(data): auto-rebuild recipes_master [skip ci]` 避免無限循環；Vercel 偵測 push → 自動重新部署。
+3. **Commit 回 `main`**：`git rm data/ingest/uploads/*` + `git add` 重建結果 + `git add data/ingest/vlm/`（讓 VLM 分析結果持久化）；訊息 `chore(data): auto-rebuild recipes_master [skip ci]` 避免無限循環；Vercel 偵測 push → 自動重新部署。
 
-前端在「📤 上傳 Techpack」Modal 內 poll `GET /repos/.../actions/runs?head_sha=<sha>`，依序顯示 5 個 step：**1｜拆解文字 & callout 圖片 → 2a｜統一萃取 (PPTX) → 2b｜VLM 分析 callout (PDF) → 3｜重建 recipes_master → 提交資料**。Actions API 回 403/404（私人 repo / token 缺 `actions:read` scope）會降級成不帶 token 重試，仍失敗時直接顯示 GitHub Actions 連結不再 poll。
+前端在「📤 上傳 Techpack」Modal 內 poll `GET /repos/.../actions/runs?head_sha=<sha>`，依 workflow 實際順序顯示 5 個 step：**1｜拆解文字 & callout 圖片 → 2b｜VLM 分析 callout (PDF) → 2a｜統一萃取 (PPTX) → 3｜重建 recipes_master → 提交資料**。Actions API 回 403/404（私人 repo / token 缺 `actions:read` scope）會降級成不帶 token 重試，仍失敗時直接顯示 GitHub Actions 連結不再 poll。
 
 ## Admin 通道
 
