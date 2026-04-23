@@ -1,0 +1,633 @@
+#!/usr/bin/env python3
+"""Build data/recipes_master.json + data/l1_standard_38.json.
+
+Merges five construction handbooks into a single unified master file that the
+index.html universal-mode viewer can query with a single fallback cascade.
+
+Sources (all inputs kept read-only):
+  - General Model_Path2_Construction Suggestion/iso_lookup_factory_v4.3.json
+    (230 entries; Department × Gender × GT × L1 with iso_distribution + n_designs)
+  - General Model_Path2_Construction Suggestion/iso_lookup_factory_v4.json
+    (282 entries; Fabric × Department × GT × L1_code with iso_zh / machine)
+  - data/construction_bridge_v6.json
+    (bridges[GT][zones][zh_zone] with methods + iso_codes)
+  - recipes/*.json (71 files; same-sub-category stats)
+  - star_schema/data/ingest/consensus_v1/entries.jsonl + bucket_taxonomy.json
+    (275 entries; same_bucket consensus rules with ISO from unified extraction + OCR)
+
+Output schema (data/recipes_master.json):
+{
+  "generated_at": "...",
+  "source_versions": {...},
+  "stats": {...},
+  "entries": [
+    {
+      "key": {"gender": "...", "dept": "...", "gt": "...", "it": "...", "l1": "..."},
+      "aggregation_level": "same_sub|same_bucket|same_gt|general|cross_design",
+      "source": "recipe|consensus_v1|v4.3|v4|bridge",
+      "n_total": N,
+      "iso_distribution": [{"iso": "406", "n": 9, "pct": 69.2}, ...],
+      "methods": [{"name": "BINDING", "n": 5, "pct": 50.0}, ...]  # may be []
+    },
+    ...
+  ]
+}
+
+Key fields are normalized to UPPERCASE with non-alphanumerics → underscore
+so the viewer can query by a single canonical key regardless of source casing.
+"""
+from __future__ import annotations
+
+import json
+import re
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+# Path resolution: script is at star_schema/scripts/build_recipes_master.py
+# STAR_SCHEMA = star_schema/   (parent of scripts/)
+# ONY_ROOT = ONY/              (parent of star_schema/)
+STAR_SCHEMA = Path(__file__).resolve().parent.parent
+ONY_ROOT = STAR_SCHEMA.parent
+_RMV2 = ONY_ROOT / "recipes_master_v2"
+
+# Legacy input sources (under ONY/recipes_master_v2/)
+V43_PATH = _RMV2 / "General Model_Path2_Construction Suggestion" / "iso_lookup_factory_v4.3.json"
+V4_PATH = _RMV2 / "General Model_Path2_Construction Suggestion" / "iso_lookup_factory_v4.json"
+BRIDGE_PATH = _RMV2 / "data" / "construction_bridge_v6.json"
+RECIPES_DIR = _RMV2 / "recipes"
+
+# Star schema paths
+CONSENSUS_PATH = STAR_SCHEMA / "data" / "ingest" / "consensus_v1" / "entries.jsonl"
+INGEST_DIR = STAR_SCHEMA / "data" / "ingest"
+BUCKET_TAX_PATH = STAR_SCHEMA / "data" / "bucket_taxonomy.json"
+
+# L1 standard 38 codes — facts with l1_code outside this set are skipped
+L1_VALID_38 = frozenset(
+    "AE AH BM BN BP BS DC DP FP FY HD HL KH LB LI LO LP NK NP NT OT "
+    "PD PK PL PS QT RS SA SB SH SL SP SR SS ST TH WB ZP".split()
+)
+
+OUT_MASTER = STAR_SCHEMA / "data" / "recipes_master.json"
+OUT_L1_STD = STAR_SCHEMA / "data" / "l1_standard_38.json"
+
+
+def norm(s):
+    """Uppercase + collapse non-alphanumerics into underscores."""
+    if s is None:
+        return None
+    up = re.sub(r"[^A-Z0-9]+", "_", str(s).upper()).strip("_")
+    return up or None
+
+
+def load_json(p: Path):
+    return json.loads(p.read_text(encoding="utf-8"))
+
+
+def build_l1_standard_38(v43) -> dict:
+    """Load L1 standard 38 — prefer star_schema/data/l1_standard_38.json (ground truth),
+    fall back to v4.3's l1_standard_38 field if file not found."""
+    # Ground truth file (already corrected to IE standard)
+    gt_path = STAR_SCHEMA / "data" / "l1_standard_38.json"
+    if gt_path.exists():
+        gt = json.loads(gt_path.read_text(encoding="utf-8"))
+        return gt
+
+    # Fallback: from v4.3 (may have wrong zh names)
+    std = v43.get("l1_standard_38") or {}
+    return {
+        "version": v43.get("version", "v4.3"),
+        "source": "iso_lookup_factory_v4.3.json",
+        "codes": std,
+    }
+
+
+def build_zh_to_l1(l1_std: dict) -> dict:
+    """zh part name → l1 code. Used to reverse-lookup bridge / recipe zones.
+    Includes aliases for variant Chinese names used in PPTX translations."""
+    out = {}
+    for code, info in (l1_std.get("codes") or {}).items():
+        zh = (info or {}).get("zh")
+        if zh:
+            out[zh] = code
+    # Aliases: variant Chinese names → correct L1 code per ground truth 38
+    # Ground truth: AE=袖孔 AH=袖圍 DC=繩類 LO=褲口 PS=褲合身 RS=褲襠
+    #               SA=剪接線_上身類 SB=剪接線_下身類 SR=裙合身 SS=脅邊
+    #               ST=肩帶 TH=拇指洞
+    ZH_ALIASES = {
+        "脇邊": "SS",      # 脅邊 variant character (脇=脅) → SS 脅邊
+        "前襟": "PL",      # 門襟 alias
+        "前拉鍊": "ZP",    # 拉鏈 alias
+        "滾邊": "NT",      # 領貼條 / binding tape
+        "腰線": "WB",      # 腰頭 alias
+        "車縫(通則)": "OT", # 通用車線 → OT 其它
+        "剪接線": "SS",    # 接合線（無上下分時）→ SS 脅邊
+        "褲襠": "RS",      # 股下/crotch → RS 褲襠 (same as standard)
+    }
+    for zh, code in ZH_ALIASES.items():
+        if zh not in out:  # don't override standard names
+            out[zh] = code
+    return out
+
+
+def iso_is_valid(iso) -> bool:
+    """ISO codes are numeric (e.g. '301', '406', '514+605'). Reject typos like 'ISO301'."""
+    if not iso:
+        return False
+    return bool(re.fullmatch(r"\d+(\+\d+)?", str(iso)))
+
+
+def recipe_key_from_filename(fname: str):
+    """recipe_WOMENS_SWIMWEAR_TOP_SWIM.json → (WOMENS, SWIMWEAR, TOP, SWIM).
+    Filename format: recipe_<GENDER>_<DEPT>_<GT>_<IT*>.json (IT may contain underscores).
+    We prefer to read the in-file fields (gender/department/garment_type/item_type).
+    This function is only used as a fallback.
+    """
+    stem = fname.removesuffix(".json").removeprefix("recipe_")
+    parts = stem.split("_")
+    if len(parts) < 4:
+        return None
+    gender, dept, gt = parts[0], parts[1], parts[2]
+    it = "_".join(parts[3:])
+    return gender, dept, gt, it
+
+
+def dist_dict_to_list(dist: dict, n_total: int):
+    """Convert a pct-dict ({iso: 0.69}) or a count-dict ({iso: 12}) to the
+    master schema [{iso, n, pct}]. Auto-detects which: if sum > 1.5, treat as counts.
+    """
+    if not dist:
+        return []
+    total = sum(dist.values())
+    as_counts = total > 1.5 or all(isinstance(v, int) for v in dist.values())
+    items = []
+    for iso, v in dist.items():
+        if not iso_is_valid(iso):
+            continue
+        if as_counts:
+            n = int(v)
+            pct = (v / total * 100.0) if total > 0 else 0.0
+        else:
+            pct = v * 100.0
+            n = int(round(v * n_total)) if n_total else 0
+        items.append({"iso": iso, "n": n, "pct": round(pct, 1)})
+    items.sort(key=lambda x: -x["pct"])
+    return items
+
+
+def methods_dict_to_list(methods: dict):
+    if not methods:
+        return []
+    total = sum(methods.values()) or 1
+    out = [{"name": name, "n": int(n), "pct": round(n / total * 100.0, 1)}
+           for name, n in methods.items()]
+    out.sort(key=lambda x: -x["pct"])
+    return out
+
+
+def build_from_recipes(recipes_dir: Path, zh_to_l1: dict, warns: list):
+    """Produce same_sub entries from the 71 recipe files."""
+    entries = []
+    processed = 0
+    skipped_zones = 0
+    for f in sorted(recipes_dir.glob("recipe_*.json")):
+        try:
+            r = load_json(f)
+        except Exception as e:
+            warns.append(f"recipe {f.name}: failed to parse ({e})")
+            continue
+        processed += 1
+        gender = norm(r.get("gender"))
+        dept = norm(r.get("department"))
+        gt = norm(r.get("garment_type") or r.get("gt"))
+        it = norm(r.get("item_type") or r.get("it"))
+        if not (gender and dept and gt and it):
+            warns.append(f"recipe {f.name}: missing key fields")
+            continue
+        for zh_zone, zd in (r.get("zones") or {}).items():
+            l1 = zh_to_l1.get(zh_zone)
+            if not l1:
+                warns.append(f"recipe {f.name}: unknown zone zh {zh_zone!r}")
+                skipped_zones += 1
+                continue
+            dist = zd.get("iso_distribution") or {}
+            n_obs = zd.get("n_observations") or 0
+            iso_list = dist_dict_to_list(dist, n_obs)
+            if not iso_list:
+                # zone has no ISO — skip (methods-only zones aren't part of recipes data)
+                continue
+            entries.append({
+                "key": {"gender": gender, "dept": dept, "gt": gt, "it": it, "l1": l1},
+                "aggregation_level": "same_sub",
+                "source": "recipe",
+                "n_total": int(n_obs),
+                "iso_distribution": iso_list,
+                "methods": [],
+            })
+    return entries, {"files_processed": processed, "skipped_zones": skipped_zones}
+
+
+def build_from_v43(v43):
+    entries = []
+    for e in v43.get("entries") or []:
+        l1 = e.get("l1_code")
+        if not l1:
+            continue
+        n_total = int(e.get("n_designs") or 0)
+        iso_list = dist_dict_to_list(e.get("iso_distribution") or {}, n_total)
+        if not iso_list:
+            # fallback: use primary iso with pct from iso_pct
+            iso = e.get("iso")
+            if iso_is_valid(iso):
+                pct_val = float(e.get("iso_pct") or 1.0)
+                iso_list = [{"iso": iso, "n": n_total, "pct": round(pct_val * 100.0, 1)}]
+        if not iso_list:
+            continue
+        entries.append({
+            "key": {
+                "gender": norm(e.get("gender")),
+                "dept": norm(e.get("department")),
+                "gt": norm(e.get("gt")),
+                "it": None,
+                "l1": l1,
+            },
+            "aggregation_level": "same_gt",
+            "source": "v4.3",
+            "n_total": n_total,
+            "iso_distribution": iso_list,
+            "methods": [],
+        })
+    return entries
+
+
+def build_from_v4(v4):
+    entries = []
+    for e in v4.get("entries") or []:
+        l1 = e.get("l1_code")
+        if not l1:
+            continue
+        iso = e.get("iso")
+        if not iso_is_valid(iso):
+            continue
+        votes = e.get("pptx_2025_votes") or {}
+        n_votes_total = sum(votes.values())
+        # Ensure primary iso is in the distribution even if no votes
+        if votes:
+            dist = dict(votes)
+            dist.setdefault(iso, 0)  # primary may be 0 votes but still recommended
+            iso_list = dist_dict_to_list(dist, n_votes_total)
+            # promote primary to top regardless of vote rank (it's the curated pick)
+            primary_idx = next((i for i, x in enumerate(iso_list) if x["iso"] == iso), -1)
+            if primary_idx > 0:
+                iso_list.insert(0, iso_list.pop(primary_idx))
+            n_total = int(e.get("pptx_2025_designs") or n_votes_total or 1)
+        else:
+            iso_list = [{"iso": iso, "n": 1, "pct": 100.0}]
+            n_total = 1
+        entries.append({
+            "key": {
+                "gender": None,
+                "dept": norm(e.get("department")),
+                "gt": norm(e.get("gt")),
+                "it": None,
+                "l1": l1,
+                "fabric": norm(e.get("fabric")),
+            },
+            "aggregation_level": "general",
+            "source": "v4",
+            "n_total": n_total,
+            "iso_distribution": iso_list,
+            "methods": [],
+        })
+    return entries
+
+
+def build_from_bridge(bridge, zh_to_l1, warns):
+    """Produce cross_design entries from bridge v6.
+
+    Bridge has no l1_code in zones (only Chinese zone names), so we reverse-lookup
+    via l1_standard_38.zh. If a zone has no iso_codes (PPTX-only methods), we still
+    emit an entry with iso_distribution=[] so the viewer can pull methods from it,
+    but the viewer will skip it as an ISO source.
+    """
+    entries = []
+    zone_count = 0
+    no_iso_count = 0
+    skipped_zones = 0
+    for gt_raw, gtd in (bridge.get("bridges") or {}).items():
+        gt = norm(gt_raw)
+        if not gt or gt == "UNKNOWN":
+            continue
+        for zh_zone, zd in (gtd.get("zones") or {}).items():
+            l1 = zh_to_l1.get(zh_zone)
+            if not l1:
+                warns.append(f"bridge {gt_raw}: unknown zone zh {zh_zone!r}")
+                skipped_zones += 1
+                continue
+            zone_count += 1
+            iso_codes = zd.get("iso_codes") or {}
+            methods = zd.get("methods") or {}
+            n_total = int(zd.get("count") or 0)
+            iso_list = dist_dict_to_list(iso_codes, n_total)
+            methods_list = methods_dict_to_list(methods)
+            if not iso_list:
+                no_iso_count += 1
+            entries.append({
+                "key": {
+                    "gender": None,
+                    "dept": None,
+                    "gt": gt,
+                    "it": None,
+                    "l1": l1,
+                },
+                "aggregation_level": "cross_design",
+                "source": "bridge",
+                "n_total": n_total,
+                "iso_distribution": iso_list,
+                "methods": methods_list,
+            })
+    return entries, {"zone_count": zone_count, "no_iso_count": no_iso_count, "skipped_zones": skipped_zones}
+
+
+def load_bucket_taxonomy(path: Path) -> dict:
+    """Load bucket_taxonomy.json → {bucket_lower: {gender: [...], dept: [...], gt: [...]}}."""
+    raw = load_json(path)
+    return raw.get("buckets") or {}
+
+
+def build_from_consensus(consensus_path: Path, bucket_tax: dict, warns: list):
+    """Produce same_bucket entries from consensus_v1/entries.jsonl.
+
+    Each consensus entry has key = {bucket, fingerprint, l1}.
+    We expand bucket → gender/dept/gt via bucket_taxonomy.json so the
+    cascade viewer can match on the same key structure as other layers.
+    Entries without ISO are still emitted (methods-only) for completeness.
+    """
+    entries = []
+    loaded = 0
+    no_taxonomy = 0
+    with open(consensus_path, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            row = json.loads(line)
+            loaded += 1
+            key = row.get("key") or {}
+            bucket = key.get("bucket", "").upper()
+            fingerprint = key.get("fingerprint")
+            l1 = key.get("l1")
+            if not (bucket and l1):
+                warns.append(f"consensus: missing bucket or l1 in row {loaded}")
+                continue
+            tax = bucket_tax.get(bucket)
+            if not tax:
+                warns.append(f"consensus: no taxonomy for bucket {bucket!r}")
+                no_taxonomy += 1
+                # Still emit with None gender/dept/gt so data isn't lost
+                tax = {"gender": [None], "dept": [None], "gt": [None]}
+            # Expand: one consensus row → one entry per (gender, dept, gt) combo
+            genders = tax.get("gender") or [None]
+            depts = tax.get("dept") or [None]
+            gts = tax.get("gt") or [None]
+            for g in genders:
+                for d in depts:
+                    for gt in gts:
+                        entries.append({
+                            "key": {
+                                "gender": norm(g),
+                                "dept": norm(d),
+                                "gt": norm(gt),
+                                "it": norm(fingerprint),  # fingerprint maps to item_type slot
+                                "l1": l1,
+                            },
+                            "aggregation_level": "same_bucket",
+                            "source": "consensus_v1",
+                            "n_total": int(row.get("n_total") or 0),
+                            "iso_distribution": row.get("iso_distribution") or [],
+                            "methods": row.get("methods") or [],
+                        })
+    return entries, {"loaded": loaded, "no_taxonomy": no_taxonomy}
+
+
+def aggregate_facts_to_entries(
+    ingest_dir: Path,
+    bucket_tax: dict,
+    consensus_keys: set,
+    warns: list,
+):
+    """Aggregate facts.jsonl files → same_bucket entries.
+
+    Scans data/ingest/*/facts.jsonl.  Groups by (BUCKET, l1_code) and computes
+    iso_distribution (numeric ISO only) + methods.  Skips:
+      - l1_code not in L1_VALID_38 (incl. _DEFAULT)
+      - bucket not in bucket_taxonomy (seasonal codes, empty, temp labels)
+      - (bucket, l1) keys already covered by consensus_v1 (consensus wins)
+    """
+    from collections import defaultdict
+
+    groups: dict[tuple, dict] = {}  # (bucket_upper, l1) → {isos, methods, designs, n}
+    total_rows = 0
+    skipped_l1 = 0
+    skipped_bucket = 0
+    skipped_consensus = 0
+
+    valid_buckets_upper = {k.upper() for k in bucket_tax}
+
+    for facts_path in sorted(ingest_dir.glob("*/facts.jsonl")):
+        with open(facts_path, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                total_rows += 1
+                row = json.loads(line)
+                l1 = row.get("l1_code", "")
+                if l1 not in L1_VALID_38:
+                    skipped_l1 += 1
+                    continue
+                bucket_raw = row.get("bucket", "").upper()
+                if bucket_raw not in valid_buckets_upper:
+                    skipped_bucket += 1
+                    continue
+                if (bucket_raw, l1) in consensus_keys:
+                    skipped_consensus += 1
+                    continue
+
+                gkey = (bucket_raw, l1)
+                if gkey not in groups:
+                    groups[gkey] = {"isos": defaultdict(int), "methods": defaultdict(int),
+                                   "designs": set(), "n": 0}
+                g = groups[gkey]
+                g["n"] += 1
+                g["designs"].add(row.get("design_id", ""))
+                iso = row.get("iso", "")
+                if iso and re.fullmatch(r"\d+(\+\d+)?", iso):
+                    g["isos"][iso] += 1
+                method = row.get("method", "")
+                if method:
+                    g["methods"][method] += 1
+
+    # Convert groups → entries (expand via taxonomy)
+    entries = []
+    for (bucket_upper, l1), g in sorted(groups.items()):
+        n_total = g["n"]
+        iso_list = dist_dict_to_list(dict(g["isos"]), n_total)
+        methods_list = methods_dict_to_list(dict(g["methods"]))
+
+        tax = bucket_tax.get(bucket_upper)
+        if not tax:
+            warns.append(f"facts-agg: no taxonomy for bucket {bucket_upper!r}")
+            tax = {"gender": [None], "dept": [None], "gt": [None]}
+
+        # Determine fingerprint: use the first fingerprint key from taxonomy
+        # that matches, or None. Facts don't carry fingerprint directly.
+        fp = None  # facts don't have fingerprint; same_bucket level is bucket×l1
+
+        for g_val in (tax.get("gender") or [None]):
+            for d_val in (tax.get("dept") or [None]):
+                for gt_val in (tax.get("gt") or [None]):
+                    entries.append({
+                        "key": {
+                            "gender": norm(g_val),
+                            "dept": norm(d_val),
+                            "gt": norm(gt_val),
+                            "it": None,
+                            "l1": l1,
+                        },
+                        "aggregation_level": "same_bucket",
+                        "source": "facts_agg",
+                        "n_total": n_total,
+                        "iso_distribution": iso_list,
+                        "methods": methods_list,
+                    })
+
+    stats = {
+        "total_rows": total_rows,
+        "skipped_l1": skipped_l1,
+        "skipped_bucket": skipped_bucket,
+        "skipped_consensus_overlap": skipped_consensus,
+        "groups": len(groups),
+        "entries": len(entries),
+        "designs": len({d for g in groups.values() for d in g["designs"]}),
+    }
+    return entries, stats
+
+
+def main():
+    v43 = load_json(V43_PATH)
+    v4 = load_json(V4_PATH)
+    bridge = load_json(BRIDGE_PATH)
+
+    # 1. l1_standard_38 → also write as standalone file for the viewer
+    l1_std = build_l1_standard_38(v43)
+    OUT_L1_STD.write_text(json.dumps(l1_std, ensure_ascii=False, indent=2), encoding="utf-8")
+    zh_to_l1 = build_zh_to_l1(l1_std)
+    print(f"[l1_standard_38] {len(l1_std['codes'])} codes → {OUT_L1_STD.name}", file=sys.stderr)
+
+    warns = []
+
+    recipe_entries, recipe_stats = build_from_recipes(RECIPES_DIR, zh_to_l1, warns)
+
+    # same_bucket layer from consensus + facts aggregation (if available)
+    consensus_entries = []
+    consensus_stats = {"loaded": 0, "no_taxonomy": 0}
+    facts_entries = []
+    facts_stats = {"total_rows": 0, "groups": 0, "entries": 0, "designs": 0,
+                   "skipped_l1": 0, "skipped_bucket": 0, "skipped_consensus_overlap": 0}
+    bucket_tax = {}
+
+    if BUCKET_TAX_PATH.exists():
+        bucket_tax = load_bucket_taxonomy(BUCKET_TAX_PATH)
+
+    if CONSENSUS_PATH.exists() and bucket_tax:
+        consensus_entries, consensus_stats = build_from_consensus(
+            CONSENSUS_PATH, bucket_tax, warns
+        )
+        print(f"[consensus] {consensus_stats['loaded']} rows → {len(consensus_entries)} entries", file=sys.stderr)
+    else:
+        print(f"[consensus] skipped (files not found)", file=sys.stderr)
+
+    # Collect consensus (bucket, l1) keys for dedup
+    consensus_keys: set[tuple[str, str]] = set()
+    if CONSENSUS_PATH.exists():
+        with open(CONSENSUS_PATH, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                row = json.loads(line)
+                k = row.get("key") or {}
+                b = k.get("bucket", "").upper()
+                l1 = k.get("l1", "")
+                if b and l1:
+                    consensus_keys.add((b, l1))
+
+    # Aggregate facts.jsonl → same_bucket entries (skip consensus overlaps)
+    if INGEST_DIR.exists() and bucket_tax:
+        facts_entries, facts_stats = aggregate_facts_to_entries(
+            INGEST_DIR, bucket_tax, consensus_keys, warns
+        )
+        print(f"[facts_agg] {facts_stats['total_rows']} rows → {facts_stats['groups']} groups → "
+              f"{len(facts_entries)} entries ({facts_stats['designs']} designs, "
+              f"skipped: {facts_stats['skipped_consensus_overlap']} consensus overlap / "
+              f"{facts_stats['skipped_l1']} bad L1 / {facts_stats['skipped_bucket']} bad bucket)",
+              file=sys.stderr)
+
+    v43_entries = build_from_v43(v43)
+    v4_entries = build_from_v4(v4)
+    bridge_entries, bridge_stats = build_from_bridge(bridge, zh_to_l1, warns)
+
+    # Cascade order: same_sub → same_bucket (consensus + facts_agg) → same_gt → general → cross_design
+    all_entries = recipe_entries + consensus_entries + facts_entries + v43_entries + v4_entries + bridge_entries
+
+    recipe_files = sorted(f.name for f in RECIPES_DIR.glob("recipe_*.json"))
+
+    out = {
+        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "source_versions": {
+            "v4.3": str(V43_PATH.relative_to(ONY_ROOT)),
+            "v4": str(V4_PATH.relative_to(ONY_ROOT)),
+            "bridge": str(BRIDGE_PATH.relative_to(ONY_ROOT)),
+            "recipes": recipe_files,
+            "consensus": str(CONSENSUS_PATH) if CONSENSUS_PATH.exists() else None,
+            "facts": sorted(str(p) for p in INGEST_DIR.glob("*/facts.jsonl")) if INGEST_DIR.exists() else [],
+            "bucket_taxonomy": str(BUCKET_TAX_PATH) if BUCKET_TAX_PATH.exists() else None,
+        },
+        "stats": {
+            "same_sub": len(recipe_entries),
+            "same_bucket_consensus": len(consensus_entries),
+            "same_bucket_facts_agg": len(facts_entries),
+            "same_bucket_total": len(consensus_entries) + len(facts_entries),
+            "same_gt": len(v43_entries),
+            "general": len(v4_entries),
+            "cross_design": len(bridge_entries),
+            "total": len(all_entries),
+            "recipe_files_processed": recipe_stats["files_processed"],
+            "consensus_rows_loaded": consensus_stats["loaded"],
+            "facts_agg_rows": facts_stats["total_rows"],
+            "facts_agg_groups": facts_stats["groups"],
+            "facts_agg_designs": facts_stats["designs"],
+            "bridge_zones": bridge_stats["zone_count"],
+            "bridge_zones_no_iso": bridge_stats["no_iso_count"],
+            "unknown_zone_warnings": len([w for w in warns if "unknown zone" in w]),
+        },
+        "entries": all_entries,
+    }
+
+    OUT_MASTER.write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    print("--- stats ---", file=sys.stderr)
+    for k, v in out["stats"].items():
+        print(f"  {k}: {v}", file=sys.stderr)
+    if warns:
+        print("--- warnings ---", file=sys.stderr)
+        for w in warns[:50]:
+            print(f"  {w}", file=sys.stderr)
+        if len(warns) > 50:
+            print(f"  ... and {len(warns) - 50} more", file=sys.stderr)
+    print(f"[recipes_master] {len(all_entries)} entries → {OUT_MASTER.name}", file=sys.stderr)
+
+
+if __name__ == "__main__":
+    main()
