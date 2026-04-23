@@ -655,36 +655,94 @@ def auto_derive_buckets(bucket_names: set, raw_tax: dict, warns: list):
 
 def dedupe_same_bucket_by_priority(entries: list, warns: list):
     """Collapse multi-source collisions at same_bucket layer. Keep exactly one
-    entry per (bucket, fingerprint, l1); higher SOURCE_PRIORITY wins.
+    entry per canonical (gender, dept, gt, it, l1); higher SOURCE_PRIORITY wins.
 
+    Expects canonical-key same_bucket entries (post expand_same_bucket_to_canonical).
     Non-same_bucket entries pass through unchanged.
     """
-    winners = {}  # (bucket, fp, l1) -> entry
-    losers_by_key = {}
+    winners = {}  # (gender, dept, gt, it, l1) -> entry
+    collisions = 0
     passthrough = []
     for e in entries:
         if e.get("aggregation_level") != "same_bucket":
             passthrough.append(e)
             continue
         k = e.get("key") or {}
-        key = (k.get("bucket"), k.get("fingerprint"), k.get("l1"))
-        if not key[0] or not key[2]:
-            # malformed; skip (already warned earlier)
+        key = (k.get("gender"), k.get("dept"), k.get("gt"), k.get("it"), k.get("l1"))
+        if not key[4]:  # l1 required
             continue
         src = e.get("source") or ""
         prio = SOURCE_PRIORITY.get(src, 0)
         cur = winners.get(key)
         if cur is None or SOURCE_PRIORITY.get(cur.get("source"), 0) < prio:
             if cur is not None:
-                losers_by_key.setdefault(key, []).append(cur)
+                collisions += 1
             winners[key] = e
         else:
-            losers_by_key.setdefault(key, []).append(e)
-    # Summarize losers (useful for transparency)
-    collisions = sum(1 for _ in losers_by_key)
+            collisions += 1
     if collisions:
-        warns.append(f"same_bucket dedupe: {collisions} (bucket,fp,l1) keys had multi-source collision; kept higher-priority source")
+        warns.append(f"same_bucket dedupe: {collisions} canonical-key collisions resolved by SOURCE_PRIORITY")
     return passthrough + list(winners.values())
+
+
+def expand_same_bucket_to_canonical(entries: list, bucket_tax_resolved: dict, fp_resolved: dict, warns: list):
+    """Expand same_bucket entries from {bucket, fingerprint, l1} key into the
+    canonical master key shape {gender, dept, gt, it, l1}, via bucket_taxonomy.
+
+    For each input entry:
+      - Look up buckets_resolved[bucket] → arrays of gender/dept/gt
+      - Look up fingerprints_resolved[fingerprint].it → array of it values (or [None])
+      - Emit one output entry per Cartesian combo, sharing iso_distribution / methods
+        and carrying _bucket/_fingerprint as provenance in the entry root (not key)
+
+    A bucket with gender=[WOMENS], dept=[ACTIVE], gt=[TOP] and fp with it=[TEE]
+    produces 1 canonical entry. A "BOTTOM" gt expanded to 4 subtypes produces 4.
+    Empty arrays (auto-derived buckets with unknown dimension) emit None for
+    that dimension so UI queries with an empty filter still match.
+    """
+    out = []
+    unknown_buckets = 0
+    for e in entries:
+        if e.get("aggregation_level") != "same_bucket":
+            out.append(e)
+            continue
+        k = e.get("key") or {}
+        bucket = k.get("bucket")
+        fp = k.get("fingerprint")
+        l1 = k.get("l1")
+        if not bucket or not l1:
+            continue
+        tax = bucket_tax_resolved.get(bucket)
+        if not tax:
+            unknown_buckets += 1
+            warns.append(f"expand: bucket {bucket!r} missing from buckets_resolved; entry not emitted")
+            continue
+        genders = tax.get("gender") or [None]
+        depts = tax.get("dept") or [None]
+        gts = tax.get("gt") or [None]
+        if fp:
+            fp_info = fp_resolved.get(fp) or {}
+            its = fp_info.get("it") or [None]
+        else:
+            its = [None]
+        base_fields = {
+            k2: v2 for k2, v2 in e.items()
+            if k2 not in ("key",)
+        }
+        base_fields["_bucket"] = bucket
+        base_fields["_fingerprint"] = fp
+        for g in genders:
+            for d in depts:
+                for gt in gts:
+                    for it in its:
+                        entry = {
+                            **base_fields,
+                            "key": {
+                                "gender": g, "dept": d, "gt": gt, "it": it, "l1": l1,
+                            },
+                        }
+                        out.append(entry)
+    return out, unknown_buckets
 
 
 def expand_bucket_taxonomy(raw_tax: dict):
@@ -791,14 +849,25 @@ def main():
     #    auto-derived buckets above) drives the taxonomy coverage check.
     ingest_entries, ingest_per_source = load_ingest_entries(INGEST_DIR, l1_std, warns, raw_tax)
 
-    # 6. Finalize bucket taxonomy (includes any auto-derived additions)
+    # 6. Finalize bucket taxonomy (includes any auto-derived additions).
+    #    buckets_resolved applies BOYS/GIRLS→KIDS and BOTTOM→[PANTS,LEGGINGS,
+    #    SHORTS,SKIRT] expansion; fingerprints_resolved normalizes fingerprint
+    #    names. Both drive the same_bucket → canonical key expansion next.
     bucket_tax = expand_bucket_taxonomy(raw_tax) if raw_tax else None
+    buckets_resolved = (bucket_tax or {}).get("buckets_resolved") or {}
+    fingerprints_resolved = (bucket_tax or {}).get("fingerprints_resolved") or {}
 
-    # 7. Collect all same_bucket entries (from entries.jsonl + facts.jsonl) and
-    #    dedupe by (bucket, fp, l1) using SOURCE_PRIORITY.
-    same_bucket_all = [e for e in (ingest_entries + fact_entries) if e.get("aggregation_level") == "same_bucket"]
+    # 7. Same_bucket entries arrive with key = {bucket, fingerprint, l1}. Expand
+    #    each into canonical {gender, dept, gt, it, l1} entries via taxonomy so
+    #    the viewer can use a single unified findMasterEntry cascade (no
+    #    bucket-aware lookup needed). bucket/fingerprint preserved as provenance.
+    same_bucket_raw = [e for e in (ingest_entries + fact_entries) if e.get("aggregation_level") == "same_bucket"]
     non_same_bucket = [e for e in (ingest_entries + fact_entries) if e.get("aggregation_level") != "same_bucket"]
-    same_bucket_deduped = dedupe_same_bucket_by_priority(same_bucket_all, warns)
+    same_bucket_expanded, unknown_buckets = expand_same_bucket_to_canonical(
+        same_bucket_raw, buckets_resolved, fingerprints_resolved, warns)
+
+    # 8. Dedupe on canonical key (gender, dept, gt, it, l1); higher SOURCE_PRIORITY wins.
+    same_bucket_deduped = dedupe_same_bucket_by_priority(same_bucket_expanded, warns)
 
     all_entries = recipe_entries + v43_entries + v4_entries + bridge_entries + non_same_bucket + same_bucket_deduped
 
