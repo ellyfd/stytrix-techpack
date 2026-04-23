@@ -10,6 +10,7 @@
 2026-04-22 做 repo 清理時踩到地雷:`L2_Confusion_Pairs_Matrix.md` 被判為「沒人用可刪」,
 實際上它被 `L2_VLM_Decision_Tree_Prompts_v2.md` 第 4、7 行明列為「資料來源」與「姊妹文件」,
 是現役 VLM 辨識系統的 49 組 hard-negative 訓練料。刪了會斷資料鏈。
+(2026-04-23 補記:此後兩份已主動合併——混淆對照表的內容整合入判斷樹末尾(§ 混淆對照表),不再是獨立檔案。)
 
 教訓:repo 像個開放式倉庫,資料進來沒人講清該進哪個夾子;要丟時也沒 SOP 確認全廠沒人在用。
 這份文件就是補這塊。
@@ -152,6 +153,6 @@ git commit -m "chore: 移除孤兒 $CANDIDATE (已通過 grep gate 驗證)"
 
 **不會是清理候選的(避免誤判)**:
 
-- `L2_Confusion_Pairs_Matrix.md` — VLM hard-negative 訓練源,**活檔**
+- ~~`L2_Confusion_Pairs_Matrix.md`~~ — 2026-04-23 已合併入 `L2_VLM_Decision_Tree_Prompts_v2.md` 末尾(§ 混淆對照表)
 - `L1_部位定義_Sketch視覺指引.md`(根目錄 + PATH2 兩份,MD5 相同) — 兩個 pipeline 各自 CWD 相對讀,保守留雙份
 - `scripts/` 裡路徑寫死 `/sessions/` 的腳本 — README 明列為「內部環境再生 pom_rules/ 來源參考」,不可刪

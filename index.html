@@ -2783,11 +2783,11 @@ function ManualsModal({ open, onClose }) {
   const manuals = [
     {
       kind: 'ai',
-      title: 'L2 零件判斷樹',
+      title: 'L2 零件判斷樹 + 混淆對照表',
       file: 'L2_VLM_Decision_Tree_Prompts_v2.md',
-      what: '教 AI 看 sketch 時,每個部位要怎麼一步步決定是哪一種零件。像打版師教新人:「看到袖接合處,先判斷它是直接合(SET-IN)還是斜接(RAGLAN)、是整片還是分片...」',
-      who: 'AI 辨識 Pass 2 的判斷依據',
-      impact: '影響 AI 對 282 個 L2 零件(袖型、公主線、口袋、門襟等)的辨識準度。',
+      what: '教 AI 看 sketch 時,每個部位要怎麼一步步決定是哪一種零件。像打版師教新人:「看到袖接合處,先判斷它是直接合(SET-IN)還是斜接(RAGLAN)、是整片還是分片...」末尾附 49 組容易看錯的配對(RAGLAN ↔ SET-IN、公主線 ↔ 剪接片等),告訴 AI 遇到長得像的零件時要抓哪個關鍵差異。',
+      who: 'AI 辨識 Pass 2 的判斷依據 + 精度保險',
+      impact: '影響 AI 對 282 個 L2 零件(袖型、公主線、口袋、門襟等)的辨識準度;49 組混淆對照表已合併入本檔末尾。',
     },
     {
       kind: 'ai',
@@ -2806,15 +2806,6 @@ function ManualsModal({ open, onClose }) {
       impact: 'AI 看 sketch 的第一件事就是依這份定義決定「這個框起來的是什麼部位」。',
       note: '同一份在根目錄與 General Model_Path2 兩處各有一份(MD5 相同)。',
     },
-    {
-      kind: 'ai',
-      title: 'L2 混淆對照表 · 49 組容易看錯',
-      file: 'L2_Confusion_Pairs_Matrix.md',
-      what: '列出 49 組「長得像、要特別分辨」的零件配對。例如 RAGLAN ↔ SET-IN、公主線 ↔ 剪接片——看錯會讓整份工法表跑掉。每組告訴 AI 要抓的關鍵差異。',
-      who: 'AI 辨識的精度保險',
-      impact: '防止 AI 把 A 零件誤判為 B 零件。',
-    },
-
     {
       kind: 'rule',
       title: 'POM 規則分類邏輯 (v5.5.1)',
