@@ -1963,6 +1963,23 @@ const CI_STEP_LABELS = {
   'Commit updated data':                             '提交資料',
 };
 
+/* Base64 UTF-8 安全編解碼 — atob/btoa 預設會截斷 >0x7F 位元組,
+   無法直接用在包含中文的 jsonl / markdown。走 TextEncoder/TextDecoder 處理。 */
+function b64EncodeUtf8(text) {
+  const bytes = new TextEncoder().encode(text);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += 8192) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, Math.min(i + 8192, bytes.length)));
+  }
+  return btoa(binary);
+}
+function b64DecodeUtf8(b64) {
+  const binary = atob(b64.replace(/\n/g, ''));
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new TextDecoder('utf-8').decode(bytes);
+}
+
 /* 把 GitHub API 錯誤分類給 UI 顯示;UploadModal / PackageModal / ResultsUploadModal 共用 */
 async function classifyActionsError(res, thrown) {
   if (thrown) {
@@ -2277,50 +2294,16 @@ function UploadModal({ open, onClose, token }) {
             )}
             {ciSteps.map((s, i) => {
               if (s.conclusion === 'link') {
-                // 診斷資訊的 bucket 配色
-                const kindStyle = ciDiagnostic ? ({
-                  scope:     { bg: '#fef2f2', border: '#fecaca', color: '#991b1b', icon: '🔒' },
-                  ratelimit: { bg: '#fef3c7', border: '#fde68a', color: '#92400e', icon: '⏱' },
-                  notfound:  { bg: '#f3f4f6', border: '#d1d5db', color: '#374151', icon: '🔍' },
-                  forbidden: { bg: '#fef2f2', border: '#fecaca', color: '#991b1b', icon: '🔒' },
-                  network:   { bg: '#f3f4f6', border: '#d1d5db', color: '#374151', icon: '🌐' },
-                  server:    { bg: '#fef3c7', border: '#fde68a', color: '#92400e', icon: '💥' },
-                  timeout:   { bg: '#f3f4f6', border: '#d1d5db', color: '#374151', icon: '⏱' },
-                  unknown:   { bg: '#f3f4f6', border: '#d1d5db', color: '#374151', icon: '?' },
-                })[ciDiagnostic.kind] || { bg: '#f3f4f6', border: '#d1d5db', color: '#374151', icon: '?' } : null;
                 return (
                   <div key={i}>
-                    <div style={{ padding: '8px 10px', borderRadius: '5px', background: '#eff6ff', border: '1px solid #bfdbfe', fontSize: '12px', marginBottom: ciDiagnostic ? '6px' : 0 }}>
+                    <div style={{ padding: '8px 10px', borderRadius: '5px', background: '#eff6ff', border: '1px solid #bfdbfe', fontSize: '12px' }}>
                       <a href={s.url} target="_blank" rel="noopener noreferrer"
                         style={{ color: '#2563eb', textDecoration: 'underline', fontWeight: 500 }}>
                         {s.label || '前往 GitHub Actions 查看 Pipeline 進度'} →
                       </a>
                     </div>
-                    {ciDiagnostic && kindStyle && (
-                      <div style={{ padding: '8px 10px', borderRadius: '5px',
-                          background: kindStyle.bg, border: `1px solid ${kindStyle.border}`, fontSize: '12px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: kindStyle.color, fontWeight: 600 }}>
-                          <span>{kindStyle.icon}</span>
-                          <span>{ciDiagnostic.title}</span>
-                          <button onClick={() => setDiagExpanded(v => !v)}
-                            style={{ marginLeft: 'auto', background: 'none', border: 'none', color: kindStyle.color,
-                              fontSize: '11px', cursor: 'pointer', padding: '0', textDecoration: 'underline', fontFamily: 'inherit' }}>
-                            {diagExpanded ? '收起' : '展開詳情'}
-                          </button>
-                        </div>
-                        <div style={{ fontSize: '11px', color: kindStyle.color, marginTop: '4px', lineHeight: 1.5 }}>
-                          {ciDiagnostic.hint}
-                        </div>
-                        {diagExpanded && ciDiagnostic.detail && (
-                          <pre style={{ margin: '6px 0 0 0', padding: '6px 8px', background: '#fff',
-                              border: `1px solid ${kindStyle.border}`, borderRadius: '3px',
-                              fontSize: '10px', fontFamily: "'JetBrains Mono', monospace",
-                              color: '#374151', whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: '120px', overflow: 'auto' }}>
-                            {ciDiagnostic.detail}
-                          </pre>
-                        )}
-                      </div>
-                    )}
+                    <DiagnosticBox diagnostic={ciDiagnostic} expanded={diagExpanded}
+                      onToggleExpand={() => setDiagExpanded(v => !v)} />
                   </div>
                 );
               }
@@ -2608,7 +2591,7 @@ function PackageModal({ open, onClose, token }) {
 }
 
 /* ResultsUploadModal:吃外部單位送回的 zip,merge 到 data/ingest/{unified,vlm,metadata}/
-   走 PatchUploadModal 相同的直連 GitHub PUT 模式,不經 Vercel endpoint */
+   全程瀏覽器直連 GitHub PUT 模式(與 UploadModal 大檔路徑同,不經 Vercel endpoint) */
 const RESULT_TARGETS = {
   'data/ingest/unified/facts.jsonl':     { label: 'Unified facts',  mode: 'append' },
   'data/ingest/vlm/facts.jsonl':         { label: 'VLM facts',      mode: 'append' },
@@ -2699,7 +2682,7 @@ function ResultsUploadModal({ open, onClose, token }) {
         if (getResp.ok) {
           const d = await getResp.json();
           sha = d.sha;
-          existingText = atob(d.content.replace(/\n/g, ''));
+          existingText = b64DecodeUtf8(d.content);
         } else if (getResp.status !== 404) {
           setDiagnostic(await classifyActionsError(getResp));
           setPhase('error'); return;
@@ -2721,7 +2704,7 @@ function ResultsUploadModal({ open, onClose, token }) {
           results.push({ path, added: newLines.length, skipped: 0 });
         }
         // 3. PUT
-        const b64 = btoa(unescape(encodeURIComponent(mergedText)));
+        const b64 = b64EncodeUtf8(mergedText);
         const putResp = await fetch(apiUrl, {
           method: 'PUT', headers: { ...ghH, 'Content-Type': 'application/json' },
           body: JSON.stringify({
