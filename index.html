@@ -1722,45 +1722,6 @@ function UnitFormatToggle({ displayUnit, setDisplayUnit, displayFormat, setDispl
   );
 }
 
-/* Mode Card:尺寸規格 tab 內部的檢視切換(基碼 / 全碼)。選中黑底白字,未選白底黑字。 */
-function ModeCard({ active, disabled, title, subtitle, onClick, disabledHint }) {
-  const [hover, setHover] = React.useState(false);
-  const bg = disabled ? "#f5f5f5" : (active ? "#1a1a1a" : "#fff");
-  const color = disabled ? "#bbb" : (active ? "#fff" : "#1a1a1a");
-  const subColor = disabled ? "#c8c8c8" : (active ? "rgba(255,255,255,0.7)" : "#888");
-  const border = disabled
-    ? "1.5px solid #e8e5e1"
-    : (active ? "2px solid #1a1a1a" : (hover ? "2px solid #1a1a1a" : "1.5px solid #e8e5e1"));
-  return (
-    <div
-      role="button"
-      tabIndex={disabled ? -1 : 0}
-      aria-pressed={active}
-      aria-disabled={disabled}
-      title={disabled ? (disabledHint || "") : ""}
-      onClick={() => { if (!disabled) onClick && onClick(); }}
-      onKeyDown={(e) => { if (!disabled && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onClick && onClick(); } }}
-      onMouseEnter={() => !disabled && setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      style={{
-        flex: 1, minWidth: 0,
-        padding: "14px 18px", borderRadius: "10px",
-        background: bg, color, border,
-        cursor: disabled ? "not-allowed" : "pointer",
-        opacity: disabled ? 0.55 : 1,
-        boxShadow: active && !disabled ? "0 4px 14px rgba(26,26,26,0.18)" : "none",
-        transition: "background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s",
-        userSelect: "none",
-        display: "flex", flexDirection: "column", gap: "4px",
-        fontFamily: "inherit",
-      }}
-    >
-      <div style={{ fontSize: "13px", fontWeight: 700, letterSpacing: "0.02em" }}>{title}</div>
-      <div style={{ fontSize: "11px", fontWeight: 500, color: subColor, lineHeight: 1.4 }}>{subtitle}</div>
-    </div>
-  );
-}
-
 /* 新增 POM 下拉:被 hide 的 bucket POMs 優先 + 多選 + 自訂欄位 */
 function AddPomMenu({ open, onClose, hiddenCodes, excludedCodes, pomNames, zhFor, enFor, onAddBucket, onAddCustom }) {
   const [search, setSearch] = React.useState("");
@@ -4551,28 +4512,25 @@ function App() {
                   display: "flex", flexDirection: "column", gap: "10px",
                   marginBottom: isMobile ? "10px" : "14px",
                 }}>
-                  {/* Alpha label + Mode Cards row */}
-                  <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "6px" }}>
-                    {!isMobile && <span style={{ fontSize: "10px", color: "#bbb", fontWeight: 500, letterSpacing: "0.05em", textTransform: "uppercase" }}>Size Rule</span>}
-                    <span style={{
-                      padding: "3px 10px", borderRadius: "4px",
-                      background: "#faf9f7", color: "#555",
-                      border: "1px solid #e8e5e1",
-                      fontSize: "11px", fontWeight: 600, letterSpacing: "0.02em",
-                      fontFamily: "'JetBrains Mono',monospace",
-                    }}>{sizeRuleLabel}</span>
-                  </div>
-                  {isMobile ? (
-                    /* 行動版:compact 2-segment pill 取代兩張堆疊的 Mode Cards,省約 120px 垂直空間 */
-                    <div style={{ display: "flex", width: "100%", border: `1px solid ${T.c.border}`, borderRadius: T.r.sm, overflow: "hidden" }}>
+                  {/* B.4 — 基碼/全碼 segmented control + size rule meta 合併成一列,取代原本兩張大 ModeCard */}
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: isMobile ? "8px" : "14px",
+                    flexWrap: "wrap",
+                  }}>
+                    <div style={{
+                      display: "inline-flex",
+                      border: `1px solid ${T.c.border}`, borderRadius: T.r.sm, overflow: "hidden",
+                      width: isMobile ? "100%" : "auto",
+                    }}>
                       <button onClick={() => setSizeView("base")}
                         aria-pressed={sizeView === "base"}
                         style={{
-                          flex: 1, padding: "9px 12px",
+                          flex: isMobile ? 1 : "0 0 auto",
+                          padding: isMobile ? "9px 12px" : "10px 20px",
                           background: sizeView === "base" ? T.c.text : T.c.bg,
                           color: sizeView === "base" ? T.c.bg : T.c.text2,
                           border: "none", borderRight: `1px solid ${T.c.border}`,
-                          fontSize: "12px", fontWeight: 700, cursor: "pointer",
+                          fontSize: isMobile ? "12px" : "13px", fontWeight: 700, cursor: "pointer",
                           fontFamily: "inherit", transition: "background 0.15s, color 0.15s",
                         }}>基碼 MISSY + PLUS</button>
                       <button onClick={() => !gradingDisabled && setSizeView("grading")}
@@ -4580,38 +4538,35 @@ function App() {
                         aria-pressed={sizeView === "grading"}
                         title={gradingDisabled ? "請先完成基碼 / POM 確認" : ""}
                         style={{
-                          flex: 1, padding: "9px 12px",
+                          flex: isMobile ? 1 : "0 0 auto",
+                          padding: isMobile ? "9px 12px" : "10px 20px",
                           background: sizeView === "grading" ? T.c.text : T.c.bg,
-                          color: gradingDisabled ? "#bbb" : (sizeView === "grading" ? T.c.bg : T.c.text2),
+                          color: gradingDisabled ? T.c.text4 : (sizeView === "grading" ? T.c.bg : T.c.text2),
                           border: "none",
-                          fontSize: "12px", fontWeight: 700,
+                          fontSize: isMobile ? "12px" : "13px", fontWeight: 700,
                           cursor: gradingDisabled ? "not-allowed" : "pointer",
                           opacity: gradingDisabled ? 0.55 : 1,
                           fontFamily: "inherit", transition: "background 0.15s, color 0.15s",
                         }}>全碼 Full Grading</button>
                     </div>
-                  ) : (
-                    <div style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr 1fr",
-                      gap: "10px",
-                    }}>
-                      <ModeCard
-                        active={sizeView === "base"}
-                        title="基碼 MISSY + PLUS 並列"
-                        subtitle="M size · 單一基準 · Petite / Tall sub-row"
-                        onClick={() => setSizeView("base")}
-                      />
-                      <ModeCard
-                        active={sizeView === "grading"}
-                        disabled={gradingDisabled}
-                        disabledHint="請先完成基碼 / POM 確認"
-                        title="全碼 Full Grading"
-                        subtitle="XS–XXL (+1X–4X) · 推導尺寸表"
-                        onClick={() => setSizeView("grading")}
-                      />
+                    {!isMobile && (
+                      <span style={{ fontSize: "12px", color: T.c.text3 }}>
+                        {sizeView === "base"
+                          ? "M size · 單一基準 · Petite / Tall sub-row"
+                          : "XS–XXL (+1X–4X) · 推導尺寸表"}
+                      </span>
+                    )}
+                    <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "6px" }}>
+                      {!isMobile && <span style={{ fontSize: "10px", color: "#bbb", fontWeight: 500, letterSpacing: "0.05em", textTransform: "uppercase" }}>Size Rule</span>}
+                      <span style={{
+                        padding: "3px 10px", borderRadius: "4px",
+                        background: "#faf9f7", color: "#555",
+                        border: "1px solid #e8e5e1",
+                        fontSize: "11px", fontWeight: 600, letterSpacing: "0.02em",
+                        fontFamily: "'JetBrains Mono',monospace",
+                      }}>{sizeRuleLabel}</span>
                     </div>
-                  )}
+                  </div>
 
                   {/* 統一 Header:兩個 view 共用 */}
                   <div style={{
@@ -4659,9 +4614,18 @@ function App() {
                       <button onClick={runMeasurement} style={btnStyle({ variant: 'secondary', isMobile })}>Re-generate</button>
                     </div>
 
-                    {/* 控制列:單位 + mode-specific */}
-                    <div style={{ display: "flex", alignItems: "center", gap: isMobile ? "10px" : "14px", flexWrap: "wrap", marginTop: isMobile ? "8px" : "12px", paddingTop: isMobile ? "6px" : "10px", borderTop: "1px dashed #eee" }}>
+                    {/* B.5 — 控制列:分成「單位/格式」與「身型變體」兩群,每群帶 label,群與群之間有 divider */}
+                    <div style={{ display: "flex", alignItems: "center", gap: isMobile ? "8px" : "12px", flexWrap: "wrap", marginTop: isMobile ? "8px" : "12px", paddingTop: isMobile ? "6px" : "10px", borderTop: "1px dashed #eee" }}>
+                      <span style={{ fontSize: "11px", color: T.c.text3, fontWeight: 500, letterSpacing: "0.02em" }}>單位</span>
                       <UnitFormatToggle displayUnit={displayUnit} setDisplayUnit={changeUnit} displayFormat={displayFormat} setDisplayFormat={changeFormat} />
+
+                      {!isMobile && (
+                        <span aria-hidden="true" style={{
+                          width: "1px", alignSelf: "stretch", background: T.c.border,
+                          margin: "2px 4px",
+                        }} />
+                      )}
+                      <span style={{ fontSize: "11px", color: T.c.text3, fontWeight: 500, letterSpacing: "0.02em" }}>身型</span>
 
                       {sizeView === "base" ? (
                         <>
@@ -4745,12 +4709,7 @@ function App() {
                         </label>
                       )}
 
-                      {sizeView === "grading" && tier1SetU.size > 0 && (
-                        <span style={{ fontSize: "11px", color: "#0891b2", background: "#ecfeff", padding: "2px 8px", borderRadius: "6px", fontWeight: 500, marginLeft: "auto" }}
-                          title="Foundational:歷史不論 rate 都強制納入,不能隱藏">
-                          ★ <span style={{ color: "#0e7490" }}>= Foundational</span>
-                        </span>
-                      )}
+                      {/* B.6 — 原 ★ Foundational 圖示說明 chip 已改為表格列 ★ 本身的 title 提示;此處不再重複 */}
                     </div>
                   </div>
                 </div>
@@ -4946,21 +4905,36 @@ function App() {
                       );
                     })()}
 
-                    {/* 基碼 table 工具列:Foundational legend + 新增 POM 按鈕。
-                        標題與計數已整合到上方統一 header,此列不再重複。 */}
+                    {/* B.6 — 基碼 table 工具列:★/⚡ 兩張 legend chip 收成單一 ⓘ tooltip,減少視覺干擾。
+                        每列 ★/⚡ icon 本身已有 title,仍可 hover 看詳細說明。 */}
                     <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: isMobile ? "2px" : "4px", marginBottom: isMobile ? "4px" : "8px", flexWrap: "wrap" }}>
-                      {tier1Set.size > 0 && (
-                        <span style={{ fontSize: isMobile ? "10px" : "11px", color: "#0891b2", background: "#ecfeff", padding: "2px 8px", borderRadius: "6px", fontWeight: 500 }}
-                          title="Foundational:歷史不論 rate 都強制納入,不能隱藏">
-                          ★ <span style={{ color: "#0e7490" }}>= Foundational{!isMobile && "(強制納入)"}</span>
-                        </span>
-                      )}
-                      {inflectionCombo && Object.keys(inflectionCombo).some(c => c !== '_meta' && inflectionCombo[c]?.inflection) && (
-                        <span style={{ fontSize: isMobile ? "10px" : "11px", color: "#ea580c", background: "#fff7ed", padding: "2px 8px", borderRadius: "6px", fontWeight: 500 }}
-                          title="跳碼不等距:此 POM 在某些 size step 跳碼幅度不同,改 M 不會等量平移,見全碼頁">
-                          ⚡ <span style={{ color: "#c2410c" }}>= 跳碼不等距</span>
-                        </span>
-                      )}
+                      {(() => {
+                        const hasTier1 = tier1Set.size > 0;
+                        const hasInflectionAny = inflectionCombo && Object.keys(inflectionCombo).some(c => c !== '_meta' && inflectionCombo[c]?.inflection);
+                        if (!hasTier1 && !hasInflectionAny) return null;
+                        const parts = [];
+                        if (hasTier1) parts.push("★ Foundational:歷史不論 rate 都強制納入");
+                        if (hasInflectionAny) parts.push("⚡ 跳碼不等距:改 M 不會讓所有 size 等量平移");
+                        return (
+                          <span
+                            title={parts.join("  ·  ")}
+                            aria-label="圖示說明"
+                            style={{
+                              display: "inline-flex", alignItems: "center", gap: "4px",
+                              fontSize: isMobile ? "10px" : "11px",
+                              color: T.c.text3, background: T.c.bg2,
+                              padding: "2px 8px", borderRadius: T.r.sm,
+                              border: `1px solid ${T.c.border}`,
+                              fontWeight: 500, cursor: "help",
+                              userSelect: "none",
+                            }}>
+                            <span aria-hidden="true">ⓘ</span>
+                            <span>圖示說明</span>
+                            {hasTier1 && <span style={{ color: "#0891b2" }}>★</span>}
+                            {hasInflectionAny && <span style={{ color: "#ea580c" }}>⚡</span>}
+                          </span>
+                        );
+                      })()}
                       <button onClick={() => setAddPomOpen(true)}
                         style={{
                           ...btnStyle({ variant: 'ghost', isMobile }),
@@ -5011,7 +4985,8 @@ function App() {
                             </label>
                           </div>
                           {!collapsed && (
-                            <div style={{ background: "#fff", border: "1px solid #e8e5e1", borderRadius: "12px", overflow: "auto" }}>
+                            /* B.7 — 彩色左邊條 (3px) 強化 tier 視覺分群:必備紅、建議橘、選配藍、自訂紫 */
+                            <div style={{ background: "#fff", border: "1px solid #e8e5e1", borderLeft: `3px solid ${tc.c}`, borderRadius: "12px", overflow: "auto" }}>
                               <table style={{ width: "100%", minWidth: isMobile ? (showPlus && hasPlus ? "500px" : "420px") : "auto", borderCollapse: "collapse", fontSize: isMobile ? "12px" : "14px" }}>
                                 <thead>
                                   <tr style={{ background: "#faf9f7", borderBottom: "1.5px solid #e8e5e1" }}>
@@ -5497,7 +5472,8 @@ function App() {
 
         {/* ═══ Grading (全碼) View — 併入 measurement tab,由 sizeView 切換 ═══ */}
         {activeTab === "measurement" && sizeView === "grading" && (
-          <div style={{ animation: "fadeIn 0.2s ease" }}>
+          /* B.8 — paddingBottom 保留空間給 sticky bottom bar(跟基碼視圖一致) */
+          <div style={{ animation: "fadeIn 0.2s ease", paddingBottom: "72px" }}>
             {!(mDone && currentBucket) && (
               <div style={{
                 minHeight: "200px", display: "flex", alignItems: "center", justifyContent: "center",
@@ -5710,7 +5686,8 @@ function App() {
                             <span style={{ fontSize: isMobile ? "13px" : "14px", fontWeight: 700, color: tc.c, letterSpacing: "0.02em" }}>{tc.label} POM</span>
                             <span style={{ fontSize: "11px", color: "#888", fontWeight: 500 }}>{tierCodes.length} 項</span>
                           </div>
-                          <div style={{ background: "#fff", border: "1px solid #e8e5e1", borderRadius: "12px", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+                          {/* B.7 — 彩色左邊條同基碼視圖,全碼 table 也用同樣 tier 色系 */}
+                          <div style={{ background: "#fff", border: "1px solid #e8e5e1", borderLeft: `3px solid ${tc.c}`, borderRadius: "12px", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
                             <table style={{ width: "100%", minWidth: isMobile ? `${220 + visibleSizes.length * 66}px` : "auto", borderCollapse: "collapse", fontSize: isMobile ? "12px" : "14px" }}>
                               <thead>
                                 <tr style={{ background: "#faf9f7", borderBottom: "1.5px solid #e8e5e1" }}>
@@ -5909,6 +5886,68 @@ function App() {
             })()}
           </div>
         )}
+
+        {/* B.8 — Sticky bottom bar:尺寸規格 tab 內恆可見的「已確認 N/Total」+ 主 CTA。
+            兩個 view 的內層 wrapper 都已 reserve 72px paddingBottom,不會蓋住內容。 */}
+        {activeTab === "measurement" && mDone && currentBucket && (() => {
+          const _mr = currentBucket.measurement_rules || {};
+          const _keep = appMode === "universal"
+            ? (c => universalBasicCodes.has(c) || userAddedCodes.has(c))
+            : (() => true);
+          const _codes = ["must","recommend","optional"]
+            .flatMap(t => Object.keys(_mr[t] || {}).filter(c => _mr[t][c] != null && _keep(c)))
+            .concat(customPoms.map(p => p.code));
+          const _total = _codes.length;
+          const _included = _codes.filter(c => !excluded.has(c)).length;
+          const _allExcluded = _total > 0 && _included === 0;
+          return (
+            <div role="region" aria-label="尺寸規格完成列" style={{
+              position: "fixed", bottom: 0, left: 0, right: 0,
+              background: T.c.bg, borderTop: `1px solid ${T.c.border}`,
+              boxShadow: "0 -4px 16px rgba(0,0,0,0.04)",
+              zIndex: 40,
+            }}>
+              <div style={{
+                maxWidth: "1280px", margin: "0 auto",
+                padding: isMobile ? "10px 14px" : "12px 28px",
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                gap: "12px",
+              }}>
+                <div style={{ display: "flex", alignItems: "baseline", gap: "8px", minWidth: 0 }}>
+                  <span style={{ fontSize: isMobile ? "12px" : "13px", color: T.c.text3 }}>已確認</span>
+                  <span style={{
+                    fontSize: isMobile ? "16px" : "18px", fontWeight: 700,
+                    fontFamily: "'JetBrains Mono',monospace", color: T.c.text,
+                  }}>
+                    {_included}
+                    <span style={{ color: T.c.text3, fontWeight: 500 }}>/{_total}</span>
+                  </span>
+                  <span style={{ fontSize: isMobile ? "12px" : "13px", color: T.c.text3 }}>POM</span>
+                  {!isMobile && (
+                    <span style={{ fontSize: "11px", color: T.c.text3, marginLeft: "8px" }}>
+                      {sizeView === "grading" ? "全碼檢視" : "基碼檢視"}
+                    </span>
+                  )}
+                </div>
+                <button onClick={exportTechpack}
+                  disabled={_allExcluded}
+                  title={_allExcluded ? "請至少勾選一項 POM" : "下載目前 techpack 狀態為 JSON 檔"}
+                  style={{
+                    ...btnStyle({ variant: 'brand', isMobile, disabled: _allExcluded }),
+                    padding: isMobile ? "8px 16px" : "10px 22px",
+                    display: "inline-flex", alignItems: "center", gap: "6px",
+                  }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  完成 · 匯出 JSON
+                </button>
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       <AdminModal
