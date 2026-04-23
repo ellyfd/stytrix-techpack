@@ -10,6 +10,7 @@
 2026-04-22 做 repo 清理時踩到地雷:`L2_Confusion_Pairs_Matrix.md` 被判為「沒人用可刪」,
 實際上它被 `L2_VLM_Decision_Tree_Prompts_v2.md` 第 4、7 行明列為「資料來源」與「姊妹文件」,
 是現役 VLM 辨識系統的 49 組 hard-negative 訓練料。刪了會斷資料鏈。
+(2026-04-23 補記:此後兩份已主動合併——混淆對照表的內容整合入判斷樹末尾(§ 混淆對照表),不再是獨立檔案。)
 
 教訓:repo 像個開放式倉庫,資料進來沒人講清該進哪個夾子;要丟時也沒 SOP 確認全廠沒人在用。
 這份文件就是補這塊。
@@ -28,7 +29,7 @@
 | `General Model_Path2_Construction Suggestion/` | **通用模型(不分客戶/品牌)的做工推薦資料源**。ISO 工藝代號查表、knit/woven 做工紀錄、PATH2 pipeline 文件 | `iso_lookup_factory_v4.3.json`、`knit_pptx_construction_context.json`、`PATH2_通用模型_做工推薦Pipeline.md` | 前端 runtime fetch 的檔(那該放 `data/`) |
 | `scripts/` | **資料產線腳本**。像後勤的「資料重建 SOP」,在內部環境跑,重建上面幾個資料夾的內容 | `reclassify_and_rebuild.py`、`build_l2_visual_guide.py` | 一次性 ad-hoc 腳本 |
 | `api/` | **線上系統後端 endpoint**。目前只有 `analyze.js`,接 Claude Vision 做 AI 辨識 | `api/analyze.js` | 靜態資料 |
-| repo 根目錄 `.md` | **跨模組共用規格文件**。像打版室跟工段部都要翻的中央規格手冊 | `L1_部位定義_Sketch視覺指引.md`、`L2_VLM_Decision_Tree_Prompts_v2.md`、`pom_rules_v55_classification_logic.md`、`pom_rules_pipeline_guide.md` | 只有子系統自己用的文件 |
+| repo 根目錄 `.md` | **跨模組共用規格文件**。像打版室跟工段部都要翻的中央規格手冊 | `L1_部位定義_Sketch視覺指引.md`、`L2_VLM_Decision_Tree_Prompts_v2.md`、`pom_rules_v55_classification_logic.md`、`pom_rules_pipeline_guide_v2.md` | 只有子系統自己用的文件 |
 
 ### 新資料進來時,該放哪?
 
@@ -45,7 +46,7 @@
 │       Yes → General Model_Path2_Construction Suggestion/
 │
 ├── 是 construction recipe / pattern(做工配方)?
-│       ├── 由 PATH2 pipeline 產生  → construction_recipes/(新建,PATH2 README 已預留此名)
+│       ├── 由 PATH2 pipeline 產生  → recipes/（根目錄 72 檔,`build_recipes_master.py` 實際會吃)
 │       └── 臨時上傳的一次性檔       → 不要進 repo,放 Notion / Drive
 │
 ├── 是跨模組都要讀的規格文件?
@@ -58,8 +59,8 @@
         先在 PR 裡問,不要直接 merge。
 ```
 
-> ⚠ **重要**:**不要再用根目錄 `recipes/` 這個名字**。PATH2 規劃用的是 `construction_recipes/`(不同名)。
-> 現有的 `recipes/` 裡那 72 檔目前無人引用,屬於下輪要審的遺留,不要在上面加新檔。
+> ⚠ **重要**:`recipes/`(根目錄 72 檔)是 `build_recipes_master.py` 實際讀的路徑,
+> 是活檔不是遺留。PATH2 規劃階段曾用 `construction_recipes/` 這個名字,已棄用統一回 `recipes/`。
 
 ### 版本化命名規則
 
@@ -147,12 +148,11 @@ git commit -m "chore: 移除孤兒 $CANDIDATE (已通過 grep gate 驗證)"
 
 | 候選 | 現況 | SOP 預期結果 |
 |------|------|--------------|
-| `recipes/`(72 檔) | 根目錄 namespace,PATH2 實際會用 `construction_recipes/`(不同名),無人引用 | 應通過 gate → 可丟 |
-| `pom_rules_pipeline_guide_v2.md` | 0 外部引用,但使用者指定暫留,等 v2 成主流後更新 README 引用再處理 | 看 README 是否已切到 v2 |
+| ~~`recipes/`~~ | 2026-04-23 確認是活檔:`star_schema/scripts/build_recipes_master.py` 每次 CI 都會掃 72 檔餵進 recipes_master.json | **不是候選** |
 | `iso_lookup_factory_v4.json` vs `v4.3.json` | v4 仍作 fallback 被 `index.html` 引用,非孤兒;只是舊版 | 仍會過 gate = 不可丟,維持 fallback |
 
 **不會是清理候選的(避免誤判)**:
 
-- `L2_Confusion_Pairs_Matrix.md` — VLM hard-negative 訓練源,**活檔**
+- ~~`L2_Confusion_Pairs_Matrix.md`~~ — 2026-04-23 已合併入 `L2_VLM_Decision_Tree_Prompts_v2.md` 末尾(§ 混淆對照表)
 - `L1_部位定義_Sketch視覺指引.md`(根目錄 + PATH2 兩份,MD5 相同) — 兩個 pipeline 各自 CWD 相對讀,保守留雙份
 - `scripts/` 裡路徑寫死 `/sessions/` 的腳本 — README 明列為「內部環境再生 pom_rules/ 來源參考」,不可刪

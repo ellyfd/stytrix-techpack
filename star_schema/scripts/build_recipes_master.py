@@ -45,22 +45,22 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 # Path resolution: script is at star_schema/scripts/build_recipes_master.py
+# SCRIPTS_DIR = star_schema/scripts/
 # STAR_SCHEMA = star_schema/   (parent of scripts/)
-# ONY_ROOT = ONY/              (parent of star_schema/)
+# REPO_ROOT   = stytrix-techpack/ (parent of star_schema/)
 STAR_SCHEMA = Path(__file__).resolve().parent.parent
-ONY_ROOT = STAR_SCHEMA.parent
-_RMV2 = ONY_ROOT / "recipes_master_v2"
+REPO_ROOT = STAR_SCHEMA.parent
 
-# Legacy input sources (under ONY/recipes_master_v2/)
-V43_PATH = _RMV2 / "General Model_Path2_Construction Suggestion" / "iso_lookup_factory_v4.3.json"
-V4_PATH = _RMV2 / "General Model_Path2_Construction Suggestion" / "iso_lookup_factory_v4.json"
-BRIDGE_PATH = _RMV2 / "data" / "construction_bridge_v6.json"
-RECIPES_DIR = _RMV2 / "recipes"
+# Input sources (all relative to repo root)
+V43_PATH = REPO_ROOT / "General Model_Path2_Construction Suggestion" / "iso_lookup_factory_v4.3.json"
+V4_PATH  = REPO_ROOT / "General Model_Path2_Construction Suggestion" / "iso_lookup_factory_v4.json"
+BRIDGE_PATH = REPO_ROOT / "data" / "construction_bridge_v6.json"
+RECIPES_DIR = REPO_ROOT / "recipes"
 
-# Star schema paths
-CONSENSUS_PATH = STAR_SCHEMA / "data" / "ingest" / "consensus_v1" / "entries.jsonl"
-INGEST_DIR = STAR_SCHEMA / "data" / "ingest"
-BUCKET_TAX_PATH = STAR_SCHEMA / "data" / "bucket_taxonomy.json"
+# Star schema ingest paths
+CONSENSUS_PATH = REPO_ROOT / "data" / "ingest" / "consensus_v1" / "entries.jsonl"
+INGEST_DIR = REPO_ROOT / "data" / "ingest"
+BUCKET_TAX_PATH = REPO_ROOT / "data" / "bucket_taxonomy.json"
 
 # L1 standard 38 codes — facts with l1_code outside this set are skipped
 L1_VALID_38 = frozenset(
@@ -68,8 +68,8 @@ L1_VALID_38 = frozenset(
     "PD PK PL PS QT RS SA SB SH SL SP SR SS ST TH WB ZP".split()
 )
 
-OUT_MASTER = STAR_SCHEMA / "data" / "recipes_master.json"
-OUT_L1_STD = STAR_SCHEMA / "data" / "l1_standard_38.json"
+OUT_MASTER = REPO_ROOT / "data" / "recipes_master.json"
+OUT_L1_STD = REPO_ROOT / "data" / "l1_standard_38.json"
 
 
 def norm(s):
@@ -88,7 +88,7 @@ def build_l1_standard_38(v43) -> dict:
     """Load L1 standard 38 — prefer star_schema/data/l1_standard_38.json (ground truth),
     fall back to v4.3's l1_standard_38 field if file not found."""
     # Ground truth file (already corrected to IE standard)
-    gt_path = STAR_SCHEMA / "data" / "l1_standard_38.json"
+    gt_path = REPO_ROOT / "data" / "l1_standard_38.json"
     if gt_path.exists():
         gt = json.loads(gt_path.read_text(encoding="utf-8"))
         return gt
@@ -123,6 +123,16 @@ def build_zh_to_l1(l1_std: dict) -> dict:
         "車縫(通則)": "OT", # 通用車線 → OT 其它
         "剪接線": "SS",    # 接合線（無上下分時）→ SS 脅邊
         "褲襠": "RS",      # 股下/crotch → RS 褲襠 (same as standard)
+        # Style guide Part C1 additions
+        "袖襱": "AE",       # Armhole per style guide
+        "袖圍": "AH",
+        "袖衩": "SP",       # Sleeve placket
+        "肩帶": "ST",       # Strap
+        "抽繩": "DC",       # Drawcord
+        "裙合身": "SR",     # Skirt fit
+        "帽子": "HD",       # Hood
+        "裙擺": "BM",       # Skirt hem
+        "前立": "PL",       # Fly/placket (bottoms)
     }
     for zh, code in ZH_ALIASES.items():
         if zh not in out:  # don't override standard names
@@ -586,9 +596,9 @@ def main():
     out = {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "source_versions": {
-            "v4.3": str(V43_PATH.relative_to(ONY_ROOT)),
-            "v4": str(V4_PATH.relative_to(ONY_ROOT)),
-            "bridge": str(BRIDGE_PATH.relative_to(ONY_ROOT)),
+            "v4.3": str(V43_PATH.relative_to(REPO_ROOT)),
+            "v4": str(V4_PATH.relative_to(REPO_ROOT)),
+            "bridge": str(BRIDGE_PATH.relative_to(REPO_ROOT)),
             "recipes": recipe_files,
             "consensus": str(CONSENSUS_PATH) if CONSENSUS_PATH.exists() else None,
             "facts": sorted(str(p) for p in INGEST_DIR.glob("*/facts.jsonl")) if INGEST_DIR.exists() else [],

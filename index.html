@@ -1690,6 +1690,45 @@ function UnitFormatToggle({ displayUnit, setDisplayUnit, displayFormat, setDispl
   );
 }
 
+/* Mode Card:尺寸規格 tab 內部的檢視切換(基碼 / 全碼)。選中黑底白字,未選白底黑字。 */
+function ModeCard({ active, disabled, title, subtitle, onClick, disabledHint }) {
+  const [hover, setHover] = React.useState(false);
+  const bg = disabled ? "#f5f5f5" : (active ? "#1a1a1a" : "#fff");
+  const color = disabled ? "#bbb" : (active ? "#fff" : "#1a1a1a");
+  const subColor = disabled ? "#c8c8c8" : (active ? "rgba(255,255,255,0.7)" : "#888");
+  const border = disabled
+    ? "1.5px solid #e8e5e1"
+    : (active ? "2px solid #1a1a1a" : (hover ? "2px solid #1a1a1a" : "1.5px solid #e8e5e1"));
+  return (
+    <div
+      role="button"
+      tabIndex={disabled ? -1 : 0}
+      aria-pressed={active}
+      aria-disabled={disabled}
+      title={disabled ? (disabledHint || "") : ""}
+      onClick={() => { if (!disabled) onClick && onClick(); }}
+      onKeyDown={(e) => { if (!disabled && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onClick && onClick(); } }}
+      onMouseEnter={() => !disabled && setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        flex: 1, minWidth: 0,
+        padding: "14px 18px", borderRadius: "10px",
+        background: bg, color, border,
+        cursor: disabled ? "not-allowed" : "pointer",
+        opacity: disabled ? 0.55 : 1,
+        boxShadow: active && !disabled ? "0 4px 14px rgba(26,26,26,0.18)" : "none",
+        transition: "background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s",
+        userSelect: "none",
+        display: "flex", flexDirection: "column", gap: "4px",
+        fontFamily: "inherit",
+      }}
+    >
+      <div style={{ fontSize: "13px", fontWeight: 700, letterSpacing: "0.02em" }}>{title}</div>
+      <div style={{ fontSize: "11px", fontWeight: 500, color: subColor, lineHeight: 1.4 }}>{subtitle}</div>
+    </div>
+  );
+}
+
 /* 新增 POM 下拉:被 hide 的 bucket POMs 優先 + 多選 + 自訂欄位 */
 function AddPomMenu({ open, onClose, hiddenCodes, excludedCodes, pomNames, zhFor, enFor, onAddBucket, onAddCustom }) {
   const [search, setSearch] = React.useState("");
@@ -1913,55 +1952,143 @@ function SettingsModal({ open, onClose, token, onSaveToken }) {
   );
 }
 
-/* UploadModal:上傳 Techpack PDF / PPTX → /api/ingest_upload → GitHub Actions rebuild */
+/* UploadModal:上傳 Techpack PDF / PPTX → GitHub → 追蹤 CI pipeline 每步驟狀態 */
+const CI_STEP_LABELS = {
+  'Step 1 — extract raw text & callout images': '1｜拆解文字 & callout 圖片',
+  'Step 2a — unified extraction':               '2a｜統一萃取 (PPTX)',
+  'Step 2b — VLM callout extraction':           '2b｜VLM 分析 callout (PDF)',
+  'Step 3 — rebuild recipes_master':            '3｜重建 recipes_master',
+  'Commit updated data':                             '提交資料',
+};
+
 function UploadModal({ open, onClose, token }) {
   const [uploadFile, setUploadFile] = React.useState(null);
-  const [uploadStatus, setUploadStatus] = React.useState({ status: 'idle', msg: '' });
+  const [phase, setPhase]           = React.useState('idle'); // idle|uploading|ci|done|error
+  const [statusMsg, setStatusMsg]   = React.useState('');
+  const [ciSteps, setCiSteps]       = React.useState([]);
+  const [elapsed, setElapsed]       = React.useState(0);
+  const cancelRef = React.useRef(false);
+  const timerRef  = React.useRef(null);
 
   React.useEffect(() => {
-    if (open) { setUploadFile(null); setUploadStatus({ status: 'idle', msg: '' }); }
+    if (open) {
+      cancelRef.current = false;
+      setUploadFile(null); setPhase('idle'); setStatusMsg(''); setCiSteps([]); setElapsed(0);
+    } else {
+      cancelRef.current = true;
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
   }, [open]);
+
+  React.useEffect(() => {
+    if (phase === 'ci') {
+      timerRef.current = setInterval(() => setElapsed(s => s + 1), 1000);
+    } else {
+      if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+    }
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [phase]);
+
+  const pollCi = async (sha, pat) => {
+    const OWNER = 'ellyfd', REPO = 'stytrix-techpack';
+    const actionsBase = `https://api.github.com/repos/${OWNER}/${REPO}/actions`;
+    const ghActionsUrl = `https://github.com/${OWNER}/${REPO}/actions`;
+    // Try with auth first (required for private repos); fall back gracefully on 403/404
+    const actH = { Authorization: `token ${pat}`, Accept: 'application/vnd.github.v3+json' };
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+    // Wait up to 45s for the run to appear
+    let runId = null;
+    let authDenied = false;
+    for (let i = 0; i < 15 && !cancelRef.current; i++) {
+      await sleep(3000);
+      try {
+        const r = await fetch(`${actionsBase}/runs?head_sha=${sha}&per_page=1`, { headers: actH });
+        if (r.status === 403 || r.status === 404) { authDenied = true; break; }
+        if (r.ok) { const d = await r.json(); if (d.workflow_runs?.length) { runId = d.workflow_runs[0].id; break; } }
+      } catch {}
+    }
+
+    if (authDenied) {
+      // Token lacks actions:read — show link to GitHub Actions page instead
+      if (!cancelRef.current) {
+        setPhase('done');
+        setStatusMsg(prev => prev + '\n✓ 檔案已推送。CI Pipeline 已啟動，請至 GitHub Actions 查看進度 →');
+        setCiSteps([{ label: '查看 GitHub Actions', status: 'completed', conclusion: 'link', url: ghActionsUrl }]);
+      }
+      return;
+    }
+
+    if (!runId) {
+      if (!cancelRef.current) { setPhase('error'); setStatusMsg(prev => prev + '\n⚠ CI 未啟動（超過 45 秒）'); }
+      return;
+    }
+
+    // Poll until completed (max 15 min)
+    for (let tick = 0; tick < 180 && !cancelRef.current; tick++) {
+      await sleep(5000);
+      if (cancelRef.current) return;
+      try {
+        const [runR, jobsR] = await Promise.all([
+          fetch(`${actionsBase}/runs/${runId}`, { headers: actH }),
+          fetch(`${actionsBase}/runs/${runId}/jobs`, { headers: actH }),
+        ]);
+        if (!runR.ok) continue;
+        const run = await runR.json();
+
+        if (jobsR.ok) {
+          const jobsData = await jobsR.json();
+          const job = jobsData.jobs?.find(j => j.name === 'rebuild') || jobsData.jobs?.[0];
+          if (job?.steps) {
+            setCiSteps(job.steps
+              .filter(s => CI_STEP_LABELS[s.name])
+              .map(s => ({ label: CI_STEP_LABELS[s.name], status: s.status, conclusion: s.conclusion })));
+          }
+        }
+
+        if (run.status === 'completed') {
+          setPhase(run.conclusion === 'success' ? 'done' : 'error');
+          setStatusMsg(prev =>
+            run.conclusion === 'success'
+              ? prev + '\n✓ Pipeline 全部完成！'
+              : prev + `\n❌ Pipeline 失敗 (${run.conclusion})，請看下方步驟`);
+          return;
+        }
+      } catch {}
+    }
+    if (!cancelRef.current) { setPhase('error'); setStatusMsg(prev => prev + '\n⚠ 追蹤逾時（15 分鐘）'); }
+  };
 
   const handleUpload = async () => {
     if (!uploadFile) return;
-    if (!token) { setUploadStatus({ status: 'error', msg: '請先至「⚙ 設定」填入 Admin Token' }); return; }
-    setUploadStatus({ status: 'uploading', msg: '準備上傳...' });
+    if (!token) { setPhase('error'); setStatusMsg('請先至「⚙ 設定」填入 Admin Token'); return; }
+    setPhase('uploading'); setStatusMsg('準備上傳...');
     try {
-      // Step 1: get GitHub PAT from server (bypasses Vercel 4.5MB body limit)
-      const tokResp = await fetch('/api/ingest_token', {
-        method: 'POST',
-        headers: { 'x-admin-token': token },
-      });
+      const tokResp = await fetch('/api/ingest_token', { method: 'POST', headers: { 'x-admin-token': token } });
       if (!tokResp.ok) {
         const t = await tokResp.text();
         throw new Error(tokResp.status === 401 ? 'Admin Token 錯誤' : `Token 端點錯誤: ${t}`);
       }
       const { github_pat } = await tokResp.json();
 
-      // Step 2: encode file
-      setUploadStatus({ status: 'uploading', msg: '編碼中...' });
+      setStatusMsg('編碼中...');
       const buf = await uploadFile.arrayBuffer();
       const bytes = new Uint8Array(buf);
       let binary = '';
-      for (let i = 0; i < bytes.length; i += 8192) {
+      for (let i = 0; i < bytes.length; i += 8192)
         binary += String.fromCharCode(...bytes.subarray(i, Math.min(i + 8192, bytes.length)));
-      }
       const b64 = btoa(binary);
 
-      // Step 3: push directly to GitHub Contents API (no Vercel size limit)
       const OWNER = 'ellyfd', REPO = 'stytrix-techpack', BRANCH = 'main';
       const safeName = uploadFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
       const filePath = `data/ingest/uploads/${safeName}`;
-      const apiUrl   = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${filePath}`;
+      const apiUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${filePath}`;
       const ghHeaders = {
-        Authorization: `token ${github_pat}`,
-        Accept: 'application/vnd.github.v3+json',
-        'Content-Type': 'application/json',
-        'User-Agent': 'stytrix-ingest-upload/1.0',
+        Authorization: `token ${github_pat}`, Accept: 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json', 'User-Agent': 'stytrix-ingest-upload/1.0',
       };
 
-      setUploadStatus({ status: 'uploading', msg: '推送至 GitHub...' });
-      // Check existing SHA
+      setStatusMsg('推送至 GitHub...');
       let sha;
       const getResp = await fetch(apiUrl, { headers: ghHeaders });
       if (getResp.ok) { const ex = await getResp.json(); sha = ex.sha; }
@@ -1970,15 +2097,17 @@ function UploadModal({ open, onClose, token }) {
       if (sha) putBody.sha = sha;
 
       const putResp = await fetch(apiUrl, { method: 'PUT', headers: ghHeaders, body: JSON.stringify(putBody) });
-      if (!putResp.ok) {
-        const errText = await putResp.text();
-        throw new Error(`GitHub API ${putResp.status}: ${errText.slice(0, 120)}`);
-      }
+      if (!putResp.ok) throw new Error(`GitHub API ${putResp.status}: ${(await putResp.text()).slice(0, 120)}`);
+
       const result = await putResp.json();
-      setUploadStatus({ status: 'ok', msg: `✓ 已推送 ${filePath}  — Pipeline 約 2 分鐘後自動更新` });
+      const commitSha = result.commit?.sha;
       setUploadFile(null);
+      setPhase('ci'); setElapsed(0); setCiSteps([]);
+      setStatusMsg(`✓ 已推送 ${filePath}`);
+      if (commitSha) pollCi(commitSha, github_pat);
+      else setStatusMsg(`✓ 已推送 ${filePath} — 無法追蹤 CI (無 commit SHA)`);
     } catch (e) {
-      setUploadStatus({ status: 'error', msg: `錯誤: ${e.message}` });
+      setPhase('error'); setStatusMsg(`錯誤: ${e.message}`);
     }
   };
 
@@ -2003,23 +2132,66 @@ function UploadModal({ open, onClose, token }) {
           </div>
         )}
 
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '16px' }}>
-          <label style={{ padding: '7px 14px', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
-            border: '1px solid #86efac', background: '#fff', color: '#15803d', borderRadius: '6px' }}>
-            選擇檔案
-            <input type="file" accept=".pdf,.pptx" style={{ display: 'none' }}
-              onChange={e => { setUploadFile(e.target.files?.[0] || null); setUploadStatus({ status: 'idle', msg: '' }); e.target.value = ''; }} />
-          </label>
-          {uploadFile && <span style={{ fontSize: '13px', color: '#374151', maxWidth: '260px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{uploadFile.name}</span>}
-        </div>
+        {phase === 'idle' || phase === 'uploading' ? (
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '16px' }}>
+            <label style={{ padding: '7px 14px', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+              border: '1px solid #86efac', background: '#fff', color: '#15803d', borderRadius: '6px' }}>
+              選擇檔案
+              <input type="file" accept=".pdf,.pptx" style={{ display: 'none' }}
+                onChange={e => { setUploadFile(e.target.files?.[0] || null); setPhase('idle'); setStatusMsg(''); e.target.value = ''; }} />
+            </label>
+            {uploadFile && <span style={{ fontSize: '13px', color: '#374151', maxWidth: '260px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{uploadFile.name}</span>}
+          </div>
+        ) : null}
 
-        {uploadStatus.msg && (
-          <div style={{ marginBottom: '14px', padding: '8px 12px', borderRadius: '6px', fontSize: '12px',
-            background: uploadStatus.status === 'ok' ? '#f0fdf4' : uploadStatus.status === 'error' ? '#fef2f2' : '#f9fafb',
-            color: uploadStatus.status === 'ok' ? '#166534' : uploadStatus.status === 'error' ? '#dc2626' : '#374151',
-            border: `1px solid ${uploadStatus.status === 'ok' ? '#bbf7d0' : uploadStatus.status === 'error' ? '#fecaca' : '#e5e5e5'}`,
+        {statusMsg && (
+          <div style={{ marginBottom: '10px', padding: '8px 12px', borderRadius: '6px', fontSize: '12px',
+            whiteSpace: 'pre-wrap',
+            background: phase === 'done' ? '#f0fdf4' : phase === 'error' ? '#fef2f2' : '#f9fafb',
+            color: phase === 'done' ? '#166534' : phase === 'error' ? '#dc2626' : '#374151',
+            border: `1px solid ${phase === 'done' ? '#bbf7d0' : phase === 'error' ? '#fecaca' : '#e5e5e5'}`,
           }}>
-            {uploadStatus.msg}
+            {statusMsg}
+          </div>
+        )}
+
+        {(phase === 'ci' || phase === 'done' || phase === 'error') && (
+          <div style={{ marginBottom: '14px' }}>
+            <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '6px' }}>
+              CI Pipeline{phase === 'ci' ? ` — ${Math.floor(elapsed/60)}:${String(elapsed%60).padStart(2,'0')} 等待中...` : ''}
+            </div>
+            {ciSteps.length === 0 && phase === 'ci' && (
+              <div style={{ fontSize: '12px', color: '#9ca3af', padding: '6px 0' }}>等待 CI 啟動...</div>
+            )}
+            {ciSteps.map((s, i) => {
+              if (s.conclusion === 'link') {
+                return (
+                  <div key={i} style={{ padding: '8px 10px', borderRadius: '5px', background: '#eff6ff', border: '1px solid #bfdbfe', fontSize: '12px' }}>
+                    <a href={s.url} target="_blank" rel="noopener noreferrer"
+                      style={{ color: '#2563eb', textDecoration: 'underline', fontWeight: 500 }}>
+                      前往 GitHub Actions 查看 Pipeline 進度 →
+                    </a>
+                  </div>
+                );
+              }
+              const icon = s.status === 'completed'
+                ? s.conclusion === 'success' ? '✓' : s.conclusion === 'skipped' ? '⏭' : '❌'
+                : s.status === 'in_progress' ? '⚙' : '○';
+              const clr = s.conclusion === 'failure' ? '#dc2626' : s.conclusion === 'skipped' ? '#9ca3af' : s.status === 'in_progress' ? '#2563eb' : s.conclusion === 'success' ? '#16a34a' : '#6b7280';
+              return (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '5px 10px',
+                  marginBottom: '2px', borderRadius: '5px',
+                  background: s.conclusion === 'failure' ? '#fef2f2' : s.status === 'in_progress' ? '#eff6ff' : '#f9fafb',
+                  border: `1px solid ${s.conclusion === 'failure' ? '#fecaca' : s.status === 'in_progress' ? '#bfdbfe' : '#f3f4f6'}` }}>
+                  <span style={{ fontSize: '13px', color: clr, width: '14px', flexShrink: 0 }}>{icon}</span>
+                  <span style={{ fontSize: '12px', flex: 1, color: s.conclusion === 'failure' ? '#dc2626' : '#374151', fontWeight: s.conclusion === 'failure' ? 600 : 400 }}>
+                    {s.label}
+                  </span>
+                  {s.conclusion === 'skipped' && <span style={{ fontSize: '11px', color: '#9ca3af' }}>已跳過</span>}
+                  {s.conclusion === 'failure' && <span style={{ fontSize: '11px', color: '#dc2626', fontWeight: 700 }}>失敗</span>}
+                </div>
+              );
+            })}
           </div>
         )}
 
@@ -2028,31 +2200,55 @@ function UploadModal({ open, onClose, token }) {
             style={{ padding: '8px 16px', fontSize: '13px', border: '1px solid #d1d5db', background: '#f9fafb', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit' }}>
             關閉
           </button>
-          <button onClick={handleUpload} disabled={!uploadFile || uploadStatus.status === 'uploading'}
-            style={{ padding: '8px 20px', fontSize: '13px', fontWeight: 600, cursor: uploadFile ? 'pointer' : 'not-allowed',
-              border: 'none', background: uploadFile ? '#16a34a' : '#d1fae5', color: uploadFile ? '#fff' : '#9ca3af',
-              borderRadius: '6px', fontFamily: 'inherit' }}>
-            {uploadStatus.status === 'uploading' ? '上傳中...' : '上傳'}
-          </button>
+          {(phase === 'idle' || phase === 'uploading') && (
+            <button onClick={handleUpload} disabled={!uploadFile || phase === 'uploading'}
+              style={{ padding: '8px 20px', fontSize: '13px', fontWeight: 600, cursor: uploadFile && phase !== 'uploading' ? 'pointer' : 'not-allowed',
+                border: 'none', background: uploadFile && phase !== 'uploading' ? '#16a34a' : '#d1fae5',
+                color: uploadFile && phase !== 'uploading' ? '#fff' : '#9ca3af',
+                borderRadius: '6px', fontFamily: 'inherit' }}>
+              {phase === 'uploading' ? '上傳中...' : '上傳'}
+            </button>
+          )}
+          {(phase === 'done' || phase === 'error') && (
+            <button onClick={() => { setPhase('idle'); setStatusMsg(''); setCiSteps([]); setElapsed(0); }}
+              style={{ padding: '8px 20px', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+                border: 'none', background: '#6366f1', color: '#fff', borderRadius: '6px', fontFamily: 'inherit' }}>
+              再上傳
+            </button>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-/* PatchUploadModal:直接覆寫 data/ 下的 JSON 檔(本地跑完 pipeline 後用) */
-const PATCH_TARGETS = [
-  { label: 'recipes_master.json',  path: 'data/recipes_master.json' },
-  { label: 'iso_dictionary.json',  path: 'data/iso_dictionary.json' },
-  { label: 'l1_standard_38.json',  path: 'data/l1_standard_38.json' },
-];
+/* PatchUploadModal:本地跑完 pipeline 後，把 recipes_master.json 合併推送到 GitHub
+   合併模式:下載現有版本 → upsert 新 entry(同 key 更新、舊 entry 保留) → 上傳 */
+const PATCH_TARGET = { path: 'data/recipes_master.json' };
+
+function mergeRecipesMaster(existing, patch) {
+  const makeKey = e => [
+    e.aggregation_level || '',
+    e.key?.gender || '', e.key?.dept || '',
+    e.key?.gt || '', e.key?.it || '', e.key?.l1 || '',
+  ].join('|');
+  const map = new Map();
+  (existing.entries || []).forEach(e => map.set(makeKey(e), e));
+  (patch.entries || []).forEach(e => map.set(makeKey(e), e));
+  return {
+    ...existing,
+    generated_at: patch.generated_at || existing.generated_at,
+    source_versions: { ...existing.source_versions, ...(patch.source_versions || {}) },
+    entries: Array.from(map.values()),
+  };
+}
+
 function PatchUploadModal({ open, onClose, token }) {
   const [patchFile, setPatchFile] = React.useState(null);
-  const [target, setTarget] = React.useState(PATCH_TARGETS[0].path);
   const [status, setStatus] = React.useState({ status: 'idle', msg: '' });
 
   React.useEffect(() => {
-    if (open) { setPatchFile(null); setStatus({ status: 'idle', msg: '' }); setTarget(PATCH_TARGETS[0].path); }
+    if (open) { setPatchFile(null); setStatus({ status: 'idle', msg: '' }); }
   }, [open]);
 
   const handlePatch = async () => {
@@ -2066,11 +2262,12 @@ function PatchUploadModal({ open, onClose, token }) {
 
       setStatus({ status: 'uploading', msg: '讀取檔案...' });
       const text = await patchFile.text();
-      try { JSON.parse(text); } catch { throw new Error('不是有效的 JSON 檔案'); }
-      const b64 = btoa(unescape(encodeURIComponent(text)));
+      let parsed;
+      try { parsed = JSON.parse(text); } catch { throw new Error('不是有效的 JSON 檔案'); }
+      if (!Array.isArray(parsed.entries)) throw new Error('不是有效的 recipes_master.json（缺少 entries）');
 
       const OWNER = 'ellyfd', REPO = 'stytrix-techpack', BRANCH = 'main';
-      const apiUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${target}`;
+      const apiUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${PATCH_TARGET.path}`;
       const ghHeaders = {
         Authorization: `token ${github_pat}`,
         Accept: 'application/vnd.github.v3+json',
@@ -2078,18 +2275,52 @@ function PatchUploadModal({ open, onClose, token }) {
         'User-Agent': 'stytrix-ingest-upload/1.0',
       };
 
-      setStatus({ status: 'uploading', msg: '推送至 GitHub...' });
-      let sha;
+      setStatus({ status: 'uploading', msg: '下載現有版本...' });
+      let sha, finalText = text, mergeStats = null;
       const getResp = await fetch(apiUrl, { headers: ghHeaders });
-      if (getResp.ok) { const ex = await getResp.json(); sha = ex.sha; }
+      if (getResp.ok) {
+        const ex = await getResp.json();
+        sha = ex.sha;
 
-      const putBody = { message: `chore(data): patch ${target.split('/').pop()} via admin`, content: b64, branch: BRANCH };
+        // GitHub Contents API only returns content for files ≤1MB.
+        // For larger files, fall back to the Git Blob API using the blob SHA.
+        let rawB64 = ex.content?.replace(/\n/g, '');
+        if (!rawB64 && ex.sha) {
+          setStatus({ status: 'uploading', msg: '檔案較大，改用 Blob API 下載...' });
+          const blobR = await fetch(
+            `https://api.github.com/repos/${OWNER}/${REPO}/git/blobs/${ex.sha}`,
+            { headers: ghHeaders });
+          if (blobR.ok) { const b = await blobR.json(); rawB64 = b.content?.replace(/\n/g, ''); }
+        }
+
+        if (rawB64) {
+          const existingJson = JSON.parse(atob(rawB64));
+          const makeKey = e => [e.aggregation_level||'', e.key?.gender||'', e.key?.dept||'',
+                                 e.key?.gt||'', e.key?.it||'', e.key?.l1||''].join('|');
+          const existingKeys = new Set((existingJson.entries||[]).map(makeKey));
+          const patchKeys    = new Set(parsed.entries.map(makeKey));
+          const newCount     = [...patchKeys].filter(k => !existingKeys.has(k)).length;
+          const updCount     = [...patchKeys].filter(k =>  existingKeys.has(k)).length;
+          const merged = mergeRecipesMaster(existingJson, parsed);
+          finalText = JSON.stringify(merged, null, 2);
+          mergeStats = { prev: existingJson.entries?.length || 0, newEntries: newCount, updated: updCount, total: merged.entries.length };
+          setStatus({ status: 'uploading', msg: `合併：原 ${mergeStats.prev} 筆，新增 ${newCount}、更新 ${updCount}，推送中...` });
+        } else {
+          setStatus({ status: 'uploading', msg: '⚠ 無法下載現有版本，以新版覆寫，推送中...' });
+        }
+      }
+
+      const b64 = btoa(unescape(encodeURIComponent(finalText)));
+      const putBody = { message: 'chore(data): merge recipes_master via admin', content: b64, branch: BRANCH };
       if (sha) putBody.sha = sha;
 
       const putResp = await fetch(apiUrl, { method: 'PUT', headers: ghHeaders, body: JSON.stringify(putBody) });
       if (!putResp.ok) throw new Error(`GitHub API ${putResp.status}: ${(await putResp.text()).slice(0, 120)}`);
 
-      setStatus({ status: 'ok', msg: `✓ 已推送 ${target}  — Vercel 重新部署後生效` });
+      const okMsg = mergeStats
+        ? `✓ 合併完成：原 ${mergeStats.prev} 筆，新增 ${mergeStats.newEntries}、更新 ${mergeStats.updated} → 合計 ${mergeStats.total} 筆\nVercel 約 1~2 分鐘後自動重新部署生效。`
+        : `✓ 推送完成（覆寫）— Vercel 約 1~2 分鐘後自動重新部署生效。`;
+      setStatus({ status: 'ok', msg: okMsg });
       setPatchFile(null);
     } catch (e) {
       setStatus({ status: 'error', msg: `錯誤: ${e.message}` });
@@ -2107,7 +2338,8 @@ function PatchUploadModal({ open, onClose, token }) {
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '22px', color: '#999', lineHeight: 1, padding: '0 4px', fontFamily: 'inherit' }}>×</button>
         </div>
         <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '16px' }}>
-          本地跑完 pipeline 後，直接覆寫 <code>data/</code> 下的 JSON，不經過 CI。
+          本地跑完 pipeline 後，把 <code>recipes_master.json</code> 合併進 GitHub。
+          新 entry 會 upsert，舊 entry 保留，不蓋掉歷史資料。
         </div>
 
         {!token && (
@@ -2116,33 +2348,19 @@ function PatchUploadModal({ open, onClose, token }) {
           </div>
         )}
 
-        <div style={{ marginBottom: '12px' }}>
-          <div style={{ fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>目標檔案</div>
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-            {PATCH_TARGETS.map(t => (
-              <button key={t.path} onClick={() => setTarget(t.path)}
-                style={{ padding: '5px 12px', fontSize: '12px', fontWeight: 600, borderRadius: '6px', cursor: 'pointer',
-                  border: `1px solid ${target === t.path ? '#6366f1' : '#e5e5e5'}`,
-                  background: target === t.path ? '#eef2ff' : '#fff',
-                  color: target === t.path ? '#4338ca' : '#555', fontFamily: 'inherit' }}>
-                {t.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '16px' }}>
           <label style={{ padding: '7px 14px', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
             border: '1px solid #c7d2fe', background: '#fff', color: '#4338ca', borderRadius: '6px' }}>
-            選擇 JSON
+            選擇 recipes_master.json
             <input type="file" accept=".json" style={{ display: 'none' }}
               onChange={e => { setPatchFile(e.target.files?.[0] || null); setStatus({ status: 'idle', msg: '' }); e.target.value = ''; }} />
           </label>
-          {patchFile && <span style={{ fontSize: '13px', color: '#374151', maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{patchFile.name}</span>}
+          {patchFile && <span style={{ fontSize: '13px', color: '#374151', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{patchFile.name}</span>}
         </div>
 
         {status.msg && (
           <div style={{ marginBottom: '14px', padding: '8px 12px', borderRadius: '6px', fontSize: '12px',
+            whiteSpace: 'pre-wrap',
             background: status.status === 'ok' ? '#f0fdf4' : status.status === 'error' ? '#fef2f2' : '#f9fafb',
             color: status.status === 'ok' ? '#166534' : status.status === 'error' ? '#dc2626' : '#374151',
             border: `1px solid ${status.status === 'ok' ? '#bbf7d0' : status.status === 'error' ? '#fecaca' : '#e5e5e5'}` }}>
@@ -2171,9 +2389,6 @@ function PatchUploadModal({ open, onClose, token }) {
 function AdminModal({ open, onClose, pomNames, onPushDict, token }) {
   const [draft, setDraft] = React.useState({});
   const [search, setSearch] = React.useState('');
-  const [filterMode, setFilterMode] = React.useState('all'); // 'all' | 'missing_zh' | 'missing_en' | 'complete'
-  const [prefixFilter, setPrefixFilter] = React.useState(''); // '' | 'A' | 'B' | ...
-  const [selected, setSelected] = React.useState(() => new Set());
   const [commitMsg, setCommitMsg] = React.useState('');
   const [pushState, setPushState] = React.useState({ status: 'idle', msg: '' });
 
@@ -2182,9 +2397,6 @@ function AdminModal({ open, onClose, pomNames, onPushDict, token }) {
     if (open) {
       setDraft({ ...(pomNames || {}) });
       setSearch('');
-      setFilterMode('all');
-      setPrefixFilter('');
-      setSelected(new Set());
       setCommitMsg('');
       setPushState({ status: 'idle', msg: '' });
     }
@@ -2206,19 +2418,6 @@ function AdminModal({ open, onClose, pomNames, onPushDict, token }) {
   const deleteRow = (code) => {
     if (!window.confirm(`刪除 ${code} (${draft[code]?.en || ''} / ${draft[code]?.zh || ''})?`)) return;
     setDraft(prev => { const { [code]: _, ...rest } = prev; return rest; });
-    setSelected(prev => { if (!prev.has(code)) return prev; const n = new Set(prev); n.delete(code); return n; });
-  };
-  const deleteSelected = () => {
-    const codes = Array.from(selected);
-    if (codes.length === 0) return;
-    const sample = codes.slice(0, 5).join(', ') + (codes.length > 5 ? `… (共 ${codes.length} 筆)` : '');
-    if (!window.confirm(`刪除已選 ${codes.length} 筆?\n${sample}`)) return;
-    setDraft(prev => {
-      const next = { ...prev };
-      for (const c of codes) delete next[c];
-      return next;
-    });
-    setSelected(new Set());
   };
   const addRow = () => {
     const code = (window.prompt('新 POM code(大寫字母 + 數字,e.g. H99):') || '').toUpperCase().trim();
@@ -2305,49 +2504,15 @@ function AdminModal({ open, onClose, pomNames, onPushDict, token }) {
   // Derived
   const allCodes = Object.keys(draft).sort();
   const filter = search.trim().toLowerCase();
-  const visible = allCodes.filter(c => {
-    const row = draft[c] || {};
-    const en = row.en || '';
-    const zh = row.zh || '';
-    if (filter) {
-      const hit = c.toLowerCase().includes(filter)
-        || en.toLowerCase().includes(filter)
-        || zh.includes(filter);
-      if (!hit) return false;
-    }
-    if (prefixFilter && !c.startsWith(prefixFilter)) return false;
-    if (filterMode === 'missing_zh' && zh.trim()) return false;
-    if (filterMode === 'missing_en' && en.trim()) return false;
-    if (filterMode === 'complete' && (!en.trim() || !zh.trim())) return false;
-    return true;
-  });
+  const visible = filter
+    ? allCodes.filter(c =>
+        c.toLowerCase().includes(filter)
+        || (draft[c]?.en || '').toLowerCase().includes(filter)
+        || (draft[c]?.zh || '').includes(filter))
+    : allCodes;
   const pomCount = allCodes.length;
   const origCount = Object.keys(pomNames || {}).length;
   const changed = JSON.stringify(draft) !== JSON.stringify(pomNames || {});
-
-  // 統計 missing 數供 filter chip 顯示
-  const missingZhCount = allCodes.reduce((n, c) => n + ((draft[c]?.zh || '').trim() ? 0 : 1), 0);
-  const missingEnCount = allCodes.reduce((n, c) => n + ((draft[c]?.en || '').trim() ? 0 : 1), 0);
-  const prefixOptions = Array.from(new Set(allCodes.map(c => c[0]).filter(Boolean))).sort();
-
-  // Multi-select helpers
-  const visibleSelectedCount = visible.reduce((n, c) => n + (selected.has(c) ? 1 : 0), 0);
-  const allVisibleSelected = visible.length > 0 && visibleSelectedCount === visible.length;
-  const toggleRowSelected = (code) => {
-    setSelected(prev => {
-      const n = new Set(prev);
-      if (n.has(code)) n.delete(code); else n.add(code);
-      return n;
-    });
-  };
-  const toggleSelectAllVisible = () => {
-    setSelected(prev => {
-      const n = new Set(prev);
-      if (allVisibleSelected) { for (const c of visible) n.delete(c); }
-      else { for (const c of visible) n.add(c); }
-      return n;
-    });
-  };
 
   // diff draft vs pomNames,自動產生 commit message + 給使用者看的摘要
   const diff = React.useMemo(() => {
@@ -2431,69 +2596,11 @@ function AdminModal({ open, onClose, pomNames, onPushDict, token }) {
           </div>
         </div>
 
-        {/* Filter chips + 批次動作 */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', flexWrap: 'wrap' }}>
-          {[
-            { key: 'all', label: `全部 ${pomCount}` },
-            { key: 'missing_zh', label: `缺中文 ${missingZhCount}` },
-            { key: 'missing_en', label: `缺英文 ${missingEnCount}` },
-            { key: 'complete', label: `已填齊 ${pomCount - missingZhCount - missingEnCount + allCodes.reduce((n,c)=>n+(!(draft[c]?.en||'').trim()&&!(draft[c]?.zh||'').trim()?1:0),0)}` },
-          ].map(opt => {
-            const active = filterMode === opt.key;
-            return (
-              <button key={opt.key} onClick={() => setFilterMode(opt.key)}
-                style={{ padding: '4px 10px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
-                  border: `1px solid ${active ? '#1a1a1a' : '#e5e5e5'}`,
-                  background: active ? '#1a1a1a' : '#fff',
-                  color: active ? '#fff' : '#525252',
-                  borderRadius: '999px', fontFamily: 'inherit' }}>{opt.label}</button>
-            );
-          })}
-          <span style={{ fontSize: '11px', color: '#888', marginLeft: '4px' }}>首字:</span>
-          <select value={prefixFilter} onChange={(e) => setPrefixFilter(e.target.value)}
-            style={{ padding: '4px 8px', fontSize: '11px', border: '1px solid #e5e5e5',
-              borderRadius: '6px', background: '#fff', fontFamily: 'inherit', cursor: 'pointer' }}>
-            <option value="">全部</option>
-            {prefixOptions.map(p => <option key={p} value={p}>{p}</option>)}
-          </select>
-          {(filterMode !== 'all' || prefixFilter || search) && (
-            <button onClick={() => { setFilterMode('all'); setPrefixFilter(''); setSearch(''); }}
-              style={{ padding: '4px 8px', fontSize: '11px', cursor: 'pointer',
-                border: '1px solid #e5e5e5', background: '#fff', color: '#888',
-                borderRadius: '6px', fontFamily: 'inherit' }}>清除篩選</button>
-          )}
-          {selected.size > 0 && (
-            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px',
-              padding: '4px 10px', background: '#fef2f2', border: '1px solid #fecaca',
-              borderRadius: '6px' }}>
-              <span style={{ fontSize: '11px', color: '#991b1b', fontWeight: 600 }}>
-                已選 {selected.size} 筆
-              </span>
-              <button onClick={() => setSelected(new Set())}
-                style={{ padding: '2px 8px', fontSize: '11px', cursor: 'pointer',
-                  border: '1px solid #fca5a5', background: '#fff', color: '#991b1b',
-                  borderRadius: '4px', fontFamily: 'inherit' }}>取消選取</button>
-              <button onClick={deleteSelected}
-                style={{ padding: '3px 10px', fontSize: '11px', fontWeight: 700, cursor: 'pointer',
-                  border: 'none', background: '#dc2626', color: '#fff',
-                  borderRadius: '4px', fontFamily: 'inherit' }}>🗑 刪除已選</button>
-            </div>
-          )}
-        </div>
-
         {/* 表格區 */}
         <div style={{ flex: 1, overflow: 'auto', border: '1px solid #e8e5e1', borderRadius: '8px', background: '#fff', minHeight: '200px' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
             <thead style={{ position: 'sticky', top: 0, background: '#faf9f7', zIndex: 1 }}>
               <tr style={{ borderBottom: '1.5px solid #e8e5e1' }}>
-                <th style={{ padding: '8px 6px', width: '32px', textAlign: 'center' }}>
-                  <input type="checkbox"
-                    checked={allVisibleSelected}
-                    ref={el => { if (el) el.indeterminate = !allVisibleSelected && visibleSelectedCount > 0; }}
-                    onChange={toggleSelectAllVisible}
-                    title={allVisibleSelected ? '取消全選(目前顯示)' : '全選目前顯示項目'}
-                    style={{ cursor: 'pointer' }} />
-                </th>
                 <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, fontSize: '11px', color: '#525252', width: '70px' }}>Code</th>
                 <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, fontSize: '11px', color: '#525252' }}>English</th>
                 <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, fontSize: '11px', color: '#525252', width: '160px' }}>中文</th>
@@ -2502,21 +2609,14 @@ function AdminModal({ open, onClose, pomNames, onPushDict, token }) {
             </thead>
             <tbody>
               {visible.length === 0 && (
-                <tr><td colSpan={5} style={{ padding: '24px', textAlign: 'center', color: '#888', fontSize: '12px' }}>
-                  {(filter || filterMode !== 'all' || prefixFilter) ? '沒有符合篩選的項目' : '(空)'}
+                <tr><td colSpan={4} style={{ padding: '24px', textAlign: 'center', color: '#888', fontSize: '12px' }}>
+                  {filter ? '沒有符合搜尋的項目' : '(空)'}
                 </td></tr>
               )}
               {visible.map(code => {
                 const row = draft[code] || { en: '', zh: '' };
-                const isSelected = selected.has(code);
                 return (
-                  <tr key={code} style={{ borderBottom: '1px solid #f0eeeb', background: isSelected ? '#fef2f2' : undefined }}>
-                    <td style={{ padding: '4px 6px', textAlign: 'center' }}>
-                      <input type="checkbox" checked={isSelected}
-                        onChange={() => toggleRowSelected(code)}
-                        aria-label={`選取 ${code}`}
-                        style={{ cursor: 'pointer' }} />
-                    </td>
+                  <tr key={code} style={{ borderBottom: '1px solid #f0eeeb' }}>
                     <td style={{ padding: '4px 8px' }}>
                       <input value={code} onChange={(e) => renameCode(code, e.target.value)}
                         style={{ width: '60px', padding: '4px 6px', fontSize: '12px', fontWeight: 700,
@@ -2667,6 +2767,210 @@ function OnboardingModal({ open, onDismiss }) {
   );
 }
 
+/* ManualsModal:權威靜態手冊登記表(read-only)
+   服裝業術語優先,技術路徑為次要資訊。來源:網站架構圖.md 第 8 節。 */
+function ManualsModal({ open, onClose }) {
+  const [filter, setFilter] = React.useState('all'); // 'all' | 'ai' | 'rule'
+  React.useEffect(() => { if (open) setFilter('all'); }, [open]);
+  if (!open) return null;
+
+  const REPO = "https://github.com/ellyfd/stytrix-techpack/blob/main/";
+  const ghLink = (p, anchor) => {
+    const base = REPO + p.split('/').map(encodeURIComponent).join('/');
+    return anchor ? `${base}#${encodeURIComponent(anchor)}` : base;
+  };
+
+  // 每份手冊:用服裝業語言講「這是什麼、給誰看、改了會怎樣」
+  // kind: 'ai' = AI 系統直接吃的規格(改動會影響 AI 辨識能力)
+  //       'rule' = 規則/術語文件(改動會影響資料分類或命名)
+  const manuals = [
+    {
+      kind: 'ai',
+      title: 'Step 1｜L1 部位定義 · 38 個大部位',
+      file: 'L1_部位定義_Sketch視覺指引.md',
+      what: '【先分部位】把一件衣服拆成 38 個大部位(前領、後領、肩、前身、後身、袖襱、袖身、袖口、下襬、側縫、前襠、後襠、腰頭...)。像打版師攤開一張草圖,第一件事是用手指圈出「這塊是肩、這塊是袖」——沒先分部位,後面零件都談不上。',
+      who: 'AI 辨識 Pass 1:框出「這個框起來的是什麼部位」',
+      impact: '38 個部位是整個辨識流程的地基;部位認錯,後面零件判斷全錯。',
+      note: '同一份在根目錄與 General Model_Path2 兩處各有一份(MD5 相同)。',
+    },
+    {
+      kind: 'ai',
+      title: 'Step 2｜L2 零件視覺辨識圖鑑 · 282 個零件「長什麼樣」',
+      file: 'L2_Visual_Differentiation_FullAnalysis_修正版.md',
+      what: '【再認零件外觀】每個 L1 部位下面還有很多種 L2 零件。這份是 282 個零件的「圖解辭典」:SET-IN 袖肩峰有弧線接合、RAGLAN 袖從領口斜切到腋下、公主線從肩中直下到腰...每個零件長什麼樣、輪廓怎麼走、接合線在哪,全部一條一條描述。',
+      who: 'AI 辨識 Pass 1/2 的視覺字典',
+      impact: 'AI 要先認識每個零件長什麼樣,才有辦法指認 sketch 上看到的是哪個。',
+    },
+    {
+      kind: 'ai',
+      title: 'Step 3｜L2 零件判斷樹 + 混淆對照表 · 「怎麼分辨長得像的」',
+      file: 'L2_VLM_Decision_Tree_Prompts_v2.md',
+      what: '【最後做判斷】光看外觀有時分不清——SET-IN 跟 RAGLAN 從某些角度看會很像、公主線跟剪接片都是直線。這份是打版師教新人的判斷口訣:「先看肩線位置、再看接合角度、最後看有無斷開」。末尾附 49 組最容易看錯的配對,告訴 AI 每一組要抓哪個關鍵差異。',
+      who: 'AI 辨識 Pass 2 的判斷流程 + 精度保險',
+      impact: '決定 AI 遇到邊緣案例時選得對不對;49 組混淆對照表已合併入本檔末尾(§ 混淆對照表)。',
+      jumpTo: '混淆對照表',
+    },
+    {
+      kind: 'rule',
+      title: 'POM 規則分類邏輯 (v5.5.1)',
+      file: 'pom_rules_v55_classification_logic.md',
+      what: '同一件衣服為什麼要依「性別 × 部門 × 品類 × 布料」分成 81 個 bucket?為什麼 Active 跟 Casual 的 POM 要分開、什麼時候 GT 要細分(PANTS / LEGGINGS / SHORTS)、什麼時候可合併。',
+      who: '打版室 / IE / 資料管理者理解分類邏輯',
+      impact: '改這份會影響整個 pom_rules/ 怎麼被產出來。',
+    },
+    {
+      kind: 'rule',
+      title: 'POM 規則庫更新 SOP',
+      file: 'pom_rules_pipeline_guide_v2.md',
+      what: '新一季的 techpack PDF / PPTX 進來了,要怎麼重建整個 81 bucket POM 規則庫的五階段 SOP:抽料 → 重分類 → 套 tier-1 必備 POM → 修排序 → push 上線。',
+      who: '資料管理者跑產線照這份',
+      impact: '從原始 PDF 到線上可用的 pom_rules/,每一步都照這份走。',
+      note: '2026-04-23 升為 primary(舊版 v1 已刪)。',
+    },
+    {
+      kind: 'rule',
+      title: 'POM 翻譯統一字典',
+      file: 'techpack-translation-style-guide.md',
+      what: '四家客戶(ONY / ATH / BNN / GAP)各有一套翻法,系統採哪家的裁決。例如 Armhole 用「袖襱」不用「袖窿」、Rise 用「襠」不用「檔」、Cuff 用「克夫」不用「袖口羅紋」。基礎共 10,035 筆翻譯。這份現在會被 api/analyze.js 在啟動時讀入 system prompt,所以 AI 回覆的中文都會依這份風格。',
+      who: 'api/analyze.js 在 runtime 吃 · 打版室 / POM 建檔人員 / 翻譯者',
+      impact: '新增 POM 中文名之前先查這份,避免四家風格混進系統;2026-04-23 起此檔也影響 AI 回覆用字。',
+    },
+    {
+      kind: 'rule',
+      title: 'L2–L5 + IE 秒數原始展開表',
+      file: '五階層展開項目_20260402.xlsx',
+      what: '部位(L1) → 零件(L2) → 形狀(L3) → 工法(L4) → 工段(L5) + 每個工段的 IE 秒數 的完整展開表。9.5 MB 的 Excel,是所有 l2_l3_ie/*.json 的原始底稿。',
+      who: 'IE / 打版室 / 工段部的參考底稿',
+      impact: '線下重建 l2_l3_ie/ 時的人工參考,不會被腳本直接讀。',
+    },
+  ];
+
+  const countAI = manuals.filter(m => m.kind === 'ai').length;
+  const countRule = manuals.filter(m => m.kind === 'rule').length;
+  const visible = filter === 'all' ? manuals : manuals.filter(m => m.kind === filter);
+  const hasAI = visible.some(m => m.kind === 'ai');
+
+  const KindChip = ({ kind }) => (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: '4px',
+      padding: '2px 8px', borderRadius: '999px', flexShrink: 0,
+      fontSize: '10px', fontWeight: 600, letterSpacing: '0.02em',
+      background: kind === 'ai' ? '#ecfdf5' : '#f5f3ff',
+      color: kind === 'ai' ? '#065f46' : '#7e22ce',
+      border: `1px solid ${kind === 'ai' ? '#a7f3d0' : '#ddd6fe'}`,
+    }}>
+      {kind === 'ai' ? 'AI 系統規格' : '規則 / 術語'}
+    </span>
+  );
+
+  const chip = (key, label, count) => {
+    const active = filter === key;
+    return (
+      <button key={key} onClick={() => setFilter(key)}
+        style={{ padding: '4px 10px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+          border: `1px solid ${active ? '#1a1a1a' : '#e5e5e5'}`,
+          background: active ? '#1a1a1a' : '#fff',
+          color: active ? '#fff' : '#525252',
+          borderRadius: '999px', fontFamily: 'inherit' }}>
+        {label} <span style={{ opacity: 0.7, marginLeft: '2px' }}>{count}</span>
+      </button>
+    );
+  };
+
+  return (
+    <div onClick={onClose} role="dialog" aria-modal="true" aria-label="權威手冊登記表" style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      zIndex: 100, padding: '20px',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background: T.c.bg, borderRadius: T.r.xl, padding: '20px',
+        maxWidth: '780px', width: '100%', maxHeight: '90vh',
+        display: 'flex', flexDirection: 'column',
+        boxShadow: T.shadow.md,
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '10px' }}>
+          <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 700 }}>📚 權威手冊登記表</h2>
+          <button onClick={onClose} aria-label="關閉登記表" style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            fontSize: '22px', color: '#999', padding: '0 4px', lineHeight: 1, fontFamily: 'inherit',
+          }}>×</button>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
+          {chip('all', '全部', manuals.length)}
+          {chip('ai', 'AI 系統規格', countAI)}
+          {chip('rule', '規則 / 術語', countRule)}
+          <span style={{ fontSize: '11px', color: '#888', marginLeft: '6px' }}>
+            每份手冊告訴你:這是什麼、給誰看、改了會怎樣。
+          </span>
+        </div>
+
+        {hasAI && (
+          <div style={{ marginBottom: '10px', padding: '8px 12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', fontSize: '11px', color: '#92400e', lineHeight: 1.55 }}>
+            ⚠ <strong>AI 系統規格</strong>類的手冊改動後,需要讓工程師重跑產線並重新部署,AI 辨識能力才會吃到新版。不是改了就馬上生效。
+          </div>
+        )}
+
+        <div style={{ flex: 1, overflow: 'auto', minHeight: '200px',
+          display: 'flex', flexDirection: 'column', gap: '10px',
+          padding: '2px' }}>
+          {visible.length === 0 && (
+            <div style={{ padding: '24px', textAlign: 'center', color: '#888', fontSize: '12px' }}>
+              沒有符合篩選的項目
+            </div>
+          )}
+          {visible.map((m, i) => (
+            <div key={i} style={{
+              border: '1px solid #e8e5e1', borderRadius: '8px', background: '#fff',
+              padding: '12px 14px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                <KindChip kind={m.kind} />
+                <span style={{ fontSize: '14px', fontWeight: 700, color: '#1a1a1a' }}>
+                  {m.title}
+                </span>
+              </div>
+
+              <div style={{ fontSize: '12.5px', color: '#374151', lineHeight: 1.65, marginBottom: '8px' }}>
+                {m.what}
+              </div>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px',
+                fontSize: '11px', color: '#525252', marginBottom: m.note ? '6px' : '8px' }}>
+                <div><span style={{ color: '#888' }}>用於　</span>{m.who}</div>
+                <div><span style={{ color: '#888' }}>影響　</span>{m.impact}</div>
+              </div>
+
+              {m.note && (
+                <div style={{ fontSize: '11px', color: '#888', marginBottom: '8px' }}>
+                  ※ {m.note}
+                </div>
+              )}
+
+              <div style={{ paddingTop: '8px', borderTop: '1px dashed #f0eeeb',
+                fontSize: '10.5px', color: '#9ca3af',
+                display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                <span>檔案</span>
+                <a href={ghLink(m.file, m.jumpTo)} target="_blank" rel="noopener noreferrer"
+                  style={{ color: '#0891b2', textDecoration: 'none',
+                    fontFamily: "'JetBrains Mono',monospace", wordBreak: 'break-all' }}>
+                  {m.file} ↗
+                </a>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ marginTop: '12px', fontSize: '11px', color: '#888', textAlign: 'center' }}>
+          完整技術依賴圖:<a href={ghLink("網站架構圖.md", "8-權威靜態手冊登記表")} target="_blank" rel="noopener noreferrer"
+            style={{ color: '#525252', textDecoration: 'underline' }}>網站架構圖.md § 8</a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   /* ── 共用 filter state + 鎖 + localStorage persistence ── */
   const loadSaved = () => {
@@ -2731,6 +3035,7 @@ function App() {
   const [adminOpen, setAdminOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [patchOpen, setPatchOpen] = useState(false);
+  const [manualsOpen, setManualsOpen] = useState(false);
   const [mgmtMenuOpen, setMgmtMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [adminToken, setAdminToken] = useState(() => {
@@ -2923,14 +3228,6 @@ function App() {
     undoToast.onUndo();
     setUndoToast(null);
   };
-  // 通用 info toast:無 undo 按鈕,只是中性提示(例如「請回基碼修改」)。2.5s 自動關閉。
-  const [infoToast, setInfoToast] = useState(null);
-  const infoTimerRef = useRef(null);
-  const showInfo = (message, actionLabel, onAction) => {
-    if (infoTimerRef.current) clearTimeout(infoTimerRef.current);
-    setInfoToast({ message, actionLabel, onAction, at: Date.now() });
-    infoTimerRef.current = setTimeout(() => setInfoToast(null), 3500);
-  };
   const [cards, setCards] = useState([]);
   const [isoRec, setIsoRec] = useState(null);
   const [partPresence, setPartPresence] = useState(null);
@@ -2998,13 +3295,13 @@ function App() {
   useEffect(() => {
     if (!sketchSrc) return;
     if (!isoRec) {
-      fetch('./l1_iso_recommendations_v1.json')
+      fetch('./data/l1_iso_recommendations_v1.json')
         .then(r => r.ok ? r.json() : Promise.reject(r.status))
         .then(setIsoRec)
         .catch(err => console.error('載入 l1_iso_recommendations 失敗:', err));
     }
     if (!partPresence) {
-      fetch('./l1_part_presence_v1.json')
+      fetch('./data/l1_part_presence_v1.json')
         .then(r => r.ok ? r.json() : Promise.reject(r.status))
         .then(setPartPresence)
         .catch(err => console.error('載入 l1_part_presence 失敗:', err));
@@ -3040,8 +3337,8 @@ function App() {
   const [mAnalyzing, setMAnalyzing] = useState(false);
   const [mStage, setMStage] = useState(0);
   const [sizeRun, setSizeRun] = useState("missy"); // "missy" | "plus"
-  const [showPetite, setShowPetite] = useState(false);
-  const [showTall, setShowTall] = useState(false);
+  const [showPetite, setShowPetite] = useState(true);
+  const [showTall, setShowTall] = useState(true);
   const [openPom, setOpenPom] = useState(null);
   const [excluded, setExcluded] = useState(new Set());
   // 使用者手動加入的 POM codes(通用模型 keep 會略過 universalBasicCodes 限制)
@@ -3833,20 +4130,8 @@ function App() {
 
   const runMeasurement = () => {
     setMStep(1); setMAnalyzing(true); setMStage(0);
-    setOpenPom(null); setSizeRun("missy");
-    setShowPetite(false); setShowTall(false);
-    // 預設只勾「必備」tier;「建議 / 選配」預先加入 excluded 且折疊起來,
-    // 使用者要擴展時自行展開/勾選。
-    const _mr = currentBucket?.measurement_rules || {};
-    const _keep = appMode === "universal"
-      ? (c => universalBasicCodes.has(c) || userAddedCodes.has(c))
-      : (() => true);
-    const _defaultExcluded = new Set(
-      ["recommend", "optional"]
-        .flatMap(t => Object.keys(_mr[t] || {}).filter(c => _mr[t][c] != null && _keep(c)))
-    );
-    setExcluded(_defaultExcluded);
-    setCollapsedTiers(new Set(["recommend", "optional"]));
+    setExcluded(new Set()); setOpenPom(null); setSizeRun("missy");
+    setShowPetite(true); setShowTall(true);
     const si = setInterval(() => setMStage(s => s < 5 ? s + 1 : s), 350);
     setTimeout(() => { clearInterval(si); setMAnalyzing(false); setMStep(2); }, 2200);
   };
@@ -3953,30 +4238,33 @@ function App() {
             {mgmtMenuOpen && (
               <div style={{
                 position: 'absolute', right: 0, top: 'calc(100% + 4px)',
-                background: '#fff', border: '1px solid #e5e5e5', borderRadius: '8px',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.12)', minWidth: '180px',
-                zIndex: 100, overflow: 'hidden',
+                background: '#fff', border: '1px solid #e8e5e1', borderRadius: '8px',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.12)', minWidth: '200px',
+                zIndex: 100, overflow: 'hidden', padding: '4px',
               }}>
-                <button onClick={() => { setUploadOpen(true); setMgmtMenuOpen(false); }}
-                  style={{ display: 'block', width: '100%', padding: '10px 16px', textAlign: 'left',
-                    fontSize: '13px', fontWeight: 600, background: 'none', border: 'none',
-                    cursor: 'pointer', fontFamily: 'inherit', color: '#166534' }}>
-                  📤 上傳 Techpack
-                </button>
-                <div style={{ height: '1px', background: '#f0f0f0', margin: '0 8px' }} />
-                <button onClick={() => { setPatchOpen(true); setMgmtMenuOpen(false); }}
-                  style={{ display: 'block', width: '100%', padding: '10px 16px', textAlign: 'left',
-                    fontSize: '13px', fontWeight: 600, background: 'none', border: 'none',
-                    cursor: 'pointer', fontFamily: 'inherit', color: '#4338ca' }}>
-                  🩹 上傳 Patch (JSON)
-                </button>
-                <div style={{ height: '1px', background: '#f0f0f0', margin: '0 8px' }} />
-                <button onClick={() => { setAdminOpen(true); setMgmtMenuOpen(false); }}
-                  style={{ display: 'block', width: '100%', padding: '10px 16px', textAlign: 'left',
-                    fontSize: '13px', fontWeight: 600, background: 'none', border: 'none',
-                    cursor: 'pointer', fontFamily: 'inherit', color: '#374151' }}>
-                  📝 POM 翻譯表編輯
-                </button>
+                {[
+                  { key: 'upload',  label: '上傳 Techpack',      hint: 'PDF / PPTX',     dot: '#16a34a', onClick: () => setUploadOpen(true) },
+                  { key: 'patch',   label: '上傳 Patch',         hint: 'JSON',            dot: '#4338ca', onClick: () => setPatchOpen(true) },
+                  { key: 'dict',    label: 'POM 翻譯表編輯',     hint: '中英對照',        dot: '#0891b2', onClick: () => setAdminOpen(true) },
+                  { key: 'manuals', label: '權威手冊登記表',     hint: '8 份規格手冊',    dot: '#7e22ce', onClick: () => setManualsOpen(true) },
+                ].map(item => (
+                  <button key={item.key}
+                    onClick={() => { item.onClick(); setMgmtMenuOpen(false); }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#faf9f7'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                    style={{ display: 'flex', alignItems: 'center', gap: '10px',
+                      width: '100%', padding: '9px 12px', textAlign: 'left',
+                      fontSize: '13px', fontWeight: 500, background: 'transparent', border: 'none',
+                      borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit',
+                      color: '#1a1a1a', transition: 'background 0.12s' }}>
+                    <span aria-hidden="true" style={{
+                      width: '6px', height: '6px', borderRadius: '50%', flexShrink: 0,
+                      background: item.dot,
+                    }} />
+                    <span style={{ flex: 1 }}>{item.label}</span>
+                    <span style={{ fontSize: '10px', color: '#999', fontWeight: 400 }}>{item.hint}</span>
+                  </button>
+                ))}
               </div>
             )}
           </div>
@@ -4968,42 +5256,44 @@ function App() {
                   display: "flex", flexDirection: "column", gap: "10px",
                   marginBottom: isMobile ? "10px" : "14px",
                 }}>
-                  {/* B.4 — 基碼/全碼 segmented control + size rule meta 合併成一列,取代原本兩張大 ModeCard */}
-                  <div style={{
-                    display: "flex", alignItems: "center", gap: isMobile ? "8px" : "14px",
-                    flexWrap: "wrap",
-                  }}>
-                    <div style={{
-                      display: "inline-flex",
-                      border: `1px solid ${T.c.border}`, borderRadius: T.r.sm, overflow: "hidden",
-                      width: isMobile ? "100%" : "auto",
-                    }}>
+                  {/* Alpha label + Mode Cards row */}
+                  <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "6px" }}>
+                    {!isMobile && <span style={{ fontSize: "10px", color: "#bbb", fontWeight: 500, letterSpacing: "0.05em", textTransform: "uppercase" }}>Size Rule</span>}
+                    <span style={{
+                      padding: "3px 10px", borderRadius: "4px",
+                      background: "#faf9f7", color: "#555",
+                      border: "1px solid #e8e5e1",
+                      fontSize: "11px", fontWeight: 600, letterSpacing: "0.02em",
+                      fontFamily: "'JetBrains Mono',monospace",
+                    }}>{sizeRuleLabel}</span>
+                  </div>
+                  {isMobile ? (
+                    /* 行動版:compact 2-segment pill 取代兩張堆疊的 Mode Cards,省約 120px 垂直空間 */
+                    <div style={{ display: "flex", width: "100%", border: `1px solid ${T.c.border}`, borderRadius: T.r.sm, overflow: "hidden" }}>
                       <button onClick={() => setSizeView("base")}
                         aria-pressed={sizeView === "base"}
                         style={{
-                          flex: isMobile ? 1 : "0 0 auto",
-                          padding: isMobile ? "9px 16px" : "10px 24px",
+                          flex: 1, padding: "9px 12px",
                           background: sizeView === "base" ? T.c.text : T.c.bg,
                           color: sizeView === "base" ? T.c.bg : T.c.text2,
                           border: "none", borderRight: `1px solid ${T.c.border}`,
-                          fontSize: T.fs.md, fontWeight: 700, cursor: "pointer",
+                          fontSize: "12px", fontWeight: 700, cursor: "pointer",
                           fontFamily: "inherit", transition: "background 0.15s, color 0.15s",
-                        }}>基碼</button>
+                        }}>基碼 MISSY + PLUS</button>
                       <button onClick={() => !gradingDisabled && setSizeView("grading")}
                         disabled={gradingDisabled}
                         aria-pressed={sizeView === "grading"}
                         title={gradingDisabled ? "請先完成基碼 / POM 確認" : ""}
                         style={{
-                          flex: isMobile ? 1 : "0 0 auto",
-                          padding: isMobile ? "9px 16px" : "10px 24px",
+                          flex: 1, padding: "9px 12px",
                           background: sizeView === "grading" ? T.c.text : T.c.bg,
-                          color: gradingDisabled ? T.c.text4 : (sizeView === "grading" ? T.c.bg : T.c.text2),
+                          color: gradingDisabled ? "#bbb" : (sizeView === "grading" ? T.c.bg : T.c.text2),
                           border: "none",
-                          fontSize: T.fs.md, fontWeight: 700,
+                          fontSize: "12px", fontWeight: 700,
                           cursor: gradingDisabled ? "not-allowed" : "pointer",
                           opacity: gradingDisabled ? 0.55 : 1,
                           fontFamily: "inherit", transition: "background 0.15s, color 0.15s",
-                        }}>全碼</button>
+                        }}>全碼 Full Grading</button>
                     </div>
                     {!isMobile && (
                       <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "6px" }}>
@@ -5163,8 +5453,7 @@ function App() {
                         )
                       )}
 
-                      {/* PLUS checkbox:只在基碼檢視顯示(開啟加出 Base(2X) 欄位)。全碼的 Plus 已合到身型 radio。 */}
-                      {sizeView === 'base' && hasPlusU && (
+                      {hasPlusU && (
                         <label style={{
                           display: "flex", alignItems: "center", gap: "4px",
                           padding: isMobile ? "5px 9px" : "6px 12px", borderRadius: T.r.sm,
@@ -5176,12 +5465,17 @@ function App() {
                           whiteSpace: "nowrap", flexShrink: 0,
                         }}>
                           <input type="checkbox" checked={showPlus} onChange={e => setShowPlus(e.target.checked)}
-                            style={{ width: "14px", height: "14px", accentColor: T.c.text }} />
-                          PLUS
+                            style={{ width: "14px", height: "14px", accentColor: "#be185d" }} />
+                          +PLUS
                         </label>
                       )}
 
-                      {/* B.6 — 原 ★ Foundational 圖示說明 chip 已改為表格列 ★ 本身的 title 提示;此處不再重複 */}
+                      {sizeView === "grading" && tier1SetU.size > 0 && (
+                        <span style={{ fontSize: "11px", color: "#0891b2", background: "#ecfeff", padding: "2px 8px", borderRadius: "6px", fontWeight: 500, marginLeft: "auto" }}
+                          title="Foundational:歷史不論 rate 都強制納入,不能隱藏">
+                          ★ <span style={{ color: "#0e7490" }}>= Foundational</span>
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -5294,7 +5588,7 @@ function App() {
                 if (!t) return "—";
                 const base = typeof t === "object" ? t.standard : t;
                 if (base == null) return "—";
-                return "±" + fmtDisp(base);
+                return "±" + fmtDisp(base) + unitSuffix;
               };
               // 未選 Item Type 時,長度敏感 POM 視為「待選長度」— 不顯示數值
               const isLengthPending = code =>
@@ -5426,53 +5720,41 @@ function App() {
                               onClick={() => toggleTier(tier)}
                               onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleTier(tier); } }}
                               style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", flex: 1, minWidth: 0, userSelect: "none" }}>
-                              <span style={{ display: "inline-block", width: "12px", fontSize: T.fs.xs, color: T.c.text3, transform: collapsed ? "rotate(-90deg)" : "rotate(0)", transition: "transform 0.15s" }} aria-hidden="true">▾</span>
+                              <span style={{ display: "inline-block", width: "12px", fontSize: "10px", color: "#888", transform: collapsed ? "rotate(-90deg)" : "rotate(0)", transition: "transform 0.15s" }} aria-hidden="true">▾</span>
                               <span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", background: tc.c, flexShrink: 0 }} aria-hidden="true" />
-                              <span style={{ fontSize: T.fs.md, fontWeight: 700, color: T.c.text, letterSpacing: "0.02em" }}>{tc.label}</span>
-                              <span style={{ fontSize: T.fs.base, color: T.c.text3, fontWeight: 500 }}>{codes.length} 項</span>
+                              <span style={{ fontSize: isMobile ? "13px" : "14px", fontWeight: 700, color: tc.c, letterSpacing: "0.02em" }}>{tc.label} POM</span>
+                              <span style={{ fontSize: "11px", color: "#888", fontWeight: 500 }}>{codes.length} 項</span>
                             </div>
                             <label onClick={(e) => e.stopPropagation()}
-                              style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: T.fs.base, color: T.c.text3, cursor: "pointer", userSelect: "none" }}>
+                              style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "11px", color: "#888", cursor: "pointer", userSelect: "none" }}>
                               <input
                                 type="checkbox"
                                 checked={allOn}
                                 ref={el => { if (el) el.indeterminate = selectedCount > 0 && !allOn; }}
                                 onChange={() => setTierSelection(tier, !allOn)}
                                 aria-label={`${tc.label} 全選/全部取消`}
-                                style={{ width: "14px", height: "14px", accentColor: T.c.text, cursor: "pointer" }}
+                                style={{ width: "14px", height: "14px", accentColor: tc.c, cursor: "pointer" }}
                               />
                               全選 {selectedCount}/{codes.length}
                             </label>
                           </div>
                           {!collapsed && (
-                            /* B.7 — 彩色左邊條 (3px) 強化 tier 視覺分群:必備紅、建議橘、選配藍、自訂紫 */
-                            <div style={{ background: "#fff", border: "1px solid #e8e5e1", borderLeft: `3px solid ${tc.c}`, borderRadius: "12px", overflow: "auto" }}>
-                              <table style={{ width: "auto", minWidth: isMobile ? (showPlus && hasPlus ? "500px" : "420px") : "100%", maxWidth: "100%", borderCollapse: "collapse", fontSize: T.fs.md, tableLayout: "fixed" }}>
-                                {/* colgroup 固定每欄寬度;table width:auto 讓欄位用 px 值、不被 100% 等比拉大。
-                                    Name 給 320px 左右讓長名可單行顯示;中文 200px;其餘為固定 px。 */}
-                                <colgroup>
-                                  <col style={{ width: isMobile ? "28px" : "34px" }} />{/* ✓ */}
-                                  {appMode !== "universal" && <col style={{ width: isMobile ? "44px" : "64px" }} />}{/* POM */}
-                                  {!isMobile && <col style={{ width: "320px" }} />}{/* Name */}
-                                  <col style={{ width: isMobile ? "auto" : "200px" }} />{/* 中文 / 剩餘 */}
-                                  <col style={{ width: isMobile ? "56px" : "84px" }} />{/* 公差 */}
-                                  <col style={{ width: isMobile ? "84px" : "110px" }} />{/* Base (M) */}
-                                  {showPlus && hasPlus && <col style={{ width: isMobile ? "84px" : "110px" }} />}{/* Base (Plus) */}
-                                </colgroup>
+                            <div style={{ background: "#fff", border: "1px solid #e8e5e1", borderRadius: "12px", overflow: "auto" }}>
+                              <table style={{ width: "100%", minWidth: isMobile ? (showPlus && hasPlus ? "500px" : "420px") : "auto", borderCollapse: "collapse", fontSize: isMobile ? "12px" : "14px" }}>
                                 <thead>
-                                  <tr style={{ background: T.c.bg2, borderBottom: `1px solid ${T.c.border}` }}>
-                                    <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: T.fs.md, color: T.c.text2 }}>✓</th>
+                                  <tr style={{ background: "#faf9f7", borderBottom: "1.5px solid #e8e5e1" }}>
+                                    <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#525252", width: isMobile ? "24px" : "30px" }}>✓</th>
                                     {appMode !== "universal" && (
-                                      <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: T.fs.md, color: T.c.text2 }}>POM</th>
+                                      <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#525252", width: isMobile ? "38px" : "56px" }}>POM</th>
                                     )}
                                     {!isMobile && (
-                                      <th style={{ padding: "8px 10px", textAlign: "left", fontWeight: 600, fontSize: T.fs.md, color: T.c.text2 }}>Name<span style={{ fontSize: T.fs.sm, fontWeight: 400, color: T.c.text3, marginLeft: "4px" }}>(雙擊可改)</span></th>
+                                      <th style={{ padding: "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "13px", color: "#525252" }}>Name<span style={{ fontSize: "11px", fontWeight: 400, color: "#999", marginLeft: "4px" }}>(雙擊可改)</span></th>
                                     )}
-                                    <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: T.fs.md, color: T.c.text2 }}>中文<span style={{ fontSize: T.fs.sm, fontWeight: 400, color: T.c.text3, marginLeft: "4px" }}>{isMobile ? "/ EN" : "(雙擊可改)"}</span></th>
-                                    <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: T.fs.md, color: T.c.text2 }}>公差</th>
-                                    <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: T.fs.md, color: T.c.green }}>Base (M)</th>
+                                    <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#525252", minWidth: isMobile ? "110px" : "140px" }}>中文{isMobile ? <span style={{ fontSize: "10px", fontWeight: 400, color: "#999", marginLeft: "3px" }}>/ EN</span> : <span style={{ fontSize: "11px", fontWeight: 400, color: "#999", marginLeft: "4px" }}>(雙擊可改)</span>}</th>
+                                    <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#525252", width: isMobile ? "52px" : "80px" }}>公差</th>
+                                    <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#065f46", width: isMobile ? "80px" : "110px" }}>Base (M)</th>
                                     {showPlus && hasPlus && (
-                                      <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: T.fs.md, color: T.c.text2 }}>Base ({plusAnchor}){!isMobile && <div style={{ fontSize: T.fs.sm, fontWeight: 400, color: T.c.text3 }}>Plus 獨立</div>}</th>
+                                      <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#be185d", width: isMobile ? "80px" : "110px" }}>Base ({plusAnchor}){!isMobile && <div style={{ fontSize: "11px", fontWeight: 400, color: "#be185d" }}>Plus 獨立</div>}</th>
                                     )}
                                   </tr>
                                 </thead>
@@ -5491,7 +5773,7 @@ function App() {
                                   // 已修改：用戶輸入過且合法、且與中位數不同
                                   const ovParsed = ov !== "" && !invalid ? parseVal(ov) : null;
                                   const isChanged = ovParsed != null && baseM != null && Math.abs(ovParsed - baseM) > 1e-9;
-                                  const originalTip = isChanged ? `原值 ${fmtDisp(baseM)}` : undefined;
+                                  const originalTip = isChanged ? `原值 ${fmtDisp(baseM)}${unitSuffix}` : undefined;
                                   const inputBorder = invalid ? "#dc2626" : (isChanged ? "#f59e0b" : "#a7f3d0");
                                   const inputColor  = invalid ? "#dc2626" : (isChanged ? "#b45309" : "#065f46");
                                   const cellBg      = isChanged ? "#fffbeb" : "#ecfdf5";
@@ -5511,18 +5793,18 @@ function App() {
                                       <td style={{ padding: isMobile ? "5px 4px" : "9px 12px" }}>
                                         <input type="checkbox" checked={included}
                                           onChange={() => setExcluded(prev => { const n = new Set(prev); n.has(code) ? n.delete(code) : n.add(code); return n; })}
-                                          style={{ width: "16px", height: "16px", accentColor: T.c.text, cursor: "pointer" }} />
+                                          style={{ width: "16px", height: "16px", accentColor: tc.c, cursor: "pointer" }} />
                                       </td>
                                       {appMode !== "universal" && (
-                                        <td style={{ padding: isMobile ? "5px 4px" : "9px 12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", fontSize: T.fs.md, color: T.c.text, whiteSpace: "nowrap" }}>
+                                        <td style={{ padding: isMobile ? "5px 4px" : "9px 12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "14px", color: tc.c, whiteSpace: "nowrap" }}>
                                           {code}
                                           {tier1Set.has(code) && (
                                             <span title="Tier-1 Foundational:不論 rate 多少都強制進 must,不能隱藏"
-                                              style={{ marginLeft: "4px", color: T.c.text3, fontSize: T.fs.sm }}>★</span>
+                                              style={{ marginLeft: "4px", color: "#0891b2", fontSize: "11px" }}>★</span>
                                           )}
                                           {hasInflection(code) && (
                                             <span title="跳碼不等距 — 改 M 不會讓所有 size 等量平移,見全碼頁實際跳碼"
-                                              style={{ marginLeft: "3px", color: T.c.text3, fontSize: T.fs.sm }}>⚡</span>
+                                              style={{ marginLeft: "3px", color: "#ea580c", fontSize: "11px" }}>⚡</span>
                                           )}
                                         </td>
                                       )}
@@ -5594,8 +5876,8 @@ function App() {
                                           </div>
                                         )}
                                       </td>
-                                      <td style={{ padding: isMobile ? "5px 4px" : "9px 12px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", fontSize: T.fs.md, color: T.c.text2, fontWeight: 600, whiteSpace: "nowrap" }}>{tolStr(m)}</td>
-                                      <td style={{ padding: isMobile ? "4px 6px" : "8px 16px", textAlign: "right" }}>
+                                      <td style={{ padding: isMobile ? "5px 4px" : "9px 12px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "14px", color: "#7e22ce", fontWeight: 600, whiteSpace: "nowrap" }}>{tolStr(m)}</td>
+                                      <td style={{ padding: isMobile ? "4px 6px" : "8px 16px", textAlign: "right", background: "#ecfdf5" }}>
                                         <input type="text" value={displayVal}
                                           onChange={(e) => setBaseOverrides(prev => ({ ...prev, [code]: e.target.value }))}
                                           onBlur={() => {
@@ -5629,7 +5911,7 @@ function App() {
                                         const invalid2 = ov2 !== "" && parseVal(ov2) == null;
                                         const display2 = ov2 !== "" ? ov2 : (base2X != null ? fmtDisp(base2X) : "");
                                         return (
-                                          <td style={{ padding: isMobile ? "4px 6px" : "8px 16px", textAlign: "right" }}>
+                                          <td style={{ padding: isMobile ? "4px 6px" : "8px 16px", textAlign: "right", background: "#fdf2f8" }}>
                                             <input type="text" value={display2}
                                               onChange={(e) => setPlusBaseOverrides(prev => ({ ...prev, [code]: e.target.value }))}
                                               onBlur={() => {
@@ -5943,8 +6225,7 @@ function App() {
 
         {/* ═══ Grading (全碼) View — 併入 measurement tab,由 sizeView 切換 ═══ */}
         {activeTab === "measurement" && sizeView === "grading" && (
-          /* B.8 — paddingBottom 保留空間給 sticky bottom bar(跟基碼視圖一致) */
-          <div style={{ animation: "fadeIn 0.2s ease", paddingBottom: "72px" }}>
+          <div style={{ animation: "fadeIn 0.2s ease" }}>
             {!(mDone && currentBucket) && (
               <div style={{
                 minHeight: "200px", display: "flex", alignItems: "center", justifyContent: "center",
@@ -5981,19 +6262,13 @@ function App() {
               ).concat(customCodes);
               const gradingCodes = allCodesFlat.filter(c => !excluded.has(c));
               const sizes = currentBucket.size_range || [];
-              /* 注意:grading closure 的 foundational set 叫 gradingTier1Set(在 5550 宣告),
-                 這裡用 bucket 直查避免 TDZ / 跨行 ordering 問題。 */
-              const _foundationalPoms = new Set(currentBucket.foundational_measurements?.tier1_poms || []);
-              const tierOf = code => (mr.must?.[code] || _foundationalPoms.has(code)) ? "must"
-                : mr.recommend?.[code] ? "recommend"
-                : mr.optional?.[code] ? "optional"
-                : "custom";
+              const tierOf = code => (mr.must?.[code] || tier1Set.has(code)) ? "must" : mr.recommend?.[code] ? "recommend" : (mr.optional?.[code] ? "optional" : "custom");
               const tolStr = m => {
                 const t = m?.tolerance;
                 if (!t) return "—";
                 const base = typeof t === "object" ? t.standard : t;
                 if (base == null) return "—";
-                return "±" + fmtDisp(base);
+                return "±" + fmtDisp(base) + unitSuffix;
               };
               // gradingBodytype sub-tab(全碼頁專用):'regular' | 'petite' | 'tall'。
               // 只替換每個 POM 的 M 基碼為 bodytype_variance 的 <bt>_M;跳檔仍走 Missy。
@@ -6131,8 +6406,8 @@ function App() {
                 }
                 return applyRunOffset(code, v);
               };
-              // 顯示哪些 sizes:Plus bodytype 只顯示 1X–4X(2X 為 BASE),其餘身型(Regular/Petite/Tall)只顯示 Missy sizes(M 為 BASE)
-              const visibleSizes = gradingBodytype === 'plus' ? plusSeq : missySeq;
+              // 顯示哪些 sizes:預設只 missy;showPlus=true 才 append plus
+              const visibleSizes = showPlus ? [...missySeq, ...plusSeq] : missySeq;
               // size_run_offsets 是 legacy 結構(bucket 大多沒有此欄),保留以防舊 bucket 還在用。
               // bodytype 切換改走 gradingBodytype + bodytype_variance,不再透過 offset 加總。
               const runOffsets = currentBucket.size_run_offsets || {};
@@ -6148,105 +6423,128 @@ function App() {
                       尚未勾選任何 POM — 回基碼檢視勾選
                     </div>
                   ) : (
-                    /* 全碼表格:單一 table,不分 tier 區塊(基碼已確認 tier,全碼只做 grading)。
-                       列順序:allCodesFlat(must → recommend → optional → custom)排序後過濾 excluded。 */
-                    <div style={{ background: "#fff", border: `1px solid ${T.c.border}`, borderRadius: "12px", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-                      <table style={{
-                        width: "auto",
-                        minWidth: isMobile ? `${220 + visibleSizes.length * 66}px` : "100%",
-                        maxWidth: "100%",
-                        borderCollapse: "collapse", fontSize: T.fs.md, tableLayout: "fixed",
-                      }}>
-                              {/* 全碼 table 欄寬跟基碼一致:用 colgroup + tableLayout:fixed 鎖住,
-                                  所有 tier 共用同一套比例。size 欄 BASE 稍寬(可編輯輸入框),其餘等寬。 */}
-                              <colgroup>
-                                {appMode !== "universal" && <col style={{ width: isMobile ? "44px" : "64px" }} />}{/* POM */}
-                                {!isMobile && <col style={{ width: "200px" }} />}{/* Name */}
-                                <col style={{ width: isMobile ? "auto" : "160px" }} />{/* 中文 */}
-                                <col style={{ width: isMobile ? "58px" : "84px" }} />{/* 公差 */}
-                                {visibleSizes.map(s => {
-                                  const isBase = (s === "M") || (isPlus(s) && s === plusAnchor);
-                                  return (
-                                    <col key={`col-${s}`} style={{
-                                      width: isBase
-                                        ? (isMobile ? "78px" : "96px")
-                                        : (isMobile ? "62px" : "72px"),
-                                    }} />
-                                  );
-                                })}
-                              </colgroup>
+                    /* 全碼表格:分 tier 渲染,每個 tier 一個 header 外移 + 自己的 table */
+                    tiersOrdered.map(tier => {
+                      const tierCodes = codesByTier[tier].filter(c => !excluded.has(c));
+                      if (!tierCodes.length) return null;
+                      const tc = TIER[tier];
+                      return (
+                        <div key={tier} style={{ marginBottom: "14px" }}>
+                          <div style={{
+                            display: "flex", alignItems: "center", gap: "10px",
+                            padding: isMobile ? "10px 4px 6px" : "14px 4px 8px",
+                          }}>
+                            <span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", background: tc.c, flexShrink: 0 }} aria-hidden="true" />
+                            <span style={{ fontSize: isMobile ? "13px" : "14px", fontWeight: 700, color: tc.c, letterSpacing: "0.02em" }}>{tc.label} POM</span>
+                            <span style={{ fontSize: "11px", color: "#888", fontWeight: 500 }}>{tierCodes.length} 項</span>
+                          </div>
+                          <div style={{ background: "#fff", border: "1px solid #e8e5e1", borderRadius: "12px", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+                            <table style={{ width: "100%", minWidth: isMobile ? `${220 + visibleSizes.length * 66}px` : "auto", borderCollapse: "collapse", fontSize: isMobile ? "12px" : "14px" }}>
                               <thead>
-                                <tr style={{ background: T.c.bg2, borderBottom: `1px solid ${T.c.border}` }}>
+                                <tr style={{ background: "#faf9f7", borderBottom: "1.5px solid #e8e5e1" }}>
                                   {appMode !== "universal" && (
-                                    <th style={{ padding: isMobile ? "6px 6px" : "10px 12px", textAlign: "left", fontWeight: 600, fontSize: T.fs.md, color: T.c.text2, position: "sticky", left: 0, background: T.c.bg2 }}>POM</th>
+                                    <th style={{ padding: isMobile ? "6px 6px" : "10px 12px", textAlign: "left", fontWeight: 600, fontSize: isMobile ? "10px" : "12px", color: "#888", position: "sticky", left: 0, background: "#faf9f7", width: isMobile ? "42px" : "60px" }}>POM</th>
                                   )}
                                   {!isMobile && (
-                                    <th style={{ padding: "10px 12px", textAlign: "left", fontWeight: 600, fontSize: T.fs.md, color: T.c.text2 }}>Name<span style={{ fontSize: T.fs.sm, fontWeight: 400, color: T.c.text3, marginLeft: "4px" }}>(基碼可改)</span></th>
+                                    <th style={{ padding: "10px 12px", textAlign: "left", fontWeight: 600, fontSize: "12px", color: "#888", minWidth: "120px" }}>Name<span style={{ fontSize: "10px", fontWeight: 400, color: "#bbb", marginLeft: "4px" }}>(雙擊可改)</span></th>
                                   )}
-                                  <th style={{ padding: isMobile ? "6px 6px" : "10px 12px", textAlign: "left", fontWeight: 600, fontSize: T.fs.md, color: T.c.text2 }}>中文<span style={{ fontSize: T.fs.sm, fontWeight: 400, color: T.c.text3, marginLeft: "4px" }}>{isMobile ? "/ EN" : "(基碼可改)"}</span></th>
-                                  <th style={{ padding: isMobile ? "6px 6px" : "10px 12px", textAlign: "right", fontWeight: 600, fontSize: T.fs.md, color: T.c.text2 }}>公差</th>
+                                  <th style={{ padding: isMobile ? "6px 6px" : "10px 12px", textAlign: "left", fontWeight: 600, fontSize: isMobile ? "10px" : "12px", color: "#888", minWidth: isMobile ? "110px" : "140px" }}>中文{isMobile ? <span style={{ fontSize: "10px", fontWeight: 400, color: "#bbb", marginLeft: "3px" }}>/ EN</span> : <span style={{ fontSize: "10px", fontWeight: 400, color: "#bbb", marginLeft: "4px" }}>(雙擊可改)</span>}</th>
+                                  <th style={{ padding: isMobile ? "6px 6px" : "10px 12px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? "10px" : "12px", color: "#7e22ce", width: isMobile ? "58px" : "90px" }}>公差</th>
                                   {visibleSizes.map(s => {
                                     const isBase = (s === "M") || (isPlus(s) && s === plusAnchor);
                                     return (
-                                      <th key={s} style={{ padding: isMobile ? "6px 6px" : "10px 8px", textAlign: "center", fontWeight: 700, fontSize: T.fs.base, color: isBase ? T.c.green : T.c.text2, fontFamily: "'JetBrains Mono',monospace", whiteSpace: "nowrap" }}>{s}{isBase && <div style={{ fontSize: T.fs.xs, color: T.c.green, fontWeight: 500 }}>BASE</div>}</th>
+                                      <th key={s} style={{ padding: isMobile ? "6px 6px" : "10px 8px", textAlign: "center", fontWeight: 700, fontSize: isMobile ? "10px" : "12px", color: isBase ? "#065f46" : "#555", fontFamily: "'JetBrains Mono',monospace", background: isBase ? "#ecfdf5" : "transparent", minWidth: isBase ? (isMobile ? "78px" : "100px") : (isMobile ? "62px" : "56px"), whiteSpace: "nowrap" }}>{s}{isBase && <div style={{ fontSize: "10px", color: "#065f46" }}>BASE{!isMobile && " · 可編輯"}</div>}</th>
                                     );
                                   })}
                                 </tr>
                               </thead>
                               <tbody>
-                                {gradingCodes.map(code => {
-                            const tier = tierOf(code);
+                                {tierCodes.map(code => {
                             const grRow = gr[code];
-                            const m = tier === "custom"
-                              ? (() => { const cm = customPoms.find(p => p.code === code); return cm ? { tolerance: cm.tolerance } : null; })()
-                              : mr[tier]?.[code];
+                            const m = mr[tier]?.[code];
                             const pn = pomNames[code] || {};
                             const edited = baseOverrides[code] != null && baseOverrides[code] !== "" && parseVal(baseOverrides[code]) != null;
                             return (
                               <tr key={code} style={{ borderBottom: "1px solid #f0eeeb" }}>
                                 {appMode !== "universal" && (
-                                  <td style={{ padding: isMobile ? "7px 6px" : "9px 12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", fontSize: T.fs.md, color: T.c.text, position: "sticky", left: 0, background: "#fff", whiteSpace: "nowrap" }}>
+                                  <td style={{ padding: isMobile ? "7px 6px" : "9px 12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "14px", color: tc.c, position: "sticky", left: 0, background: "#fff", whiteSpace: "nowrap" }}>
                                     {code}
                                     {gradingTier1Set.has(code) && (
                                       <span title="Tier-1 Foundational:不論 rate 多少都強制進 must,不能隱藏"
-                                        style={{ marginLeft: "4px", color: T.c.text3, fontSize: T.fs.sm }}>★</span>
+                                        style={{ marginLeft: "4px", color: "#0891b2", fontSize: "11px" }}>★</span>
                                     )}
                                     {hasInflection(code) && (
                                       <span title="跳碼不等距 — 某些 size step 跳碼幅度不同,編輯時注意"
-                                        style={{ marginLeft: "3px", color: T.c.text3, fontSize: T.fs.sm }}>⚡</span>
+                                        style={{ marginLeft: "3px", color: "#ea580c", fontSize: "11px" }}>⚡</span>
                                     )}
-                                    {isMobile && edited && <span style={{ marginLeft: "3px", fontSize: T.fs.xs, color: T.c.text2, fontWeight: 600 }}>●</span>}
+                                    {isMobile && edited && <span style={{ marginLeft: "3px", fontSize: "10px", color: "#7e22ce", fontWeight: 600 }}>●</span>}
                                   </td>
                                 )}
                                 {!isMobile && (
                                   <td style={{ padding: "7px 12px" }}
-                                    onDoubleClick={() => showInfo("Name / 中文請回「基碼」修改", "切到基碼", () => setSizeView('base'))}
-                                    title="請至基碼修改"
+                                    onDoubleClick={() => setEditingEnCode(code)}
+                                    title={editingEnCode === code ? "" : "雙擊可修改"}
                                   >
-                                    <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "14px", color: "#1a1a1a" }}>
-                                      <span>{enFor(code)}</span>
-                                      {pomEnEdits[code] && <span style={{ fontSize: "10px", color: "#7e22ce", background: "#f5f3ff", padding: "1px 5px", borderRadius: "6px", fontWeight: 600 }}>自訂</span>}
-                                      {edited && <span style={{ marginLeft: "2px", fontSize: "11px", color: "#7e22ce", background: "#f5f3ff", padding: "2px 6px", borderRadius: "6px", fontWeight: 600, whiteSpace: "nowrap" }}>已調整</span>}
-                                    </div>
+                                    {editingEnCode === code ? (
+                                      <input type="text" autoFocus
+                                        defaultValue={enFor(code)}
+                                        onBlur={(e) => { saveEn(code, e.target.value); setEditingEnCode(null); }}
+                                        onKeyDown={(e) => {
+                                          if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); }
+                                          else if (e.key === "Escape") { setEditingEnCode(null); }
+                                        }}
+                                        style={{ width: "100%", padding: "5px 7px", fontSize: "14px", fontFamily: "inherit", border: "1px solid #1a1a1a", borderRadius: "6px", background: "#fff" }} />
+                                    ) : (
+                                      <div style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "text", fontSize: "14px", color: "#1a1a1a" }}>
+                                        <span>{enFor(code)}</span>
+                                        {pomEnEdits[code] && <span style={{ fontSize: "10px", color: "#7e22ce", background: "#f5f3ff", padding: "1px 5px", borderRadius: "6px", fontWeight: 600 }}>自訂</span>}
+                                        {edited && <span style={{ marginLeft: "2px", fontSize: "11px", color: "#7e22ce", background: "#f5f3ff", padding: "2px 6px", borderRadius: "6px", fontWeight: 600, whiteSpace: "nowrap" }}>已調整</span>}
+                                      </div>
+                                    )}
                                   </td>
                                 )}
                                 <td style={{ padding: isMobile ? "6px 6px" : "7px 12px" }}
-                                  onDoubleClick={() => showInfo("Name / 中文請回「基碼」修改", "切到基碼", () => setSizeView('base'))}
-                                  title="請至基碼修改"
+                                  onDoubleClick={() => setEditingZhCode(code)}
+                                  title={editingZhCode === code ? "" : "雙擊可修改"}
                                 >
-                                  <div>
-                                    <div style={{ display: "flex", alignItems: "center", gap: "4px", color: "#555", fontSize: isMobile ? "12px" : "13px" }}>
-                                      <span>{zhFor(code) || <span style={{ color: "#bbb" }}>(空)</span>}</span>
-                                      {pomZhEdits[code] && <span style={{ fontSize: "10px", color: "#7e22ce", background: "#f5f3ff", padding: "1px 5px", borderRadius: "6px", fontWeight: 600 }}>自訂</span>}
-                                    </div>
-                                    {isMobile && (
-                                      <div style={{ fontSize: "10px", color: "#888", marginTop: "1px", lineHeight: 1.25, display: "flex", alignItems: "center", gap: "4px" }}>
-                                        <span>{enFor(code)}</span>
-                                        {pomEnEdits[code] && <span style={{ fontSize: "10px", color: "#7e22ce", background: "#f5f3ff", padding: "0 4px", borderRadius: "6px", fontWeight: 600 }}>自訂</span>}
-                                        {edited && <span style={{ fontSize: "10px", color: "#7e22ce", fontWeight: 600 }}>已調整</span>}
+                                  {editingZhCode === code ? (
+                                    <input type="text" autoFocus
+                                      defaultValue={zhFor(code)}
+                                      onBlur={(e) => { saveZh(code, e.target.value); setEditingZhCode(null); }}
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); }
+                                        else if (e.key === "Escape") { setEditingZhCode(null); }
+                                      }}
+                                      style={{ width: "100%", padding: "5px 7px", fontSize: "13px", fontFamily: "inherit", border: "1px solid #1a1a1a", borderRadius: "6px", background: "#fff" }} />
+                                  ) : (
+                                    <div style={{ cursor: "text" }}>
+                                      <div style={{ display: "flex", alignItems: "center", gap: "4px", color: "#555", fontSize: isMobile ? "12px" : "13px" }}>
+                                        <span>{zhFor(code) || <span style={{ color: "#bbb" }}>(空)</span>}</span>
+                                        {pomZhEdits[code] && <span style={{ fontSize: "10px", color: "#7e22ce", background: "#f5f3ff", padding: "1px 5px", borderRadius: "6px", fontWeight: 600 }}>自訂</span>}
                                       </div>
-                                    )}
-                                  </div>
+                                      {isMobile && (
+                                        editingEnCode === code ? (
+                                          <input type="text" autoFocus
+                                            defaultValue={enFor(code)}
+                                            onClick={(e) => e.stopPropagation()}
+                                            onBlur={(e) => { saveEn(code, e.target.value); setEditingEnCode(null); }}
+                                            onKeyDown={(e) => {
+                                              if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); }
+                                              else if (e.key === "Escape") { setEditingEnCode(null); }
+                                            }}
+                                            style={{ width: "100%", padding: "3px 5px", fontSize: "11px", fontFamily: "inherit", border: "1px solid #1a1a1a", borderRadius: "6px", background: "#fff", marginTop: "1px" }} />
+                                        ) : (
+                                          <div onDoubleClick={(e) => { e.stopPropagation(); setEditingEnCode(code); }}
+                                            title="雙擊可修改"
+                                            style={{ fontSize: "10px", color: "#888", marginTop: "1px", lineHeight: 1.25, display: "flex", alignItems: "center", gap: "4px" }}>
+                                            <span>{enFor(code)}</span>
+                                            {pomEnEdits[code] && <span style={{ fontSize: "10px", color: "#7e22ce", background: "#f5f3ff", padding: "0 4px", borderRadius: "6px", fontWeight: 600 }}>自訂</span>}
+                                            {edited && <span style={{ fontSize: "10px", color: "#7e22ce", fontWeight: 600 }}>已調整</span>}
+                                          </div>
+                                        )
+                                      )}
+                                    </div>
+                                  )}
                                 </td>
                                 <td style={{ padding: isMobile ? "7px 6px" : "9px 12px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "14px", color: "#7e22ce", fontWeight: 600, whiteSpace: "nowrap" }}>
                                   {tolStr(m)}
@@ -6273,11 +6571,24 @@ function App() {
                                     const ov = storeMap[code] ?? "";
                                     const invalid = ov !== "" && parseVal(ov) == null;
                                     const displayVal = ov !== "" ? ov : (rawBase != null ? fmtDisp(rawBase) : "");
-                                    // 不再用大色塊底色;只透過 input border/color 區分身型,避免整欄色塊
-                                    const borderColor = T.c.green;   // 綠色 border = 可編 BASE
-                                    const fgColor = T.c.green;
+                                    // Missy M 欄位底色依 bodytype 顯示(紫/藍/綠)
+                                    const cellBg = isMissyBase
+                                      ? (gradingBodytype === 'petite' ? "#faf5ff"
+                                        : gradingBodytype === 'tall' ? "#eff6ff"
+                                        : "#ecfdf5")
+                                      : "#fdf2f8"; // Plus 2X
+                                    const borderColor = isMissyBase
+                                      ? (gradingBodytype === 'petite' ? "#c4b5fd"
+                                        : gradingBodytype === 'tall' ? "#93c5fd"
+                                        : "#a7f3d0")
+                                      : "#fbcfe8";
+                                    const fgColor = isMissyBase
+                                      ? (gradingBodytype === 'petite' ? "#7e22ce"
+                                        : gradingBodytype === 'tall' ? "#1d4ed8"
+                                        : "#065f46")
+                                      : "#be185d";
                                     return (
-                                      <td key={s} style={{ padding: isMobile ? "4px 6px" : "8px 14px", textAlign: "center" }}>
+                                      <td key={s} style={{ padding: isMobile ? "4px 6px" : "8px 14px", textAlign: "center", background: cellBg }}>
                                         <input type="text" value={displayVal}
                                           onChange={(e) => setStore(prev => ({ ...prev, [code]: e.target.value }))}
                                           onBlur={() => {
@@ -6306,7 +6617,7 @@ function App() {
                                   }
                                   return (
                                     <td key={s} style={{ padding: isMobile ? "6px 4px" : "9px 8px", textAlign: "center", fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "14px", color: "#1a1a1a", fontWeight: 500, whiteSpace: "nowrap" }}>
-                                      {val != null ? fmtDisp(val) : "—"}
+                                      {val != null ? fmtDisp(val) + unitSuffix : "—"}
                                     </td>
                                   );
                                 })}
@@ -6315,7 +6626,10 @@ function App() {
                                 })}
                               </tbody>
                             </table>
-                    </div>
+                          </div>
+                        </div>
+                      );
+                    })
                   )}
 
                 </div>
@@ -6323,68 +6637,6 @@ function App() {
             })()}
           </div>
         )}
-
-        {/* B.8 — Sticky bottom bar:尺寸規格 tab 內恆可見的「已確認 N/Total」+ 主 CTA。
-            兩個 view 的內層 wrapper 都已 reserve 72px paddingBottom,不會蓋住內容。 */}
-        {activeTab === "measurement" && mDone && currentBucket && (() => {
-          const _mr = currentBucket.measurement_rules || {};
-          const _keep = appMode === "universal"
-            ? (c => universalBasicCodes.has(c) || userAddedCodes.has(c))
-            : (() => true);
-          const _codes = ["must","recommend","optional"]
-            .flatMap(t => Object.keys(_mr[t] || {}).filter(c => _mr[t][c] != null && _keep(c)))
-            .concat(customPoms.map(p => p.code));
-          const _total = _codes.length;
-          const _included = _codes.filter(c => !excluded.has(c)).length;
-          const _allExcluded = _total > 0 && _included === 0;
-          return (
-            <div role="region" aria-label="尺寸規格完成列" style={{
-              position: "fixed", bottom: 0, left: 0, right: 0,
-              background: T.c.bg, borderTop: `1px solid ${T.c.border}`,
-              boxShadow: "0 -4px 16px rgba(0,0,0,0.04)",
-              zIndex: 40,
-            }}>
-              <div style={{
-                maxWidth: "1280px", margin: "0 auto",
-                padding: isMobile ? "10px 14px" : "12px 28px",
-                display: "flex", alignItems: "center", justifyContent: "space-between",
-                gap: "12px",
-              }}>
-                <div style={{ display: "flex", alignItems: "baseline", gap: "8px", minWidth: 0 }}>
-                  <span style={{ fontSize: isMobile ? "12px" : "13px", color: T.c.text3 }}>已確認</span>
-                  <span style={{
-                    fontSize: isMobile ? "16px" : "18px", fontWeight: 700,
-                    fontFamily: "'JetBrains Mono',monospace", color: T.c.text,
-                  }}>
-                    {_included}
-                    <span style={{ color: T.c.text3, fontWeight: 500 }}>/{_total}</span>
-                  </span>
-                  <span style={{ fontSize: isMobile ? "12px" : "13px", color: T.c.text3 }}>POM</span>
-                  {!isMobile && (
-                    <span style={{ fontSize: "11px", color: T.c.text3, marginLeft: "8px" }}>
-                      {sizeView === "grading" ? "全碼檢視" : "基碼檢視"}
-                    </span>
-                  )}
-                </div>
-                <button onClick={exportTechpack}
-                  disabled={_allExcluded}
-                  title={_allExcluded ? "請至少勾選一項 POM" : "下載目前 techpack 狀態為 JSON 檔"}
-                  style={{
-                    ...btnStyle({ variant: 'brand', isMobile, disabled: _allExcluded }),
-                    padding: isMobile ? "8px 16px" : "10px 22px",
-                    display: "inline-flex", alignItems: "center", gap: "6px",
-                  }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                    <polyline points="7 10 12 15 17 10"/>
-                    <line x1="12" y1="15" x2="12" y2="3"/>
-                  </svg>
-                  完成 · 匯出 JSON
-                </button>
-              </div>
-            </div>
-          );
-        })()}
       </div>
 
       <SettingsModal
@@ -6410,6 +6662,7 @@ function App() {
         onPushDict={pushPomDict}
         token={adminToken}
       />
+      <ManualsModal open={manualsOpen} onClose={() => setManualsOpen(false)} />
       <OnboardingModal open={onboardingOpen} onDismiss={dismissOnboarding} />
 
       {undoToast && (
@@ -6431,38 +6684,6 @@ function App() {
           }}>復原</button>
           <button onClick={() => { if (undoTimerRef.current) clearTimeout(undoTimerRef.current); setUndoToast(null); }}
             aria-label="關閉復原提示"
-            style={{
-              background: "none", border: "none", color: "#888",
-              fontSize: "18px", cursor: "pointer", padding: "0 2px", lineHeight: 1,
-              fontFamily: "inherit",
-            }}>×</button>
-        </div>
-      )}
-      {infoToast && (
-        <div role="status" aria-live="polite" style={{
-          position: "fixed", left: "50%", bottom: undoToast ? "80px" : "24px",
-          transform: "translateX(-50%)",
-          background: "#1a1a1a", color: "#fff",
-          padding: "10px 14px 10px 16px", borderRadius: "12px",
-          fontSize: "13px", fontWeight: 500,
-          display: "flex", alignItems: "center", gap: "14px",
-          boxShadow: "0 8px 24px rgba(0,0,0,0.22)",
-          zIndex: 200, animation: "slideUp 0.2s ease",
-        }}>
-          <span>{infoToast.message}</span>
-          {infoToast.actionLabel && infoToast.onAction && (
-            <button onClick={() => {
-              if (infoTimerRef.current) clearTimeout(infoTimerRef.current);
-              infoToast.onAction();
-              setInfoToast(null);
-            }} style={{
-              background: "none", border: "none", color: "#86efac",
-              fontSize: "13px", fontWeight: 700, cursor: "pointer",
-              fontFamily: "inherit", padding: "2px 4px",
-            }}>{infoToast.actionLabel}</button>
-          )}
-          <button onClick={() => { if (infoTimerRef.current) clearTimeout(infoTimerRef.current); setInfoToast(null); }}
-            aria-label="關閉提示"
             style={{
               background: "none", border: "none", color: "#888",
               fontSize: "18px", cursor: "pointer", padding: "0 2px", lineHeight: 1,

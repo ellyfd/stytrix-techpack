@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if jq -e '((.tool_input.new_string // .tool_input.content) // \"\") as $s | .tool_input.file_path as $p | ($p | test(\"api/.*\\\\.js$\")) and ($s | test(\"\\\"AE\\\"\")) and ($s | test(\"\\\"AH\\\"\")) and ($s | test(\"\\\"BM\\\"\")) and ($s | test(\"\\\"ZP\\\"\"))' >/dev/null 2>&1; then echo '{\"systemMessage\":\"⚠ Detected a 38-entry L1 code dictionary in api/*.js. This table lives in data/l1_standard_38.json (bundled via vercel.json includeFiles) — import it at module init (see api/analyze.js for the pattern) instead of hardcoding.\"}'; fi",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
