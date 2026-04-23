@@ -107,23 +107,21 @@ jobs:
           cat /tmp/step1_summary.json
 
       - name: Step 2a — extract unified facts
-        # TODO P0: extract_unified.py needs --ingest-dir / --out CLI args
-        # (currently hardcoded to star_schema/data/ingest/unified/)
         run: |
           python star_schema/scripts/extract_unified.py \
             --ingest-dir data/ingest \
             --out data/ingest/unified
 
       - name: Step 2b — VLM callout extraction
-        # TODO P0: vlm_pipeline.py needs --callout-dir / --out / --classification-file
-        # CLI args (currently hardcoded to _ONY_ROOT/BASE/yyyy paths)
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           python star_schema/scripts/vlm_pipeline.py \
+            --map-iso \
             --callout-dir data/ingest/pdf/callout_images \
-            --out data/ingest/vlm_v1/facts.jsonl \
-            --api-key "$ANTHROPIC_API_KEY"
+            --out data/ingest/vlm_v1 \
+            --api-key "$ANTHROPIC_API_KEY" \
+            --allow-empty
         continue-on-error: true   # VLM 失敗不擋整條 pipeline，只是少 VLM 資料
 
       - name: Step 3 — rebuild recipes_master
@@ -219,9 +217,9 @@ export default async function handler(req, res) {
 
 | Priority | 項目 | 依賴 | 狀態 |
 |----------|------|------|------|
-| P0 | `extract_raw_text.py` 加 `--summary-file`、`--allow-empty`、default 改 repo-root `data/ingest/` | 無 | ✅ 完成(本 PR) |
-| P0 | `extract_unified.py` 加 `--ingest-dir` / `--out` CLI args(目前 hardcode `star_schema/data/ingest/unified/`) | 無 | ⏳ 待做 |
-| P0 | `vlm_pipeline.py` 加 `--callout-dir` / `--out` / `--classification-file` CLI args(目前 hardcode `_ONY_ROOT/BASE/yyyy`) | 無 | ⏳ 待做 |
+| P0 | `extract_raw_text.py` 加 `--summary-file`、`--allow-empty`、default 改 repo-root `data/ingest/` | 無 | ✅ 完成 |
+| P0 | `extract_unified.py` 加 `--ingest-dir` / `--out` / `--classification-file` / `--legacy-pptx-json-dir` CLI args | 無 | ✅ 完成 |
+| P0 | `vlm_pipeline.py` 加 `--callout-dir` / `--out` / `--classification-file` / `--scan-dir` / `--api-key` / `--allow-empty` CLI args;順便修 `select_pilot_batch` 的 forward-reference bug | 無 | ✅ 完成 |
 | P0 | `.github/workflows/rebuild_master.yml` 初版 | 上面 3 條 script 就緒 | ⏳ 待做 |
 | P1 | `vlm_pipeline.py --api-key` 自動模式(目前 PoC 手動讀圖) | `vlm_poc/vlm_poc_report.md` §5 | ⏳ 待做 |
 | P1 | `api/ingest_upload.js` Vercel 端點 | `GITHUB_PAT` secret | ⏳ 待做 |
