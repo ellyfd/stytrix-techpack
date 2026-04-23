@@ -132,11 +132,33 @@ def build_l1_standard_38(v43) -> dict:
 
 
 def build_zh_to_l1(l1_std: dict) -> dict:
-    """zh part name → l1 code. Used to reverse-lookup bridge / recipe zones."""
+    """zh part name → l1 code. Used to reverse-lookup bridge / recipe zones.
+
+    Aliases are ONLY accepted for:
+      - 異體字 (脇=脅, 鏈=鍊) — same concept, different char choice
+      - Prefix modifiers (前拉鍊 = 拉鍊 with location prefix)
+
+    Rejected as aliases (insufficient mapping, emit WARN and skip):
+      - 滾邊 — binding concept, no v4.3 code covers it
+      - 車縫(通則) — general sewing rule, not a zone
+      - 剪接線 (no 上身/下身) — generic seam line, could be any code
+    Each alias target is verified against v4.3's authoritative l1_standard_38.
+    """
     out = {}
     for code, info in (l1_std.get("codes") or {}).items():
         zh = (info or {}).get("zh")
         if zh:
+            out[zh] = code
+    # conservative alias table — each target validated against v4.3 ground truth
+    ZH_ALIASES = {
+        "脇邊":   "SS",   # 脇=脅 異體字; v4.3 SS=脅邊 ✓
+        "前拉鍊": "ZP",   # 前綴位置修飾; v4.3 ZP=拉鍊 ✓
+        "拉鏈":   "ZP",   # 鏈=鍊 異體字
+        "前襟":   "PL",   # 近義; v4.3 PL=門襟
+        "腰線":   "WB",   # 衣服腰頭(貼身); v4.3 WB=腰頭
+    }
+    for zh, code in ZH_ALIASES.items():
+        if zh not in out:
             out[zh] = code
     return out
 

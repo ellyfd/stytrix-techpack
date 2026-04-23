@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-22T11:54:13+00:00",
+  "generated_at": "2026-04-23T09:41:33+00:00",
   "source_versions": {
     "v4.3": "General Model_Path2_Construction Suggestion/iso_lookup_factory_v4.3.json",
     "v4": "General Model_Path2_Construction Suggestion/iso_lookup_factory_v4.json",
@@ -123,16 +123,16 @@
     "bucket_taxonomy": "data/bucket_taxonomy.json"
   },
   "stats": {
-    "same_sub": 142,
+    "same_sub": 207,
     "same_bucket": 768,
     "same_gt": 230,
     "general": 207,
-    "cross_design": 35,
-    "total": 1382,
+    "cross_design": 44,
+    "total": 1456,
     "recipe_files_processed": 71,
-    "bridge_zones": 35,
-    "bridge_zones_no_iso": 12,
-    "unknown_zone_warnings": 94,
+    "bridge_zones": 44,
+    "bridge_zones_no_iso": 17,
+    "unknown_zone_warnings": 9,
     "ingest_warnings": 0
   },
   "bucket_taxonomy": {
@@ -694,6 +694,60 @@
         ],
         "auto_derived": true
       },
+      "WOMENS_PERF_SET": {
+        "gender": [
+          "WOMENS"
+        ],
+        "dept": [
+          "ACTIVE"
+        ],
+        "gt": [
+          "SET"
+        ],
+        "auto_derived": true
+      },
+      "NEWBORN_SWIM": {
+        "gender": [
+          "KIDS"
+        ],
+        "dept": [
+          "SWIMWEAR"
+        ],
+        "gt": [],
+        "auto_derived": true
+      },
+      "TODDLER_SET": {
+        "gender": [
+          "KIDS"
+        ],
+        "dept": [],
+        "gt": [
+          "SET"
+        ],
+        "auto_derived": true
+      },
+      "WOMENS_WOVEN_BOTTOMS": {
+        "gender": [
+          "WOMENS"
+        ],
+        "dept": [
+          "GENERAL"
+        ],
+        "gt": [
+          "BOTTOM"
+        ],
+        "auto_derived": true
+      },
+      "GIRLS_SLEEP_SLEEP": {
+        "gender": [
+          "GIRLS"
+        ],
+        "dept": [
+          "SLEEPWEAR"
+        ],
+        "gt": [],
+        "auto_derived": true
+      },
       "BOYS_SLEEP": {
         "gender": [
           "BOYS"
@@ -715,16 +769,6 @@
         "gt": [],
         "auto_derived": true
       },
-      "NEWBORN_SWIM": {
-        "gender": [
-          "KIDS"
-        ],
-        "dept": [
-          "SWIMWEAR"
-        ],
-        "gt": [],
-        "auto_derived": true
-      },
       "NEWBORN_DRESS": {
         "gender": [
           "KIDS"
@@ -732,58 +776,6 @@
         "dept": [],
         "gt": [
           "DRESS"
-        ],
-        "auto_derived": true
-      },
-      "NEWBORN_MISC": {
-        "gender": [
-          "KIDS"
-        ],
-        "dept": [],
-        "gt": [],
-        "auto_derived": true
-      },
-      "GIRLS_SLEEP_SLEEP": {
-        "gender": [
-          "GIRLS"
-        ],
-        "dept": [
-          "SLEEPWEAR"
-        ],
-        "gt": [],
-        "auto_derived": true
-      },
-      "WOMENS_WOVEN_BOTTOMS": {
-        "gender": [
-          "WOMENS"
-        ],
-        "dept": [
-          "GENERAL"
-        ],
-        "gt": [
-          "BOTTOM"
-        ],
-        "auto_derived": true
-      },
-      "TODDLER_SET": {
-        "gender": [
-          "KIDS"
-        ],
-        "dept": [],
-        "gt": [
-          "SET"
-        ],
-        "auto_derived": true
-      },
-      "WOMENS_PERF_SET": {
-        "gender": [
-          "WOMENS"
-        ],
-        "dept": [
-          "ACTIVE"
-        ],
-        "gt": [
-          "SET"
         ],
         "auto_derived": true
       },
@@ -795,6 +787,14 @@
           "GENERAL",
           "SLEEPWEAR"
         ],
+        "gt": [],
+        "auto_derived": true
+      },
+      "NEWBORN_MISC": {
+        "gender": [
+          "KIDS"
+        ],
+        "dept": [],
         "gt": [],
         "auto_derived": true
       }
@@ -1559,6 +1559,60 @@
           "SET"
         ]
       },
+      "WOMENS_PERF_SET": {
+        "gender": [
+          "WOMENS"
+        ],
+        "dept": [
+          "ACTIVE"
+        ],
+        "gt": [
+          "SET"
+        ]
+      },
+      "NEWBORN_SWIM": {
+        "gender": [
+          "KIDS"
+        ],
+        "dept": [
+          "SWIMWEAR"
+        ],
+        "gt": []
+      },
+      "TODDLER_SET": {
+        "gender": [
+          "KIDS"
+        ],
+        "dept": [],
+        "gt": [
+          "SET"
+        ]
+      },
+      "WOMENS_WOVEN_BOTTOMS": {
+        "gender": [
+          "WOMENS"
+        ],
+        "dept": [
+          "GENERAL"
+        ],
+        "gt": [
+          "BOTTOM",
+          "LEGGINGS",
+          "PANTS",
+          "SHORTS",
+          "SKIRT"
+        ]
+      },
+      "GIRLS_SLEEP_SLEEP": {
+        "gender": [
+          "GIRLS",
+          "KIDS"
+        ],
+        "dept": [
+          "SLEEPWEAR"
+        ],
+        "gt": []
+      },
       "BOYS_SLEEP": {
         "gender": [
           "BOYS",
@@ -1579,15 +1633,6 @@
         ],
         "gt": []
       },
-      "NEWBORN_SWIM": {
-        "gender": [
-          "KIDS"
-        ],
-        "dept": [
-          "SWIMWEAR"
-        ],
-        "gt": []
-      },
       "NEWBORN_DRESS": {
         "gender": [
           "KIDS"
@@ -1595,58 +1640,6 @@
         "dept": [],
         "gt": [
           "DRESS"
-        ]
-      },
-      "NEWBORN_MISC": {
-        "gender": [
-          "KIDS"
-        ],
-        "dept": [],
-        "gt": []
-      },
-      "GIRLS_SLEEP_SLEEP": {
-        "gender": [
-          "GIRLS",
-          "KIDS"
-        ],
-        "dept": [
-          "SLEEPWEAR"
-        ],
-        "gt": []
-      },
-      "WOMENS_WOVEN_BOTTOMS": {
-        "gender": [
-          "WOMENS"
-        ],
-        "dept": [
-          "GENERAL"
-        ],
-        "gt": [
-          "BOTTOM",
-          "LEGGINGS",
-          "PANTS",
-          "SHORTS",
-          "SKIRT"
-        ]
-      },
-      "TODDLER_SET": {
-        "gender": [
-          "KIDS"
-        ],
-        "dept": [],
-        "gt": [
-          "SET"
-        ]
-      },
-      "WOMENS_PERF_SET": {
-        "gender": [
-          "WOMENS"
-        ],
-        "dept": [
-          "ACTIVE"
-        ],
-        "gt": [
-          "SET"
         ]
       },
       "WOMENS_WOVEN_SLEEP": {
@@ -1657,6 +1650,13 @@
           "GENERAL",
           "SLEEPWEAR"
         ],
+        "gt": []
+      },
+      "NEWBORN_MISC": {
+        "gender": [
+          "KIDS"
+        ],
+        "dept": [],
         "gt": []
       }
     },
@@ -1916,6 +1916,81 @@
       "key": {
         "gender": "KIDS",
         "dept": "GENERAL",
+        "gt": "ROMPER_JUMPSUIT",
+        "it": "DRESS",
+        "l1": "AH"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 1,
+      "iso_distribution": [
+        {
+          "iso": "514",
+          "n": 1,
+          "pct": 100.0
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "KIDS",
+        "dept": "GENERAL",
+        "gt": "SET",
+        "it": "SET",
+        "l1": "SL"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 35,
+      "iso_distribution": [
+        {
+          "iso": "602",
+          "n": 22,
+          "pct": 62.9
+        },
+        {
+          "iso": "406",
+          "n": 9,
+          "pct": 25.7
+        },
+        {
+          "iso": "514",
+          "n": 3,
+          "pct": 8.6
+        },
+        {
+          "iso": "301",
+          "n": 1,
+          "pct": 2.9
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "KIDS",
+        "dept": "GENERAL",
+        "gt": "SET",
+        "it": "SET",
+        "l1": "RS"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 3,
+      "iso_distribution": [
+        {
+          "iso": "514",
+          "n": 3,
+          "pct": 100.0
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "KIDS",
+        "dept": "GENERAL",
         "gt": "SET",
         "it": "SET",
         "l1": "PK"
@@ -2058,6 +2133,26 @@
         "dept": "GENERAL",
         "gt": "SET",
         "it": "SETS",
+        "l1": "SL"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 1,
+      "iso_distribution": [
+        {
+          "iso": "406",
+          "n": 1,
+          "pct": 100.0
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "KIDS",
+        "dept": "GENERAL",
+        "gt": "SET",
+        "it": "SETS",
         "l1": "WB"
       },
       "aggregation_level": "same_sub",
@@ -2138,6 +2233,31 @@
           "iso": "602",
           "n": 1,
           "pct": 16.7
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "KIDS",
+        "dept": "GENERAL",
+        "gt": "SET",
+        "it": "SLEEPWEAR",
+        "l1": "SL"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 68,
+      "iso_distribution": [
+        {
+          "iso": "406",
+          "n": 63,
+          "pct": 92.6
+        },
+        {
+          "iso": "602",
+          "n": 5,
+          "pct": 7.4
         }
       ],
       "methods": []
@@ -2398,6 +2518,56 @@
         "dept": "SWIMWEAR",
         "gt": "SET",
         "it": "RASHGUARD",
+        "l1": "SL"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 7,
+      "iso_distribution": [
+        {
+          "iso": "406",
+          "n": 7,
+          "pct": 100.0
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "KIDS",
+        "dept": "SWIMWEAR",
+        "gt": "SET",
+        "it": "RASHGUARD",
+        "l1": "SS"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 15,
+      "iso_distribution": [
+        {
+          "iso": "602",
+          "n": 5,
+          "pct": 33.3
+        },
+        {
+          "iso": "406",
+          "n": 5,
+          "pct": 33.3
+        },
+        {
+          "iso": "301",
+          "n": 5,
+          "pct": 33.3
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "KIDS",
+        "dept": "SWIMWEAR",
+        "gt": "SET",
+        "it": "RASHGUARD",
         "l1": "LO"
       },
       "aggregation_level": "same_sub",
@@ -2578,6 +2748,26 @@
         "dept": "SWIMWEAR",
         "gt": "TOP",
         "it": "JACKET",
+        "l1": "SL"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 3,
+      "iso_distribution": [
+        {
+          "iso": "406",
+          "n": 3,
+          "pct": 100.0
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "KIDS",
+        "dept": "SWIMWEAR",
+        "gt": "TOP",
+        "it": "JACKET",
         "l1": "NK"
       },
       "aggregation_level": "same_sub",
@@ -2658,6 +2848,26 @@
         "dept": "SWIMWEAR",
         "gt": "TOP",
         "it": "RASHGUARD",
+        "l1": "SL"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 1,
+      "iso_distribution": [
+        {
+          "iso": "406",
+          "n": 1,
+          "pct": 100.0
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "KIDS",
+        "dept": "SWIMWEAR",
+        "gt": "TOP",
+        "it": "RASHGUARD",
         "l1": "NK"
       },
       "aggregation_level": "same_sub",
@@ -2693,6 +2903,31 @@
           "iso": "406",
           "n": 11,
           "pct": 40.7
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "KIDS",
+        "dept": "SWIMWEAR",
+        "gt": "TOP",
+        "it": "SWIM",
+        "l1": "SL"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 3,
+      "iso_distribution": [
+        {
+          "iso": "406",
+          "n": 2,
+          "pct": 66.7
+        },
+        {
+          "iso": "602",
+          "n": 1,
+          "pct": 33.3
         }
       ],
       "methods": []
@@ -2783,6 +3018,76 @@
           "iso": "406",
           "n": 1,
           "pct": 100.0
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "KIDS",
+        "dept": "SWIMWEAR",
+        "gt": "TOP",
+        "it": "TOP",
+        "l1": "AE"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 19,
+      "iso_distribution": [
+        {
+          "iso": "301",
+          "n": 6,
+          "pct": 31.6
+        },
+        {
+          "iso": "401",
+          "n": 5,
+          "pct": 26.3
+        },
+        {
+          "iso": "602",
+          "n": 3,
+          "pct": 15.8
+        },
+        {
+          "iso": "607",
+          "n": 2,
+          "pct": 10.5
+        },
+        {
+          "iso": "406",
+          "n": 2,
+          "pct": 10.5
+        },
+        {
+          "iso": "514",
+          "n": 1,
+          "pct": 5.3
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "KIDS",
+        "dept": "SWIMWEAR",
+        "gt": "TOP",
+        "it": "TOP",
+        "l1": "SA"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 2,
+      "iso_distribution": [
+        {
+          "iso": "301",
+          "n": 1,
+          "pct": 50.0
+        },
+        {
+          "iso": "514",
+          "n": 1,
+          "pct": 50.0
         }
       ],
       "methods": []
@@ -2893,6 +3198,51 @@
         "dept": "SWIMWEAR",
         "gt": "TOP",
         "it": "TOPS",
+        "l1": "AH"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 8,
+      "iso_distribution": [
+        {
+          "iso": "514",
+          "n": 6,
+          "pct": 75.0
+        },
+        {
+          "iso": "406",
+          "n": 2,
+          "pct": 25.0
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "KIDS",
+        "dept": "SWIMWEAR",
+        "gt": "TOP",
+        "it": "TOPS",
+        "l1": "SS"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 3,
+      "iso_distribution": [
+        {
+          "iso": "406",
+          "n": 3,
+          "pct": 100.0
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "KIDS",
+        "dept": "SWIMWEAR",
+        "gt": "TOP",
+        "it": "TOPS",
         "l1": "LO"
       },
       "aggregation_level": "same_sub",
@@ -2983,6 +3333,26 @@
         "dept": "SWIMWEAR",
         "gt": "PANTS",
         "it": "JOGGERS",
+        "l1": "SS"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 2,
+      "iso_distribution": [
+        {
+          "iso": "406",
+          "n": 2,
+          "pct": 100.0
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "MENS",
+        "dept": "SWIMWEAR",
+        "gt": "PANTS",
+        "it": "JOGGERS",
         "l1": "WB"
       },
       "aggregation_level": "same_sub",
@@ -3012,6 +3382,76 @@
         {
           "iso": "406",
           "n": 2,
+          "pct": 100.0
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "MENS",
+        "dept": "SWIMWEAR",
+        "gt": "PANTS",
+        "it": "PANT",
+        "l1": "RS"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 3,
+      "iso_distribution": [
+        {
+          "iso": "607",
+          "n": 2,
+          "pct": 66.7
+        },
+        {
+          "iso": "605",
+          "n": 1,
+          "pct": 33.3
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "MENS",
+        "dept": "SWIMWEAR",
+        "gt": "PANTS",
+        "it": "PANT",
+        "l1": "SS"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 12,
+      "iso_distribution": [
+        {
+          "iso": "605",
+          "n": 10,
+          "pct": 83.3
+        },
+        {
+          "iso": "607",
+          "n": 2,
+          "pct": 16.7
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "MENS",
+        "dept": "SWIMWEAR",
+        "gt": "PANTS",
+        "it": "PANT",
+        "l1": "SB"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 1,
+      "iso_distribution": [
+        {
+          "iso": "406",
+          "n": 1,
           "pct": 100.0
         }
       ],
@@ -3178,6 +3618,26 @@
         "dept": "SWIMWEAR",
         "gt": "SHORTS",
         "it": "SHORTS",
+        "l1": "SS"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 2,
+      "iso_distribution": [
+        {
+          "iso": "602",
+          "n": 2,
+          "pct": 100.0
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "MENS",
+        "dept": "SWIMWEAR",
+        "gt": "SHORTS",
+        "it": "SHORTS",
         "l1": "LO"
       },
       "aggregation_level": "same_sub",
@@ -3303,6 +3763,26 @@
         "dept": "SWIMWEAR",
         "gt": "TOP",
         "it": "OTHER_TOPS",
+        "l1": "SS"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 6,
+      "iso_distribution": [
+        {
+          "iso": "602",
+          "n": 6,
+          "pct": 100.0
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "MENS",
+        "dept": "SWIMWEAR",
+        "gt": "TOP",
+        "it": "OTHER_TOPS",
         "l1": "NK"
       },
       "aggregation_level": "same_sub",
@@ -3352,6 +3832,86 @@
         {
           "iso": "602",
           "n": 6,
+          "pct": 100.0
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "MENS",
+        "dept": "SWIMWEAR",
+        "gt": "TOP",
+        "it": "TOP",
+        "l1": "SL"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 81,
+      "iso_distribution": [
+        {
+          "iso": "406",
+          "n": 33,
+          "pct": 40.7
+        },
+        {
+          "iso": "602",
+          "n": 25,
+          "pct": 30.9
+        },
+        {
+          "iso": "605",
+          "n": 23,
+          "pct": 28.4
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "MENS",
+        "dept": "SWIMWEAR",
+        "gt": "TOP",
+        "it": "TOP",
+        "l1": "SS"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 24,
+      "iso_distribution": [
+        {
+          "iso": "605",
+          "n": 12,
+          "pct": 50.0
+        },
+        {
+          "iso": "406",
+          "n": 10,
+          "pct": 41.7
+        },
+        {
+          "iso": "602",
+          "n": 2,
+          "pct": 8.3
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "MENS",
+        "dept": "SWIMWEAR",
+        "gt": "TOP",
+        "it": "TOP",
+        "l1": "SA"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 8,
+      "iso_distribution": [
+        {
+          "iso": "605",
+          "n": 8,
           "pct": 100.0
         }
       ],
@@ -3493,6 +4053,66 @@
         "dept": "SWIMWEAR",
         "gt": "TOP",
         "it": "TOPS",
+        "l1": "SL"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 31,
+      "iso_distribution": [
+        {
+          "iso": "605",
+          "n": 12,
+          "pct": 38.7
+        },
+        {
+          "iso": "602",
+          "n": 10,
+          "pct": 32.3
+        },
+        {
+          "iso": "514",
+          "n": 6,
+          "pct": 19.4
+        },
+        {
+          "iso": "607",
+          "n": 3,
+          "pct": 9.7
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "MENS",
+        "dept": "SWIMWEAR",
+        "gt": "TOP",
+        "it": "TOPS",
+        "l1": "SS"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 6,
+      "iso_distribution": [
+        {
+          "iso": "607",
+          "n": 3,
+          "pct": 50.0
+        },
+        {
+          "iso": "514",
+          "n": 3,
+          "pct": 50.0
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "MENS",
+        "dept": "SWIMWEAR",
+        "gt": "TOP",
+        "it": "TOPS",
         "l1": "NK"
       },
       "aggregation_level": "same_sub",
@@ -3587,6 +4207,91 @@
         {
           "iso": "406",
           "n": 3,
+          "pct": 33.3
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "WOMENS",
+        "dept": "GENERAL",
+        "gt": "DRESS",
+        "it": "DRESS",
+        "l1": "SL"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 210,
+      "iso_distribution": [
+        {
+          "iso": "602",
+          "n": 73,
+          "pct": 34.8
+        },
+        {
+          "iso": "406",
+          "n": 64,
+          "pct": 30.5
+        },
+        {
+          "iso": "514",
+          "n": 41,
+          "pct": 19.5
+        },
+        {
+          "iso": "401",
+          "n": 23,
+          "pct": 11.0
+        },
+        {
+          "iso": "301",
+          "n": 9,
+          "pct": 4.3
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "WOMENS",
+        "dept": "GENERAL",
+        "gt": "DRESS",
+        "it": "DRESS",
+        "l1": "SS"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 2,
+      "iso_distribution": [
+        {
+          "iso": "602",
+          "n": 2,
+          "pct": 100.0
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "WOMENS",
+        "dept": "GENERAL",
+        "gt": "DRESS",
+        "it": "DRESS",
+        "l1": "SA"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 3,
+      "iso_distribution": [
+        {
+          "iso": "602",
+          "n": 2,
+          "pct": 66.7
+        },
+        {
+          "iso": "406",
+          "n": 1,
           "pct": 33.3
         }
       ],
@@ -3763,6 +4468,91 @@
         "dept": "GENERAL",
         "gt": "DRESS",
         "it": "GENERAL",
+        "l1": "SL"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 39,
+      "iso_distribution": [
+        {
+          "iso": "602",
+          "n": 21,
+          "pct": 53.8
+        },
+        {
+          "iso": "406",
+          "n": 13,
+          "pct": 33.3
+        },
+        {
+          "iso": "301",
+          "n": 4,
+          "pct": 10.3
+        },
+        {
+          "iso": "605",
+          "n": 1,
+          "pct": 2.6
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "WOMENS",
+        "dept": "GENERAL",
+        "gt": "DRESS",
+        "it": "GENERAL",
+        "l1": "SS"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 26,
+      "iso_distribution": [
+        {
+          "iso": "602",
+          "n": 23,
+          "pct": 88.5
+        },
+        {
+          "iso": "401",
+          "n": 3,
+          "pct": 11.5
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "WOMENS",
+        "dept": "GENERAL",
+        "gt": "DRESS",
+        "it": "GENERAL",
+        "l1": "SA"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 4,
+      "iso_distribution": [
+        {
+          "iso": "406",
+          "n": 2,
+          "pct": 50.0
+        },
+        {
+          "iso": "605",
+          "n": 2,
+          "pct": 50.0
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "WOMENS",
+        "dept": "GENERAL",
+        "gt": "DRESS",
+        "it": "GENERAL",
         "l1": "SH"
       },
       "aggregation_level": "same_sub",
@@ -3868,6 +4658,76 @@
           "iso": "605",
           "n": 4,
           "pct": 25.0
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "WOMENS",
+        "dept": "GENERAL",
+        "gt": "LEGGINGS",
+        "it": "LEGGINGS",
+        "l1": "RS"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 51,
+      "iso_distribution": [
+        {
+          "iso": "607",
+          "n": 29,
+          "pct": 56.8
+        },
+        {
+          "iso": "514",
+          "n": 11,
+          "pct": 21.6
+        },
+        {
+          "iso": "602",
+          "n": 9,
+          "pct": 17.7
+        },
+        {
+          "iso": "605",
+          "n": 2,
+          "pct": 3.9
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "WOMENS",
+        "dept": "GENERAL",
+        "gt": "LEGGINGS",
+        "it": "LEGGINGS",
+        "l1": "SS"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 31,
+      "iso_distribution": [
+        {
+          "iso": "514",
+          "n": 14,
+          "pct": 45.2
+        },
+        {
+          "iso": "607",
+          "n": 12,
+          "pct": 38.7
+        },
+        {
+          "iso": "602",
+          "n": 4,
+          "pct": 12.9
+        },
+        {
+          "iso": "605",
+          "n": 1,
+          "pct": 3.2
         }
       ],
       "methods": []
@@ -4023,6 +4883,56 @@
         "dept": "GENERAL",
         "gt": "OUTERWEAR",
         "it": "OUTERWEAR",
+        "l1": "AH"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 48,
+      "iso_distribution": [
+        {
+          "iso": "301",
+          "n": 22,
+          "pct": 45.8
+        },
+        {
+          "iso": "514",
+          "n": 13,
+          "pct": 27.1
+        },
+        {
+          "iso": "401",
+          "n": 13,
+          "pct": 27.1
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "WOMENS",
+        "dept": "GENERAL",
+        "gt": "OUTERWEAR",
+        "it": "OUTERWEAR",
+        "l1": "SS"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 3,
+      "iso_distribution": [
+        {
+          "iso": "607",
+          "n": 3,
+          "pct": 100.0
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "WOMENS",
+        "dept": "GENERAL",
+        "gt": "OUTERWEAR",
+        "it": "OUTERWEAR",
         "l1": "NK"
       },
       "aggregation_level": "same_sub",
@@ -4108,6 +5018,56 @@
           "iso": "401",
           "n": 13,
           "pct": 27.1
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "WOMENS",
+        "dept": "GENERAL",
+        "gt": "PANTS",
+        "it": "GENERAL",
+        "l1": "RS"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 7,
+      "iso_distribution": [
+        {
+          "iso": "607",
+          "n": 3,
+          "pct": 42.9
+        },
+        {
+          "iso": "602",
+          "n": 2,
+          "pct": 28.6
+        },
+        {
+          "iso": "514",
+          "n": 2,
+          "pct": 28.6
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "WOMENS",
+        "dept": "GENERAL",
+        "gt": "PANTS",
+        "it": "GENERAL",
+        "l1": "SS"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 2,
+      "iso_distribution": [
+        {
+          "iso": "514",
+          "n": 2,
+          "pct": 100.0
         }
       ],
       "methods": []
@@ -4268,6 +5228,116 @@
         "dept": "GENERAL",
         "gt": "PANTS",
         "it": "PANT",
+        "l1": "RS"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 107,
+      "iso_distribution": [
+        {
+          "iso": "607",
+          "n": 69,
+          "pct": 64.5
+        },
+        {
+          "iso": "514",
+          "n": 17,
+          "pct": 15.9
+        },
+        {
+          "iso": "602",
+          "n": 10,
+          "pct": 9.3
+        },
+        {
+          "iso": "605",
+          "n": 8,
+          "pct": 7.5
+        },
+        {
+          "iso": "406",
+          "n": 3,
+          "pct": 2.8
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "WOMENS",
+        "dept": "GENERAL",
+        "gt": "PANTS",
+        "it": "PANT",
+        "l1": "SS"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 106,
+      "iso_distribution": [
+        {
+          "iso": "514",
+          "n": 58,
+          "pct": 54.7
+        },
+        {
+          "iso": "607",
+          "n": 15,
+          "pct": 14.2
+        },
+        {
+          "iso": "602",
+          "n": 13,
+          "pct": 12.3
+        },
+        {
+          "iso": "401",
+          "n": 12,
+          "pct": 11.3
+        },
+        {
+          "iso": "406",
+          "n": 4,
+          "pct": 3.8
+        },
+        {
+          "iso": "605",
+          "n": 4,
+          "pct": 3.8
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "WOMENS",
+        "dept": "GENERAL",
+        "gt": "PANTS",
+        "it": "PANT",
+        "l1": "SB"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 10,
+      "iso_distribution": [
+        {
+          "iso": "514",
+          "n": 6,
+          "pct": 60.0
+        },
+        {
+          "iso": "607",
+          "n": 4,
+          "pct": 40.0
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "WOMENS",
+        "dept": "GENERAL",
+        "gt": "PANTS",
+        "it": "PANT",
         "l1": "LO"
       },
       "aggregation_level": "same_sub",
@@ -4413,6 +5483,56 @@
         "dept": "GENERAL",
         "gt": "PANTS",
         "it": "PANTS",
+        "l1": "RS"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 1,
+      "iso_distribution": [
+        {
+          "iso": "406",
+          "n": 1,
+          "pct": 100.0
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "WOMENS",
+        "dept": "GENERAL",
+        "gt": "PANTS",
+        "it": "PANTS",
+        "l1": "SS"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 31,
+      "iso_distribution": [
+        {
+          "iso": "514",
+          "n": 15,
+          "pct": 48.4
+        },
+        {
+          "iso": "401",
+          "n": 15,
+          "pct": 48.4
+        },
+        {
+          "iso": "406",
+          "n": 1,
+          "pct": 3.2
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "WOMENS",
+        "dept": "GENERAL",
+        "gt": "PANTS",
+        "it": "PANTS",
         "l1": "WB"
       },
       "aggregation_level": "same_sub",
@@ -4508,6 +5628,26 @@
         "dept": "GENERAL",
         "gt": "ROMPER_JUMPSUIT",
         "it": "DRESS",
+        "l1": "AH"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 1,
+      "iso_distribution": [
+        {
+          "iso": "602",
+          "n": 1,
+          "pct": 100.0
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "WOMENS",
+        "dept": "GENERAL",
+        "gt": "ROMPER_JUMPSUIT",
+        "it": "DRESS",
         "l1": "NK"
       },
       "aggregation_level": "same_sub",
@@ -4517,6 +5657,26 @@
         {
           "iso": "602",
           "n": 20,
+          "pct": 100.0
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "WOMENS",
+        "dept": "GENERAL",
+        "gt": "SHORTS",
+        "it": "SHORTS",
+        "l1": "RS"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 2,
+      "iso_distribution": [
+        {
+          "iso": "607",
+          "n": 2,
           "pct": 100.0
         }
       ],
@@ -4598,6 +5758,61 @@
           "iso": "406",
           "n": 2,
           "pct": 100.0
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "WOMENS",
+        "dept": "GENERAL",
+        "gt": "SHORTS",
+        "it": "SKIRT",
+        "l1": "RS"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 18,
+      "iso_distribution": [
+        {
+          "iso": "607",
+          "n": 8,
+          "pct": 44.4
+        },
+        {
+          "iso": "605",
+          "n": 8,
+          "pct": 44.4
+        },
+        {
+          "iso": "514",
+          "n": 2,
+          "pct": 11.1
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "WOMENS",
+        "dept": "GENERAL",
+        "gt": "SHORTS",
+        "it": "SKIRT",
+        "l1": "SS"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 8,
+      "iso_distribution": [
+        {
+          "iso": "607",
+          "n": 4,
+          "pct": 50.0
+        },
+        {
+          "iso": "605",
+          "n": 4,
+          "pct": 50.0
         }
       ],
       "methods": []
@@ -4738,6 +5953,56 @@
         "dept": "GENERAL",
         "gt": "TOP",
         "it": "GENERAL",
+        "l1": "SL"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 34,
+      "iso_distribution": [
+        {
+          "iso": "406",
+          "n": 24,
+          "pct": 70.6
+        },
+        {
+          "iso": "602",
+          "n": 6,
+          "pct": 17.6
+        },
+        {
+          "iso": "605",
+          "n": 4,
+          "pct": 11.8
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "WOMENS",
+        "dept": "GENERAL",
+        "gt": "TOP",
+        "it": "GENERAL",
+        "l1": "SA"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 4,
+      "iso_distribution": [
+        {
+          "iso": "602",
+          "n": 4,
+          "pct": 100.0
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "WOMENS",
+        "dept": "GENERAL",
+        "gt": "TOP",
+        "it": "GENERAL",
         "l1": "LO"
       },
       "aggregation_level": "same_sub",
@@ -4833,6 +6098,36 @@
         "dept": "GENERAL",
         "gt": "TOP",
         "it": "JACKET",
+        "l1": "AH"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 34,
+      "iso_distribution": [
+        {
+          "iso": "514",
+          "n": 14,
+          "pct": 41.2
+        },
+        {
+          "iso": "401",
+          "n": 14,
+          "pct": 41.2
+        },
+        {
+          "iso": "602",
+          "n": 6,
+          "pct": 17.6
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "WOMENS",
+        "dept": "GENERAL",
+        "gt": "TOP",
+        "it": "JACKET",
         "l1": "NK"
       },
       "aggregation_level": "same_sub",
@@ -4903,6 +6198,26 @@
         "dept": "GENERAL",
         "gt": "TOP",
         "it": "LONG_SLEEVE_TOP",
+        "l1": "SL"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 1,
+      "iso_distribution": [
+        {
+          "iso": "602",
+          "n": 1,
+          "pct": 100.0
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "WOMENS",
+        "dept": "GENERAL",
+        "gt": "TOP",
+        "it": "LONG_SLEEVE_TOP",
         "l1": "LO"
       },
       "aggregation_level": "same_sub",
@@ -4963,6 +6278,26 @@
         "dept": "GENERAL",
         "gt": "TOP",
         "it": "PULLOVERS",
+        "l1": "SS"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 3,
+      "iso_distribution": [
+        {
+          "iso": "514",
+          "n": 3,
+          "pct": 100.0
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "WOMENS",
+        "dept": "GENERAL",
+        "gt": "TOP",
+        "it": "PULLOVERS",
         "l1": "PK"
       },
       "aggregation_level": "same_sub",
@@ -5003,6 +6338,26 @@
         "dept": "GENERAL",
         "gt": "TOP",
         "it": "SHORT_SLEEVE_TOP",
+        "l1": "SL"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 8,
+      "iso_distribution": [
+        {
+          "iso": "602",
+          "n": 8,
+          "pct": 100.0
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "WOMENS",
+        "dept": "GENERAL",
+        "gt": "TOP",
+        "it": "SHORT_SLEEVE_TOP",
         "l1": "LO"
       },
       "aggregation_level": "same_sub",
@@ -5012,6 +6367,51 @@
         {
           "iso": "602",
           "n": 12,
+          "pct": 100.0
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "WOMENS",
+        "dept": "GENERAL",
+        "gt": "TOP",
+        "it": "SPORT_BRA_NON_MOLDED",
+        "l1": "SL"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 12,
+      "iso_distribution": [
+        {
+          "iso": "406",
+          "n": 10,
+          "pct": 83.3
+        },
+        {
+          "iso": "602",
+          "n": 2,
+          "pct": 16.7
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "WOMENS",
+        "dept": "GENERAL",
+        "gt": "TOP",
+        "it": "SPORT_BRA_NON_MOLDED",
+        "l1": "SS"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 2,
+      "iso_distribution": [
+        {
+          "iso": "514",
+          "n": 2,
           "pct": 100.0
         }
       ],
@@ -5098,6 +6498,106 @@
           "iso": "602",
           "n": 20,
           "pct": 100.0
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "WOMENS",
+        "dept": "GENERAL",
+        "gt": "TOP",
+        "it": "TOP",
+        "l1": "SL"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 484,
+      "iso_distribution": [
+        {
+          "iso": "406",
+          "n": 173,
+          "pct": 35.7
+        },
+        {
+          "iso": "602",
+          "n": 116,
+          "pct": 24.0
+        },
+        {
+          "iso": "401",
+          "n": 109,
+          "pct": 22.5
+        },
+        {
+          "iso": "514",
+          "n": 86,
+          "pct": 17.8
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "WOMENS",
+        "dept": "GENERAL",
+        "gt": "TOP",
+        "it": "TOP",
+        "l1": "SS"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 53,
+      "iso_distribution": [
+        {
+          "iso": "401",
+          "n": 37,
+          "pct": 69.8
+        },
+        {
+          "iso": "602",
+          "n": 8,
+          "pct": 15.1
+        },
+        {
+          "iso": "406",
+          "n": 4,
+          "pct": 7.5
+        },
+        {
+          "iso": "514",
+          "n": 4,
+          "pct": 7.5
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "WOMENS",
+        "dept": "GENERAL",
+        "gt": "TOP",
+        "it": "TOP",
+        "l1": "SA"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 36,
+      "iso_distribution": [
+        {
+          "iso": "602",
+          "n": 15,
+          "pct": 41.7
+        },
+        {
+          "iso": "406",
+          "n": 11,
+          "pct": 30.5
+        },
+        {
+          "iso": "514",
+          "n": 10,
+          "pct": 27.8
         }
       ],
       "methods": []
@@ -5268,6 +6768,76 @@
         "dept": "GENERAL",
         "gt": "TOP",
         "it": "TOPS",
+        "l1": "SL"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 79,
+      "iso_distribution": [
+        {
+          "iso": "514",
+          "n": 39,
+          "pct": 49.4
+        },
+        {
+          "iso": "406",
+          "n": 32,
+          "pct": 40.5
+        },
+        {
+          "iso": "602",
+          "n": 8,
+          "pct": 10.1
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "WOMENS",
+        "dept": "GENERAL",
+        "gt": "TOP",
+        "it": "TOPS",
+        "l1": "SS"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 28,
+      "iso_distribution": [
+        {
+          "iso": "514",
+          "n": 28,
+          "pct": 100.0
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "WOMENS",
+        "dept": "GENERAL",
+        "gt": "TOP",
+        "it": "TOPS",
+        "l1": "SA"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 4,
+      "iso_distribution": [
+        {
+          "iso": "602",
+          "n": 4,
+          "pct": 100.0
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "WOMENS",
+        "dept": "GENERAL",
+        "gt": "TOP",
+        "it": "TOPS",
         "l1": "NK"
       },
       "aggregation_level": "same_sub",
@@ -5338,6 +6908,51 @@
         "dept": "SWIMWEAR",
         "gt": "SET",
         "it": "SLEEPWEAR_LOUNGE",
+        "l1": "SL"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 19,
+      "iso_distribution": [
+        {
+          "iso": "602",
+          "n": 13,
+          "pct": 68.4
+        },
+        {
+          "iso": "406",
+          "n": 6,
+          "pct": 31.6
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "WOMENS",
+        "dept": "SWIMWEAR",
+        "gt": "SET",
+        "it": "SLEEPWEAR_LOUNGE",
+        "l1": "SA"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 8,
+      "iso_distribution": [
+        {
+          "iso": "602",
+          "n": 8,
+          "pct": 100.0
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "WOMENS",
+        "dept": "SWIMWEAR",
+        "gt": "SET",
+        "it": "SLEEPWEAR_LOUNGE",
         "l1": "NK"
       },
       "aggregation_level": "same_sub",
@@ -5397,6 +7012,51 @@
         {
           "iso": "401",
           "n": 1,
+          "pct": 100.0
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "WOMENS",
+        "dept": "SWIMWEAR",
+        "gt": "TOP",
+        "it": "SLEEPWEAR_LOUNGE",
+        "l1": "SL"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 7,
+      "iso_distribution": [
+        {
+          "iso": "602",
+          "n": 4,
+          "pct": 57.1
+        },
+        {
+          "iso": "406",
+          "n": 3,
+          "pct": 42.9
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "WOMENS",
+        "dept": "SWIMWEAR",
+        "gt": "TOP",
+        "it": "SLEEPWEAR_LOUNGE",
+        "l1": "SA"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 4,
+      "iso_distribution": [
+        {
+          "iso": "602",
+          "n": 4,
           "pct": 100.0
         }
       ],
@@ -5482,6 +7142,26 @@
         {
           "iso": "406",
           "n": 1,
+          "pct": 100.0
+        }
+      ],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": "WOMENS",
+        "dept": "SWIMWEAR",
+        "gt": "TOP",
+        "it": "SWIM",
+        "l1": "SS"
+      },
+      "aggregation_level": "same_sub",
+      "source": "recipe",
+      "n_total": 6,
+      "iso_distribution": [
+        {
+          "iso": "602",
+          "n": 6,
           "pct": 100.0
         }
       ],
@@ -17121,6 +18801,83 @@
         "dept": null,
         "gt": "DRESS",
         "it": null,
+        "l1": "SS"
+      },
+      "aggregation_level": "cross_design",
+      "source": "bridge",
+      "n_total": 8,
+      "iso_distribution": [
+        {
+          "iso": "406",
+          "n": 2,
+          "pct": 100.0
+        }
+      ],
+      "methods": [
+        {
+          "name": "CLEAN_FINISH",
+          "n": 2,
+          "pct": 33.3
+        },
+        {
+          "name": "BINDING",
+          "n": 2,
+          "pct": 33.3
+        },
+        {
+          "name": "TURN_BACK",
+          "n": 2,
+          "pct": 33.3
+        }
+      ]
+    },
+    {
+      "key": {
+        "gender": null,
+        "dept": null,
+        "gt": "DRESS",
+        "it": null,
+        "l1": "WB"
+      },
+      "aggregation_level": "cross_design",
+      "source": "bridge",
+      "n_total": 12,
+      "iso_distribution": [
+        {
+          "iso": "406",
+          "n": 1,
+          "pct": 100.0
+        }
+      ],
+      "methods": [
+        {
+          "name": "CLEAN_FINISH",
+          "n": 9,
+          "pct": 56.2
+        },
+        {
+          "name": "BINDING",
+          "n": 5,
+          "pct": 31.2
+        },
+        {
+          "name": "TURN_BACK",
+          "n": 1,
+          "pct": 6.2
+        },
+        {
+          "name": "BARTACK",
+          "n": 1,
+          "pct": 6.2
+        }
+      ]
+    },
+    {
+      "key": {
+        "gender": null,
+        "dept": null,
+        "gt": "DRESS",
+        "it": null,
         "l1": "WB"
       },
       "aggregation_level": "cross_design",
@@ -17425,6 +19182,26 @@
         "dept": null,
         "gt": "OUTERWEAR",
         "it": null,
+        "l1": "ZP"
+      },
+      "aggregation_level": "cross_design",
+      "source": "bridge",
+      "n_total": 2,
+      "iso_distribution": [],
+      "methods": [
+        {
+          "name": "BINDING",
+          "n": 1,
+          "pct": 100.0
+        }
+      ]
+    },
+    {
+      "key": {
+        "gender": null,
+        "dept": null,
+        "gt": "OUTERWEAR",
+        "it": null,
         "l1": "PK"
       },
       "aggregation_level": "cross_design",
@@ -17573,6 +19350,31 @@
           "name": "BINDING",
           "n": 1,
           "pct": 16.7
+        }
+      ]
+    },
+    {
+      "key": {
+        "gender": null,
+        "dept": null,
+        "gt": "OUTERWEAR",
+        "it": null,
+        "l1": "SS"
+      },
+      "aggregation_level": "cross_design",
+      "source": "bridge",
+      "n_total": 1,
+      "iso_distribution": [],
+      "methods": [
+        {
+          "name": "TOPSTITCH",
+          "n": 1,
+          "pct": 50.0
+        },
+        {
+          "name": "SN_TS",
+          "n": 1,
+          "pct": 50.0
         }
       ]
     },
@@ -17785,6 +19587,56 @@
           "name": "TOPSTITCH",
           "n": 2,
           "pct": 33.3
+        }
+      ]
+    },
+    {
+      "key": {
+        "gender": null,
+        "dept": null,
+        "gt": "PANTS",
+        "it": null,
+        "l1": "PL"
+      },
+      "aggregation_level": "cross_design",
+      "source": "bridge",
+      "n_total": 14,
+      "iso_distribution": [],
+      "methods": [
+        {
+          "name": "BARTACK",
+          "n": 10,
+          "pct": 38.5
+        },
+        {
+          "name": "CLEAN_FINISH",
+          "n": 4,
+          "pct": 15.4
+        },
+        {
+          "name": "SN_TS",
+          "n": 4,
+          "pct": 15.4
+        },
+        {
+          "name": "TURN_BACK",
+          "n": 3,
+          "pct": 11.5
+        },
+        {
+          "name": "UNDERSTITCH",
+          "n": 2,
+          "pct": 7.7
+        },
+        {
+          "name": "TOPSTITCH",
+          "n": 2,
+          "pct": 7.7
+        },
+        {
+          "name": "COVERSTITCH",
+          "n": 1,
+          "pct": 3.8
         }
       ]
     },
@@ -18424,6 +20276,45 @@
         "dept": null,
         "gt": "SET",
         "it": null,
+        "l1": "SS"
+      },
+      "aggregation_level": "cross_design",
+      "source": "bridge",
+      "n_total": 5,
+      "iso_distribution": [],
+      "methods": [
+        {
+          "name": "CLEAN_FINISH",
+          "n": 2,
+          "pct": 66.7
+        },
+        {
+          "name": "TOPSTITCH",
+          "n": 1,
+          "pct": 33.3
+        }
+      ]
+    },
+    {
+      "key": {
+        "gender": null,
+        "dept": null,
+        "gt": "SET",
+        "it": null,
+        "l1": "WB"
+      },
+      "aggregation_level": "cross_design",
+      "source": "bridge",
+      "n_total": 1,
+      "iso_distribution": [],
+      "methods": []
+    },
+    {
+      "key": {
+        "gender": null,
+        "dept": null,
+        "gt": "SET",
+        "it": null,
         "l1": "SL"
       },
       "aggregation_level": "cross_design",
@@ -18652,6 +20543,67 @@
           "name": "CHAINSTITCH",
           "n": 2,
           "pct": 0.6
+        }
+      ]
+    },
+    {
+      "key": {
+        "gender": null,
+        "dept": null,
+        "gt": "TOP",
+        "it": null,
+        "l1": "ZP"
+      },
+      "aggregation_level": "cross_design",
+      "source": "bridge",
+      "n_total": 11,
+      "iso_distribution": [
+        {
+          "iso": "514",
+          "n": 3,
+          "pct": 60.0
+        },
+        {
+          "iso": "401",
+          "n": 1,
+          "pct": 20.0
+        },
+        {
+          "iso": "301",
+          "n": 1,
+          "pct": 20.0
+        }
+      ],
+      "methods": [
+        {
+          "name": "SN_TS",
+          "n": 3,
+          "pct": 30.0
+        },
+        {
+          "name": "BARTACK",
+          "n": 2,
+          "pct": 20.0
+        },
+        {
+          "name": "TURN_BACK",
+          "n": 2,
+          "pct": 20.0
+        },
+        {
+          "name": "FOLDED_EDGE",
+          "n": 1,
+          "pct": 10.0
+        },
+        {
+          "name": "CLEAN_FINISH",
+          "n": 1,
+          "pct": 10.0
+        },
+        {
+          "name": "COVERSTITCH",
+          "n": 1,
+          "pct": 10.0
         }
       ]
     },
@@ -18915,6 +20867,97 @@
           "name": "FLATLOCK",
           "n": 1,
           "pct": 1.4
+        }
+      ]
+    },
+    {
+      "key": {
+        "gender": null,
+        "dept": null,
+        "gt": "TOP",
+        "it": null,
+        "l1": "SS"
+      },
+      "aggregation_level": "cross_design",
+      "source": "bridge",
+      "n_total": 57,
+      "iso_distribution": [
+        {
+          "iso": "514",
+          "n": 6,
+          "pct": 42.9
+        },
+        {
+          "iso": "406",
+          "n": 5,
+          "pct": 35.7
+        },
+        {
+          "iso": "401",
+          "n": 2,
+          "pct": 14.3
+        },
+        {
+          "iso": "301",
+          "n": 1,
+          "pct": 7.1
+        }
+      ],
+      "methods": [
+        {
+          "name": "TURN_BACK",
+          "n": 14,
+          "pct": 21.5
+        },
+        {
+          "name": "CLEAN_FINISH",
+          "n": 10,
+          "pct": 15.4
+        },
+        {
+          "name": "BARTACK",
+          "n": 10,
+          "pct": 15.4
+        },
+        {
+          "name": "SN_TS",
+          "n": 9,
+          "pct": 13.8
+        },
+        {
+          "name": "BINDING",
+          "n": 9,
+          "pct": 13.8
+        },
+        {
+          "name": "TOPSTITCH",
+          "n": 4,
+          "pct": 6.2
+        },
+        {
+          "name": "COVERSTITCH",
+          "n": 4,
+          "pct": 6.2
+        },
+        {
+          "name": "UNDERSTITCH",
+          "n": 2,
+          "pct": 3.1
+        },
+        {
+          "name": "ZIGZAG",
+          "n": 1,
+          "pct": 1.5
+        },
+        {
+          "name": "SINGLE_TURN",
+          "n": 1,
+          "pct": 1.5
+        },
+        {
+          "name": "ENCASED",
+          "n": 1,
+          "pct": 1.5
         }
       ]
     },
