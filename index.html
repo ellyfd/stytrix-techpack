@@ -5005,16 +5005,18 @@ function App() {
                           fontFamily: "inherit", transition: "background 0.15s, color 0.15s",
                         }}>全碼</button>
                     </div>
-                    <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "6px" }}>
-                      {!isMobile && <span style={{ fontSize: "10px", color: "#bbb", fontWeight: 500, letterSpacing: "0.05em", textTransform: "uppercase" }}>Size Rule</span>}
-                      <span style={{
-                        padding: "3px 10px", borderRadius: "4px",
-                        background: "#faf9f7", color: "#555",
-                        border: "1px solid #e8e5e1",
-                        fontSize: "11px", fontWeight: 600, letterSpacing: "0.02em",
-                        fontFamily: "'JetBrains Mono',monospace",
-                      }}>{sizeRuleLabel}</span>
-                    </div>
+                    {!isMobile && (
+                      <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "6px" }}>
+                        <span style={{ fontSize: "10px", color: "#bbb", fontWeight: 500, letterSpacing: "0.05em", textTransform: "uppercase" }}>Size Rule</span>
+                        <span style={{
+                          padding: "3px 10px", borderRadius: "4px",
+                          background: "#faf9f7", color: "#555",
+                          border: "1px solid #e8e5e1",
+                          fontSize: "11px", fontWeight: 600, letterSpacing: "0.02em",
+                          fontFamily: "'JetBrains Mono',monospace",
+                        }}>{sizeRuleLabel}</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* 統一 Header:兩個 view 共用 */}
@@ -5049,9 +5051,18 @@ function App() {
                       <button onClick={runMeasurement} style={btnStyle({ variant: 'secondary', isMobile })}>Re-generate</button>
                     </div>
 
-                    {/* B.5 — 控制列:分成「單位/格式」與「身型變體」兩群,每群帶 label,群與群之間有 divider */}
-                    <div style={{ display: "flex", alignItems: "center", gap: isMobile ? "8px" : "12px", flexWrap: "wrap", marginTop: isMobile ? "8px" : "12px", paddingTop: isMobile ? "6px" : "10px", borderTop: "1px dashed #eee" }}>
-                      <span style={{ fontSize: "11px", color: T.c.text3, fontWeight: 500, letterSpacing: "0.02em" }}>單位</span>
+                    {/* B.5 — 控制列:分成「單位/格式」與「身型變體」兩群,每群帶 label,群與群之間有 divider
+                        行動版改成單行橫向捲動(flexWrap:nowrap + overflowX:auto),避免吃兩行。 */}
+                    <div style={{
+                      display: "flex", alignItems: "center",
+                      gap: isMobile ? "6px" : "12px",
+                      flexWrap: isMobile ? "nowrap" : "wrap",
+                      overflowX: isMobile ? "auto" : "visible",
+                      marginTop: isMobile ? "8px" : "12px",
+                      paddingTop: isMobile ? "6px" : "10px",
+                      borderTop: "1px dashed #eee",
+                    }}>
+                      {!isMobile && <span style={{ fontSize: "11px", color: T.c.text3, fontWeight: 500, letterSpacing: "0.02em" }}>單位</span>}
                       <UnitFormatToggle displayUnit={displayUnit} setDisplayUnit={changeUnit} displayFormat={displayFormat} setDisplayFormat={changeFormat} />
 
                       {!isMobile && (
@@ -5060,7 +5071,7 @@ function App() {
                           margin: "2px 4px",
                         }} />
                       )}
-                      <span style={{ fontSize: "11px", color: T.c.text3, fontWeight: 500, letterSpacing: "0.02em" }}>身型</span>
+                      {!isMobile && <span style={{ fontSize: "11px", color: T.c.text3, fontWeight: 500, letterSpacing: "0.02em" }}>身型</span>}
 
                       {sizeView === "base" ? (
                         <>
@@ -5077,6 +5088,7 @@ function App() {
                               border: `1px solid ${on && enabled ? T.c.text : T.c.border}`,
                               color: !enabled ? T.c.text4 : (on ? T.c.text : T.c.text3),
                               opacity: enabled ? 1 : 0.5, transition: "all 0.15s",
+                              whiteSpace: "nowrap", flexShrink: 0,
                             });
                             return (
                               <>
@@ -5103,7 +5115,7 @@ function App() {
                       ) : (
                         /* 全碼:身型 radio 加入 Plus(2X 為 BASE 的獨立 size run,與 Regular/Petite/Tall 互斥) */
                         (hasPetiteU || hasTallU || hasPlusU) && (
-                          <div style={pillGroupStyle}>
+                          <div style={{ ...pillGroupStyle, flexShrink: 0 }}>
                             {[
                               { v: 'regular', label: 'Regular', enabled: true },
                               { v: 'petite',  label: 'Petite',  enabled: hasPetiteU },
@@ -5143,6 +5155,7 @@ function App() {
                           border: `1px solid ${showPlus ? T.c.text : T.c.border}`,
                           color: showPlus ? T.c.text : T.c.text3,
                           transition: "all 0.15s",
+                          whiteSpace: "nowrap", flexShrink: 0,
                         }}>
                           <input type="checkbox" checked={showPlus} onChange={e => setShowPlus(e.target.checked)}
                             style={{ width: "14px", height: "14px", accentColor: T.c.text }} />
@@ -5350,6 +5363,7 @@ function App() {
                         每列 ★/⚡ icon 本身仍有 title tooltip 可看更詳細說明。 */}
                     <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: isMobile ? "2px" : "4px", marginBottom: isMobile ? "4px" : "8px", flexWrap: "wrap" }}>
                       {(() => {
+                        if (isMobile) return null;
                         const hasTier1 = tier1Set.size > 0;
                         const hasInflectionAny = inflectionCombo && Object.keys(inflectionCombo).some(c => c !== '_meta' && inflectionCombo[c]?.inflection);
                         if (!hasTier1 && !hasInflectionAny) return null;
