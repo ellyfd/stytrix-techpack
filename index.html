@@ -1900,6 +1900,9 @@ function BucketPomRow({ code, tier, measurement, median, grading, pomName, isOpe
 function AdminModal({ open, onClose, pomNames, onPushDict }) {
   const [draft, setDraft] = React.useState({});
   const [search, setSearch] = React.useState('');
+  const [filterMode, setFilterMode] = React.useState('all'); // 'all' | 'missing_zh' | 'missing_en' | 'complete'
+  const [prefixFilter, setPrefixFilter] = React.useState(''); // '' | 'A' | 'B' | ...
+  const [selected, setSelected] = React.useState(() => new Set());
   const [token, setToken] = React.useState(() => {
     try { return localStorage.getItem('stytrix.admin.token') || ''; } catch { return ''; }
   });
@@ -1912,6 +1915,9 @@ function AdminModal({ open, onClose, pomNames, onPushDict }) {
     if (open) {
       setDraft({ ...(pomNames || {}) });
       setSearch('');
+      setFilterMode('all');
+      setPrefixFilter('');
+      setSelected(new Set());
       setCommitMsg('');
       setPushState({ status: 'idle', msg: '' });
     }
@@ -1938,6 +1944,19 @@ function AdminModal({ open, onClose, pomNames, onPushDict }) {
   const deleteRow = (code) => {
     if (!window.confirm(`刪除 ${code} (${draft[code]?.en || ''} / ${draft[code]?.zh || ''})?`)) return;
     setDraft(prev => { const { [code]: _, ...rest } = prev; return rest; });
+    setSelected(prev => { if (!prev.has(code)) return prev; const n = new Set(prev); n.delete(code); return n; });
+  };
+  const deleteSelected = () => {
+    const codes = Array.from(selected);
+    if (codes.length === 0) return;
+    const sample = codes.slice(0, 5).join(', ') + (codes.length > 5 ? `… (共 ${codes.length} 筆)` : '');
+    if (!window.confirm(`刪除已選 ${codes.length} 筆?\n${sample}`)) return;
+    setDraft(prev => {
+      const next = { ...prev };
+      for (const c of codes) delete next[c];
+      return next;
+    });
+    setSelected(new Set());
   };
   const addRow = () => {
     const code = (window.prompt('新 POM code(大寫字母 + 數字,e.g. H99):') || '').toUpperCase().trim();
@@ -2024,15 +2043,49 @@ function AdminModal({ open, onClose, pomNames, onPushDict }) {
   // Derived
   const allCodes = Object.keys(draft).sort();
   const filter = search.trim().toLowerCase();
-  const visible = filter
-    ? allCodes.filter(c =>
-        c.toLowerCase().includes(filter)
-        || (draft[c]?.en || '').toLowerCase().includes(filter)
-        || (draft[c]?.zh || '').includes(filter))
-    : allCodes;
+  const visible = allCodes.filter(c => {
+    const row = draft[c] || {};
+    const en = row.en || '';
+    const zh = row.zh || '';
+    if (filter) {
+      const hit = c.toLowerCase().includes(filter)
+        || en.toLowerCase().includes(filter)
+        || zh.includes(filter);
+      if (!hit) return false;
+    }
+    if (prefixFilter && !c.startsWith(prefixFilter)) return false;
+    if (filterMode === 'missing_zh' && zh.trim()) return false;
+    if (filterMode === 'missing_en' && en.trim()) return false;
+    if (filterMode === 'complete' && (!en.trim() || !zh.trim())) return false;
+    return true;
+  });
   const pomCount = allCodes.length;
   const origCount = Object.keys(pomNames || {}).length;
   const changed = JSON.stringify(draft) !== JSON.stringify(pomNames || {});
+
+  // 統計 missing 數供 filter chip 顯示
+  const missingZhCount = allCodes.reduce((n, c) => n + ((draft[c]?.zh || '').trim() ? 0 : 1), 0);
+  const missingEnCount = allCodes.reduce((n, c) => n + ((draft[c]?.en || '').trim() ? 0 : 1), 0);
+  const prefixOptions = Array.from(new Set(allCodes.map(c => c[0]).filter(Boolean))).sort();
+
+  // Multi-select helpers
+  const visibleSelectedCount = visible.reduce((n, c) => n + (selected.has(c) ? 1 : 0), 0);
+  const allVisibleSelected = visible.length > 0 && visibleSelectedCount === visible.length;
+  const toggleRowSelected = (code) => {
+    setSelected(prev => {
+      const n = new Set(prev);
+      if (n.has(code)) n.delete(code); else n.add(code);
+      return n;
+    });
+  };
+  const toggleSelectAllVisible = () => {
+    setSelected(prev => {
+      const n = new Set(prev);
+      if (allVisibleSelected) { for (const c of visible) n.delete(c); }
+      else { for (const c of visible) n.add(c); }
+      return n;
+    });
+  };
 
   // diff draft vs pomNames,自動產生 commit message + 給使用者看的摘要
   const diff = React.useMemo(() => {
@@ -2123,11 +2176,69 @@ function AdminModal({ open, onClose, pomNames, onPushDict }) {
           </div>
         </div>
 
+        {/* Filter chips + 批次動作 */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', flexWrap: 'wrap' }}>
+          {[
+            { key: 'all', label: `全部 ${pomCount}` },
+            { key: 'missing_zh', label: `缺中文 ${missingZhCount}` },
+            { key: 'missing_en', label: `缺英文 ${missingEnCount}` },
+            { key: 'complete', label: `已填齊 ${pomCount - missingZhCount - missingEnCount + allCodes.reduce((n,c)=>n+(!(draft[c]?.en||'').trim()&&!(draft[c]?.zh||'').trim()?1:0),0)}` },
+          ].map(opt => {
+            const active = filterMode === opt.key;
+            return (
+              <button key={opt.key} onClick={() => setFilterMode(opt.key)}
+                style={{ padding: '4px 10px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+                  border: `1px solid ${active ? '#1a1a1a' : '#e5e5e5'}`,
+                  background: active ? '#1a1a1a' : '#fff',
+                  color: active ? '#fff' : '#525252',
+                  borderRadius: '999px', fontFamily: 'inherit' }}>{opt.label}</button>
+            );
+          })}
+          <span style={{ fontSize: '11px', color: '#888', marginLeft: '4px' }}>首字:</span>
+          <select value={prefixFilter} onChange={(e) => setPrefixFilter(e.target.value)}
+            style={{ padding: '4px 8px', fontSize: '11px', border: '1px solid #e5e5e5',
+              borderRadius: '6px', background: '#fff', fontFamily: 'inherit', cursor: 'pointer' }}>
+            <option value="">全部</option>
+            {prefixOptions.map(p => <option key={p} value={p}>{p}</option>)}
+          </select>
+          {(filterMode !== 'all' || prefixFilter || search) && (
+            <button onClick={() => { setFilterMode('all'); setPrefixFilter(''); setSearch(''); }}
+              style={{ padding: '4px 8px', fontSize: '11px', cursor: 'pointer',
+                border: '1px solid #e5e5e5', background: '#fff', color: '#888',
+                borderRadius: '6px', fontFamily: 'inherit' }}>清除篩選</button>
+          )}
+          {selected.size > 0 && (
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px',
+              padding: '4px 10px', background: '#fef2f2', border: '1px solid #fecaca',
+              borderRadius: '6px' }}>
+              <span style={{ fontSize: '11px', color: '#991b1b', fontWeight: 600 }}>
+                已選 {selected.size} 筆
+              </span>
+              <button onClick={() => setSelected(new Set())}
+                style={{ padding: '2px 8px', fontSize: '11px', cursor: 'pointer',
+                  border: '1px solid #fca5a5', background: '#fff', color: '#991b1b',
+                  borderRadius: '4px', fontFamily: 'inherit' }}>取消選取</button>
+              <button onClick={deleteSelected}
+                style={{ padding: '3px 10px', fontSize: '11px', fontWeight: 700, cursor: 'pointer',
+                  border: 'none', background: '#dc2626', color: '#fff',
+                  borderRadius: '4px', fontFamily: 'inherit' }}>🗑 刪除已選</button>
+            </div>
+          )}
+        </div>
+
         {/* 表格區 */}
         <div style={{ flex: 1, overflow: 'auto', border: '1px solid #e8e5e1', borderRadius: '8px', background: '#fff', minHeight: '200px' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
             <thead style={{ position: 'sticky', top: 0, background: '#faf9f7', zIndex: 1 }}>
               <tr style={{ borderBottom: '1.5px solid #e8e5e1' }}>
+                <th style={{ padding: '8px 6px', width: '32px', textAlign: 'center' }}>
+                  <input type="checkbox"
+                    checked={allVisibleSelected}
+                    ref={el => { if (el) el.indeterminate = !allVisibleSelected && visibleSelectedCount > 0; }}
+                    onChange={toggleSelectAllVisible}
+                    title={allVisibleSelected ? '取消全選(目前顯示)' : '全選目前顯示項目'}
+                    style={{ cursor: 'pointer' }} />
+                </th>
                 <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, fontSize: '11px', color: '#525252', width: '70px' }}>Code</th>
                 <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, fontSize: '11px', color: '#525252' }}>English</th>
                 <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, fontSize: '11px', color: '#525252', width: '160px' }}>中文</th>
@@ -2136,14 +2247,21 @@ function AdminModal({ open, onClose, pomNames, onPushDict }) {
             </thead>
             <tbody>
               {visible.length === 0 && (
-                <tr><td colSpan={4} style={{ padding: '24px', textAlign: 'center', color: '#888', fontSize: '12px' }}>
-                  {filter ? '沒有符合搜尋的項目' : '(空)'}
+                <tr><td colSpan={5} style={{ padding: '24px', textAlign: 'center', color: '#888', fontSize: '12px' }}>
+                  {(filter || filterMode !== 'all' || prefixFilter) ? '沒有符合篩選的項目' : '(空)'}
                 </td></tr>
               )}
               {visible.map(code => {
                 const row = draft[code] || { en: '', zh: '' };
+                const isSelected = selected.has(code);
                 return (
-                  <tr key={code} style={{ borderBottom: '1px solid #f0eeeb' }}>
+                  <tr key={code} style={{ borderBottom: '1px solid #f0eeeb', background: isSelected ? '#fef2f2' : undefined }}>
+                    <td style={{ padding: '4px 6px', textAlign: 'center' }}>
+                      <input type="checkbox" checked={isSelected}
+                        onChange={() => toggleRowSelected(code)}
+                        aria-label={`選取 ${code}`}
+                        style={{ cursor: 'pointer' }} />
+                    </td>
                     <td style={{ padding: '4px 8px' }}>
                       <input value={code} onChange={(e) => renameCode(code, e.target.value)}
                         style={{ width: '60px', padding: '4px 6px', fontSize: '12px', fontWeight: 700,
