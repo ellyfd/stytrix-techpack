@@ -2251,19 +2251,38 @@ function PatchUploadModal({ open, onClose, token }) {
         'User-Agent': 'stytrix-ingest-upload/1.0',
       };
 
-      setStatus({ status: 'uploading', msg: '下載現有版本合併...' });
-      let sha, finalText = text;
+      setStatus({ status: 'uploading', msg: '下載現有版本...' });
+      let sha, finalText = text, mergeStats = null;
       const getResp = await fetch(apiUrl, { headers: ghHeaders });
       if (getResp.ok) {
         const ex = await getResp.json();
         sha = ex.sha;
-        if (ex.content) {
-          const existingJson = JSON.parse(atob(ex.content.replace(/\n/g, '')));
-          const prevCount = existingJson.entries?.length || 0;
+
+        // GitHub Contents API only returns content for files ≤1MB.
+        // For larger files, fall back to the Git Blob API using the blob SHA.
+        let rawB64 = ex.content?.replace(/\n/g, '');
+        if (!rawB64 && ex.sha) {
+          setStatus({ status: 'uploading', msg: '檔案較大，改用 Blob API 下載...' });
+          const blobR = await fetch(
+            `https://api.github.com/repos/${OWNER}/${REPO}/git/blobs/${ex.sha}`,
+            { headers: ghHeaders });
+          if (blobR.ok) { const b = await blobR.json(); rawB64 = b.content?.replace(/\n/g, ''); }
+        }
+
+        if (rawB64) {
+          const existingJson = JSON.parse(atob(rawB64));
+          const makeKey = e => [e.aggregation_level||'', e.key?.gender||'', e.key?.dept||'',
+                                 e.key?.gt||'', e.key?.it||'', e.key?.l1||''].join('|');
+          const existingKeys = new Set((existingJson.entries||[]).map(makeKey));
+          const patchKeys    = new Set(parsed.entries.map(makeKey));
+          const newCount     = [...patchKeys].filter(k => !existingKeys.has(k)).length;
+          const updCount     = [...patchKeys].filter(k =>  existingKeys.has(k)).length;
           const merged = mergeRecipesMaster(existingJson, parsed);
-          const added = merged.entries.length - prevCount;
           finalText = JSON.stringify(merged, null, 2);
-          setStatus({ status: 'uploading', msg: `合併完成(原 ${prevCount} + 新增 ${added})，推送中...` });
+          mergeStats = { prev: existingJson.entries?.length || 0, newEntries: newCount, updated: updCount, total: merged.entries.length };
+          setStatus({ status: 'uploading', msg: `合併：原 ${mergeStats.prev} 筆，新增 ${newCount}、更新 ${updCount}，推送中...` });
+        } else {
+          setStatus({ status: 'uploading', msg: '⚠ 無法下載現有版本，以新版覆寫，推送中...' });
         }
       }
 
@@ -2274,7 +2293,10 @@ function PatchUploadModal({ open, onClose, token }) {
       const putResp = await fetch(apiUrl, { method: 'PUT', headers: ghHeaders, body: JSON.stringify(putBody) });
       if (!putResp.ok) throw new Error(`GitHub API ${putResp.status}: ${(await putResp.text()).slice(0, 120)}`);
 
-      setStatus({ status: 'ok', msg: `✓ 合併推送完成 — Vercel 重新部署後生效` });
+      const okMsg = mergeStats
+        ? `✓ 合併完成：原 ${mergeStats.prev} 筆，新增 ${mergeStats.newEntries}、更新 ${mergeStats.updated} → 合計 ${mergeStats.total} 筆\nVercel 約 1~2 分鐘後自動重新部署生效。`
+        : `✓ 推送完成（覆寫）— Vercel 約 1~2 分鐘後自動重新部署生效。`;
+      setStatus({ status: 'ok', msg: okMsg });
       setPatchFile(null);
     } catch (e) {
       setStatus({ status: 'error', msg: `錯誤: ${e.message}` });
@@ -2314,6 +2336,7 @@ function PatchUploadModal({ open, onClose, token }) {
 
         {status.msg && (
           <div style={{ marginBottom: '14px', padding: '8px 12px', borderRadius: '6px', fontSize: '12px',
+            whiteSpace: 'pre-wrap',
             background: status.status === 'ok' ? '#f0fdf4' : status.status === 'error' ? '#fef2f2' : '#f9fafb',
             color: status.status === 'ok' ? '#166534' : status.status === 'error' ? '#dc2626' : '#374151',
             border: `1px solid ${status.status === 'ok' ? '#bbf7d0' : status.status === 'error' ? '#fecaca' : '#e5e5e5'}` }}>
