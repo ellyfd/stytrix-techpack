@@ -312,6 +312,27 @@ function isoOptionsFor(master, dict, filters, l1Code) {
     ]);
     if (e && e.iso_distribution.length) return buildIsoOptions(e, dict);
   }
+  // Layer 5: _DEFAULT catch-all (techpack 的「全款 body seam 為 ISO X」規則)
+  //   只在 Layer 1-4 全 miss 時才用。預期 build_recipes_master 會把 _DEFAULT
+  //   fan out 到每個 (gender, dept, gt, it) 組合;舊 build 的 _DEFAULT 可能
+  //   key 全 null,最後兩條 pred 用最寬鬆條件兜底。
+  //   回傳時 tag isCatchAll:true,讓卡片可以顯示「通用 catch-all」標記。
+  {
+    const preds = [
+      k => k.gender === genderRaw && k.dept === deptN && k.gt === gtN && k.it === itN && k.l1 === "_DEFAULT",
+      k => genderN !== genderRaw && k.gender === genderN && k.dept === deptN && k.gt === gtN && k.it === itN && k.l1 === "_DEFAULT",
+    ];
+    if (itN) {
+      preds.push(k => k.gender === genderRaw && k.dept === deptN && k.gt === gtN && !k.it && k.l1 === "_DEFAULT");
+      preds.push(k => genderN !== genderRaw && k.gender === genderN && k.dept === deptN && k.gt === gtN && !k.it && k.l1 === "_DEFAULT");
+    }
+    preds.push(k => k.gender === genderRaw && k.gt === gtN && k.l1 === "_DEFAULT");
+    preds.push(k => !k.gender && !k.dept && !k.gt && k.l1 === "_DEFAULT");
+    const e = findMasterEntry(master, "same_bucket", preds);
+    if (e && e.iso_distribution.length) {
+      return buildIsoOptions(e, dict).map(o => ({ ...o, isCatchAll: true }));
+    }
+  }
   return [];
 }
 
@@ -377,7 +398,10 @@ function buildUniversalCard(d, filters, master, dict, l1Std, presenceByCode, idx
       pct: primary.pct,
       n_total: primary.n_total,
       source: primary.source,
-      aggregation_level: primary.aggregation_level,
+      // Layer 5 (_DEFAULT catch-all) overrides the raw aggregation_level so
+      // the UI can show a distinct 「通用 catch-all」 label; without this
+      // override the catch-all entry would read as plain "same_bucket".
+      aggregation_level: primary.isCatchAll ? "catch_all" : primary.aggregation_level,
       alternatives: alternatives.map(a => ({
         iso: a.iso, iso_zh: a.iso_zh, machine: a.machine, n: a.n, pct: a.pct,
       })),
@@ -1122,6 +1146,7 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
               same_gt:      { label: "同大類",  bg: "#eff6ff", c: "#1e40af", hint: "同部門+同性別+同大類 v4.3 樣本" },
               general:      { label: "通用",    bg: "#fffbeb", c: "#b45309", hint: "v4 通用手冊推薦(curated,非統計)" },
               cross_design: { label: "跨款",    bg: "#fef2f2", c: "#b91c1c", hint: "跨款 bridge 累積(僅 methods 可信)" },
+              catch_all:    { label: "通用 catch-all", bg: "#fef3c7", c: "#854d0e", hint: "techpack 原文「全款 body seam 為 ISO X」的 catch-all fallback(無部位特異資料時使用)" },
             };
             const ACTION_META = {
               recommend: { label: "推薦", c: "#065f46", bg: "#ecfdf5", icon: "✓" },
