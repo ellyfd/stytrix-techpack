@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-extract_unified.py — Unified multi-source extraction pipeline.
+extract_unified.py — Unified multi-source extraction pipeline (STEP 2a).
 
 Reads ALL 4 data sources into a single star schema:
   1. construction_by_bucket (688 designs) — English JSON with pages/text_lines
@@ -8,13 +8,30 @@ Reads ALL 4 data sources into a single star schema:
   3. construction_extracts/pptx (628 designs) — Chinese txt files, zone+method, NO ISO
   4. construction_extracts/pdf (185 designs) — English txt files, per-page PDF extraction
 
-Outputs:
-  data/ingest/unified/dim.jsonl   — one row per design (997 designs)
-  data/ingest/unified/facts.jsonl — one row per design × zone × ISO (all sources)
+Outputs (under --out):
+  {out}/dim.jsonl    — one row per design
+  {out}/facts.jsonl  — one row per design × zone × ISO (all sources)
 
 Each fact carries a `source` tag: cb / dir5 / pptx / pdf
+
+Usage (CI — from repo root):
+  python star_schema/scripts/extract_unified.py \\
+      --ingest-dir data/ingest \\
+      --out data/ingest/unified
+
+Usage (local dev):
+  python extract_unified.py
+  # defaults: --ingest-dir <repo_root>/data/ingest
+  #           --out        <repo_root>/data/ingest/unified
+
+Flags:
+  --ingest-dir <dir>          Ingest root (where Step 1 wrote metadata/, pptx/, pdf/)
+  --out <dir>                 Unified output directory (default: {ingest-dir}/unified)
+  --classification-file <f>   Optional GT backfill JSON
+  --legacy-pptx-json-dir <d>  Optional legacy PPTX JSON dir (Source-Data/ONY/_parsed)
 """
 
+import argparse
 import json
 import re
 import os
@@ -22,6 +39,23 @@ import sys
 import glob
 from pathlib import Path
 from collections import defaultdict
+
+
+def find_repo_root(start: Path) -> Path | None:
+    """Walk up from `start` until we find a `.git` directory; return that ancestor."""
+    for p in [start, *start.parents]:
+        if (p / ".git").exists():
+            return p
+    return None
+
+
+def default_ingest_dir() -> str:
+    """Default --ingest-dir: <repo_root>/data/ingest/ (or star_schema/data/ingest/ fallback)."""
+    script_dir = Path(__file__).resolve().parent
+    repo_root = find_repo_root(script_dir)
+    if repo_root and (repo_root / "data").exists():
+        return str(repo_root / "data" / "ingest")
+    return str(script_dir.parent / "data" / "ingest")
 
 # ── normKey ──
 def normKey(s):
@@ -781,23 +815,28 @@ def load_source_pdf_extracts(source_dir):
 # UNIFIED PIPELINE
 # ══════════════════════════════════════════════════════════════════
 
-def load_gt_backfill():
-    """Load external GT classification to resolve UNKNOWN designs."""
+def load_gt_backfill(classification_file: str | None = None):
+    """Load external GT classification to resolve UNKNOWN designs.
+
+    If `classification_file` is provided, load that one file. Otherwise, try
+    legacy local-dev paths (star_schema/../pom_analysis_v5.5.1/data/*.json).
+    Missing files are silently skipped.
+    """
     gt_map = {}  # design_id → {gt, item_type, dept, desc, ...}
 
-    # Primary: all_designs_gt_it_classification.json (1292 designs)
-    _script_dir = Path(__file__).resolve().parent
-    _ony_root = _script_dir.parent.parent  # star_schema/../ = ONY/
-    gt_path = str(_ony_root / "pom_analysis_v5.5.1" / "data" / "all_designs_gt_it_classification.json")
-    if os.path.exists(gt_path):
-        data = json.loads(Path(gt_path).read_text(encoding='utf-8'))
-        for did, info in data.items():
-            gt_map[did.upper()] = info
+    candidates = []
+    if classification_file:
+        candidates.append(classification_file)
+    else:
+        _script_dir = Path(__file__).resolve().parent
+        _ony_root = _script_dir.parent.parent  # star_schema/../ = ONY/
+        candidates.append(str(_ony_root / "pom_analysis_v5.5.1" / "data" / "all_designs_gt_it_classification.json"))
+        candidates.append(str(_ony_root / "pom_analysis_v5.5.1" / "data" / "design_classification.json"))
 
-    # Secondary: design_classification.json (72 designs)
-    dc_path = str(_ony_root / "pom_analysis_v5.5.1" / "data" / "design_classification.json")
-    if os.path.exists(dc_path):
-        data = json.loads(Path(dc_path).read_text(encoding='utf-8'))
+    for path in candidates:
+        if not os.path.exists(path):
+            continue
+        data = json.loads(Path(path).read_text(encoding='utf-8'))
         for did, info in data.items():
             if did.upper() not in gt_map:
                 gt_map[did.upper()] = info
@@ -915,13 +954,22 @@ def _build_bucket_from_metadata(department: str, sub_category: str, brand_divisi
     return f"{gender}_{cat}"
 
 
-def process_unified(output_dir):
-    """Load all sources, parse, merge, output unified dim + facts."""
+def process_unified(output_dir, ingest_dir=None, classification_file=None,
+                    legacy_pptx_json_dir=None):
+    """Load all sources, parse, merge, output unified dim + facts.
+
+    Args:
+      output_dir: where to write dim.jsonl + facts.jsonl (e.g. data/ingest/unified)
+      ingest_dir: Step 1 output root (reads metadata/, pptx/). Default: output_dir.parent
+      classification_file: optional external GT backfill JSON path
+      legacy_pptx_json_dir: optional legacy PPTX JSON directory (structured translations)
+    """
     out = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
 
-    # INGEST_ROOT: all intermediate data lives under star_schema/data/ingest/
-    INGEST_ROOT = out.parent  # output_dir is ingest/unified, parent is ingest/
+    # INGEST_ROOT: where Step 1 placed metadata/, pptx/, pdf/
+    # Default: the parent of output_dir (legacy invocation where out == INGEST_ROOT/unified)
+    INGEST_ROOT = Path(ingest_dir) if ingest_dir else out.parent
 
     # ── Load PDF metadata (D-number → dept/category/brand) ──
     pdf_metadata = {}  # design_id → {department, category, sub_category, ...}
@@ -939,7 +987,7 @@ def process_unified(output_dir):
         print(f"PDF metadata not found at {meta_path} — run extract_raw_text.py --metadata-only first")
 
     # ── Load GT backfill data ──
-    gt_backfill = load_gt_backfill()
+    gt_backfill = load_gt_backfill(classification_file)
     print(f"GT backfill data: {len(gt_backfill)} designs")
 
     # ── Load PPTX sources from ingest/pptx/ ──
@@ -949,12 +997,15 @@ def process_unified(output_dir):
     src_pptx_txt = load_source_pptx_txt(pptx_dir)
     print(f"  pptx_txt:  {len(src_pptx_txt)} designs (from {pptx_dir})")
 
-    # Legacy structured JSON (if available)
-    _legacy = INGEST_ROOT.parent.parent.parent / "Source-Data" / "ONY" / "_parsed"
-    src_pptx_json = load_source_pptx_json([
-        str(_legacy / "pptx_translations.json"),
-        str(_legacy / "pptx_translations_batch2.json"),
-    ]) if _legacy.exists() else []
+    # Legacy structured JSON (opt-in via --legacy-pptx-json-dir)
+    src_pptx_json = []
+    if legacy_pptx_json_dir:
+        _legacy = Path(legacy_pptx_json_dir)
+        if _legacy.exists():
+            src_pptx_json = load_source_pptx_json([
+                str(_legacy / "pptx_translations.json"),
+                str(_legacy / "pptx_translations_batch2.json"),
+            ])
     print(f"  pptx_json: {len(src_pptx_json)} designs")
 
     # PDF construction goes through VLM pipeline
@@ -1253,8 +1304,38 @@ def process_unified(output_dir):
     return stats
 
 
+def main():
+    p = argparse.ArgumentParser(
+        description="Unified multi-source extraction — merge PPTX/PDF/CB/DIR5 into dim+facts")
+    p.add_argument("--ingest-dir", default=None,
+                   help="Step 1 output root (預設: <repo_root>/data/ingest/)")
+    p.add_argument("--out", default=None,
+                   help="Unified 輸出目錄 (預設: {ingest-dir}/unified)")
+    p.add_argument("--classification-file", default=None,
+                   help="Optional GT backfill JSON (all_designs_gt_it_classification.json)")
+    p.add_argument("--legacy-pptx-json-dir", default=None,
+                   help="Optional legacy PPTX JSON dir (Source-Data/ONY/_parsed)")
+    args = p.parse_args()
+
+    ingest_dir = args.ingest_dir or default_ingest_dir()
+    out_dir = args.out or str(Path(ingest_dir) / "unified")
+
+    print(f"Ingest:  {ingest_dir}")
+    print(f"Out:     {out_dir}")
+    if args.classification_file:
+        print(f"GT backfill: {args.classification_file}")
+    if args.legacy_pptx_json_dir:
+        print(f"Legacy PPTX JSON: {args.legacy_pptx_json_dir}")
+    print()
+
+    process_unified(
+        out_dir,
+        ingest_dir=ingest_dir,
+        classification_file=args.classification_file,
+        legacy_pptx_json_dir=args.legacy_pptx_json_dir,
+    )
+    return 0
+
+
 if __name__ == '__main__':
-    # Default: star_schema/data/ingest/unified (relative to script location)
-    STAR_SCHEMA = Path(__file__).resolve().parent.parent
-    OUTPUT = str(STAR_SCHEMA / "data" / "ingest" / "unified")
-    process_unified(OUTPUT)
+    sys.exit(main() or 0)

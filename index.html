@@ -263,13 +263,25 @@ function isoOptionsFor(master, dict, filters, l1Code) {
     ]);
     if (e && e.iso_distribution.length) return buildIsoOptions(e, dict);
   }
-  // Layer 2: same_bucket (consensus_v1 and other extraction sources)
-  //   buckets_resolved in master.bucket_taxonomy maps each bucket name → arrays of
-  //   {gender, dept, gt} already expanded for UI (BOYS/GIRLS→KIDS, BOTTOM→PANTS/…).
-  //   fingerprint → it lookup lets us narrow within a bucket. The cascade picks the
-  //   first bucket that contains this (g,d,gt) and has an entry at this l1.
+  // Layer 2: same_bucket (canonical key pre-expanded at build time)
+  //   Predicates try from most-specific to least: gender+dept+gt+it → no-IT → GENERAL dept → no-dept.
+  //   genderRaw (GIRLS/BOYS/MATERNITY) tried before genderN fallback (KIDS/WOMENS).
   {
-    const e = findBucketEntry(master, { genderN, deptN, gtN, itN, l1Code });
+    const sbPreds = [
+      k => k.gender === genderRaw && k.dept === deptN && k.gt === gtN && k.it === itN && k.l1 === l1Code,
+      k => genderN !== genderRaw && k.gender === genderN && k.dept === deptN && k.gt === gtN && k.it === itN && k.l1 === l1Code,
+    ];
+    if (itN) {
+      sbPreds.push(k => k.gender === genderRaw && k.dept === deptN && k.gt === gtN && !k.it && k.l1 === l1Code);
+      sbPreds.push(k => genderN !== genderRaw && k.gender === genderN && k.dept === deptN && k.gt === gtN && !k.it && k.l1 === l1Code);
+    }
+    if (deptN && deptN !== "GENERAL") {
+      sbPreds.push(k => k.gender === genderRaw && k.dept === "GENERAL" && k.gt === gtN && !k.it && k.l1 === l1Code);
+      sbPreds.push(k => genderN !== genderRaw && k.gender === genderN && k.dept === "GENERAL" && k.gt === gtN && !k.it && k.l1 === l1Code);
+    }
+    sbPreds.push(k => k.gender === genderRaw && !k.dept && k.gt === gtN && k.l1 === l1Code);
+    sbPreds.push(k => genderN !== genderRaw && k.gender === genderN && !k.dept && k.gt === gtN && k.l1 === l1Code);
+    const e = findMasterEntry(master, "same_bucket", sbPreds);
     if (e && e.iso_distribution.length) return buildIsoOptions(e, dict);
   }
   // Layer 3: same_gt (v4.3)
@@ -302,50 +314,6 @@ function isoOptionsFor(master, dict, filters, l1Code) {
   return [];
 }
 
-/* ─── same_bucket 層查詢:用 master.bucket_taxonomy.buckets_resolved 找出哪些
-   bucket 涵蓋當前 (gender, dept, gt),再用 fingerprint→it 縮小,最後在 master
-   的 same_bucket entries 裡找對應 (bucket, fingerprint, l1) 的 entry。 ─── */
-function findBucketEntry(master, { genderN, deptN, gtN, itN, l1Code }) {
-  const tax = master?.bucket_taxonomy;
-  if (!tax || !master.entries) return null;
-  const bucketsResolved = tax.buckets_resolved || {};
-  const fpMap = tax.fingerprints || {};
-  // candidate buckets: those whose resolved (gender, dept, gt) cover the query
-  const candidates = [];
-  for (const [bname, info] of Object.entries(bucketsResolved)) {
-    // Empty array = wildcard (for auto-derived buckets where a dimension couldn't
-    // be inferred from the name). If bucket specifies values for a dimension, the
-    // query's value must be in that list; if not specified (length 0), skip check.
-    const gArr = info.gender || [];
-    const dArr = info.dept || [];
-    const tArr = info.gt || [];
-    const gOk = !genderN || gArr.length === 0 || gArr.includes(genderN);
-    const dOk = !deptN || dArr.length === 0 || dArr.includes(deptN);
-    const tOk = !gtN || tArr.length === 0 || tArr.includes(gtN);
-    if (gOk && dOk && tOk) candidates.push(bname);
-  }
-  if (!candidates.length) return null;
-  // candidate fingerprints: those whose it list contains the query's itN
-  const fpCandidates = new Set();
-  if (itN) {
-    for (const [fp, info] of Object.entries(fpMap)) {
-      if ((info.it || []).includes(itN)) fpCandidates.add(fp);
-    }
-  }
-  // scan same_bucket entries in priority: (bucket, fingerprint) match > bucket only
-  const cand = new Set(candidates);
-  let fallbackNoFp = null;
-  for (const e of master.entries) {
-    if (e.aggregation_level !== "same_bucket") continue;
-    if (!cand.has(e.key?.bucket)) continue;
-    if (e.key?.l1 !== l1Code) continue;
-    const fp = e.key?.fingerprint;
-    // fingerprint match beats no-fp match
-    if (fp && fpCandidates.has(fp)) return e;
-    if (!fp && !fallbackNoFp) fallbackNoFp = e;
-  }
-  return fallbackNoFp;
-}
 
 /* ─── 取得指定 (gt, l1) 的常見工法。只從 cross_design(bridge)層拿,
    不管主 ISO 來自哪一層,methods 永遠用跨款累積值。回 { methods, bridgeN }。 ─── */
@@ -1149,7 +1117,7 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
             // 數字,取代舊版 strong/mixed/likely 的主觀標籤。
             const AGG_META = {
               same_sub:     { label: "同細類",  bg: "#ecfdf5", c: "#065f46", hint: "同性別+同部門+同大類+同細類 recipe 樣本" },
-              same_bucket:  { label: "同 bucket", bg: "#f0fdfa", c: "#0f766e", hint: "consensus extraction(bucket+fingerprint 維度)" },
+              same_bucket:  { label: "同 bucket", bg: "#f0fdfa", c: "#0f766e", hint: "extraction 樣本(consensus/OCR/unified,canonical gender+dept+gt+it 維度)" },
               same_gt:      { label: "同大類",  bg: "#eff6ff", c: "#1e40af", hint: "同部門+同性別+同大類 v4.3 樣本" },
               general:      { label: "通用",    bg: "#fffbeb", c: "#b45309", hint: "v4 通用手冊推薦(curated,非統計)" },
               cross_design: { label: "跨款",    bg: "#fef2f2", c: "#b91c1c", hint: "跨款 bridge 累積(僅 methods 可信)" },
@@ -1891,13 +1859,316 @@ function BucketPomRow({ code, tier, measurement, median, grading, pomName, isOpe
 /* ═══════════════════════════════════════════════════════════════════
    Main App
    ═══════════════════════════════════════════════════════════════════ */
-/* AdminModal:POM 翻譯表編輯器(data/pom_dictionary.json)
-   - 上方「GitHub 推送 Token」:shared 密碼,存 localStorage['stytrix.admin.token']
-   - 中間表格:code / en / zh 三欄,可搜尋 / 編輯 / 刪列 / 新增列
-   - 工具:匯入 Excel(code/en/zh 三欄)、匯出 Excel
-   - 下方:commit message + 推送到 GitHub
-   - pomNames 是目前線上版 dict(read-only seed),draft 是草稿 */
-function AdminModal({ open, onClose, pomNames, onPushDict }) {
+/* SettingsModal: 全域設定面板 — Admin Token 統一在這裡設定，供所有動作共用 */
+function SettingsModal({ open, onClose, token, onSaveToken }) {
+  const [showTok, setShowTok] = React.useState(false);
+  const [localTok, setLocalTok] = React.useState(token);
+  React.useEffect(() => { if (open) { setLocalTok(token); setShowTok(false); } }, [open, token]);
+  if (!open) return null;
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: '20px',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background: '#fff', borderRadius: '12px', padding: '24px',
+        width: '100%', maxWidth: '440px', boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '18px' }}>
+          <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 700 }}>⚙ 設定</h2>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '22px', color: '#999', lineHeight: 1, padding: '0 4px', fontFamily: 'inherit' }}>×</button>
+        </div>
+
+        <div style={{ marginBottom: '6px', fontSize: '12px', fontWeight: 600, color: '#374151' }}>🔑 Admin Token</div>
+        <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '10px' }}>
+          存入瀏覽器 localStorage，用於 Techpack 上傳、POM 字典推送等所有需要授權的動作。
+        </div>
+        <div style={{ display: 'flex', gap: '6px', marginBottom: '16px' }}>
+          <input
+            type={showTok ? 'text' : 'password'}
+            value={localTok}
+            onChange={e => setLocalTok(e.target.value)}
+            placeholder="Vercel ADMIN_TOKEN 對應的共享密碼"
+            style={{ flex: 1, padding: '8px 10px', fontSize: '13px', fontFamily: "'JetBrains Mono',monospace",
+              border: '1px solid #d1d5db', borderRadius: '6px' }}
+          />
+          <button onClick={() => setShowTok(!showTok)}
+            style={{ padding: '8px 12px', fontSize: '12px', border: '1px solid #d1d5db', background: '#f9fafb', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit' }}>
+            {showTok ? '隱藏' : '顯示'}
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+          <button onClick={onClose}
+            style={{ padding: '8px 16px', fontSize: '13px', border: '1px solid #d1d5db', background: '#f9fafb', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit' }}>
+            取消
+          </button>
+          <button onClick={() => { onSaveToken(localTok); onClose(); }}
+            style={{ padding: '8px 18px', fontSize: '13px', fontWeight: 600, border: 'none', background: '#1d4ed8', color: '#fff', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit' }}>
+            儲存
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* UploadModal:上傳 Techpack PDF / PPTX → /api/ingest_upload → GitHub Actions rebuild */
+function UploadModal({ open, onClose, token }) {
+  const [uploadFile, setUploadFile] = React.useState(null);
+  const [uploadStatus, setUploadStatus] = React.useState({ status: 'idle', msg: '' });
+
+  React.useEffect(() => {
+    if (open) { setUploadFile(null); setUploadStatus({ status: 'idle', msg: '' }); }
+  }, [open]);
+
+  const handleUpload = async () => {
+    if (!uploadFile) return;
+    if (!token) { setUploadStatus({ status: 'error', msg: '請先至「⚙ 設定」填入 Admin Token' }); return; }
+    setUploadStatus({ status: 'uploading', msg: '準備上傳...' });
+    try {
+      // Step 1: get GitHub PAT from server (bypasses Vercel 4.5MB body limit)
+      const tokResp = await fetch('/api/ingest_token', {
+        method: 'POST',
+        headers: { 'x-admin-token': token },
+      });
+      if (!tokResp.ok) {
+        const t = await tokResp.text();
+        throw new Error(tokResp.status === 401 ? 'Admin Token 錯誤' : `Token 端點錯誤: ${t}`);
+      }
+      const { github_pat } = await tokResp.json();
+
+      // Step 2: encode file
+      setUploadStatus({ status: 'uploading', msg: '編碼中...' });
+      const buf = await uploadFile.arrayBuffer();
+      const bytes = new Uint8Array(buf);
+      let binary = '';
+      for (let i = 0; i < bytes.length; i += 8192) {
+        binary += String.fromCharCode(...bytes.subarray(i, Math.min(i + 8192, bytes.length)));
+      }
+      const b64 = btoa(binary);
+
+      // Step 3: push directly to GitHub Contents API (no Vercel size limit)
+      const OWNER = 'ellyfd', REPO = 'stytrix-techpack', BRANCH = 'main';
+      const safeName = uploadFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const filePath = `data/ingest/uploads/${safeName}`;
+      const apiUrl   = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${filePath}`;
+      const ghHeaders = {
+        Authorization: `token ${github_pat}`,
+        Accept: 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json',
+        'User-Agent': 'stytrix-ingest-upload/1.0',
+      };
+
+      setUploadStatus({ status: 'uploading', msg: '推送至 GitHub...' });
+      // Check existing SHA
+      let sha;
+      const getResp = await fetch(apiUrl, { headers: ghHeaders });
+      if (getResp.ok) { const ex = await getResp.json(); sha = ex.sha; }
+
+      const putBody = { message: `chore(ingest): upload ${safeName}`, content: b64, branch: BRANCH };
+      if (sha) putBody.sha = sha;
+
+      const putResp = await fetch(apiUrl, { method: 'PUT', headers: ghHeaders, body: JSON.stringify(putBody) });
+      if (!putResp.ok) {
+        const errText = await putResp.text();
+        throw new Error(`GitHub API ${putResp.status}: ${errText.slice(0, 120)}`);
+      }
+      const result = await putResp.json();
+      setUploadStatus({ status: 'ok', msg: `✓ 已推送 ${filePath}  — Pipeline 約 2 分鐘後自動更新` });
+      setUploadFile(null);
+    } catch (e) {
+      setUploadStatus({ status: 'error', msg: `錯誤: ${e.message}` });
+    }
+  };
+
+  if (!open) return null;
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: '20px',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background: '#fff', borderRadius: '12px', padding: '24px',
+        width: '100%', maxWidth: '480px', boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '18px' }}>
+          <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 700 }}>📤 上傳 Techpack (PDF / PPTX)</h2>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '22px', color: '#999', lineHeight: 1, padding: '0 4px', fontFamily: 'inherit' }}>×</button>
+        </div>
+
+        {!token && (
+          <div style={{ marginBottom: '14px', padding: '8px 12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', fontSize: '12px', color: '#92400e' }}>
+            ⚠ Admin Token 尚未設定 — 請先點右上角 <strong>⚙ 設定</strong> 填入。
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '16px' }}>
+          <label style={{ padding: '7px 14px', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+            border: '1px solid #86efac', background: '#fff', color: '#15803d', borderRadius: '6px' }}>
+            選擇檔案
+            <input type="file" accept=".pdf,.pptx" style={{ display: 'none' }}
+              onChange={e => { setUploadFile(e.target.files?.[0] || null); setUploadStatus({ status: 'idle', msg: '' }); e.target.value = ''; }} />
+          </label>
+          {uploadFile && <span style={{ fontSize: '13px', color: '#374151', maxWidth: '260px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{uploadFile.name}</span>}
+        </div>
+
+        {uploadStatus.msg && (
+          <div style={{ marginBottom: '14px', padding: '8px 12px', borderRadius: '6px', fontSize: '12px',
+            background: uploadStatus.status === 'ok' ? '#f0fdf4' : uploadStatus.status === 'error' ? '#fef2f2' : '#f9fafb',
+            color: uploadStatus.status === 'ok' ? '#166534' : uploadStatus.status === 'error' ? '#dc2626' : '#374151',
+            border: `1px solid ${uploadStatus.status === 'ok' ? '#bbf7d0' : uploadStatus.status === 'error' ? '#fecaca' : '#e5e5e5'}`,
+          }}>
+            {uploadStatus.msg}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+          <button onClick={onClose}
+            style={{ padding: '8px 16px', fontSize: '13px', border: '1px solid #d1d5db', background: '#f9fafb', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit' }}>
+            關閉
+          </button>
+          <button onClick={handleUpload} disabled={!uploadFile || uploadStatus.status === 'uploading'}
+            style={{ padding: '8px 20px', fontSize: '13px', fontWeight: 600, cursor: uploadFile ? 'pointer' : 'not-allowed',
+              border: 'none', background: uploadFile ? '#16a34a' : '#d1fae5', color: uploadFile ? '#fff' : '#9ca3af',
+              borderRadius: '6px', fontFamily: 'inherit' }}>
+            {uploadStatus.status === 'uploading' ? '上傳中...' : '上傳'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* PatchUploadModal:直接覆寫 data/ 下的 JSON 檔(本地跑完 pipeline 後用) */
+const PATCH_TARGETS = [
+  { label: 'recipes_master.json',  path: 'data/recipes_master.json' },
+  { label: 'iso_dictionary.json',  path: 'data/iso_dictionary.json' },
+  { label: 'l1_standard_38.json',  path: 'data/l1_standard_38.json' },
+];
+function PatchUploadModal({ open, onClose, token }) {
+  const [patchFile, setPatchFile] = React.useState(null);
+  const [target, setTarget] = React.useState(PATCH_TARGETS[0].path);
+  const [status, setStatus] = React.useState({ status: 'idle', msg: '' });
+
+  React.useEffect(() => {
+    if (open) { setPatchFile(null); setStatus({ status: 'idle', msg: '' }); setTarget(PATCH_TARGETS[0].path); }
+  }, [open]);
+
+  const handlePatch = async () => {
+    if (!patchFile) return;
+    if (!token) { setStatus({ status: 'error', msg: '請先至「⚙ 設定」填入 Admin Token' }); return; }
+    setStatus({ status: 'uploading', msg: '準備...' });
+    try {
+      const tokResp = await fetch('/api/ingest_token', { method: 'POST', headers: { 'x-admin-token': token } });
+      if (!tokResp.ok) throw new Error(tokResp.status === 401 ? 'Admin Token 錯誤' : `Token 端點錯誤: ${await tokResp.text()}`);
+      const { github_pat } = await tokResp.json();
+
+      setStatus({ status: 'uploading', msg: '讀取檔案...' });
+      const text = await patchFile.text();
+      try { JSON.parse(text); } catch { throw new Error('不是有效的 JSON 檔案'); }
+      const b64 = btoa(unescape(encodeURIComponent(text)));
+
+      const OWNER = 'ellyfd', REPO = 'stytrix-techpack', BRANCH = 'main';
+      const apiUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${target}`;
+      const ghHeaders = {
+        Authorization: `token ${github_pat}`,
+        Accept: 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json',
+        'User-Agent': 'stytrix-ingest-upload/1.0',
+      };
+
+      setStatus({ status: 'uploading', msg: '推送至 GitHub...' });
+      let sha;
+      const getResp = await fetch(apiUrl, { headers: ghHeaders });
+      if (getResp.ok) { const ex = await getResp.json(); sha = ex.sha; }
+
+      const putBody = { message: `chore(data): patch ${target.split('/').pop()} via admin`, content: b64, branch: BRANCH };
+      if (sha) putBody.sha = sha;
+
+      const putResp = await fetch(apiUrl, { method: 'PUT', headers: ghHeaders, body: JSON.stringify(putBody) });
+      if (!putResp.ok) throw new Error(`GitHub API ${putResp.status}: ${(await putResp.text()).slice(0, 120)}`);
+
+      setStatus({ status: 'ok', msg: `✓ 已推送 ${target}  — Vercel 重新部署後生效` });
+      setPatchFile(null);
+    } catch (e) {
+      setStatus({ status: 'error', msg: `錯誤: ${e.message}` });
+    }
+  };
+
+  if (!open) return null;
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: '20px' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: '12px', padding: '24px',
+        width: '100%', maxWidth: '480px', boxShadow: '0 8px 32px rgba(0,0,0,0.18)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '6px' }}>
+          <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 700 }}>🩹 上傳 Patch (JSON)</h2>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '22px', color: '#999', lineHeight: 1, padding: '0 4px', fontFamily: 'inherit' }}>×</button>
+        </div>
+        <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '16px' }}>
+          本地跑完 pipeline 後，直接覆寫 <code>data/</code> 下的 JSON，不經過 CI。
+        </div>
+
+        {!token && (
+          <div style={{ marginBottom: '14px', padding: '8px 12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', fontSize: '12px', color: '#92400e' }}>
+            ⚠ Admin Token 尚未設定 — 請先點右上角 <strong>⚙ 設定</strong> 填入。
+          </div>
+        )}
+
+        <div style={{ marginBottom: '12px' }}>
+          <div style={{ fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>目標檔案</div>
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            {PATCH_TARGETS.map(t => (
+              <button key={t.path} onClick={() => setTarget(t.path)}
+                style={{ padding: '5px 12px', fontSize: '12px', fontWeight: 600, borderRadius: '6px', cursor: 'pointer',
+                  border: `1px solid ${target === t.path ? '#6366f1' : '#e5e5e5'}`,
+                  background: target === t.path ? '#eef2ff' : '#fff',
+                  color: target === t.path ? '#4338ca' : '#555', fontFamily: 'inherit' }}>
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '16px' }}>
+          <label style={{ padding: '7px 14px', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+            border: '1px solid #c7d2fe', background: '#fff', color: '#4338ca', borderRadius: '6px' }}>
+            選擇 JSON
+            <input type="file" accept=".json" style={{ display: 'none' }}
+              onChange={e => { setPatchFile(e.target.files?.[0] || null); setStatus({ status: 'idle', msg: '' }); e.target.value = ''; }} />
+          </label>
+          {patchFile && <span style={{ fontSize: '13px', color: '#374151', maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{patchFile.name}</span>}
+        </div>
+
+        {status.msg && (
+          <div style={{ marginBottom: '14px', padding: '8px 12px', borderRadius: '6px', fontSize: '12px',
+            background: status.status === 'ok' ? '#f0fdf4' : status.status === 'error' ? '#fef2f2' : '#f9fafb',
+            color: status.status === 'ok' ? '#166534' : status.status === 'error' ? '#dc2626' : '#374151',
+            border: `1px solid ${status.status === 'ok' ? '#bbf7d0' : status.status === 'error' ? '#fecaca' : '#e5e5e5'}` }}>
+            {status.msg}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+          <button onClick={onClose}
+            style={{ padding: '8px 16px', fontSize: '13px', border: '1px solid #d1d5db', background: '#f9fafb', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit' }}>
+            關閉
+          </button>
+          <button onClick={handlePatch} disabled={!patchFile || status.status === 'uploading'}
+            style={{ padding: '8px 20px', fontSize: '13px', fontWeight: 600, cursor: patchFile ? 'pointer' : 'not-allowed',
+              border: 'none', background: patchFile ? '#4338ca' : '#e0e7ff', color: patchFile ? '#fff' : '#9ca3af',
+              borderRadius: '6px', fontFamily: 'inherit' }}>
+            {status.status === 'uploading' ? '推送中...' : '推送'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* AdminModal:POM 翻譯表編輯器(data/pom_dictionary.json) */
+function AdminModal({ open, onClose, pomNames, onPushDict, token }) {
   const [draft, setDraft] = React.useState({});
   const [search, setSearch] = React.useState('');
   const [filterMode, setFilterMode] = React.useState('all'); // 'all' | 'missing_zh' | 'missing_en' | 'complete'
@@ -1922,11 +2193,6 @@ function AdminModal({ open, onClose, pomNames, onPushDict }) {
       setPushState({ status: 'idle', msg: '' });
     }
   }, [open, pomNames]);
-
-  const saveToken = (t) => {
-    setToken(t);
-    try { t ? localStorage.setItem('stytrix.admin.token', t) : localStorage.removeItem('stytrix.admin.token'); } catch {}
-  };
 
   // Draft helpers
   const updateRow = (code, field, value) => {
@@ -2020,7 +2286,7 @@ function AdminModal({ open, onClose, pomNames, onPushDict }) {
 
   // Push handler
   const pushNow = async () => {
-    if (!token) { alert('請先填 Admin Token'); return; }
+    if (!token) { alert('請先點右上角「⚙ 設定」填入 Admin Token'); return; }
     setPushState({ status: 'pushing', msg: '推送中…' });
     try {
       // 沒填 commit message 就用自動產生的那條
@@ -2127,26 +2393,19 @@ function AdminModal({ open, onClose, pomNames, onPushDict }) {
         boxShadow: T.shadow.md,
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '10px' }}>
-          <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 700 }}>管理 · POM 翻譯表編輯</h2>
+          <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 700 }}>POM 翻譯表編輯</h2>
           <button onClick={onClose} aria-label="關閉管理面板" style={{
             background: 'none', border: 'none', cursor: 'pointer',
             fontSize: '22px', color: '#999', padding: '0 4px', lineHeight: 1, fontFamily: 'inherit',
           }}>×</button>
         </div>
 
-        {/* Admin Token(上方) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', padding: '10px 12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px' }}>
-          <span style={{ fontSize: '11px', color: '#92400e', fontWeight: 600, whiteSpace: 'nowrap' }}>🔑 Admin Token</span>
-          <input type={showToken ? 'text' : 'password'} value={token} onChange={e => saveToken(e.target.value)}
-            placeholder="Vercel env ADMIN_TOKEN 對應的共享密碼"
-            style={{ flex: 1, minWidth: 0, padding: '6px 10px', fontSize: '12px', fontFamily: "'JetBrains Mono',monospace",
-              border: '1px solid #fcd34d', borderRadius: '6px', background: '#fff' }} />
-          <button onClick={() => setShowToken(!showToken)} type="button"
-            style={{ fontSize: '11px', padding: '5px 10px', border: '1px solid #fcd34d', background: '#fff', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit' }}>
-            {showToken ? '隱藏' : '顯示'}
-          </button>
-          <span style={{ fontSize: '10px', color: '#92400e' }} title="存在 localStorage.stytrix.admin.token,跟 Vercel 的 ADMIN_TOKEN 環境變數比對">?</span>
-        </div>
+        {/* Token 狀態列 — 僅顯示是否已設定；在「⚙ 設定」修改 */}
+        {!token && (
+          <div style={{ marginBottom: '10px', padding: '8px 12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', fontSize: '12px', color: '#92400e' }}>
+            ⚠ Admin Token 尚未設定 — 請先點右上角 <strong>⚙ 設定</strong> 填入。
+          </div>
+        )}
 
         {/* 工具列:搜尋 / 匯入 / 匯出 / 新增 */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
@@ -2474,6 +2733,17 @@ function App() {
   const [sketchSrc, setSketchSrc] = useState(null);
   const [pomRules, setPomRules] = useState(null);
   const [adminOpen, setAdminOpen] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [patchOpen, setPatchOpen] = useState(false);
+  const [mgmtMenuOpen, setMgmtMenuOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [adminToken, setAdminToken] = useState(() => {
+    try { return localStorage.getItem('stytrix.admin.token') || ''; } catch { return ''; }
+  });
+  const saveAdminToken = (t) => {
+    setAdminToken(t);
+    try { t ? localStorage.setItem('stytrix.admin.token', t) : localStorage.removeItem('stytrix.admin.token'); } catch {}
+  };
   // 模式切換：makalot=聚陽模型（作工五階層 + POM tier + 全碼）/ universal=通用模型（AI→ISO + 基礎大尺寸）
   const [appMode, setAppMode] = useState(() => {
     try {
@@ -3649,19 +3919,71 @@ function App() {
               );
             })}
           </div>
-          <button onClick={() => setAdminOpen(true)}
-            aria-label="開啟管理面板"
-            title="管理"
+          <button onClick={() => setSettingsOpen(true)}
+            aria-label="開啟設定"
+            title="設定 (Admin Token)"
             style={{
-              background: "#fff", border: "1px solid #e8e5e1", borderRadius: "6px",
-              padding: isMobile ? "6px 12px" : "8px 14px", fontSize: isMobile ? "12px" : "13px", fontWeight: 700,
-              color: "#555",
+              background: adminToken ? "#fff" : "#fffbeb",
+              border: `1px solid ${adminToken ? "#e8e5e1" : "#fcd34d"}`,
+              borderRadius: "6px",
+              padding: isMobile ? "6px 10px" : "8px 12px",
+              fontSize: isMobile ? "12px" : "13px", fontWeight: 700,
+              color: adminToken ? "#555" : "#92400e",
               cursor: "pointer", fontFamily: "inherit",
               display: "inline-flex", alignItems: "center", gap: "4px", justifyContent: "center",
               transition: "border-color 0.15s",
             }}>
-            管理
+            ⚙{!adminToken && <span style={{ fontSize: "10px", marginLeft: "2px" }}>!</span>}
           </button>
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={() => setMgmtMenuOpen(v => !v)}
+              aria-label="開啟管理選單"
+              style={{
+                background: "#fff", border: "1px solid #e8e5e1", borderRadius: "6px",
+                padding: isMobile ? "6px 12px" : "8px 14px", fontSize: isMobile ? "12px" : "13px", fontWeight: 700,
+                color: "#555", cursor: "pointer", fontFamily: "inherit",
+                display: "inline-flex", alignItems: "center", gap: "4px",
+              }}>
+              管理 ▾
+            </button>
+            {mgmtMenuOpen && (
+              <div
+                onClick={() => setMgmtMenuOpen(false)}
+                style={{
+                  position: 'fixed', inset: 0, zIndex: 90,
+                }} />
+            )}
+            {mgmtMenuOpen && (
+              <div style={{
+                position: 'absolute', right: 0, top: 'calc(100% + 4px)',
+                background: '#fff', border: '1px solid #e5e5e5', borderRadius: '8px',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.12)', minWidth: '180px',
+                zIndex: 100, overflow: 'hidden',
+              }}>
+                <button onClick={() => { setUploadOpen(true); setMgmtMenuOpen(false); }}
+                  style={{ display: 'block', width: '100%', padding: '10px 16px', textAlign: 'left',
+                    fontSize: '13px', fontWeight: 600, background: 'none', border: 'none',
+                    cursor: 'pointer', fontFamily: 'inherit', color: '#166534' }}>
+                  📤 上傳 Techpack
+                </button>
+                <div style={{ height: '1px', background: '#f0f0f0', margin: '0 8px' }} />
+                <button onClick={() => { setPatchOpen(true); setMgmtMenuOpen(false); }}
+                  style={{ display: 'block', width: '100%', padding: '10px 16px', textAlign: 'left',
+                    fontSize: '13px', fontWeight: 600, background: 'none', border: 'none',
+                    cursor: 'pointer', fontFamily: 'inherit', color: '#4338ca' }}>
+                  🩹 上傳 Patch (JSON)
+                </button>
+                <div style={{ height: '1px', background: '#f0f0f0', margin: '0 8px' }} />
+                <button onClick={() => { setAdminOpen(true); setMgmtMenuOpen(false); }}
+                  style={{ display: 'block', width: '100%', padding: '10px 16px', textAlign: 'left',
+                    fontSize: '13px', fontWeight: 600, background: 'none', border: 'none',
+                    cursor: 'pointer', fontFamily: 'inherit', color: '#374151' }}>
+                  📝 POM 翻譯表編輯
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
       </div>
@@ -6037,11 +6359,28 @@ function App() {
         })()}
       </div>
 
+      <SettingsModal
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        token={adminToken}
+        onSaveToken={saveAdminToken}
+      />
+      <UploadModal
+        open={uploadOpen}
+        onClose={() => setUploadOpen(false)}
+        token={adminToken}
+      />
+      <PatchUploadModal
+        open={patchOpen}
+        onClose={() => setPatchOpen(false)}
+        token={adminToken}
+      />
       <AdminModal
         open={adminOpen}
         onClose={() => setAdminOpen(false)}
         pomNames={pomNames}
         onPushDict={pushPomDict}
+        token={adminToken}
       />
       <OnboardingModal open={onboardingOpen} onDismiss={dismissOnboarding} />
 

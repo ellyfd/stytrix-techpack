@@ -7,18 +7,27 @@ extract_raw_text.py — Techpack 原始資料統一提取 (STEP 1)
   B. PPTX → TXT (中文翻譯做工描述)
   C. PDF → detect construction pages → render PNG (給 VLM 辨識做工)
 
-Usage:
-  python extract_raw_text.py --scan-dir ../../2026               # 跑全部
-  python extract_raw_text.py --scan-dir ../../2026 --pptx-only   # 只跑 PPTX
-  python extract_raw_text.py --scan-dir ../../2026 --pdf-only    # 只跑 PDF
-  python extract_raw_text.py --scan-dir ../../2026 --dry-run     # 列出待處理，不實際跑
-  python extract_raw_text.py --scan-dir ../../2026 --force       # 忽略已處理，全部重跑
+Usage (CI — from repo root):
+  python star_schema/scripts/extract_raw_text.py \\
+      --scan-dir data/ingest/uploads \\
+      --output-dir data/ingest
 
-Output (寫到 --output-dir，預設 star_schema/data/ingest/):
-  metadata/designs.jsonl           每 design 一行，PDF 提取的 metadata
-  pptx/facts_raw/{DID}/*.txt       每個 PPTX slide 的原始文字
-  pdf/callout_images/{DID}_p{N}.png  construction page 渲染圖
-  pdf/callout_manifest.jsonl       PNG 清單（append）
+Usage (local dev — from star_schema/scripts/):
+  python extract_raw_text.py --scan-dir /path/to/techpacks
+  # (no --output-dir → defaults to <repo_root>/data/ingest/)
+
+Flags:
+  --pptx-only      只跑 PPTX 翻譯
+  --pdf-only       只跑 PDF (metadata + 渲染 PNG)
+  --metadata-only  只跑 PDF metadata
+  --dry-run        列出待處理，不實際跑
+  --force          忽略已處理，全部重跑
+
+Output (寫到 --output-dir，預設 <repo_root>/data/ingest/):
+  metadata/designs.jsonl             每 design 一行，PDF 提取的 metadata
+  pptx/{slug}.txt                    每個 PPTX 的原始文字
+  pdf/callout_images/{DID}_p{N}.png  construction page 渲染圖 (216 DPI)
+  pdf/callout_manifest.jsonl         PNG 清單（append）
 """
 from __future__ import annotations
 
@@ -75,6 +84,24 @@ def scan_files(scan_dir: str, ext: str) -> list[str]:
             if f.endswith(ext) and not f.startswith("~$"):
                 found.append(os.path.join(root, f))
     return sorted(found)
+
+
+def find_repo_root(start: Path) -> Path | None:
+    """Walk up from `start` until we find a `.git` directory; return that ancestor."""
+    for p in [start, *start.parents]:
+        if (p / ".git").exists():
+            return p
+    return None
+
+
+def resolve_default_output_dir() -> str:
+    """Default --output-dir: <repo_root>/data/ingest/ if in a git checkout,
+    otherwise fall back to star_schema/data/ingest/ (legacy local dev)."""
+    script_dir = Path(__file__).resolve().parent
+    repo_root = find_repo_root(script_dir)
+    if repo_root and (repo_root / "data").exists():
+        return str(repo_root / "data" / "ingest")
+    return str(script_dir.parent / "data" / "ingest")
 
 
 # ════════════════════════════════════════════════════════════
@@ -578,19 +605,38 @@ def run_pdf_batch(scan_dir: str, output_dir: str, force: bool, dry_run: bool):
 def main():
     p = argparse.ArgumentParser(
         description="Techpack 原始資料統一提取 — metadata + PPTX text + PDF construction PNG")
-    p.add_argument("--scan-dir", required=True, help="掃描目錄")
+    p.add_argument("--scan-dir", required=True, help="掃描目錄 (PDF/PPTX 來源)")
     p.add_argument("--output-dir", default=None,
-                   help="輸出目錄 (預設: star_schema/data/ingest/)")
+                   help="輸出目錄 (預設: <repo_root>/data/ingest/)")
     p.add_argument("--pptx-only", action="store_true", help="只跑 PPTX")
     p.add_argument("--pdf-only", action="store_true", help="只跑 PDF (metadata + PNG)")
     p.add_argument("--metadata-only", action="store_true", help="只跑 PDF metadata")
     p.add_argument("--force", action="store_true", help="忽略已處理，全部重跑")
     p.add_argument("--dry-run", action="store_true", help="列出待處理，不實際跑")
+    p.add_argument("--summary-file", default=None,
+                   help="寫入 JSON summary (給 CI parse)")
+    p.add_argument("--allow-empty", action="store_true",
+                   help="scan-dir 空或不存在時不報錯 (CI 第一次 run 用)")
     args = p.parse_args()
 
     if args.output_dir is None:
-        script_dir = Path(__file__).resolve().parent
-        args.output_dir = str(script_dir.parent / "data" / "ingest")
+        args.output_dir = resolve_default_output_dir()
+
+    # Input validation
+    scan = Path(args.scan_dir)
+    if not scan.exists():
+        msg = f"--scan-dir not found: {args.scan_dir}"
+        if args.allow_empty:
+            print(f"[WARN] {msg} — exiting cleanly (--allow-empty).")
+            if args.summary_file:
+                Path(args.summary_file).parent.mkdir(parents=True, exist_ok=True)
+                Path(args.summary_file).write_text(json.dumps({
+                    "status": "empty", "scan_dir": args.scan_dir,
+                    "output_dir": args.output_dir,
+                }))
+            return 0
+        print(f"[ERROR] {msg}", file=sys.stderr)
+        return 2
 
     print(f"Output: {args.output_dir}")
     print(f"Scan:   {args.scan_dir}")
@@ -612,6 +658,20 @@ def main():
     if run_pdf:
         run_pdf_batch(args.scan_dir, args.output_dir, args.force, args.dry_run)
 
+    if args.summary_file:
+        Path(args.summary_file).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.summary_file).write_text(json.dumps({
+            "status": "ok",
+            "scan_dir": args.scan_dir,
+            "output_dir": args.output_dir,
+            "ran": {"metadata": run_meta, "pptx": run_pptx, "pdf": run_pdf},
+            "force": args.force,
+            "dry_run": args.dry_run,
+            "completed_at": datetime.now(timezone.utc).isoformat(),
+        }))
+
+    return 0
+
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main() or 0)
