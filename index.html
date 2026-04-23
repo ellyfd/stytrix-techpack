@@ -2040,19 +2040,33 @@ function UploadModal({ open, onClose, token }) {
   );
 }
 
-/* PatchUploadModal:直接覆寫 data/ 下的 JSON 檔(本地跑完 pipeline 後用) */
-const PATCH_TARGETS = [
-  { label: 'recipes_master.json',  path: 'data/recipes_master.json' },
-  { label: 'iso_dictionary.json',  path: 'data/iso_dictionary.json' },
-  { label: 'l1_standard_38.json',  path: 'data/l1_standard_38.json' },
-];
+/* PatchUploadModal:本地跑完 pipeline 後，把 recipes_master.json 合併推送到 GitHub
+   合併模式:下載現有版本 → upsert 新 entry(同 key 更新、舊 entry 保留) → 上傳 */
+const PATCH_TARGET = { path: 'data/recipes_master.json' };
+
+function mergeRecipesMaster(existing, patch) {
+  const makeKey = e => [
+    e.aggregation_level || '',
+    e.key?.gender || '', e.key?.dept || '',
+    e.key?.gt || '', e.key?.it || '', e.key?.l1 || '',
+  ].join('|');
+  const map = new Map();
+  (existing.entries || []).forEach(e => map.set(makeKey(e), e));
+  (patch.entries || []).forEach(e => map.set(makeKey(e), e));
+  return {
+    ...existing,
+    generated_at: patch.generated_at || existing.generated_at,
+    source_versions: { ...existing.source_versions, ...(patch.source_versions || {}) },
+    entries: Array.from(map.values()),
+  };
+}
+
 function PatchUploadModal({ open, onClose, token }) {
   const [patchFile, setPatchFile] = React.useState(null);
-  const [target, setTarget] = React.useState(PATCH_TARGETS[0].path);
   const [status, setStatus] = React.useState({ status: 'idle', msg: '' });
 
   React.useEffect(() => {
-    if (open) { setPatchFile(null); setStatus({ status: 'idle', msg: '' }); setTarget(PATCH_TARGETS[0].path); }
+    if (open) { setPatchFile(null); setStatus({ status: 'idle', msg: '' }); }
   }, [open]);
 
   const handlePatch = async () => {
@@ -2066,11 +2080,12 @@ function PatchUploadModal({ open, onClose, token }) {
 
       setStatus({ status: 'uploading', msg: '讀取檔案...' });
       const text = await patchFile.text();
-      try { JSON.parse(text); } catch { throw new Error('不是有效的 JSON 檔案'); }
-      const b64 = btoa(unescape(encodeURIComponent(text)));
+      let parsed;
+      try { parsed = JSON.parse(text); } catch { throw new Error('不是有效的 JSON 檔案'); }
+      if (!Array.isArray(parsed.entries)) throw new Error('不是有效的 recipes_master.json（缺少 entries）');
 
       const OWNER = 'ellyfd', REPO = 'stytrix-techpack', BRANCH = 'main';
-      const apiUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${target}`;
+      const apiUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${PATCH_TARGET.path}`;
       const ghHeaders = {
         Authorization: `token ${github_pat}`,
         Accept: 'application/vnd.github.v3+json',
@@ -2078,18 +2093,30 @@ function PatchUploadModal({ open, onClose, token }) {
         'User-Agent': 'stytrix-ingest-upload/1.0',
       };
 
-      setStatus({ status: 'uploading', msg: '推送至 GitHub...' });
-      let sha;
+      setStatus({ status: 'uploading', msg: '下載現有版本合併...' });
+      let sha, finalText = text;
       const getResp = await fetch(apiUrl, { headers: ghHeaders });
-      if (getResp.ok) { const ex = await getResp.json(); sha = ex.sha; }
+      if (getResp.ok) {
+        const ex = await getResp.json();
+        sha = ex.sha;
+        if (ex.content) {
+          const existingJson = JSON.parse(atob(ex.content.replace(/\n/g, '')));
+          const prevCount = existingJson.entries?.length || 0;
+          const merged = mergeRecipesMaster(existingJson, parsed);
+          const added = merged.entries.length - prevCount;
+          finalText = JSON.stringify(merged, null, 2);
+          setStatus({ status: 'uploading', msg: `合併完成(原 ${prevCount} + 新增 ${added})，推送中...` });
+        }
+      }
 
-      const putBody = { message: `chore(data): patch ${target.split('/').pop()} via admin`, content: b64, branch: BRANCH };
+      const b64 = btoa(unescape(encodeURIComponent(finalText)));
+      const putBody = { message: 'chore(data): merge recipes_master via admin', content: b64, branch: BRANCH };
       if (sha) putBody.sha = sha;
 
       const putResp = await fetch(apiUrl, { method: 'PUT', headers: ghHeaders, body: JSON.stringify(putBody) });
       if (!putResp.ok) throw new Error(`GitHub API ${putResp.status}: ${(await putResp.text()).slice(0, 120)}`);
 
-      setStatus({ status: 'ok', msg: `✓ 已推送 ${target}  — Vercel 重新部署後生效` });
+      setStatus({ status: 'ok', msg: `✓ 合併推送完成 — Vercel 重新部署後生效` });
       setPatchFile(null);
     } catch (e) {
       setStatus({ status: 'error', msg: `錯誤: ${e.message}` });
@@ -2107,7 +2134,8 @@ function PatchUploadModal({ open, onClose, token }) {
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '22px', color: '#999', lineHeight: 1, padding: '0 4px', fontFamily: 'inherit' }}>×</button>
         </div>
         <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '16px' }}>
-          本地跑完 pipeline 後，直接覆寫 <code>data/</code> 下的 JSON，不經過 CI。
+          本地跑完 pipeline 後，把 <code>recipes_master.json</code> 合併進 GitHub。
+          新 entry 會 upsert，舊 entry 保留，不蓋掉歷史資料。
         </div>
 
         {!token && (
@@ -2116,29 +2144,14 @@ function PatchUploadModal({ open, onClose, token }) {
           </div>
         )}
 
-        <div style={{ marginBottom: '12px' }}>
-          <div style={{ fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>目標檔案</div>
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-            {PATCH_TARGETS.map(t => (
-              <button key={t.path} onClick={() => setTarget(t.path)}
-                style={{ padding: '5px 12px', fontSize: '12px', fontWeight: 600, borderRadius: '6px', cursor: 'pointer',
-                  border: `1px solid ${target === t.path ? '#6366f1' : '#e5e5e5'}`,
-                  background: target === t.path ? '#eef2ff' : '#fff',
-                  color: target === t.path ? '#4338ca' : '#555', fontFamily: 'inherit' }}>
-                {t.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '16px' }}>
           <label style={{ padding: '7px 14px', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
             border: '1px solid #c7d2fe', background: '#fff', color: '#4338ca', borderRadius: '6px' }}>
-            選擇 JSON
+            選擇 recipes_master.json
             <input type="file" accept=".json" style={{ display: 'none' }}
               onChange={e => { setPatchFile(e.target.files?.[0] || null); setStatus({ status: 'idle', msg: '' }); e.target.value = ''; }} />
           </label>
-          {patchFile && <span style={{ fontSize: '13px', color: '#374151', maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{patchFile.name}</span>}
+          {patchFile && <span style={{ fontSize: '13px', color: '#374151', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{patchFile.name}</span>}
         </div>
 
         {status.msg && (
