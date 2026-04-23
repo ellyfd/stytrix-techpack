@@ -100,21 +100,28 @@ jobs:
         run: |
           python star_schema/scripts/extract_raw_text.py \
             --scan-dir data/ingest/uploads \
-            --output-dir star_schema/data/ingest \
+            --output-dir data/ingest \
+            --summary-file /tmp/step1_summary.json \
+            --allow-empty \
             ${{ github.event.inputs.force == 'true' && '--force' || '' }}
+          cat /tmp/step1_summary.json
 
       - name: Step 2a — extract unified facts
+        # TODO P0: extract_unified.py needs --ingest-dir / --out CLI args
+        # (currently hardcoded to star_schema/data/ingest/unified/)
         run: |
           python star_schema/scripts/extract_unified.py \
-            --ingest-dir star_schema/data/ingest \
-            --out data/ingest/unified/facts.jsonl
+            --ingest-dir data/ingest \
+            --out data/ingest/unified
 
       - name: Step 2b — VLM callout extraction
+        # TODO P0: vlm_pipeline.py needs --callout-dir / --out / --classification-file
+        # CLI args (currently hardcoded to _ONY_ROOT/BASE/yyyy paths)
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           python star_schema/scripts/vlm_pipeline.py \
-            --ingest-dir star_schema/data/ingest \
+            --callout-dir data/ingest/pdf/callout_images \
             --out data/ingest/vlm_v1/facts.jsonl \
             --api-key "$ANTHROPIC_API_KEY"
         continue-on-error: true   # VLM 失敗不擋整條 pipeline，只是少 VLM 資料
@@ -210,14 +217,16 @@ export default async function handler(req, res) {
 
 ## 七、實作優先順序
 
-| Priority | 項目 | 依賴 |
-|----------|------|------|
-| P0 | 把 `star_schema/scripts/extract_raw_text.py` 的 `--scan-dir` / `--output-dir` 參數對齊 repo 路徑 | 目前 script 路徑寫死 `../../2026`，需 refactor |
-| P0 | `.github/workflows/rebuild_master.yml` 初版 | 無 |
-| P1 | `vlm_pipeline.py --api-key` 自動模式（目前還是 PoC 手動） | `vlm_poc/vlm_poc_report.md` §5 已有架構 |
-| P1 | `api/ingest_upload.js` Vercel 端點 | GITHUB_PAT secret |
-| P2 | UI「上傳」按鈕 + 狀態提示 | api/ingest_upload.js |
-| P2 | 上傳後 webhook 或 SSE 通知前端「資料已更新」 | 選做 |
+| Priority | 項目 | 依賴 | 狀態 |
+|----------|------|------|------|
+| P0 | `extract_raw_text.py` 加 `--summary-file`、`--allow-empty`、default 改 repo-root `data/ingest/` | 無 | ✅ 完成(本 PR) |
+| P0 | `extract_unified.py` 加 `--ingest-dir` / `--out` CLI args(目前 hardcode `star_schema/data/ingest/unified/`) | 無 | ⏳ 待做 |
+| P0 | `vlm_pipeline.py` 加 `--callout-dir` / `--out` / `--classification-file` CLI args(目前 hardcode `_ONY_ROOT/BASE/yyyy`) | 無 | ⏳ 待做 |
+| P0 | `.github/workflows/rebuild_master.yml` 初版 | 上面 3 條 script 就緒 | ⏳ 待做 |
+| P1 | `vlm_pipeline.py --api-key` 自動模式(目前 PoC 手動讀圖) | `vlm_poc/vlm_poc_report.md` §5 | ⏳ 待做 |
+| P1 | `api/ingest_upload.js` Vercel 端點 | `GITHUB_PAT` secret | ⏳ 待做 |
+| P2 | UI「上傳」按鈕 + 狀態提示 | `api/ingest_upload.js` | ⏳ 待做 |
+| P2 | 上傳後 webhook 或 SSE 通知前端「資料已更新」 | 選做 | ⏳ 待做 |
 
 ---
 
