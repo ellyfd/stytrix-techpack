@@ -5953,11 +5953,14 @@ function App() {
                           </div>
                         )}
                       </div>
-                      <button onClick={runMeasurement} style={btnStyle({ variant: 'secondary', isMobile })}>Re-generate</button>
+                      <div style={{ display: "flex", alignItems: "center", gap: isMobile ? "6px" : "10px", flexShrink: 0, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                        <UnitFormatToggle displayUnit={displayUnit} setDisplayUnit={changeUnit} displayFormat={displayFormat} setDisplayFormat={changeFormat} />
+                        <button onClick={runMeasurement} style={btnStyle({ variant: 'secondary', isMobile })}>Re-generate</button>
+                      </div>
                     </div>
 
-                    {/* B.5 — 控制列:分成「單位/格式」與「身型變體」兩群。
-                        裝得下就併一行,裝不下就 wrap 換行(不用橫向捲動 — 橫向捲邊緣會看不到後面的東西)。 */}
+                    {/* B.5 — 身型控制列(單位/格式已移到上方 Re-generate 旁)。
+                        裝得下就併一行,裝不下就 wrap 換行。 */}
                     <div style={{
                       display: "flex", alignItems: "center",
                       gap: isMobile ? "6px" : "12px",
@@ -5967,80 +5970,64 @@ function App() {
                       paddingTop: isMobile ? "6px" : "10px",
                       borderTop: "1px dashed #eee",
                     }}>
-                      {!isMobile && <span style={{ fontSize: "11px", color: T.c.text3, fontWeight: 500, letterSpacing: "0.02em" }}>單位</span>}
-                      <UnitFormatToggle displayUnit={displayUnit} setDisplayUnit={changeUnit} displayFormat={displayFormat} setDisplayFormat={changeFormat} />
-
-                      {!isMobile && (
-                        <span aria-hidden="true" style={{
-                          width: "1px", alignSelf: "stretch", background: T.c.border,
-                          margin: "2px 4px",
-                        }} />
-                      )}
                       {!isMobile && <span style={{ fontSize: "11px", color: T.c.text3, fontWeight: 500, letterSpacing: "0.02em" }}>身型</span>}
 
-                      {sizeView === "base" ? (
-                        <>
-                          {(() => {
-                            /* 身型 toggle 全部收成同一組中性樣式(取代原本紫/藍/粉三色)
-                               ON:邊框深黑 + 淺灰底;OFF:灰邊 + 白底。
-                               失效(無資料):虛化。*/
-                            const neutralChipStyle = (on, enabled) => ({
-                              display: "flex", alignItems: "center", gap: "4px",
-                              padding: isMobile ? "5px 9px" : "6px 12px", borderRadius: T.r.sm,
-                              cursor: enabled ? "pointer" : "not-allowed",
-                              fontSize: T.fs.base, fontWeight: 600, userSelect: "none",
-                              background: on && enabled ? T.c.bg2 : T.c.bg,
-                              border: `1px solid ${on && enabled ? T.c.text : T.c.border}`,
-                              color: !enabled ? T.c.text4 : (on ? T.c.text : T.c.text3),
-                              opacity: enabled ? 1 : 0.5, transition: "all 0.15s",
-                              whiteSpace: "nowrap", flexShrink: 0,
-                            });
-                            return (
-                              <>
-                                <label
-                                  title={hasPetiteU ? "顯示與 Base(M) 有差異的 POM 之 Petite sub-row" : "此 GT × Gender 在 bodytype_variance 無 Petite 歷史資料"}
-                                  style={neutralChipStyle(showPetite, hasPetiteU)}>
-                                  <input type="checkbox" checked={showPetite && hasPetiteU} disabled={!hasPetiteU}
-                                    onChange={() => setShowPetite(!showPetite)}
-                                    style={{ width: "14px", height: "14px", accentColor: T.c.text }} />
-                                  PETITE
-                                </label>
-                                <label
-                                  title={hasTallU ? "顯示與 Base(M) 有差異的 POM 之 Tall sub-row" : "此 GT × Gender 在 bodytype_variance 無 Tall 歷史資料"}
-                                  style={neutralChipStyle(showTall, hasTallU)}>
-                                  <input type="checkbox" checked={showTall && hasTallU} disabled={!hasTallU}
-                                    onChange={() => setShowTall(!showTall)}
-                                    style={{ width: "14px", height: "14px", accentColor: T.c.text }} />
-                                  TALL
-                                </label>
-                              </>
-                            );
-                          })()}
-                        </>
-                      ) : (
-                        /* 全碼:身型 radio 加入 Plus(2X 為 BASE 的獨立 size run,與 Regular/Petite/Tall 互斥) */
-                        (hasPetiteU || hasTallU || hasPlusU) && (
+                      {/* 身型 pill:基碼 / 全碼 一致用 4-segment pill(Regular / Petite / Tall / Plus)。
+                          基碼:Regular 永遠作為 Base(M) 基準欄顯示,點選 Petite/Tall/Plus 會在
+                                 旁邊加出對應欄位(多選,checkbox 語意)。點 Regular 本身無動作
+                                 (它是基準,一定在)。
+                          全碼:radio 單選互斥,一次只看一種身型的整張 grading table。 */}
+                      {(hasPetiteU || hasTallU || hasPlusU) && (() => {
+                        const isGrading = sizeView === "grading";
+                        const baseActiveOf = v => {
+                          // 基碼:每個 toggle 各自獨立的 on/off 狀態(Regular 永遠 true)
+                          if (v === 'regular') return true;
+                          if (v === 'petite') return showPetite && hasPetiteU;
+                          if (v === 'tall') return showTall && hasTallU;
+                          if (v === 'plus') return showPlus;
+                          return false;
+                        };
+                        const gradingActiveOf = v => gradingBodytype === v;
+                        const handleClick = (v, enabled) => {
+                          if (!enabled) return;
+                          if (isGrading) {
+                            setGradingBodytype(v);
+                          } else {
+                            if (v === 'regular') return; // Regular 基準不可切
+                            if (v === 'petite') setShowPetite(!showPetite);
+                            else if (v === 'tall') setShowTall(!showTall);
+                            else if (v === 'plus') setShowPlus(!showPlus);
+                          }
+                        };
+                        const options = [
+                          { v: 'regular', label: 'Regular', enabled: true },
+                          { v: 'petite',  label: 'Petite',  enabled: hasPetiteU },
+                          { v: 'tall',    label: 'Tall',    enabled: hasTallU },
+                          { v: 'plus',    label: 'Plus',    enabled: hasPlusU },
+                        ];
+                        return (
                           <div style={{ ...pillGroupStyle, flexShrink: 0 }}>
-                            {[
-                              { v: 'regular', label: 'Regular', enabled: true },
-                              { v: 'petite',  label: 'Petite',  enabled: hasPetiteU },
-                              { v: 'tall',    label: 'Tall',    enabled: hasTallU },
-                              { v: 'plus',    label: 'Plus',    enabled: hasPlusU },
-                            ].map((opt, i, arr) => {
-                              const active = gradingBodytype === opt.v;
+                            {options.map((opt, i, arr) => {
+                              const active = isGrading ? gradingActiveOf(opt.v) : baseActiveOf(opt.v);
+                              const clickable = opt.enabled && !(opt.v === 'regular' && !isGrading);
                               return (
                                 <button key={opt.v}
                                   disabled={!opt.enabled}
-                                  onClick={() => opt.enabled && setGradingBodytype(opt.v)}
+                                  onClick={() => handleClick(opt.v, opt.enabled)}
                                   title={opt.enabled
-                                    ? (opt.v === 'plus' ? "Plus size run(1X–4X,2X 為 BASE)" : "")
+                                    ? (isGrading
+                                        ? (opt.v === 'plus' ? "Plus size run(1X–4X,2X 為 BASE)" : "")
+                                        : (opt.v === 'regular' ? "Base(M)基準欄位,固定顯示" :
+                                           opt.v === 'petite' ? "加/減 Petite M 對照欄" :
+                                           opt.v === 'tall' ? "加/減 Tall M 對照欄" :
+                                           "加/減 Base(2X) Plus 欄"))
                                     : (opt.v === 'plus' ? "此 bucket 無 Plus size_range" : `此 GT × Gender 在 bodytype_variance 無 ${opt.label} 歷史資料`)}
                                   style={{
                                     padding: isMobile ? "5px 10px" : "6px 14px", fontSize: T.fs.base, fontWeight: 700,
                                     border: "none", borderRight: i !== arr.length - 1 ? `1px solid ${T.c.border}` : "none",
                                     background: active && opt.enabled ? T.c.text : "transparent",
                                     color: !opt.enabled ? T.c.text4 : (active ? T.c.bg : T.c.text2),
-                                    cursor: opt.enabled ? "pointer" : "not-allowed",
+                                    cursor: !opt.enabled ? "not-allowed" : (clickable ? "pointer" : "default"),
                                     opacity: opt.enabled ? 1 : 0.5,
                                     fontFamily: "inherit", transition: "all 0.15s",
                                     whiteSpace: "nowrap",
@@ -6048,27 +6035,8 @@ function App() {
                               );
                             })}
                           </div>
-                        )
-                      )}
-
-                      {/* PLUS checkbox:只在基碼檢視顯示(開啟加出 Base(2X) 欄位)。
-                          全碼的 Plus 已合到身型 radio(Regular/Petite/Tall/Plus),不再重複顯示。 */}
-                      {sizeView === "base" && hasPlusU && (
-                        <label style={{
-                          display: "flex", alignItems: "center", gap: "4px",
-                          padding: isMobile ? "5px 9px" : "6px 12px", borderRadius: T.r.sm,
-                          cursor: "pointer", fontSize: T.fs.base, fontWeight: 600, userSelect: "none",
-                          background: showPlus ? T.c.bg2 : T.c.bg,
-                          border: `1px solid ${showPlus ? T.c.text : T.c.border}`,
-                          color: showPlus ? T.c.text : T.c.text3,
-                          transition: "all 0.15s",
-                          whiteSpace: "nowrap", flexShrink: 0,
-                        }}>
-                          <input type="checkbox" checked={showPlus} onChange={e => setShowPlus(e.target.checked)}
-                            style={{ width: "14px", height: "14px", accentColor: "#be185d" }} />
-                          +PLUS
-                        </label>
-                      )}
+                        );
+                      })()}
 
                       {sizeView === "grading" && tier1SetU.size > 0 && (
                         <span style={{ fontSize: "11px", color: "#0891b2", background: "#ecfeff", padding: "2px 8px", borderRadius: "6px", fontWeight: 500, marginLeft: "auto" }}
