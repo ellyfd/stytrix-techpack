@@ -4597,7 +4597,9 @@ function App() {
                         <div style={{ fontSize: T.fs.base, color: T.c.text3 }}>
                           {sizeView === "base"
                             ? `${codesByTierU.must.length} 必備 · ${codesByTierU.recommend.length} 建議 · ${codesByTierU.optional.length} 選配`
-                            : `${visibleSizesU.length} sizes${hasPlusU && !showPlus ? `  (+${plusSeqU.length} Plus)` : ""}`}
+                            : (gradingBodytype === 'plus'
+                                ? `Plus · ${plusSeqU.length} sizes(2X BASE)`
+                                : `${sizesU.filter(s => !isPlusU(s)).length} sizes${hasPlusU ? `  (Plus 可切換)` : ""}`)}
                         </div>
                       </div>
                       <button onClick={runMeasurement} style={btnStyle({ variant: 'secondary', isMobile })}>Re-generate</button>
@@ -4655,19 +4657,23 @@ function App() {
                           })()}
                         </>
                       ) : (
-                        (hasPetiteU || hasTallU) && (
+                        /* 全碼:身型 radio 加入 Plus(2X 為 BASE 的獨立 size run,與 Regular/Petite/Tall 互斥) */
+                        (hasPetiteU || hasTallU || hasPlusU) && (
                           <div style={pillGroupStyle}>
                             {[
                               { v: 'regular', label: 'Regular', enabled: true },
                               { v: 'petite',  label: 'Petite',  enabled: hasPetiteU },
                               { v: 'tall',    label: 'Tall',    enabled: hasTallU },
+                              { v: 'plus',    label: 'Plus',    enabled: hasPlusU },
                             ].map((opt, i, arr) => {
                               const active = gradingBodytype === opt.v;
                               return (
                                 <button key={opt.v}
                                   disabled={!opt.enabled}
                                   onClick={() => opt.enabled && setGradingBodytype(opt.v)}
-                                  title={opt.enabled ? "" : `此 GT × Gender 在 bodytype_variance 無 ${opt.label} 歷史資料`}
+                                  title={opt.enabled
+                                    ? (opt.v === 'plus' ? "Plus size run(1X–4X,2X 為 BASE)" : "")
+                                    : (opt.v === 'plus' ? "此 bucket 無 Plus size_range" : `此 GT × Gender 在 bodytype_variance 無 ${opt.label} 歷史資料`)}
                                   style={{
                                     padding: "6px 14px", fontSize: T.fs.base, fontWeight: 700,
                                     border: "none", borderRight: i !== arr.length - 1 ? `1px solid ${T.c.border}` : "none",
@@ -4683,7 +4689,8 @@ function App() {
                         )
                       )}
 
-                      {hasPlusU && (
+                      {/* PLUS checkbox:只在基碼檢視顯示(開啟加出 Base(2X) 欄位)。全碼的 Plus 已合到身型 radio。 */}
+                      {sizeView === 'base' && hasPlusU && (
                         <label style={{
                           display: "flex", alignItems: "center", gap: "5px",
                           padding: "6px 12px", borderRadius: T.r.sm,
@@ -5659,8 +5666,8 @@ function App() {
                 }
                 return applyRunOffset(code, v);
               };
-              // 顯示哪些 sizes:預設只 missy;showPlus=true 才 append plus
-              const visibleSizes = showPlus ? [...missySeq, ...plusSeq] : missySeq;
+              // 顯示哪些 sizes:Plus bodytype 只顯示 1X–4X(2X 為 BASE),其餘身型(Regular/Petite/Tall)只顯示 Missy sizes(M 為 BASE)
+              const visibleSizes = gradingBodytype === 'plus' ? plusSeq : missySeq;
               // size_run_offsets 是 legacy 結構(bucket 大多沒有此欄),保留以防舊 bucket 還在用。
               // bodytype 切換改走 gradingBodytype + bodytype_variance,不再透過 offset 加總。
               const runOffsets = currentBucket.size_run_offsets || {};
