@@ -1,240 +1,323 @@
-# PATH2 Phase 2 — PDF/PPT 自動上傳 → 資料更新 Pipeline
+# PATH2 Phase 2 — PDF/PPTX 上傳 → 自動重建 Pipeline
 
-**版本**：Draft v1.0  
-**日期**：2026-04-23  
+**狀態**：已上線
+**最後更新**：2026-04-23
 **前置**：Phase 1（`data/recipes_master.json` 統一 schema + 5 層 cascade）已完成。
 
----
+本文件紀錄**目前實際跑的**上傳流程（非設計草稿）。前端在 admin 面板提供
+兩條獨立路徑：
 
-## 目標
-
-使用者上傳新的 Techpack PDF 或 PPTX（一季或多款）→ 自動跑 3 段 pipeline →
-`data/recipes_master.json` 自動更新並部署到 Vercel，前端立即反映新樣本。
-
-**不需要本地環境**、**不需要手動跑 script**。
+1. **Upload Modal**（📤）：原始 PDF/PPTX → GitHub → Actions → `recipes_master.json` 重建 → Vercel 重新部署
+2. **Patch Upload Modal**（🩹）：本地先跑完 pipeline，直接把 `recipes_master.json` 合併進 GitHub（**不走 Actions**）
 
 ---
 
 ## 一、架構總覽
 
 ```
-[使用者]  Upload PDF / PPTX
-    │
-    ▼
-[Vercel Serverless: api/ingest.js]
-    │  接收檔案 → 寫進 GitHub repo
-    │  (git push to data/ingest/uploads/)
-    ▼
-[GitHub Actions: .github/workflows/rebuild_master.yml]
-    │
-    ├── Step 1: extract_raw_text.py --scan-dir data/ingest/uploads/
-    │          輸出 → data/ingest/unified/facts.jsonl (append)
-    │                  data/ingest/vlm/callout_images/ (PNG)
-    │
-    ├── Step 2a: extract_unified.py
-    │          輸出 → data/ingest/unified/facts.jsonl (append)
-    │
-    ├── Step 2b: vlm_pipeline.py --api-key $ANTHROPIC_API_KEY
-    │          輸出 → data/ingest/vlm_v1/facts.jsonl (append)
-    │
-    ├── Step 3: python scripts/build_recipes_master.py --strict
-    │          輸出 → data/recipes_master.json
-    │                  data/iso_dictionary.json
-    │                  data/l1_standard_38.json
-    │
-    └── git commit + push → Vercel 自動重部署
+                      ┌─ Upload Modal (PDF/PPTX) ────────────────────┐
+                      │                                              │
+                      │   POST /api/ingest_token   → 取 GITHUB_PAT    │
+                      │   瀏覽器 base64 encode                       │
+                      │   PUT  api.github.com/repos/.../contents/    │
+                      │        data/ingest/uploads/<safe>            │
+                      │                                              │
+                      │   ↓ push event                               │
+                      │                                              │
+                      │   GitHub Actions: rebuild_master.yml         │
+                      │   Step 1 extract_raw_text.py                 │
+                      │   Step 2a extract_unified.py                 │
+                      │   Step 2b vlm_pipeline.py (continue-on-err)  │
+                      │   Step 3 build_recipes_master.py --strict    │
+                      │   Commit rebuilt data/ + [skip ci]           │
+                      │                                              │
+                      │   ↑ 前端同時輪詢 /actions/runs + /jobs 顯示   │
+                      │     每步 ✓/⏭/❌/⚙/○ icon                      │
+                      └──────────────────────────────────────────────┘
+                      ┌─ Patch Modal (recipes_master.json) ──────────┐
+                      │                                              │
+                      │   POST /api/ingest_token   → 取 GITHUB_PAT    │
+                      │   GET  .../contents/data/recipes_master.json │
+                      │        (>1MB 退 Git Blob API)                │
+                      │   合併：upsert by                            │
+                      │     (aggregation_level, gender, dept,        │
+                      │      gt, it, l1)                             │
+                      │   PUT  寫回                                  │
+                      │                                              │
+                      │   → Vercel 重新部署（跳過 Actions）          │
+                      └──────────────────────────────────────────────┘
 ```
+
+兩條路徑都只靠 `/api/ingest_token` 拿 PAT，其餘**全在瀏覽器發給 GitHub**，
+繞過 Vercel function 的 **4.5 MB body 上限**（PPTX 常超過）。
 
 ---
 
-## 二、三段 Script 職責對照
+## 二、後端端點
 
-| Step | Script | 輸入 | 輸出 | 備註 |
-|------|--------|------|------|------|
-| 1 | `star_schema/scripts/extract_raw_text.py` | PDF/PPTX 目錄 | `metadata/designs.jsonl`, `pptx/facts_raw/`, `pdf/callout_images/` | D-number 去重，已處理跳過 |
-| 2a | `star_schema/scripts/extract_unified.py` | `star_schema/data/ingest/` | `data/ingest/unified/facts.jsonl` | 4 來源 merge：PPTX 中文、PDF 英文、cb、dir5 |
-| 2b | `star_schema/scripts/vlm_pipeline.py` | callout PNG + Glossary | `data/ingest/vlm_v1/facts.jsonl` | 需 `ANTHROPIC_API_KEY`；PoC 已驗可行 |
-| 3 | `scripts/build_recipes_master.py` | `data/ingest/*/facts.jsonl` + 4 本手冊 | `data/recipes_master.json` | `--strict` 若失敗則 exit 1,不 push 壞資料 |
+### `/api/ingest_token`（POST）
 
-> **注意**：`star_schema/scripts/` 是提取工具原始碼，與 repo 根目錄的 `scripts/`（build 工具）分開。
-> Phase 2 Actions workflow 需要同時呼叫兩個路徑的 script。
+檔：`api/ingest_token.js`
+
+```js
+// 輸入：header x-admin-token === process.env.ADMIN_TOKEN
+// 輸出：{ github_pat: <process.env.GITHUB_PAT> }
+// Cache-Control: no-store
+```
+
+**唯一職責**：把 `GITHUB_PAT` 發給已驗證的 admin。不做檔案處理、不做
+proxy——所有真正的上傳都在前端直連 GitHub。
+
+### `/api/ingest_upload`（POST，**前端目前不使用**）
+
+檔：`api/ingest_upload.js`
+
+原本設計給 Vercel 代 commit 用，但 admin UI 一律走 direct-to-GitHub
+路徑。端點仍保留作為小檔（≤ 4.5 MB）的後備方案，前端若未來要加
+「不暴露 PAT」模式可切回這條。
+
+`vercel.json` 仍列 `maxDuration: 60`。
 
 ---
 
 ## 三、GitHub Actions Workflow
 
-檔案：`.github/workflows/rebuild_master.yml`
+檔：`.github/workflows/rebuild_master.yml`
 
-```yaml
-name: Rebuild recipes_master
+**Trigger**：`push` 到 `data/ingest/uploads/**` 或手動 `workflow_dispatch`（含 `--force` 開關）。
 
-on:
-  push:
-    paths:
-      - "data/ingest/uploads/**"   # 觸發條件：有新上傳
-  workflow_dispatch:               # 手動觸發（用於回跑）
-    inputs:
-      force:
-        description: "Force re-extract all (ignore cache)"
-        default: "false"
+**Runner**：`ubuntu-latest`，timeout 30 分鐘，`contents: write` 權限。
 
-jobs:
-  rebuild:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
+**依賴**：`requirements-pipeline.txt` → `pymupdf>=1.23.0`、`python-pptx>=0.6.23`（其他套件如 `anthropic` 依 step 2b 需要再裝）。
 
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+### Step 1 — `extract_raw_text.py`
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: pip
-
-      - name: Install dependencies
-        run: pip install pdfplumber python-pptx pillow anthropic
-
-      - name: Step 1 — extract raw text & callout images
-        run: |
-          python star_schema/scripts/extract_raw_text.py \
-            --scan-dir data/ingest/uploads \
-            --output-dir data/ingest \
-            --summary-file /tmp/step1_summary.json \
-            --allow-empty \
-            ${{ github.event.inputs.force == 'true' && '--force' || '' }}
-          cat /tmp/step1_summary.json
-
-      - name: Step 2a — extract unified facts
-        run: |
-          python star_schema/scripts/extract_unified.py \
-            --ingest-dir data/ingest \
-            --out data/ingest/unified
-
-      - name: Step 2b — VLM callout extraction
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: |
-          python star_schema/scripts/vlm_pipeline.py \
-            --map-iso \
-            --callout-dir data/ingest/pdf/callout_images \
-            --out data/ingest/vlm_v1 \
-            --api-key "$ANTHROPIC_API_KEY" \
-            --allow-empty
-        continue-on-error: true   # VLM 失敗不擋整條 pipeline，只是少 VLM 資料
-
-      - name: Step 3 — rebuild recipes_master
-        run: python scripts/build_recipes_master.py --strict
-
-      - name: Commit updated data
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/recipes_master.json data/iso_dictionary.json data/l1_standard_38.json
-          git add data/ingest/unified/facts.jsonl data/ingest/vlm_v1/facts.jsonl
-          git diff --cached --quiet || git commit -m "chore(data): auto-rebuild recipes_master [skip ci]"
-          git push
+```bash
+python star_schema/scripts/extract_raw_text.py \
+  --scan-dir data/ingest/uploads \
+  --output-dir data/ingest \
+  --summary-file /tmp/step1_summary.json \
+  --allow-empty \
+  ${{ inputs.force == 'true' && '--force' || '' }}
 ```
 
-> `[skip ci]` 防止 push 後再次觸發 workflow loop。
+**輸入**：`data/ingest/uploads/*.pdf` / `*.pptx`
+**輸出**（只對新檔動刀）：
+- `data/ingest/metadata/designs.jsonl`（append，D-number 去重）
+- `data/ingest/pptx/<name>.txt`（new only）
+- `data/ingest/pdf/callout_images/<...>.png`（new only）
+- `data/ingest/pdf/callout_manifest.jsonl`（append）
 
----
+### Step 2a — `extract_unified.py`
 
-## 四、上傳端點（Vercel Serverless）
-
-新增 `api/ingest.js`（或 `api/ingest_upload.js`，與現有 `api/analyze.js` 平行）。
-
-**職責**：接收 multipart/form-data → 驗證副檔名 → 呼叫 GitHub Contents API 把檔案存進 `data/ingest/uploads/{season}/{filename}` → GitHub push 自動觸發 Actions。
-
-```javascript
-// api/ingest_upload.js  (skeleton)
-import { Octokit } from "@octokit/rest";
-
-export default async function handler(req, res) {
-  if (req.method !== "POST") return res.status(405).end();
-
-  const { filename, content_b64, season } = await parseMultipart(req);
-  const ext = filename.split(".").pop().toLowerCase();
-  if (!["pdf", "pptx"].includes(ext))
-    return res.status(400).json({ error: "Only PDF/PPTX accepted" });
-
-  const octokit = new Octokit({ auth: process.env.GITHUB_PAT });
-  const path = `data/ingest/uploads/${season || "misc"}/${filename}`;
-
-  await octokit.repos.createOrUpdateFileContents({
-    owner: "ellyfd",
-    repo:  "stytrix-techpack",
-    path,
-    message: `chore(ingest): upload ${filename}`,
-    content: content_b64,   // base64-encoded file bytes
-  });
-
-  res.json({ ok: true, path, message: "Pipeline will rebuild in ~2 min" });
-}
+```bash
+python star_schema/scripts/extract_unified.py \
+  --ingest-dir data/ingest \
+  --out data/ingest/unified
 ```
 
-**環境變數（Vercel Dashboard 設定）**：
+**4 來源 merge**（PPTX 中文、PDF 英文、cb、dir5）→ **全量重建**
+`data/ingest/unified/{dim,facts}.jsonl`（不是 append；確保輸出 deterministic）。
 
-| 變數 | 說明 |
-|------|------|
-| `GITHUB_PAT` | 有 `contents:write` 的 Personal Access Token（或 GitHub App） |
-| `ANTHROPIC_API_KEY` | Actions secret（已有 analyze.js 用的 key 可共用） |
+### Step 2b — `vlm_pipeline.py`（`continue-on-error`）
 
----
-
-## 五、UI 入口（index.html）
-
-在現有的 Settings 或 Admin panel 加一個「上傳新 Techpack」按鈕：
-
-```
-[上傳 PDF / PPTX]
-選擇檔案：________  季別：[SP26 ▾]
-[送出]
-
-上傳成功！Pipeline 約 2 分鐘後自動更新資料庫。
+```bash
+python star_schema/scripts/vlm_pipeline.py \
+  --map-iso \
+  --out data/ingest/vlm_v1 \
+  --callout-dir data/ingest/pdf/callout_images \
+  --allow-empty
 ```
 
-送出後 call `fetch('/api/ingest_upload', { method:'POST', body: formData })`。
+**需 secret**：`ANTHROPIC_API_KEY`
+**失敗不擋 build**：`continue-on-error: true`，只是少一組 VLM fact。
+這一步的失敗**只在 Actions log 可見**，不會 surface 到 commit 訊息或 PR。
 
-**不需要輪詢**：Vercel 重部署後頁面 reload 或下次 fetch `recipes_master.json` 就拿到新資料（Vercel 靜態檔有 CDN cache；deploy 後 cache busted）。
+### Step 3 — `build_recipes_master.py --strict`
+
+```bash
+python star_schema/scripts/build_recipes_master.py --strict
+```
+
+**輸入**：`data/ingest/*/facts.jsonl` + 4 本手冊（L1 標準、iso dictionary 等）
+**輸出**：
+- `data/recipes_master.json`
+- `data/iso_dictionary.json`
+- `data/l1_standard_38.json`
+
+`--strict`：任何 ingest/taxonomy 違規就 `exit 1`，**擋 commit**——不會把壞資料推回 main。
+
+### Step 4 — Commit & Push
+
+```bash
+find data/ingest/uploads -maxdepth 1 -type f ! -name '.gitkeep' \
+  -exec git rm --force {} \; 2>/dev/null || true
+git add data/recipes_master.json data/iso_dictionary.json data/l1_standard_38.json
+git add data/ingest/metadata/designs.jsonl data/ingest/pptx/ data/ingest/unified/ \
+        data/ingest/pdf/callout_manifest.jsonl
+git diff --cached --quiet || git commit -m "chore(data): auto-rebuild recipes_master [skip ci]"
+git push origin HEAD
+```
+
+- **uploads/ 處理完刪除**：避免重複觸發 + 避免 repo 長肥
+- **`[skip ci]`**：防止 auto-commit 再觸發自己
+- **Vercel**：看到 main 有新 commit 自動重新部署，約 1~2 分鐘後前端吃到新資料
 
 ---
 
-## 六、邊界條件與保護
+## 四、前端 Upload Modal（`UploadModal` in `index.html`）
 
-| 場景 | 處理方式 |
-|------|----------|
-| 上傳重複 D-number | `extract_raw_text.py --force` 不加時自動跳過，不重算 |
-| VLM API 失敗 | Step 2b 設 `continue-on-error: true`；`build_recipes_master.py` 照跑舊 VLM 資料 |
-| `--strict` 失敗（zone 對不齊/L1 不在 38 碼）| Actions exit 1，不 push 壞資料；Vercel 不重部署 |
-| 惡意上傳非 techpack 檔 | Serverless 端只允許 `.pdf` / `.pptx`；script 端 D-number 格式驗證 |
-| Actions timeout（30 min）| 大批量上傳拆批次；一次不超過 20 款 |
+### Flow
+
+1. **驗 Admin Token**：若無，阻擋並提示「請先至 ⚙ 設定 填入」
+2. **取 PAT**：`POST /api/ingest_token`，header 帶 `x-admin-token`
+3. **base64 encode**：`uploadFile.arrayBuffer()` → chunked `fromCharCode` → `btoa`
+   （chunk 8192 bytes 避免 stack overflow on large files）
+4. **檔名清洗**：`safeName = name.replace(/[^a-zA-Z0-9._-]/g, '_')`
+5. **檢查 existing**：`GET /contents/data/ingest/uploads/<safe>` 拿 `sha`（若存在）
+6. **PUT 檔案**：`PUT /contents/data/ingest/uploads/<safe>`
+   body: `{ message, content: b64, branch: 'main', sha? }`
+   回傳的 `result.commit.sha` 是觸發 Actions 的 commit SHA
+7. **切到 CI 階段**：`pollCi(commitSha, pat)`
+
+### `pollCi` — 即時狀態追蹤
+
+**階段 A**：等 workflow run 出現（最多 45 秒，3 秒 interval × 15 次）
+```
+GET /actions/runs?head_sha=<commitSha>&per_page=1
+```
+45 秒沒出現 → 顯示「⚠ CI 未啟動（超過 45 秒）」
+
+**階段 B**：輪詢狀態（5 秒 interval × 180 次 = 15 分鐘）
+```
+GET /actions/runs/<runId>
+GET /actions/runs/<runId>/jobs
+```
+每輪拿 `job.steps`，filter 出已知 5 個 step 名稱 → 渲染成中文 label + icon。
+
+### Step label 對照
+
+| 英文 step name | 中文 UI label |
+|---|---|
+| `Step 1 — extract raw text & callout images` | `1｜拆解文字 & callout 圖片` |
+| `Step 2a — unified extraction` | `2a｜統一萃取 (PPTX)` |
+| `Step 2b — VLM callout extraction` | `2b｜VLM 分析 callout (PDF)` |
+| `Step 3 — rebuild recipes_master` | `3｜重建 recipes_master` |
+| `Commit updated data` | `提交資料` |
+
+Icon：`completed+success → ✓`；`skipped → ⏭`；`failure → ❌`；`in_progress → ⚙`；未開始 → `○`。
+Modal 同時跑一個 1 秒 tick 的 timer 顯示 `mm:ss` 倒數。
+
+### 狀態機
+
+```
+idle → uploading → ci → done | error
+                         ↑_______|
+                         「再上傳」按鈕重置回 idle
+```
+
+`error` 狀態會把錯誤訊息 concat 在 `statusMsg` 底下（保留上傳成功的 log），
+`done` 狀態顯示 `✓ Pipeline 全部完成！`。
 
 ---
 
-## 七、實作優先順序
+## 五、前端 Patch Upload Modal（`PatchUploadModal` in `index.html`）
 
-| Priority | 項目 | 依賴 | 狀態 |
-|----------|------|------|------|
-| P0 | `extract_raw_text.py` 加 `--summary-file`、`--allow-empty`、default 改 repo-root `data/ingest/` | 無 | ✅ 完成 |
-| P0 | `extract_unified.py` 加 `--ingest-dir` / `--out` / `--classification-file` / `--legacy-pptx-json-dir` CLI args | 無 | ✅ 完成 |
-| P0 | `vlm_pipeline.py` 加 `--callout-dir` / `--out` / `--classification-file` / `--scan-dir` / `--api-key` / `--allow-empty` CLI args;順便修 `select_pilot_batch` 的 forward-reference bug | 無 | ✅ 完成 |
-| P0 | `.github/workflows/rebuild_master.yml` 初版 | 上面 3 條 script 就緒 | ⏳ 待做 |
-| P1 | `vlm_pipeline.py --api-key` 自動模式(目前 PoC 手動讀圖) | `vlm_poc/vlm_poc_report.md` §5 | ⏳ 待做 |
-| P1 | `api/ingest_upload.js` Vercel 端點 | `GITHUB_PAT` secret | ⏳ 待做 |
-| P2 | UI「上傳」按鈕 + 狀態提示 | `api/ingest_upload.js` | ⏳ 待做 |
-| P2 | 上傳後 webhook 或 SSE 通知前端「資料已更新」 | 選做 | ⏳ 待做 |
+**用途**：本地已經跑完完整 pipeline（拿到一份新版 `recipes_master.json`），
+想直接合併進 GitHub，**不走 Actions**。適用情境：
+
+- Pipeline script 本地改過，想先測試 output 再決定要不要正式跑 Actions
+- 只補幾筆資料，不想等 Actions 重建
+- Actions 壞了的 workaround
+
+### Flow
+
+1. 取 PAT（同上）
+2. 讀使用者選的 JSON 檔；驗證 `entries` 是陣列
+3. 下載現有 `data/recipes_master.json`：
+   - 先試 `GET /contents/...`（≤ 1 MB 才會附 `content`）
+   - 大檔退 `GET /git/blobs/<sha>`
+4. **Upsert merge**：
+   ```js
+   key = aggregation_level + gender + dept + gt + it + l1
+   map = Map(existing.entries by key)
+   patch.entries.forEach(e => map.set(key(e), e))  // 同 key 覆蓋，新 key 插入
+   merged.entries = Array.from(map.values())
+   ```
+5. 顯示合併統計：`原 N 筆，新增 X、更新 Y → 合計 M 筆`
+6. `PUT` 寫回 `data/recipes_master.json`，帶原 sha
+
+### Commit message
+
+`chore(data): merge recipes_master via admin`
+
+不帶 `[skip ci]`——但因為沒改動 `data/ingest/uploads/**`，workflow 的
+trigger path 不匹配，Actions 還是不會跑。只有 Vercel 重新部署會觸發。
 
 ---
 
-## 八、與現有架構的邊界
+## 六、環境變數與 secrets
+
+### Vercel Project Settings
+
+| 變數 | 用途 |
+|---|---|
+| `ANTHROPIC_API_KEY` | `api/analyze.js` 呼叫 Claude Vision |
+| `ADMIN_TOKEN` | 所有 admin 端點共享的驗證 token |
+| `GITHUB_PAT` | `/api/ingest_token` 發出；需 `contents: write` scope |
+
+### GitHub Actions Secrets（repo settings → Secrets）
+
+| 變數 | 用途 |
+|---|---|
+| `ANTHROPIC_API_KEY` | workflow Step 2b VLM pipeline |
+| `GITHUB_TOKEN` | 自動注入；workflow 最後 push 用 |
+
+---
+
+## 七、邊界條件與保護
+
+| 場景 | 處理方式 | 位置 |
+|---|---|---|
+| Admin Token 錯誤 | `/api/ingest_token` 回 401，前端顯示「Admin Token 錯誤」 | `api/ingest_token.js:11` |
+| 檔名有特殊字元 | `[^a-zA-Z0-9._-]` 替換為 `_` | `index.html` `UploadModal.handleUpload` |
+| 檔案已存在 | 先 GET 拿 `sha`，PUT 帶 `sha` 強制覆寫 | 同上 |
+| 檔案 > 1 MB（Patch 下載） | GET 沒 `content` → 退 `/git/blobs/<sha>` | `PatchUploadModal.handlePatch` |
+| 上傳重複 D-number | `extract_raw_text.py` D-number 去重，不加 `--force` 跳過 | workflow Step 1 |
+| VLM API 失敗 | `continue-on-error: true`；少一組 fact，但 pipeline 繼續 | workflow Step 2b |
+| `--strict` 失敗 | `exit 1`；commit/push 不執行，Vercel 不重部署 | workflow Step 3 |
+| 惡意上傳非 techpack 檔 | UI `accept=".pdf,.pptx"`；後續 D-number 格式驗證 | `index.html`；pipeline |
+| Actions 未啟動 | 前端 45 秒內輪詢不到 workflow run → 顯示警告 | `pollCi` 階段 A |
+| Actions 超時 | 15 分鐘輪詢極限 → 顯示「追蹤逾時」；Actions 仍會自己跑完 | `pollCi` 階段 B |
+| Actions 失敗 | Modal 顯示 `❌ Pipeline 失敗 (conclusion)`，步驟列表保留給 debug | `pollCi` |
+| `recipes_master.json` 格式錯誤（Patch） | `JSON.parse` 抓 / `entries` 不是陣列時拒絕 | `PatchUploadModal` |
+
+---
+
+## 八、與其他系統的邊界
 
 - **不碰**：`api/analyze.js`（VLM 部位偵測，與做工推薦無關）
 - **不碰**：`l2_l3_ie/`、`pom_rules/`（五階層與聚陽模式）
-- **`data/recipes_master.json` 是唯一 output artifact**：前端永遠只讀這一個檔，pipeline 怎麼跑都無感
-- **原始上傳檔**（PDF/PPTX）存在 `data/ingest/uploads/`，不直接被前端 fetch；只有 `data/*.json` 被前端讀
+- **輸入**：`data/ingest/uploads/*.pdf|*.pptx`（僅此一入口）
+- **輸出**：只有 `data/recipes_master.json`、`data/iso_dictionary.json`、
+  `data/l1_standard_38.json` 被前端 fetch；`data/ingest/` 其餘是 pipeline
+  內部 staging
 
 ---
 
-*PATH2 Phase 2 Draft v1.0 | 2026-04-23*
+## 九、Source of Truth
+
+本文件描述的內容散佈在以下檔案，任何歧異**以程式碼為準**：
+
+- 端點：`api/ingest_token.js`、`api/ingest_upload.js`
+- Workflow：`.github/workflows/rebuild_master.yml`
+- Pipeline scripts：`star_schema/scripts/{extract_raw_text,extract_unified,vlm_pipeline,build_recipes_master}.py`
+- 前端 UI：`index.html` 內 `UploadModal` / `PatchUploadModal` / `CI_STEP_LABELS` / `mergeRecipesMaster` / `PATCH_TARGET`
+- 依賴：`requirements-pipeline.txt`
+- Vercel config：`vercel.json`
+
+改了實作**一定要**同步更新本文件，尤其是：
+
+- workflow step 名稱 → 影響前端 `CI_STEP_LABELS` 映射（CI 步驟顯示會漏）
+- `data/ingest/` 子目錄結構 → 影響 workflow `git add` 清單
+- `recipes_master.json` 的 merge key 欄位 → 影響 `PatchUploadModal.mergeRecipesMaster`
