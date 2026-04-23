@@ -1898,19 +1898,69 @@ function BucketPomRow({ code, tier, measurement, median, grading, pomName, isOpe
 /* ═══════════════════════════════════════════════════════════════════
    Main App
    ═══════════════════════════════════════════════════════════════════ */
+/* SettingsModal: 全域設定面板 — Admin Token 統一在這裡設定，供所有動作共用 */
+function SettingsModal({ open, onClose, token, onSaveToken }) {
+  const [showTok, setShowTok] = React.useState(false);
+  const [localTok, setLocalTok] = React.useState(token);
+  React.useEffect(() => { if (open) { setLocalTok(token); setShowTok(false); } }, [open, token]);
+  if (!open) return null;
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: '20px',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background: '#fff', borderRadius: '12px', padding: '24px',
+        width: '100%', maxWidth: '440px', boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '18px' }}>
+          <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 700 }}>⚙ 設定</h2>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '22px', color: '#999', lineHeight: 1, padding: '0 4px', fontFamily: 'inherit' }}>×</button>
+        </div>
+
+        <div style={{ marginBottom: '6px', fontSize: '12px', fontWeight: 600, color: '#374151' }}>🔑 Admin Token</div>
+        <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '10px' }}>
+          存入瀏覽器 localStorage，用於 Techpack 上傳、POM 字典推送等所有需要授權的動作。
+        </div>
+        <div style={{ display: 'flex', gap: '6px', marginBottom: '16px' }}>
+          <input
+            type={showTok ? 'text' : 'password'}
+            value={localTok}
+            onChange={e => setLocalTok(e.target.value)}
+            placeholder="Vercel ADMIN_TOKEN 對應的共享密碼"
+            style={{ flex: 1, padding: '8px 10px', fontSize: '13px', fontFamily: "'JetBrains Mono',monospace",
+              border: '1px solid #d1d5db', borderRadius: '6px' }}
+          />
+          <button onClick={() => setShowTok(!showTok)}
+            style={{ padding: '8px 12px', fontSize: '12px', border: '1px solid #d1d5db', background: '#f9fafb', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit' }}>
+            {showTok ? '隱藏' : '顯示'}
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+          <button onClick={onClose}
+            style={{ padding: '8px 16px', fontSize: '13px', border: '1px solid #d1d5db', background: '#f9fafb', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit' }}>
+            取消
+          </button>
+          <button onClick={() => { onSaveToken(localTok); onClose(); }}
+            style={{ padding: '8px 18px', fontSize: '13px', fontWeight: 600, border: 'none', background: '#1d4ed8', color: '#fff', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit' }}>
+            儲存
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* AdminModal:POM 翻譯表編輯器(data/pom_dictionary.json)
    - 上方「GitHub 推送 Token」:shared 密碼,存 localStorage['stytrix.admin.token']
    - 中間表格:code / en / zh 三欄,可搜尋 / 編輯 / 刪列 / 新增列
    - 工具:匯入 Excel(code/en/zh 三欄)、匯出 Excel
    - 下方:commit message + 推送到 GitHub
    - pomNames 是目前線上版 dict(read-only seed),draft 是草稿 */
-function AdminModal({ open, onClose, pomNames, onPushDict }) {
+function AdminModal({ open, onClose, pomNames, onPushDict, token, onSaveToken }) {
   const [draft, setDraft] = React.useState({});
   const [search, setSearch] = React.useState('');
-  const [token, setToken] = React.useState(() => {
-    try { return localStorage.getItem('stytrix.admin.token') || ''; } catch { return ''; }
-  });
-  const [showToken, setShowToken] = React.useState(false);
   const [commitMsg, setCommitMsg] = React.useState('');
   const [pushState, setPushState] = React.useState({ status: 'idle', msg: '' });
   const [uploadFile, setUploadFile] = React.useState(null);
@@ -1931,7 +1981,7 @@ function AdminModal({ open, onClose, pomNames, onPushDict }) {
 
   const handleUpload = async () => {
     if (!uploadFile) return;
-    if (!token) { setUploadStatus({ status: 'error', msg: '請先填 Admin Token' }); return; }
+    if (!token) { setUploadStatus({ status: 'error', msg: '請先至「設定」填入 Admin Token' }); return; }
     setUploadStatus({ status: 'uploading', msg: '上傳中...' });
     try {
       const buf = await uploadFile.arrayBuffer();
@@ -1948,11 +1998,6 @@ function AdminModal({ open, onClose, pomNames, onPushDict }) {
     } catch (e) {
       setUploadStatus({ status: 'error', msg: `錯誤: ${e.message}` });
     }
-  };
-
-  const saveToken = (t) => {
-    setToken(t);
-    try { t ? localStorage.setItem('stytrix.admin.token', t) : localStorage.removeItem('stytrix.admin.token'); } catch {}
   };
 
   // Draft helpers
@@ -2034,7 +2079,7 @@ function AdminModal({ open, onClose, pomNames, onPushDict }) {
 
   // Push handler
   const pushNow = async () => {
-    if (!token) { alert('請先填 Admin Token'); return; }
+    if (!token) { alert('請先點右上角「⚙ 設定」填入 Admin Token'); return; }
     setPushState({ status: 'pushing', msg: '推送中…' });
     try {
       // 沒填 commit message 就用自動產生的那條
@@ -2114,19 +2159,12 @@ function AdminModal({ open, onClose, pomNames, onPushDict }) {
           }}>×</button>
         </div>
 
-        {/* Admin Token(上方) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', padding: '10px 12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px' }}>
-          <span style={{ fontSize: '11px', color: '#92400e', fontWeight: 600, whiteSpace: 'nowrap' }}>🔑 Admin Token</span>
-          <input type={showToken ? 'text' : 'password'} value={token} onChange={e => saveToken(e.target.value)}
-            placeholder="Vercel env ADMIN_TOKEN 對應的共享密碼"
-            style={{ flex: 1, minWidth: 0, padding: '6px 10px', fontSize: '12px', fontFamily: "'JetBrains Mono',monospace",
-              border: '1px solid #fcd34d', borderRadius: '6px', background: '#fff' }} />
-          <button onClick={() => setShowToken(!showToken)} type="button"
-            style={{ fontSize: '11px', padding: '5px 10px', border: '1px solid #fcd34d', background: '#fff', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit' }}>
-            {showToken ? '隱藏' : '顯示'}
-          </button>
-          <span style={{ fontSize: '10px', color: '#92400e' }} title="存在 localStorage.stytrix.admin.token,跟 Vercel 的 ADMIN_TOKEN 環境變數比對">?</span>
-        </div>
+        {/* Token 狀態列 — 僅顯示是否已設定；在「⚙ 設定」修改 */}
+        {!token && (
+          <div style={{ marginBottom: '10px', padding: '8px 12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', fontSize: '12px', color: '#92400e' }}>
+            ⚠ Admin Token 尚未設定 — 請先點右上角 <strong>⚙ 設定</strong> 填入。
+          </div>
+        )}
 
         {/* Techpack 上傳 */}
         <div style={{ marginBottom: '12px', padding: '12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px' }}>
@@ -2418,6 +2456,14 @@ function App() {
   const [sketchSrc, setSketchSrc] = useState(null);
   const [pomRules, setPomRules] = useState(null);
   const [adminOpen, setAdminOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [adminToken, setAdminToken] = useState(() => {
+    try { return localStorage.getItem('stytrix.admin.token') || ''; } catch { return ''; }
+  });
+  const saveAdminToken = (t) => {
+    setAdminToken(t);
+    try { t ? localStorage.setItem('stytrix.admin.token', t) : localStorage.removeItem('stytrix.admin.token'); } catch {}
+  };
   // 模式切換：makalot=聚陽模型（作工五階層 + POM tier + 全碼）/ universal=通用模型（AI→ISO + 基礎大尺寸）
   const [appMode, setAppMode] = useState(() => {
     try {
@@ -3573,6 +3619,22 @@ function App() {
               );
             })}
           </div>
+          <button onClick={() => setSettingsOpen(true)}
+            aria-label="開啟設定"
+            title="設定 (Admin Token)"
+            style={{
+              background: adminToken ? "#fff" : "#fffbeb",
+              border: `1px solid ${adminToken ? "#e8e5e1" : "#fcd34d"}`,
+              borderRadius: "6px",
+              padding: isMobile ? "6px 10px" : "8px 12px",
+              fontSize: isMobile ? "12px" : "13px", fontWeight: 700,
+              color: adminToken ? "#555" : "#92400e",
+              cursor: "pointer", fontFamily: "inherit",
+              display: "inline-flex", alignItems: "center", gap: "4px", justifyContent: "center",
+              transition: "border-color 0.15s",
+            }}>
+            ⚙{!adminToken && <span style={{ fontSize: "10px", marginLeft: "2px" }}>!</span>}
+          </button>
           <button onClick={() => setAdminOpen(true)}
             aria-label="開啟管理面板"
             title="管理"
@@ -5934,11 +5996,19 @@ function App() {
         )}
       </div>
 
+      <SettingsModal
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        token={adminToken}
+        onSaveToken={saveAdminToken}
+      />
       <AdminModal
         open={adminOpen}
         onClose={() => setAdminOpen(false)}
         pomNames={pomNames}
         onPushDict={pushPomDict}
+        token={adminToken}
+        onSaveToken={saveAdminToken}
       />
       <OnboardingModal open={onboardingOpen} onDismiss={dismissOnboarding} />
 
