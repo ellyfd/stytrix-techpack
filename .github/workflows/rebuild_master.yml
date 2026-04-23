@@ -1,9 +1,10 @@
 name: Rebuild recipes_master
 
+# 觸發:任何 push 到 main 都會評估,但 job-level if 會過濾掉沒碰 uploads/ 的 commit
+# (避免 paths filter 在某些 GitHub 通知情境顯示成 "No jobs were run: failed")
 on:
   push:
-    paths:
-      - "data/ingest/uploads/**"
+    branches: [main]
   workflow_dispatch:
     inputs:
       force:
@@ -15,6 +16,12 @@ jobs:
   rebuild:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # 只在 manual dispatch,或 push 有碰到 data/ingest/uploads/ 時才跑
+    # 其他 push 會 skip(不是 fail),不會觸發 failure 通知
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      contains(toJSON(github.event.commits.*.modified), 'data/ingest/uploads/') ||
+      contains(toJSON(github.event.commits.*.added), 'data/ingest/uploads/')
     permissions:
       contents: write
 
