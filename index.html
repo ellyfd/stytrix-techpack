@@ -4235,8 +4235,20 @@ function App() {
 
   const runMeasurement = () => {
     setMStep(1); setMAnalyzing(true); setMStage(0);
-    setExcluded(new Set()); setOpenPom(null); setSizeRun("missy");
-    setShowPetite(true); setShowTall(true);
+    setOpenPom(null); setSizeRun("missy");
+    setShowPetite(false); setShowTall(false);
+    // 預設只勾「必備」tier;「建議 / 選配」預先加入 excluded 且折疊起來,
+    // 使用者要擴展時自行展開/勾選。
+    const _mr = currentBucket?.measurement_rules || {};
+    const _keep = appMode === "universal"
+      ? (c => universalBasicCodes.has(c) || userAddedCodes.has(c))
+      : (() => true);
+    const _defaultExcluded = new Set(
+      ["recommend", "optional"]
+        .flatMap(t => Object.keys(_mr[t] || {}).filter(c => _mr[t][c] != null && _keep(c)))
+    );
+    setExcluded(_defaultExcluded);
+    setCollapsedTiers(new Set(["recommend", "optional"]));
     const si = setInterval(() => setMStage(s => s < 5 ? s + 1 : s), 350);
     setTimeout(() => { clearInterval(si); setMAnalyzing(false); setMStep(2); }, 2200);
   };
@@ -5424,22 +5436,27 @@ function App() {
                       alignItems: "center",
                       gap: isMobile ? "8px" : "16px"
                     }}>
-                      {/* 統一 header:標題只留「基碼」/「全碼」,計數移到副標列,移除冗餘描述 */}
+                      {/* 統一 header:手機版只留「基碼/全碼」標題;
+                          桌機才顯示計數+副標。Re-generate 按鈕維持在右側。 */}
                       <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "baseline", gap: "10px", flexWrap: "wrap" }}>
                         <div style={{ fontSize: T.fs.xl, fontWeight: 700, color: T.c.text, lineHeight: 1.2 }}>
                           {sizeView === "base" ? "基碼" : "全碼"}
                         </div>
-                        <div style={{ fontSize: T.fs.md, color: T.c.text3, fontFamily: "'JetBrains Mono',monospace" }}>
-                          <span style={{ color: T.c.text, fontWeight: 700 }}>{bucketIncludedU}</span>
-                          <span> / {totalPomsU}</span>
-                        </div>
-                        <div style={{ fontSize: T.fs.base, color: T.c.text3 }}>
-                          {sizeView === "base"
-                            ? `${codesByTierU.must.length} 必備 · ${codesByTierU.recommend.length} 建議 · ${codesByTierU.optional.length} 選配`
-                            : (gradingBodytype === 'plus'
+                        {!isMobile && (
+                          <div style={{ fontSize: T.fs.md, color: T.c.text3, fontFamily: "'JetBrains Mono',monospace" }}>
+                            <span style={{ color: T.c.text, fontWeight: 700 }}>{bucketIncludedU}</span>
+                            <span> / {totalPomsU}</span>
+                          </div>
+                        )}
+                        {!isMobile && (
+                          <div style={{ fontSize: T.fs.base, color: T.c.text3 }}>
+                            {sizeView === "base"
+                              ? `${codesByTierU.must.length} 必備 · ${codesByTierU.recommend.length} 建議 · ${codesByTierU.optional.length} 選配`
+                              : (gradingBodytype === 'plus'
                                 ? `Plus · ${plusSeqU.length} sizes(2X BASE)`
                                 : `${sizesU.filter(s => !isPlusU(s)).length} sizes${hasPlusU ? `  (Plus 可切換)` : ""}`)}
-                        </div>
+                          </div>
+                        )}
                       </div>
                       <button onClick={runMeasurement} style={btnStyle({ variant: 'secondary', isMobile })}>Re-generate</button>
                     </div>
