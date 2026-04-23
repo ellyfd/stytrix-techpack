@@ -1,0 +1,108 @@
+name: Rebuild recipes_master
+
+on:
+  push:
+    paths:
+      - "data/ingest/uploads/**"  # triggered when new PDF/PPTX is uploaded
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Force re-extract all (ignore already-processed designs)"
+        type: boolean
+        default: false
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # Fetch full history so we can push back
+          fetch-depth: 0
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements-pipeline.txt
+
+      - name: Install pipeline dependencies
+        run: pip install -r requirements-pipeline.txt
+
+      # ── Step 1: extract raw text + callout images ──────────────────────────
+      # Reads data/ingest/uploads/, writes:
+      #   data/ingest/metadata/designs.jsonl   (append)
+      #   data/ingest/pptx/*.txt               (new files only)
+      #   data/ingest/pdf/callout_images/*.png  (new files only)
+      #   data/ingest/pdf/callout_manifest.jsonl (append)
+      - name: Step 1 — extract raw text & callout images
+        run: |
+          python star_schema/scripts/extract_raw_text.py \
+            --scan-dir data/ingest/uploads \
+            --output-dir data/ingest \
+            --summary-file /tmp/step1_summary.json \
+            --allow-empty \
+            ${{ github.event.inputs.force == 'true' && '--force' || '' }}
+          echo "Step 1 summary:"
+          cat /tmp/step1_summary.json
+
+      # ── Step 2a: unified extraction (PPTX + metadata → facts) ─────────────
+      # Reads data/ingest/pptx/ + data/ingest/metadata/designs.jsonl
+      # Writes data/ingest/unified/dim.jsonl + facts.jsonl (full rebuild from all sources)
+      - name: Step 2a — unified extraction
+        run: |
+          python star_schema/scripts/extract_unified.py \
+            --ingest-dir data/ingest \
+            --out data/ingest/unified
+
+      # ── Step 2b: VLM callout extraction (optional) ────────────────────────
+      # Reads vlm_raw_extracts.json (pre-populated via PoC or future API mode).
+      # --allow-empty: exits 0 if nothing to process; errors don't block build.
+      - name: Step 2b — VLM callout extraction
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          python star_schema/scripts/vlm_pipeline.py \
+            --map-iso \
+            --out data/ingest/vlm_v1 \
+            --callout-dir data/ingest/pdf/callout_images \
+            --allow-empty
+        continue-on-error: true
+
+      # ── Step 3: rebuild recipes_master ────────────────────────────────────
+      # Reads data/ingest/*/facts.jsonl + 4 source handbooks
+      # Writes data/recipes_master.json + data/iso_dictionary.json + data/l1_standard_38.json
+      # --strict: exits 1 on any ingest/taxonomy violation → blocks commit
+      - name: Step 3 — rebuild recipes_master
+        run: python scripts/build_recipes_master.py --strict
+
+      # ── Commit derived outputs ─────────────────────────────────────────────
+      - name: Commit updated data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Stage derived outputs only (not the source uploads, already committed)
+          git add data/recipes_master.json
+          git add data/iso_dictionary.json
+          git add data/l1_standard_38.json
+          git add data/ingest/metadata/designs.jsonl || true
+          git add data/ingest/pptx/ || true
+          git add data/ingest/unified/ || true
+          git add data/ingest/pdf/callout_manifest.jsonl || true
+
+          # Only commit if something actually changed
+          if git diff --cached --quiet; then
+            echo "No changes to commit — all designs already up to date."
+          else
+            MSG="chore(data): auto-rebuild recipes_master [skip ci]"
+            git commit -m "$MSG"
+            git push origin HEAD
+          fi
