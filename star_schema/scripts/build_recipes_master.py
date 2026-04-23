@@ -497,9 +497,18 @@ def build_from_bridge(bridge, zh_to_l1, warns):
 
 
 def load_bucket_taxonomy(path: Path) -> dict:
-    """Load bucket_taxonomy.json → {bucket_lower: {gender: [...], dept: [...], gt: [...]}}."""
+    """Load bucket_taxonomy.json → {BUCKET_UPPER: {gender: [...], dept: [...], gt: [...]}}.
+
+    Keys in the source file are lowercase (womens_perf_bottoms), but both
+    consensus rows and facts rows carry bucket names in uppercase. Normalising
+    at load time lets all call sites just do bucket_tax.get(bucket_upper)
+    without per-site .upper() dances — and fixes the long-standing miss where
+    build_from_consensus silently fell through to the None-taxonomy fallback
+    for every one of its 275 rows.
+    """
     raw = load_json(path)
-    return raw.get("buckets") or {}
+    buckets = raw.get("buckets") or {}
+    return {k.upper(): v for k, v in buckets.items()}
 
 
 def build_from_consensus(consensus_path: Path, bucket_tax: dict, warns: list):
