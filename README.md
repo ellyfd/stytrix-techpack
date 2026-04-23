@@ -3,7 +3,7 @@
 Techpack Creation + Measurement Spec 合併介面。
 線上版：https://stytrix-techpack.vercel.app
 
-> 想直接看全貌 Mermaid 圖（7 張 + 資料夾對照表）：[`網站架構圖.md`](./網站架構圖.md)
+> 想直接看全貌 Mermaid 圖（4 張：高階流程 / 前端模式分流 / 資料依賴 / Ingest Pipeline）+ 資料夾對照表 + 架構債清單 + 權威手冊登記表：[`網站架構圖.md`](./網站架構圖.md)
 
 ## 兩種模式
 
@@ -47,20 +47,21 @@ data/
   ├─ all_designs_gt_it_classification.json    ← 全量 design 的 GT / IT 分類（1292 designs）
   ├─ bucket_taxonomy.json                     ← 59 個 bucket 分類表(Step 3 `--strict` 驗證用,2026-04-23 擴增 +10 Gate Report +9 newborn/toddler 性別對齊)
   ├─ client_rules.json / design_classification_v5.json / ...
+  ├─ l1_part_presence_v1.json                 ← 聚陽模型:GT×IT 下每個部位出現率(345 KB)
+  ├─ l1_iso_recommendations_v1.json           ← 聚陽模型:部位名 → ISO 建議(519 KB)
   └─ ingest/                                  ← PDF/PPTX 上傳後的 staging 區，Actions workflow 讀寫
       ├─ uploads/                             ←   使用者上傳的原始 PDF/PPTX（處理完由 workflow 刪）
       ├─ metadata/designs.jsonl               ←   D-number 去重表（Step 1 append）
       ├─ pptx/<slug>.txt                      ←   PPTX 文字（Step 1）
-      ├─ pdf/callout_images/<DID>_p<N>.png    ←   PDF callout 影像（Step 1，216 DPI）
+      ├─ pdf/callout_images/<DID>_p<N>.png    ←   PDF callout 影像（Step 1，216 DPI，處理完不保留）
       ├─ pdf/callout_manifest.jsonl           ←   PDF callout 影像索引
       ├─ unified/{dim,facts}.jsonl            ←   Step 2a 全量合併 4 來源的 facts
       ├─ vlm/{facts.jsonl,vlm_callout_extracts.json}
       │                                       ←   Step 2b 輸出（**vlm/**，不是 vlm_v1）
-      ├─ consensus_v1/entries.jsonl           ←   手動 bucket consensus 規則（275 條，被 build_recipes_master 吃）
+      ├─ consensus_v1/entries.jsonl           ←   手動 bucket consensus 規則（275 條，build_recipes_master 吃）
       ├─ construction_by_bucket/              ←   外部資料源（688 設計，Step 2a 讀）
-      └─ ocr_v1/                              ←   舊 OCR 輸出（未用，歷史保留）
-data/l1_part_presence_v1.json                 ← 聚陽模型：GT×IT 下每個部位出現率（2026-04-23 從根目錄搬入）
-data/l1_iso_recommendations_v1.json           ← 聚陽模型：部位名 → ISO 建議（同上）
+      ├─ consensus_rules/                     ←   ⚠ orphan：275 筆與 consensus_v1 同源，無人讀，待清
+      └─ ocr_v1/                              ←   ⚠ orphan：舊 OCR 輸出，無人讀，待清
 l2_l3_ie/*.json                               ← 聚陽模型：38 個 L1 部位的 L2-L3-IE 規則（39 檔 = 38 L1 + 1 index）
 pom_rules/*.json                              ← POM 規則（81 bucket + _index.json = 82 檔，由 scripts/reclassify_and_rebuild.py 產出）
 General Model_Path2_Construction Suggestion/
