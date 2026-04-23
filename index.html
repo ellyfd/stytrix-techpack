@@ -4494,36 +4494,29 @@ function App() {
                         aria-pressed={sizeView === "base"}
                         style={{
                           flex: isMobile ? 1 : "0 0 auto",
-                          padding: isMobile ? "9px 12px" : "10px 20px",
+                          padding: isMobile ? "9px 16px" : "10px 24px",
                           background: sizeView === "base" ? T.c.text : T.c.bg,
                           color: sizeView === "base" ? T.c.bg : T.c.text2,
                           border: "none", borderRight: `1px solid ${T.c.border}`,
-                          fontSize: isMobile ? "12px" : "13px", fontWeight: 700, cursor: "pointer",
+                          fontSize: T.fs.md, fontWeight: 700, cursor: "pointer",
                           fontFamily: "inherit", transition: "background 0.15s, color 0.15s",
-                        }}>基碼 MISSY + PLUS</button>
+                        }}>基碼</button>
                       <button onClick={() => !gradingDisabled && setSizeView("grading")}
                         disabled={gradingDisabled}
                         aria-pressed={sizeView === "grading"}
                         title={gradingDisabled ? "請先完成基碼 / POM 確認" : ""}
                         style={{
                           flex: isMobile ? 1 : "0 0 auto",
-                          padding: isMobile ? "9px 12px" : "10px 20px",
+                          padding: isMobile ? "9px 16px" : "10px 24px",
                           background: sizeView === "grading" ? T.c.text : T.c.bg,
                           color: gradingDisabled ? T.c.text4 : (sizeView === "grading" ? T.c.bg : T.c.text2),
                           border: "none",
-                          fontSize: isMobile ? "12px" : "13px", fontWeight: 700,
+                          fontSize: T.fs.md, fontWeight: 700,
                           cursor: gradingDisabled ? "not-allowed" : "pointer",
                           opacity: gradingDisabled ? 0.55 : 1,
                           fontFamily: "inherit", transition: "background 0.15s, color 0.15s",
-                        }}>全碼 Full Grading</button>
+                        }}>全碼</button>
                     </div>
-                    {!isMobile && (
-                      <span style={{ fontSize: "12px", color: T.c.text3 }}>
-                        {sizeView === "base"
-                          ? "M size · 單一基準 · Petite / Tall sub-row"
-                          : "XS–XXL (+1X–4X) · 推導尺寸表"}
-                      </span>
-                    )}
                     <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "6px" }}>
                       {!isMobile && <span style={{ fontSize: "10px", color: "#bbb", fontWeight: 500, letterSpacing: "0.05em", textTransform: "uppercase" }}>Size Rule</span>}
                       <span style={{
@@ -4548,36 +4541,20 @@ function App() {
                       alignItems: "center",
                       gap: isMobile ? "10px" : "16px"
                     }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        {sizeView === "base" ? (
-                          <>
-                            <div style={{ display: "flex", alignItems: "baseline", gap: "8px", flexWrap: "wrap" }}>
-                              <div style={{ fontSize: isMobile ? "14px" : "18px", fontWeight: 700, color: "#1a1a1a" }}>基碼 / POM 確認</div>
-                              {!isMobile && <div style={{ fontSize: "13px", color: "#888" }}>POM 建議 × 公差 × Base (M)</div>}
-                            </div>
-                            <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginTop: isMobile ? "4px" : "8px", flexWrap: "wrap" }}>
-                              <span style={{ fontSize: isMobile ? "16px" : "22px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: "#1a1a1a", lineHeight: 1 }}>{bucketIncludedU}</span>
-                              <span style={{ fontSize: isMobile ? "12px" : "13px", color: "#888" }}>/ {totalPomsU} POMs</span>
-                              <span style={{ fontSize: isMobile ? "11px" : "12px", color: "#555", marginLeft: isMobile ? "4px" : "8px" }}>
-                                {codesByTierU.must.length} 必備 · {codesByTierU.recommend.length} 建議 · {codesByTierU.optional.length} 選配
-                              </span>
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <div style={{ display: "flex", alignItems: "baseline", gap: "8px", flexWrap: "wrap" }}>
-                              <div style={{ fontSize: isMobile ? "14px" : "18px", fontWeight: 700, color: "#1a1a1a" }}>全碼 / 尺寸表</div>
-                              {!isMobile && <div style={{ fontSize: "13px", color: "#888" }}>各 size 中位數 · 公差 · Grading 由 Base 推導</div>}
-                            </div>
-                            <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginTop: isMobile ? "4px" : "8px", flexWrap: "wrap" }}>
-                              <span style={{ fontSize: isMobile ? "16px" : "22px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", color: "#1a1a1a", lineHeight: 1 }}>{bucketIncludedU}</span>
-                              <span style={{ fontSize: isMobile ? "12px" : "13px", color: "#888" }}>POMs · {visibleSizesU.length} sizes</span>
-                              {hasPlusU && !showPlus && (
-                                <span style={{ fontSize: isMobile ? "11px" : "13px", color: "#b45309", marginLeft: "4px" }}>(+{plusSeqU.length} Plus)</span>
-                              )}
-                            </div>
-                          </>
-                        )}
+                      {/* 統一 header:標題只留「基碼」/「全碼」,計數移到副標列,移除冗餘描述 */}
+                      <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "baseline", gap: "10px", flexWrap: "wrap" }}>
+                        <div style={{ fontSize: T.fs.xl, fontWeight: 700, color: T.c.text, lineHeight: 1.2 }}>
+                          {sizeView === "base" ? "基碼" : "全碼"}
+                        </div>
+                        <div style={{ fontSize: T.fs.md, color: T.c.text3, fontFamily: "'JetBrains Mono',monospace" }}>
+                          <span style={{ color: T.c.text, fontWeight: 700 }}>{bucketIncludedU}</span>
+                          <span> / {totalPomsU}</span>
+                        </div>
+                        <div style={{ fontSize: T.fs.base, color: T.c.text3 }}>
+                          {sizeView === "base"
+                            ? `${codesByTierU.must.length} 必備 · ${codesByTierU.recommend.length} 建議 · ${codesByTierU.optional.length} 選配`
+                            : `${visibleSizesU.length} sizes${hasPlusU && !showPlus ? `  (+${plusSeqU.length} Plus)` : ""}`}
+                        </div>
                       </div>
                       <button onClick={runMeasurement} style={btnStyle({ variant: 'secondary', isMobile })}>Re-generate</button>
                     </div>
@@ -4597,83 +4574,84 @@ function App() {
 
                       {sizeView === "base" ? (
                         <>
-                          <label
-                            title={hasPetiteU ? "顯示與 Base(M) 有差異的 POM 之 Petite sub-row" : "此 GT × Gender 在 bodytype_variance 無 Petite 歷史資料"}
-                            style={{
-                              display: "flex", alignItems: "center", gap: "5px", padding: "6px 12px",
-                              borderRadius: "6px", cursor: hasPetiteU ? "pointer" : "not-allowed",
-                              fontSize: "11px", fontWeight: 600, userSelect: "none",
-                              background: showPetite && hasPetiteU ? "#f5f3ff" : "#fff",
-                              border: showPetite && hasPetiteU ? "1.5px solid #c4b5fd" : "1.5px solid #e8e5e1",
-                              color: !hasPetiteU ? "#bbb" : (showPetite ? "#7e22ce" : "#888"),
-                              opacity: hasPetiteU ? 1 : 0.5, transition: "all 0.15s",
-                            }}>
-                            <input type="checkbox" checked={showPetite && hasPetiteU} disabled={!hasPetiteU}
-                              onChange={() => setShowPetite(!showPetite)}
-                              style={{ width: "14px", height: "14px", accentColor: "#7e22ce" }} />
-                            +PETITE
-                          </label>
-                          <label
-                            title={hasTallU ? "顯示與 Base(M) 有差異的 POM 之 Tall sub-row" : "此 GT × Gender 在 bodytype_variance 無 Tall 歷史資料"}
-                            style={{
-                              display: "flex", alignItems: "center", gap: "5px", padding: "6px 12px",
-                              borderRadius: "6px", cursor: hasTallU ? "pointer" : "not-allowed",
-                              fontSize: "11px", fontWeight: 600, userSelect: "none",
-                              background: showTall && hasTallU ? "#eff6ff" : "#fff",
-                              border: showTall && hasTallU ? "1.5px solid #93c5fd" : "1.5px solid #e8e5e1",
-                              color: !hasTallU ? "#bbb" : (showTall ? "#1d4ed8" : "#888"),
-                              opacity: hasTallU ? 1 : 0.5, transition: "all 0.15s",
-                            }}>
-                            <input type="checkbox" checked={showTall && hasTallU} disabled={!hasTallU}
-                              onChange={() => setShowTall(!showTall)}
-                              style={{ width: "14px", height: "14px", accentColor: "#1d4ed8" }} />
-                            +TALL
-                          </label>
+                          {(() => {
+                            /* 身型 toggle 全部收成同一組中性樣式(取代原本紫/藍/粉三色)
+                               ON:邊框深黑 + 淺灰底;OFF:灰邊 + 白底。
+                               失效(無資料):虛化。*/
+                            const neutralChipStyle = (on, enabled) => ({
+                              display: "flex", alignItems: "center", gap: "5px",
+                              padding: "6px 12px", borderRadius: T.r.sm,
+                              cursor: enabled ? "pointer" : "not-allowed",
+                              fontSize: T.fs.base, fontWeight: 600, userSelect: "none",
+                              background: on && enabled ? T.c.bg2 : T.c.bg,
+                              border: `1px solid ${on && enabled ? T.c.text : T.c.border}`,
+                              color: !enabled ? T.c.text4 : (on ? T.c.text : T.c.text3),
+                              opacity: enabled ? 1 : 0.5, transition: "all 0.15s",
+                            });
+                            return (
+                              <>
+                                <label
+                                  title={hasPetiteU ? "顯示與 Base(M) 有差異的 POM 之 Petite sub-row" : "此 GT × Gender 在 bodytype_variance 無 Petite 歷史資料"}
+                                  style={neutralChipStyle(showPetite, hasPetiteU)}>
+                                  <input type="checkbox" checked={showPetite && hasPetiteU} disabled={!hasPetiteU}
+                                    onChange={() => setShowPetite(!showPetite)}
+                                    style={{ width: "14px", height: "14px", accentColor: T.c.text }} />
+                                  PETITE
+                                </label>
+                                <label
+                                  title={hasTallU ? "顯示與 Base(M) 有差異的 POM 之 Tall sub-row" : "此 GT × Gender 在 bodytype_variance 無 Tall 歷史資料"}
+                                  style={neutralChipStyle(showTall, hasTallU)}>
+                                  <input type="checkbox" checked={showTall && hasTallU} disabled={!hasTallU}
+                                    onChange={() => setShowTall(!showTall)}
+                                    style={{ width: "14px", height: "14px", accentColor: T.c.text }} />
+                                  TALL
+                                </label>
+                              </>
+                            );
+                          })()}
                         </>
                       ) : (
                         (hasPetiteU || hasTallU) && (
-                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                            <span style={{ fontSize: "11px", color: "#888", fontWeight: 500 }}>Body</span>
-                            <div style={pillGroupStyle}>
-                              {[
-                                { v: 'regular', label: 'Regular', activeBg: '#1a1a1a', activeFg: '#fff', enabled: true },
-                                { v: 'petite',  label: 'Petite',  activeBg: '#7e22ce', activeFg: '#fff', enabled: hasPetiteU },
-                                { v: 'tall',    label: 'Tall',    activeBg: '#1d4ed8', activeFg: '#fff', enabled: hasTallU },
-                              ].map((opt, i, arr) => {
-                                const active = gradingBodytype === opt.v;
-                                return (
-                                  <button key={opt.v}
-                                    disabled={!opt.enabled}
-                                    onClick={() => opt.enabled && setGradingBodytype(opt.v)}
-                                    title={opt.enabled ? "" : `此 GT × Gender 在 bodytype_variance 無 ${opt.label} 歷史資料`}
-                                    style={{
-                                      padding: "6px 14px", fontSize: "11px", fontWeight: 700,
-                                      border: "none", borderRight: i !== arr.length - 1 ? `1px solid ${T.c.border}` : "none",
-                                      background: active && opt.enabled ? opt.activeBg : "transparent",
-                                      color: !opt.enabled ? "#bbb" : (active ? opt.activeFg : "#555"),
-                                      cursor: opt.enabled ? "pointer" : "not-allowed",
-                                      opacity: opt.enabled ? 1 : 0.5,
-                                      fontFamily: "inherit", transition: "all 0.15s",
-                                    }}>{opt.label}</button>
-                                );
-                              })}
-                            </div>
+                          <div style={pillGroupStyle}>
+                            {[
+                              { v: 'regular', label: 'Regular', enabled: true },
+                              { v: 'petite',  label: 'Petite',  enabled: hasPetiteU },
+                              { v: 'tall',    label: 'Tall',    enabled: hasTallU },
+                            ].map((opt, i, arr) => {
+                              const active = gradingBodytype === opt.v;
+                              return (
+                                <button key={opt.v}
+                                  disabled={!opt.enabled}
+                                  onClick={() => opt.enabled && setGradingBodytype(opt.v)}
+                                  title={opt.enabled ? "" : `此 GT × Gender 在 bodytype_variance 無 ${opt.label} 歷史資料`}
+                                  style={{
+                                    padding: "6px 14px", fontSize: T.fs.base, fontWeight: 700,
+                                    border: "none", borderRight: i !== arr.length - 1 ? `1px solid ${T.c.border}` : "none",
+                                    background: active && opt.enabled ? T.c.text : "transparent",
+                                    color: !opt.enabled ? T.c.text4 : (active ? T.c.bg : T.c.text2),
+                                    cursor: opt.enabled ? "pointer" : "not-allowed",
+                                    opacity: opt.enabled ? 1 : 0.5,
+                                    fontFamily: "inherit", transition: "all 0.15s",
+                                  }}>{opt.label}</button>
+                              );
+                            })}
                           </div>
                         )
                       )}
 
                       {hasPlusU && (
                         <label style={{
-                          display: "flex", alignItems: "center", gap: "5px", padding: "6px 12px",
-                          borderRadius: "6px", cursor: "pointer", fontSize: "11px", fontWeight: 600, userSelect: "none",
-                          background: showPlus ? "#fdf2f8" : "#fff",
-                          border: showPlus ? "1.5px solid #fbcfe8" : "1.5px solid #e8e5e1",
-                          color: showPlus ? "#be185d" : "#888",
+                          display: "flex", alignItems: "center", gap: "5px",
+                          padding: "6px 12px", borderRadius: T.r.sm,
+                          cursor: "pointer", fontSize: T.fs.base, fontWeight: 600, userSelect: "none",
+                          background: showPlus ? T.c.bg2 : T.c.bg,
+                          border: `1px solid ${showPlus ? T.c.text : T.c.border}`,
+                          color: showPlus ? T.c.text : T.c.text3,
                           transition: "all 0.15s",
                         }}>
                           <input type="checkbox" checked={showPlus} onChange={e => setShowPlus(e.target.checked)}
-                            style={{ width: "14px", height: "14px", accentColor: "#be185d" }} />
-                          +PLUS
+                            style={{ width: "14px", height: "14px", accentColor: T.c.text }} />
+                          PLUS
                         </label>
                       )}
 
@@ -4889,7 +4867,7 @@ function App() {
                             aria-label="圖示說明"
                             style={{
                               display: "inline-flex", alignItems: "center", gap: "4px",
-                              fontSize: isMobile ? "10px" : "11px",
+                              fontSize: T.fs.sm,
                               color: T.c.text3, background: T.c.bg2,
                               padding: "2px 8px", borderRadius: T.r.sm,
                               border: `1px solid ${T.c.border}`,
@@ -4898,8 +4876,6 @@ function App() {
                             }}>
                             <span aria-hidden="true">ⓘ</span>
                             <span>圖示說明</span>
-                            {hasTier1 && <span style={{ color: "#0891b2" }}>★</span>}
-                            {hasInflectionAny && <span style={{ color: "#ea580c" }}>⚡</span>}
                           </span>
                         );
                       })()}
@@ -4934,20 +4910,20 @@ function App() {
                               onClick={() => toggleTier(tier)}
                               onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleTier(tier); } }}
                               style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", flex: 1, minWidth: 0, userSelect: "none" }}>
-                              <span style={{ display: "inline-block", width: "12px", fontSize: "10px", color: "#888", transform: collapsed ? "rotate(-90deg)" : "rotate(0)", transition: "transform 0.15s" }} aria-hidden="true">▾</span>
+                              <span style={{ display: "inline-block", width: "12px", fontSize: T.fs.xs, color: T.c.text3, transform: collapsed ? "rotate(-90deg)" : "rotate(0)", transition: "transform 0.15s" }} aria-hidden="true">▾</span>
                               <span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", background: tc.c, flexShrink: 0 }} aria-hidden="true" />
-                              <span style={{ fontSize: isMobile ? "13px" : "14px", fontWeight: 700, color: tc.c, letterSpacing: "0.02em" }}>{tc.label} POM</span>
-                              <span style={{ fontSize: "11px", color: "#888", fontWeight: 500 }}>{codes.length} 項</span>
+                              <span style={{ fontSize: T.fs.md, fontWeight: 700, color: T.c.text, letterSpacing: "0.02em" }}>{tc.label}</span>
+                              <span style={{ fontSize: T.fs.base, color: T.c.text3, fontWeight: 500 }}>{codes.length} 項</span>
                             </div>
                             <label onClick={(e) => e.stopPropagation()}
-                              style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "11px", color: "#888", cursor: "pointer", userSelect: "none" }}>
+                              style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: T.fs.base, color: T.c.text3, cursor: "pointer", userSelect: "none" }}>
                               <input
                                 type="checkbox"
                                 checked={allOn}
                                 ref={el => { if (el) el.indeterminate = selectedCount > 0 && !allOn; }}
                                 onChange={() => setTierSelection(tier, !allOn)}
                                 aria-label={`${tc.label} 全選/全部取消`}
-                                style={{ width: "14px", height: "14px", accentColor: tc.c, cursor: "pointer" }}
+                                style={{ width: "14px", height: "14px", accentColor: T.c.text, cursor: "pointer" }}
                               />
                               全選 {selectedCount}/{codes.length}
                             </label>
@@ -4955,21 +4931,21 @@ function App() {
                           {!collapsed && (
                             /* B.7 — 彩色左邊條 (3px) 強化 tier 視覺分群:必備紅、建議橘、選配藍、自訂紫 */
                             <div style={{ background: "#fff", border: "1px solid #e8e5e1", borderLeft: `3px solid ${tc.c}`, borderRadius: "12px", overflow: "auto" }}>
-                              <table style={{ width: "100%", minWidth: isMobile ? (showPlus && hasPlus ? "500px" : "420px") : "auto", borderCollapse: "collapse", fontSize: isMobile ? "12px" : "14px" }}>
+                              <table style={{ width: "100%", minWidth: isMobile ? (showPlus && hasPlus ? "500px" : "420px") : "auto", borderCollapse: "collapse", fontSize: T.fs.md }}>
                                 <thead>
-                                  <tr style={{ background: "#faf9f7", borderBottom: "1.5px solid #e8e5e1" }}>
-                                    <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#525252", width: isMobile ? "24px" : "30px" }}>✓</th>
+                                  <tr style={{ background: T.c.bg2, borderBottom: `1px solid ${T.c.border}` }}>
+                                    <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: T.fs.md, color: T.c.text2, width: isMobile ? "24px" : "30px" }}>✓</th>
                                     {appMode !== "universal" && (
-                                      <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#525252", width: isMobile ? "38px" : "56px" }}>POM</th>
+                                      <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: T.fs.md, color: T.c.text2, width: isMobile ? "38px" : "56px" }}>POM</th>
                                     )}
                                     {!isMobile && (
-                                      <th style={{ padding: "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "13px", color: "#525252" }}>Name<span style={{ fontSize: "11px", fontWeight: 400, color: "#999", marginLeft: "4px" }}>(雙擊可改)</span></th>
+                                      <th style={{ padding: "8px 10px", textAlign: "left", fontWeight: 600, fontSize: T.fs.md, color: T.c.text2 }}>Name<span style={{ fontSize: T.fs.sm, fontWeight: 400, color: T.c.text3, marginLeft: "4px" }}>(雙擊可改)</span></th>
                                     )}
-                                    <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#525252", minWidth: isMobile ? "110px" : "140px" }}>中文{isMobile ? <span style={{ fontSize: "10px", fontWeight: 400, color: "#999", marginLeft: "3px" }}>/ EN</span> : <span style={{ fontSize: "11px", fontWeight: 400, color: "#999", marginLeft: "4px" }}>(雙擊可改)</span>}</th>
-                                    <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#525252", width: isMobile ? "52px" : "80px" }}>公差</th>
-                                    <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#065f46", width: isMobile ? "80px" : "110px" }}>Base (M)</th>
+                                    <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: T.fs.md, color: T.c.text2, minWidth: isMobile ? "110px" : "140px" }}>中文<span style={{ fontSize: T.fs.sm, fontWeight: 400, color: T.c.text3, marginLeft: "4px" }}>{isMobile ? "/ EN" : "(雙擊可改)"}</span></th>
+                                    <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: T.fs.md, color: T.c.text2, width: isMobile ? "52px" : "80px" }}>公差</th>
+                                    <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: T.fs.md, color: T.c.green, width: isMobile ? "80px" : "110px" }}>Base (M)</th>
                                     {showPlus && hasPlus && (
-                                      <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#be185d", width: isMobile ? "80px" : "110px" }}>Base ({plusAnchor}){!isMobile && <div style={{ fontSize: "11px", fontWeight: 400, color: "#be185d" }}>Plus 獨立</div>}</th>
+                                      <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: T.fs.md, color: T.c.text2, width: isMobile ? "80px" : "110px" }}>Base ({plusAnchor}){!isMobile && <div style={{ fontSize: T.fs.sm, fontWeight: 400, color: T.c.text3 }}>Plus 獨立</div>}</th>
                                     )}
                                   </tr>
                                 </thead>
@@ -5008,18 +4984,18 @@ function App() {
                                       <td style={{ padding: isMobile ? "5px 4px" : "9px 12px" }}>
                                         <input type="checkbox" checked={included}
                                           onChange={() => setExcluded(prev => { const n = new Set(prev); n.has(code) ? n.delete(code) : n.add(code); return n; })}
-                                          style={{ width: "16px", height: "16px", accentColor: tc.c, cursor: "pointer" }} />
+                                          style={{ width: "16px", height: "16px", accentColor: T.c.text, cursor: "pointer" }} />
                                       </td>
                                       {appMode !== "universal" && (
-                                        <td style={{ padding: isMobile ? "5px 4px" : "9px 12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "14px", color: tc.c, whiteSpace: "nowrap" }}>
+                                        <td style={{ padding: isMobile ? "5px 4px" : "9px 12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", fontSize: T.fs.md, color: T.c.text, whiteSpace: "nowrap" }}>
                                           {code}
                                           {tier1Set.has(code) && (
                                             <span title="Tier-1 Foundational:不論 rate 多少都強制進 must,不能隱藏"
-                                              style={{ marginLeft: "4px", color: "#0891b2", fontSize: "11px" }}>★</span>
+                                              style={{ marginLeft: "4px", color: T.c.text3, fontSize: T.fs.sm }}>★</span>
                                           )}
                                           {hasInflection(code) && (
                                             <span title="跳碼不等距 — 改 M 不會讓所有 size 等量平移,見全碼頁實際跳碼"
-                                              style={{ marginLeft: "3px", color: "#ea580c", fontSize: "11px" }}>⚡</span>
+                                              style={{ marginLeft: "3px", color: T.c.text3, fontSize: T.fs.sm }}>⚡</span>
                                           )}
                                         </td>
                                       )}
@@ -5091,7 +5067,7 @@ function App() {
                                           </div>
                                         )}
                                       </td>
-                                      <td style={{ padding: isMobile ? "5px 4px" : "9px 12px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "14px", color: "#7e22ce", fontWeight: 600, whiteSpace: "nowrap" }}>{tolStr(m)}</td>
+                                      <td style={{ padding: isMobile ? "5px 4px" : "9px 12px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", fontSize: T.fs.md, color: T.c.text2, fontWeight: 600, whiteSpace: "nowrap" }}>{tolStr(m)}</td>
                                       <td style={{ padding: isMobile ? "4px 6px" : "8px 16px", textAlign: "right", background: "#ecfdf5" }}>
                                         <input type="text" value={displayVal}
                                           onChange={(e) => setBaseOverrides(prev => ({ ...prev, [code]: e.target.value }))}
@@ -5666,7 +5642,7 @@ function App() {
                                     <th style={{ padding: "10px 12px", textAlign: "left", fontWeight: 600, fontSize: "12px", color: "#888", minWidth: "120px" }}>Name<span style={{ fontSize: "10px", fontWeight: 400, color: "#bbb", marginLeft: "4px" }}>(雙擊可改)</span></th>
                                   )}
                                   <th style={{ padding: isMobile ? "6px 6px" : "10px 12px", textAlign: "left", fontWeight: 600, fontSize: isMobile ? "10px" : "12px", color: "#888", minWidth: isMobile ? "110px" : "140px" }}>中文{isMobile ? <span style={{ fontSize: "10px", fontWeight: 400, color: "#bbb", marginLeft: "3px" }}>/ EN</span> : <span style={{ fontSize: "10px", fontWeight: 400, color: "#bbb", marginLeft: "4px" }}>(雙擊可改)</span>}</th>
-                                  <th style={{ padding: isMobile ? "6px 6px" : "10px 12px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? "10px" : "12px", color: "#7e22ce", width: isMobile ? "58px" : "90px" }}>公差</th>
+                                  <th style={{ padding: isMobile ? "6px 6px" : "10px 12px", textAlign: "right", fontWeight: 600, fontSize: T.fs.base, color: T.c.text2, width: isMobile ? "58px" : "90px" }}>公差</th>
                                   {visibleSizes.map(s => {
                                     const isBase = (s === "M") || (isPlus(s) && s === plusAnchor);
                                     return (
@@ -5684,17 +5660,17 @@ function App() {
                             return (
                               <tr key={code} style={{ borderBottom: "1px solid #f0eeeb" }}>
                                 {appMode !== "universal" && (
-                                  <td style={{ padding: isMobile ? "7px 6px" : "9px 12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "14px", color: tc.c, position: "sticky", left: 0, background: "#fff", whiteSpace: "nowrap" }}>
+                                  <td style={{ padding: isMobile ? "7px 6px" : "9px 12px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace", fontSize: T.fs.md, color: T.c.text, position: "sticky", left: 0, background: "#fff", whiteSpace: "nowrap" }}>
                                     {code}
                                     {gradingTier1Set.has(code) && (
                                       <span title="Tier-1 Foundational:不論 rate 多少都強制進 must,不能隱藏"
-                                        style={{ marginLeft: "4px", color: "#0891b2", fontSize: "11px" }}>★</span>
+                                        style={{ marginLeft: "4px", color: T.c.text3, fontSize: T.fs.sm }}>★</span>
                                     )}
                                     {hasInflection(code) && (
                                       <span title="跳碼不等距 — 某些 size step 跳碼幅度不同,編輯時注意"
-                                        style={{ marginLeft: "3px", color: "#ea580c", fontSize: "11px" }}>⚡</span>
+                                        style={{ marginLeft: "3px", color: T.c.text3, fontSize: T.fs.sm }}>⚡</span>
                                     )}
-                                    {isMobile && edited && <span style={{ marginLeft: "3px", fontSize: "10px", color: "#7e22ce", fontWeight: 600 }}>●</span>}
+                                    {isMobile && edited && <span style={{ marginLeft: "3px", fontSize: T.fs.xs, color: T.c.text2, fontWeight: 600 }}>●</span>}
                                   </td>
                                 )}
                                 {!isMobile && (
