@@ -14,7 +14,7 @@ export default async function handler(req, res) {
     if (provided !== adminToken) return res.status(401).json({ error: "unauthorized" });
   }
 
-  const { filename, content_b64, season } = req.body || {};
+  const { filename, content_b64 } = req.body || {};
   if (!filename || !content_b64)
     return res.status(400).json({ error: "missing filename or content_b64" });
 
@@ -25,10 +25,8 @@ export default async function handler(req, res) {
   const githubPat = process.env.GITHUB_PAT;
   if (!githubPat) return res.status(500).json({ error: "server missing GITHUB_PAT" });
 
-  // Sanitize path components
-  const safeName   = filename.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const seasonSlug = (season || "misc").replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 16);
-  const filePath   = `data/ingest/uploads/${seasonSlug}/${safeName}`;
+  const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const filePath = `data/ingest/uploads/${safeName}`;
   const apiUrl     = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${filePath}`;
 
   const ghHeaders = {
@@ -55,7 +53,7 @@ export default async function handler(req, res) {
 
   // Create or update file
   const body = {
-    message: `chore(ingest): upload ${safeName} (${seasonSlug})`,
+    message: `chore(ingest): upload ${safeName}`,
     content: content_b64,
     branch: BRANCH,
   };
