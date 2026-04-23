@@ -726,6 +726,24 @@ def main():
         print(f"Mapped results: {out_path}")
         print(f"Designs: {len(results)}")
 
+        # Write facts.jsonl for extract_unified.py (flat JSONL, one row per design×zone)
+        facts_path = os.path.join(out_dir, 'facts.jsonl')
+        facts_count = 0
+        with open(facts_path, 'w', encoding='utf-8') as ff:
+            for did, zones in results.items():
+                for l1_code, info in zones.items():
+                    ff.write(json.dumps({
+                        'design_id': did,
+                        'l1_code': l1_code,
+                        'iso': info.get('iso', ''),
+                        'zone_zh': info.get('zone_name', ''),
+                        'construction': info.get('construction', ''),
+                        'source': 'ocr',
+                        'confidence': info.get('source', 'glossary'),
+                    }, ensure_ascii=False) + '\n')
+                    facts_count += 1
+        print(f"Facts JSONL: {facts_path} ({facts_count} rows)")
+
     else:
         print("Specify a mode: --detect-only | --map-iso", file=sys.stderr)
         return 1
