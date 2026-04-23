@@ -4498,7 +4498,7 @@ function App() {
                 }}>
                   {/* Alpha label + Mode Cards row */}
                   <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "6px" }}>
-                    <span style={{ fontSize: "10px", color: "#bbb", fontWeight: 500, letterSpacing: "0.05em", textTransform: "uppercase" }}>Size Rule</span>
+                    {!isMobile && <span style={{ fontSize: "10px", color: "#bbb", fontWeight: 500, letterSpacing: "0.05em", textTransform: "uppercase" }}>Size Rule</span>}
                     <span style={{
                       padding: "3px 10px", borderRadius: "4px",
                       background: "#faf9f7", color: "#555",
@@ -4507,26 +4507,56 @@ function App() {
                       fontFamily: "'JetBrains Mono',monospace",
                     }}>{sizeRuleLabel}</span>
                   </div>
-                  <div style={{
-                    display: "grid",
-                    gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
-                    gap: "10px",
-                  }}>
-                    <ModeCard
-                      active={sizeView === "base"}
-                      title="基碼 MISSY + PLUS 並列"
-                      subtitle="M size · 單一基準 · Petite / Tall sub-row"
-                      onClick={() => setSizeView("base")}
-                    />
-                    <ModeCard
-                      active={sizeView === "grading"}
-                      disabled={gradingDisabled}
-                      disabledHint="請先完成基碼 / POM 確認"
-                      title="全碼 Full Grading"
-                      subtitle="XS–XXL (+1X–4X) · 推導尺寸表"
-                      onClick={() => setSizeView("grading")}
-                    />
-                  </div>
+                  {isMobile ? (
+                    /* 行動版:compact 2-segment pill 取代兩張堆疊的 Mode Cards,省約 120px 垂直空間 */
+                    <div style={{ display: "flex", width: "100%", border: `1px solid ${T.c.border}`, borderRadius: T.r.sm, overflow: "hidden" }}>
+                      <button onClick={() => setSizeView("base")}
+                        aria-pressed={sizeView === "base"}
+                        style={{
+                          flex: 1, padding: "9px 12px",
+                          background: sizeView === "base" ? T.c.text : T.c.bg,
+                          color: sizeView === "base" ? T.c.bg : T.c.text2,
+                          border: "none", borderRight: `1px solid ${T.c.border}`,
+                          fontSize: "12px", fontWeight: 700, cursor: "pointer",
+                          fontFamily: "inherit", transition: "background 0.15s, color 0.15s",
+                        }}>基碼 MISSY + PLUS</button>
+                      <button onClick={() => !gradingDisabled && setSizeView("grading")}
+                        disabled={gradingDisabled}
+                        aria-pressed={sizeView === "grading"}
+                        title={gradingDisabled ? "請先完成基碼 / POM 確認" : ""}
+                        style={{
+                          flex: 1, padding: "9px 12px",
+                          background: sizeView === "grading" ? T.c.text : T.c.bg,
+                          color: gradingDisabled ? "#bbb" : (sizeView === "grading" ? T.c.bg : T.c.text2),
+                          border: "none",
+                          fontSize: "12px", fontWeight: 700,
+                          cursor: gradingDisabled ? "not-allowed" : "pointer",
+                          opacity: gradingDisabled ? 0.55 : 1,
+                          fontFamily: "inherit", transition: "background 0.15s, color 0.15s",
+                        }}>全碼 Full Grading</button>
+                    </div>
+                  ) : (
+                    <div style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 1fr",
+                      gap: "10px",
+                    }}>
+                      <ModeCard
+                        active={sizeView === "base"}
+                        title="基碼 MISSY + PLUS 並列"
+                        subtitle="M size · 單一基準 · Petite / Tall sub-row"
+                        onClick={() => setSizeView("base")}
+                      />
+                      <ModeCard
+                        active={sizeView === "grading"}
+                        disabled={gradingDisabled}
+                        disabledHint="請先完成基碼 / POM 確認"
+                        title="全碼 Full Grading"
+                        subtitle="XS–XXL (+1X–4X) · 推導尺寸表"
+                        onClick={() => setSizeView("grading")}
+                      />
+                    </div>
+                  )}
 
                   {/* 統一 Header:兩個 view 共用 */}
                   <div style={{
@@ -4535,10 +4565,10 @@ function App() {
                   }}>
                     <div style={{
                       display: "flex",
-                      flexDirection: isMobile ? "column" : "row",
+                      flexDirection: "row",
                       justifyContent: "space-between",
-                      alignItems: isMobile ? "stretch" : "center",
-                      gap: isMobile ? "6px" : "16px"
+                      alignItems: "center",
+                      gap: isMobile ? "10px" : "16px"
                     }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         {sizeView === "base" ? (
@@ -4821,17 +4851,19 @@ function App() {
 
                     {/* 基碼 table 工具列:Foundational legend + 新增 POM 按鈕。
                         標題與計數已整合到上方統一 header,此列不再重複。 */}
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: isMobile ? "2px" : "4px", marginBottom: isMobile ? "6px" : "8px", flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: isMobile ? "2px" : "4px", marginBottom: isMobile ? "4px" : "8px", flexWrap: "wrap" }}>
                       {tier1Set.size > 0 && (
                         <span style={{ fontSize: isMobile ? "10px" : "11px", color: "#0891b2", background: "#ecfeff", padding: "2px 8px", borderRadius: "6px", fontWeight: 500 }}
                           title="Foundational:歷史不論 rate 都強制納入,不能隱藏">
-                          ★ <span style={{ color: "#0e7490" }}>= Foundational(強制納入)</span>
+                          ★ <span style={{ color: "#0e7490" }}>= Foundational{!isMobile && "(強制納入)"}</span>
                         </span>
                       )}
                       <button onClick={() => setAddPomOpen(true)}
                         style={{
                           ...btnStyle({ variant: 'ghost', isMobile }),
                           marginLeft: "auto",
+                          padding: isMobile ? "4px 10px" : undefined,
+                          fontSize: isMobile ? "11px" : undefined,
                           color: T.c.accent,
                           border: `1px dashed ${T.c.accent}`,
                         }}>+ 新增 POM</button>
