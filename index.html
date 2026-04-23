@@ -4943,14 +4943,14 @@ function App() {
                           {!collapsed && (
                             /* B.7 — 彩色左邊條 (3px) 強化 tier 視覺分群:必備紅、建議橘、選配藍、自訂紫 */
                             <div style={{ background: "#fff", border: "1px solid #e8e5e1", borderLeft: `3px solid ${tc.c}`, borderRadius: "12px", overflow: "auto" }}>
-                              <table style={{ width: "100%", minWidth: isMobile ? (showPlus && hasPlus ? "500px" : "420px") : "auto", borderCollapse: "collapse", fontSize: T.fs.md, tableLayout: "fixed" }}>
-                                {/* colgroup 固定每欄寬度,所有 tier 表格共用同一套比例,避免漂移。
-                                    Name 不給 width → 接收剩餘空間;其餘欄位寬度由 px 定死。 */}
+                              <table style={{ width: "auto", minWidth: isMobile ? (showPlus && hasPlus ? "500px" : "420px") : "100%", maxWidth: "100%", borderCollapse: "collapse", fontSize: T.fs.md, tableLayout: "fixed" }}>
+                                {/* colgroup 固定每欄寬度;table width:auto 讓欄位用 px 值、不被 100% 等比拉大。
+                                    Name 給 320px 左右讓長名可單行顯示;中文 200px;其餘為固定 px。 */}
                                 <colgroup>
                                   <col style={{ width: isMobile ? "28px" : "34px" }} />{/* ✓ */}
                                   {appMode !== "universal" && <col style={{ width: isMobile ? "44px" : "64px" }} />}{/* POM */}
-                                  {!isMobile && <col />}{/* Name: flex */}
-                                  <col style={{ width: isMobile ? "120px" : "200px" }} />{/* 中文 */}
+                                  {!isMobile && <col style={{ width: "320px" }} />}{/* Name */}
+                                  <col style={{ width: isMobile ? "auto" : "200px" }} />{/* 中文 / 剩餘 */}
                                   <col style={{ width: isMobile ? "56px" : "84px" }} />{/* 公差 */}
                                   <col style={{ width: isMobile ? "84px" : "110px" }} />{/* Base (M) */}
                                   {showPlus && hasPlus && <col style={{ width: isMobile ? "84px" : "110px" }} />}{/* Base (Plus) */}
@@ -5638,46 +5638,58 @@ function App() {
                       尚未勾選任何 POM — 回基碼檢視勾選
                     </div>
                   ) : (
-                    /* 全碼表格:分 tier 渲染,每個 tier 一個 header 外移 + 自己的 table */
-                    tiersOrdered.map(tier => {
-                      const tierCodes = codesByTier[tier].filter(c => !excluded.has(c));
-                      if (!tierCodes.length) return null;
-                      const tc = TIER[tier];
-                      return (
-                        <div key={tier} style={{ marginBottom: "14px" }}>
-                          <div style={{
-                            display: "flex", alignItems: "center", gap: "10px",
-                            padding: isMobile ? "10px 4px 6px" : "14px 4px 8px",
-                          }}>
-                            <span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", background: tc.c, flexShrink: 0 }} aria-hidden="true" />
-                            <span style={{ fontSize: isMobile ? "13px" : "14px", fontWeight: 700, color: tc.c, letterSpacing: "0.02em" }}>{tc.label} POM</span>
-                            <span style={{ fontSize: "11px", color: "#888", fontWeight: 500 }}>{tierCodes.length} 項</span>
-                          </div>
-                          {/* B.7 — 彩色左邊條同基碼視圖,全碼 table 也用同樣 tier 色系 */}
-                          <div style={{ background: "#fff", border: "1px solid #e8e5e1", borderLeft: `3px solid ${tc.c}`, borderRadius: "12px", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-                            <table style={{ width: "100%", minWidth: isMobile ? `${220 + visibleSizes.length * 66}px` : "auto", borderCollapse: "collapse", fontSize: isMobile ? "12px" : "14px" }}>
+                    /* 全碼表格:單一 table,不分 tier 區塊(基碼已確認 tier,全碼只做 grading)。
+                       列順序:allCodesFlat(must → recommend → optional → custom)排序後過濾 excluded。 */
+                    <div style={{ background: "#fff", border: `1px solid ${T.c.border}`, borderRadius: "12px", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+                      <table style={{
+                        width: "auto",
+                        minWidth: isMobile ? `${220 + visibleSizes.length * 66}px` : "100%",
+                        maxWidth: "100%",
+                        borderCollapse: "collapse", fontSize: T.fs.md, tableLayout: "fixed",
+                      }}>
+                              {/* 全碼 table 欄寬跟基碼一致:用 colgroup + tableLayout:fixed 鎖住,
+                                  所有 tier 共用同一套比例。size 欄 BASE 稍寬(可編輯輸入框),其餘等寬。 */}
+                              <colgroup>
+                                {appMode !== "universal" && <col style={{ width: isMobile ? "44px" : "64px" }} />}{/* POM */}
+                                {!isMobile && <col style={{ width: "200px" }} />}{/* Name */}
+                                <col style={{ width: isMobile ? "auto" : "160px" }} />{/* 中文 */}
+                                <col style={{ width: isMobile ? "58px" : "84px" }} />{/* 公差 */}
+                                {visibleSizes.map(s => {
+                                  const isBase = (s === "M") || (isPlus(s) && s === plusAnchor);
+                                  return (
+                                    <col key={`col-${s}`} style={{
+                                      width: isBase
+                                        ? (isMobile ? "78px" : "96px")
+                                        : (isMobile ? "62px" : "72px"),
+                                    }} />
+                                  );
+                                })}
+                              </colgroup>
                               <thead>
-                                <tr style={{ background: "#faf9f7", borderBottom: "1.5px solid #e8e5e1" }}>
+                                <tr style={{ background: T.c.bg2, borderBottom: `1px solid ${T.c.border}` }}>
                                   {appMode !== "universal" && (
-                                    <th style={{ padding: isMobile ? "6px 6px" : "10px 12px", textAlign: "left", fontWeight: 600, fontSize: isMobile ? "10px" : "12px", color: "#888", position: "sticky", left: 0, background: "#faf9f7", width: isMobile ? "42px" : "60px" }}>POM</th>
+                                    <th style={{ padding: isMobile ? "6px 6px" : "10px 12px", textAlign: "left", fontWeight: 600, fontSize: T.fs.md, color: T.c.text2, position: "sticky", left: 0, background: T.c.bg2 }}>POM</th>
                                   )}
                                   {!isMobile && (
-                                    <th style={{ padding: "10px 12px", textAlign: "left", fontWeight: 600, fontSize: "12px", color: "#888", minWidth: "120px" }}>Name<span style={{ fontSize: "10px", fontWeight: 400, color: "#bbb", marginLeft: "4px" }}>(雙擊可改)</span></th>
+                                    <th style={{ padding: "10px 12px", textAlign: "left", fontWeight: 600, fontSize: T.fs.md, color: T.c.text2 }}>Name<span style={{ fontSize: T.fs.sm, fontWeight: 400, color: T.c.text3, marginLeft: "4px" }}>(雙擊可改)</span></th>
                                   )}
-                                  <th style={{ padding: isMobile ? "6px 6px" : "10px 12px", textAlign: "left", fontWeight: 600, fontSize: isMobile ? "10px" : "12px", color: "#888", minWidth: isMobile ? "110px" : "140px" }}>中文{isMobile ? <span style={{ fontSize: "10px", fontWeight: 400, color: "#bbb", marginLeft: "3px" }}>/ EN</span> : <span style={{ fontSize: "10px", fontWeight: 400, color: "#bbb", marginLeft: "4px" }}>(雙擊可改)</span>}</th>
-                                  <th style={{ padding: isMobile ? "6px 6px" : "10px 12px", textAlign: "right", fontWeight: 600, fontSize: T.fs.base, color: T.c.text2, width: isMobile ? "58px" : "90px" }}>公差</th>
+                                  <th style={{ padding: isMobile ? "6px 6px" : "10px 12px", textAlign: "left", fontWeight: 600, fontSize: T.fs.md, color: T.c.text2 }}>中文<span style={{ fontSize: T.fs.sm, fontWeight: 400, color: T.c.text3, marginLeft: "4px" }}>{isMobile ? "/ EN" : "(雙擊可改)"}</span></th>
+                                  <th style={{ padding: isMobile ? "6px 6px" : "10px 12px", textAlign: "right", fontWeight: 600, fontSize: T.fs.md, color: T.c.text2 }}>公差</th>
                                   {visibleSizes.map(s => {
                                     const isBase = (s === "M") || (isPlus(s) && s === plusAnchor);
                                     return (
-                                      <th key={s} style={{ padding: isMobile ? "6px 6px" : "10px 8px", textAlign: "center", fontWeight: 700, fontSize: isMobile ? "10px" : "12px", color: isBase ? "#065f46" : "#555", fontFamily: "'JetBrains Mono',monospace", background: isBase ? "#ecfdf5" : "transparent", minWidth: isBase ? (isMobile ? "78px" : "100px") : (isMobile ? "62px" : "56px"), whiteSpace: "nowrap" }}>{s}{isBase && <div style={{ fontSize: "10px", color: "#065f46" }}>BASE{!isMobile && " · 可編輯"}</div>}</th>
+                                      <th key={s} style={{ padding: isMobile ? "6px 6px" : "10px 8px", textAlign: "center", fontWeight: 700, fontSize: T.fs.base, color: isBase ? T.c.green : T.c.text2, fontFamily: "'JetBrains Mono',monospace", background: isBase ? T.c.greenBg : "transparent", whiteSpace: "nowrap" }}>{s}{isBase && <div style={{ fontSize: T.fs.xs, color: T.c.green, fontWeight: 500 }}>BASE{!isMobile && " · 可編輯"}</div>}</th>
                                     );
                                   })}
                                 </tr>
                               </thead>
                               <tbody>
-                                {tierCodes.map(code => {
+                                {gradingCodes.map(code => {
+                            const tier = tierOf(code);
                             const grRow = gr[code];
-                            const m = mr[tier]?.[code];
+                            const m = tier === "custom"
+                              ? (() => { const cm = customPoms.find(p => p.code === code); return cm ? { tolerance: cm.tolerance } : null; })()
+                              : mr[tier]?.[code];
                             const pn = pomNames[code] || {};
                             const edited = baseOverrides[code] != null && baseOverrides[code] !== "" && parseVal(baseOverrides[code]) != null;
                             return (
@@ -5842,10 +5854,7 @@ function App() {
                                 })}
                               </tbody>
                             </table>
-                          </div>
-                        </div>
-                      );
-                    })
+                    </div>
                   )}
 
                 </div>
