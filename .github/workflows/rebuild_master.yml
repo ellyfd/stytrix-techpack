@@ -58,6 +58,7 @@ jobs:
       # Falls back to vlm_raw_extracts.json if it exists (PoC/manual mode).
       # --allow-empty: exits 0 if no images and no pre-built extracts (first run or PPTX-only upload).
       - name: Step 2b — VLM callout extraction
+        id: vlm
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
@@ -68,6 +69,23 @@ jobs:
             --ingest-dir data/ingest \
             --allow-empty
         continue-on-error: true
+
+      # Surface VLM failure:continue-on-error 會讓整個 job 成功,若不 flag 就會被忽略
+      - name: Step 2b failure notice
+        if: steps.vlm.outcome == 'failure'
+        run: |
+          {
+            echo "## ⚠️ Step 2b (VLM callout extraction) 失敗"
+            echo ""
+            echo "Pipeline 後續步驟已放行(\`continue-on-error: true\`),但 VLM 沒產出 facts。"
+            echo "常見原因:"
+            echo "- \`ANTHROPIC_API_KEY\` secret 未設定 / 額度不足 / 網路問題"
+            echo "- callout PNG 解析失敗或 schema 不符"
+            echo ""
+            echo "Step 3 會忽略 VLM facts 繼續重建,但 recipes_master 不會有這批新設計的 callout 貢獻。"
+            echo "請查看 Step 2b 的 log 取得實際錯誤訊息。"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "VLM_FAILED=true" >> "$GITHUB_ENV"
 
       # ── Step 2a: unified extraction (PPTX + metadata → facts) ─────────────
       # Runs AFTER Step 2b so it can merge fresh VLM facts from data/ingest/vlm/facts.jsonl.
@@ -110,6 +128,11 @@ jobs:
             echo "No changes to commit — all designs already up to date."
           else
             MSG="chore(data): auto-rebuild recipes_master [skip ci]"
+            if [ "$VLM_FAILED" = "true" ]; then
+              MSG="$MSG
+
+⚠ VLM (Step 2b) failed — facts from callout images not contributed this run. See Actions log."
+            fi
             git commit -m "$MSG"
             git push origin HEAD
           fi

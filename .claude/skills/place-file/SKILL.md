@@ -37,8 +37,8 @@ description: Given a new file (path, name, or description of contents), walk CLA
 │             例：iso_lookup_factory_v*.json
 │
 ├─ Q5. 是 construction recipe / pattern（做工配方）？
-│       ├─ Yes, 由 PATH2 pipeline 產生 → 【construction_recipes/】（新建，
-│       │                                  PATH2 已預留；不要用 recipes/）
+│       ├─ Yes, 由 PATH2 pipeline 產生 → 【recipes/】（根目錄 72 檔，
+│       │                                  build_recipes_master.py 實際會吃）
 │       └─ Yes, 臨時一次性 → ❌ 不要進 repo，放 Notion / Drive
 │
 ├─ Q6. 是 Ingest pipeline 的 staging 檔？
@@ -84,8 +84,8 @@ description: Given a new file (path, name, or description of contents), walk CLA
 
 ## 命名禁忌
 
-- **不要用 `recipes/`** — 根目錄的 `recipes/` 屬於下輪清理的遺留（72 檔無人引用），PATH2 預留名是 `construction_recipes/`
-- 根目錄不要再新增 `.json` / `.jsonl` — 既有的 `l1_part_presence_v1.json` / `l1_iso_recommendations_v1.json` 是位置債，**不要跟著擺**。新檔直接進 `data/`
+- `recipes/` 是活檔 — 根目錄 72 檔由 `star_schema/scripts/build_recipes_master.py` 每次 CI 掃過，要新增 recipe 放這裡（不是 `construction_recipes/`，那個不存在）。
+- 根目錄不要再新增 `.json` / `.jsonl`。**新檔直接進 `data/`**（`l1_part_presence_v1.json` / `l1_iso_recommendations_v1.json` 已於 2026-04-23 搬入 data/）。
 
 ## 回報格式
 
