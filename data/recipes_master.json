@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-04-23T12:37:51+00:00",
+  "generated_at": "2026-04-23T14:01:09+00:00",
   "source_versions": {
-    "v4.3": "recipes_master_v2/General Model_Path2_Construction Suggestion/iso_lookup_factory_v4.3.json",
-    "v4": "recipes_master_v2/General Model_Path2_Construction Suggestion/iso_lookup_factory_v4.json",
-    "bridge": "recipes_master_v2/data/construction_bridge_v6.json",
+    "v4.3": "General Model_Path2_Construction Suggestion/iso_lookup_factory_v4.3.json",
+    "v4": "General Model_Path2_Construction Suggestion/iso_lookup_factory_v4.json",
+    "bridge": "data/construction_bridge_v6.json",
     "recipes": [
       "recipe_KIDS_GENERAL_DRESS_DRESS.json",
       "recipe_KIDS_GENERAL_PANTS_JOGGERS.json",
@@ -77,29 +77,29 @@
       "recipe_WOMENS_SWIMWEAR_TOP_SLEEPWEAR_LOUNGE.json",
       "recipe_WOMENS_SWIMWEAR_TOP_SWIM.json"
     ],
-    "consensus": "/sessions/confident-sharp-fermi/mnt/stytrix-techpack/star_schema/data/ingest/consensus_v1/entries.jsonl",
+    "consensus": "/home/user/stytrix-techpack/data/ingest/consensus_v1/entries.jsonl",
     "facts": [
-      "/sessions/confident-sharp-fermi/mnt/stytrix-techpack/star_schema/data/ingest/consensus_rules/facts.jsonl",
-      "/sessions/confident-sharp-fermi/mnt/stytrix-techpack/star_schema/data/ingest/construction_by_bucket/facts.jsonl",
-      "/sessions/confident-sharp-fermi/mnt/stytrix-techpack/star_schema/data/ingest/ocr_v1/facts.jsonl",
-      "/sessions/confident-sharp-fermi/mnt/stytrix-techpack/star_schema/data/ingest/unified/facts.jsonl"
+      "/home/user/stytrix-techpack/data/ingest/consensus_rules/facts.jsonl",
+      "/home/user/stytrix-techpack/data/ingest/construction_by_bucket/facts.jsonl",
+      "/home/user/stytrix-techpack/data/ingest/ocr_v1/facts.jsonl",
+      "/home/user/stytrix-techpack/data/ingest/unified/facts.jsonl"
     ],
-    "bucket_taxonomy": "/sessions/confident-sharp-fermi/mnt/stytrix-techpack/star_schema/data/bucket_taxonomy.json"
+    "bucket_taxonomy": "/home/user/stytrix-techpack/data/bucket_taxonomy.json"
   },
   "stats": {
     "same_sub": 207,
     "same_bucket_consensus": 275,
-    "same_bucket_facts_agg": 221,
-    "same_bucket_total": 496,
+    "same_bucket_facts_agg": 196,
+    "same_bucket_total": 471,
     "same_gt": 230,
     "general": 224,
     "cross_design": 53,
-    "total": 1210,
+    "total": 1185,
     "recipe_files_processed": 71,
     "consensus_rows_loaded": 275,
-    "facts_agg_rows": 3675,
-    "facts_agg_groups": 221,
-    "facts_agg_designs": 319,
+    "facts_agg_rows": 1910,
+    "facts_agg_groups": 196,
+    "facts_agg_designs": 241,
     "bridge_zones": 53,
     "bridge_zones_no_iso": 18,
     "unknown_zone_warnings": 0
@@ -16167,34 +16167,19 @@
       },
       "aggregation_level": "same_bucket",
       "source": "facts_agg",
-      "n_total": 4,
+      "n_total": 1,
       "iso_distribution": [
         {
           "iso": "301",
-          "n": 3,
-          "pct": 75.0
-        },
-        {
-          "iso": "406",
           "n": 1,
-          "pct": 25.0
+          "pct": 100.0
         }
       ],
       "methods": [
         {
-          "name": "TOPSTITCH",
-          "n": 2,
-          "pct": 50.0
-        },
-        {
           "name": "BARTACK",
           "n": 1,
-          "pct": 25.0
-        },
-        {
-          "name": "COVERSTITCH",
-          "n": 1,
-          "pct": 25.0
+          "pct": 100.0
         }
       ]
     },
@@ -16234,29 +16219,19 @@
       },
       "aggregation_level": "same_bucket",
       "source": "facts_agg",
-      "n_total": 2,
+      "n_total": 1,
       "iso_distribution": [
         {
           "iso": "607",
           "n": 1,
-          "pct": 50.0
-        },
-        {
-          "iso": "301",
-          "n": 1,
-          "pct": 50.0
+          "pct": 100.0
         }
       ],
       "methods": [
         {
           "name": "FLATLOCK",
           "n": 1,
-          "pct": 50.0
-        },
-        {
-          "name": "TOPSTITCH",
-          "n": 1,
-          "pct": 50.0
+          "pct": 100.0
         }
       ]
     },
@@ -16358,131 +16333,17 @@
       },
       "aggregation_level": "same_bucket",
       "source": "facts_agg",
-      "n_total": 2,
+      "n_total": 1,
       "iso_distribution": [
         {
           "iso": "406",
           "n": 1,
-          "pct": 50.0
-        },
-        {
-          "iso": "514",
-          "n": 1,
-          "pct": 50.0
+          "pct": 100.0
         }
       ],
       "methods": [
         {
           "name": "COVERSTITCH",
-          "n": 1,
-          "pct": 50.0
-        },
-        {
-          "name": "OVERLOCK",
-          "n": 1,
-          "pct": 50.0
-        }
-      ]
-    },
-    {
-      "key": {
-        "gender": null,
-        "dept": null,
-        "gt": null,
-        "it": null,
-        "l1": "SS"
-      },
-      "aggregation_level": "same_bucket",
-      "source": "facts_agg",
-      "n_total": 1,
-      "iso_distribution": [
-        {
-          "iso": "514",
-          "n": 1,
-          "pct": 100.0
-        }
-      ],
-      "methods": [
-        {
-          "name": "OVERLOCK",
-          "n": 1,
-          "pct": 100.0
-        }
-      ]
-    },
-    {
-      "key": {
-        "gender": null,
-        "dept": null,
-        "gt": null,
-        "it": null,
-        "l1": "PK"
-      },
-      "aggregation_level": "same_bucket",
-      "source": "facts_agg",
-      "n_total": 9,
-      "iso_distribution": [
-        {
-          "iso": "301",
-          "n": 9,
-          "pct": 100.0
-        }
-      ],
-      "methods": [
-        {
-          "name": "TOPSTITCH",
-          "n": 9,
-          "pct": 100.0
-        }
-      ]
-    },
-    {
-      "key": {
-        "gender": null,
-        "dept": null,
-        "gt": null,
-        "it": null,
-        "l1": "PL"
-      },
-      "aggregation_level": "same_bucket",
-      "source": "facts_agg",
-      "n_total": 2,
-      "iso_distribution": [
-        {
-          "iso": "301",
-          "n": 2,
-          "pct": 100.0
-        }
-      ],
-      "methods": [
-        {
-          "name": "TOPSTITCH",
-          "n": 2,
-          "pct": 100.0
-        }
-      ]
-    },
-    {
-      "key": {
-        "gender": null,
-        "dept": null,
-        "gt": null,
-        "it": null,
-        "l1": "SH"
-      },
-      "aggregation_level": "same_bucket",
-      "source": "facts_agg",
-      "n_total": 1,
-      "iso_distribution": [
-        {
-          "iso": "301",
-          "n": 1,
-          "pct": 100.0
-        }
-      ],
-      "methods": [
-        {
-          "name": "TOPSTITCH",
           "n": 1,
           "pct": 100.0
         }
@@ -16498,24 +16359,19 @@
       },
       "aggregation_level": "same_bucket",
       "source": "facts_agg",
-      "n_total": 8,
+      "n_total": 1,
       "iso_distribution": [
         {
           "iso": "301",
-          "n": 8,
+          "n": 1,
           "pct": 100.0
         }
       ],
       "methods": [
         {
-          "name": "TOPSTITCH",
-          "n": 7,
-          "pct": 87.5
-        },
-        {
           "name": "TURN BACK",
           "n": 1,
-          "pct": 12.5
+          "pct": 100.0
         }
       ]
     },
@@ -16536,52 +16392,6 @@
           "name": "RAW EDGE",
           "n": 1,
           "pct": 100.0
-        }
-      ]
-    },
-    {
-      "key": {
-        "gender": null,
-        "dept": null,
-        "gt": null,
-        "it": null,
-        "l1": "WB"
-      },
-      "aggregation_level": "same_bucket",
-      "source": "facts_agg",
-      "n_total": 3,
-      "iso_distribution": [
-        {
-          "iso": "406",
-          "n": 1,
-          "pct": 33.3
-        },
-        {
-          "iso": "514",
-          "n": 1,
-          "pct": 33.3
-        },
-        {
-          "iso": "301",
-          "n": 1,
-          "pct": 33.3
-        }
-      ],
-      "methods": [
-        {
-          "name": "COVERSTITCH",
-          "n": 1,
-          "pct": 33.3
-        },
-        {
-          "name": "OVERLOCK",
-          "n": 1,
-          "pct": 33.3
-        },
-        {
-          "name": "TOPSTITCH",
-          "n": 1,
-          "pct": 33.3
         }
       ]
     },
@@ -17356,7 +17166,7 @@
         "dept": null,
         "gt": null,
         "it": null,
-        "l1": "PK"
+        "l1": "WB"
       },
       "aggregation_level": "same_bucket",
       "source": "facts_agg",
@@ -17370,92 +17180,9 @@
       ],
       "methods": [
         {
-          "name": "TOPSTITCH",
-          "n": 2,
-          "pct": 100.0
-        }
-      ]
-    },
-    {
-      "key": {
-        "gender": null,
-        "dept": null,
-        "gt": null,
-        "it": null,
-        "l1": "RS"
-      },
-      "aggregation_level": "same_bucket",
-      "source": "facts_agg",
-      "n_total": 1,
-      "iso_distribution": [
-        {
-          "iso": "301",
-          "n": 1,
-          "pct": 100.0
-        }
-      ],
-      "methods": [
-        {
-          "name": "TOPSTITCH",
-          "n": 1,
-          "pct": 100.0
-        }
-      ]
-    },
-    {
-      "key": {
-        "gender": null,
-        "dept": null,
-        "gt": null,
-        "it": null,
-        "l1": "SS"
-      },
-      "aggregation_level": "same_bucket",
-      "source": "facts_agg",
-      "n_total": 1,
-      "iso_distribution": [
-        {
-          "iso": "406",
-          "n": 1,
-          "pct": 100.0
-        }
-      ],
-      "methods": [
-        {
-          "name": "COVERSTITCH",
-          "n": 1,
-          "pct": 100.0
-        }
-      ]
-    },
-    {
-      "key": {
-        "gender": null,
-        "dept": null,
-        "gt": null,
-        "it": null,
-        "l1": "WB"
-      },
-      "aggregation_level": "same_bucket",
-      "source": "facts_agg",
-      "n_total": 3,
-      "iso_distribution": [
-        {
-          "iso": "301",
-          "n": 3,
-          "pct": 100.0
-        }
-      ],
-      "methods": [
-        {
           "name": "CLEAN FINISH",
           "n": 2,
-          "pct": 66.7
-        },
-        {
-          "name": "TOPSTITCH",
-          "n": 1,
-          "pct": 33.3
+          "pct": 100.0
         }
       ]
     },
@@ -18630,44 +18357,34 @@
       },
       "aggregation_level": "same_bucket",
       "source": "facts_agg",
-      "n_total": 9,
+      "n_total": 5,
       "iso_distribution": [
         {
           "iso": "301",
-          "n": 6,
-          "pct": 66.7
+          "n": 4,
+          "pct": 80.0
         },
         {
           "iso": "406",
-          "n": 3,
-          "pct": 33.3
+          "n": 1,
+          "pct": 20.0
         }
       ],
       "methods": [
         {
           "name": "TURNBACK",
           "n": 3,
-          "pct": 33.3
-        },
-        {
-          "name": "COVERSTITCH",
-          "n": 2,
-          "pct": 22.2
-        },
-        {
-          "name": "TOPSTITCH",
-          "n": 2,
-          "pct": 22.2
+          "pct": 60.0
         },
         {
           "name": "CLEAN FINISH",
           "n": 1,
-          "pct": 11.1
+          "pct": 20.0
         },
         {
           "name": "COVER STITCH",
           "n": 1,
-          "pct": 11.1
+          "pct": 20.0
         }
       ]
     },
@@ -18681,75 +18398,19 @@
       },
       "aggregation_level": "same_bucket",
       "source": "facts_agg",
-      "n_total": 5,
-      "iso_distribution": [
-        {
-          "iso": "406",
-          "n": 2,
-          "pct": 40.0
-        },
-        {
-          "iso": "401",
-          "n": 2,
-          "pct": 40.0
-        },
-        {
-          "iso": "103",
-          "n": 1,
-          "pct": 20.0
-        }
-      ],
-      "methods": [
-        {
-          "name": "COVERSTITCH",
-          "n": 2,
-          "pct": 40.0
-        },
-        {
-          "name": "CHAINSTITCH",
-          "n": 2,
-          "pct": 40.0
-        },
-        {
-          "name": "BLIND_HEM",
-          "n": 1,
-          "pct": 20.0
-        }
-      ]
-    },
-    {
-      "key": {
-        "gender": null,
-        "dept": null,
-        "gt": null,
-        "it": null,
-        "l1": "NT"
-      },
-      "aggregation_level": "same_bucket",
-      "source": "facts_agg",
-      "n_total": 2,
+      "n_total": 1,
       "iso_distribution": [
         {
           "iso": "406",
           "n": 1,
-          "pct": 50.0
-        },
-        {
-          "iso": "401",
-          "n": 1,
-          "pct": 50.0
+          "pct": 100.0
         }
       ],
       "methods": [
         {
           "name": "COVERSTITCH",
           "n": 1,
-          "pct": 50.0
-        },
-        {
-          "name": "CHAINSTITCH",
-          "n": 1,
-          "pct": 50.0
+          "pct": 100.0
         }
       ]
     },
@@ -18795,131 +18456,28 @@
         "dept": null,
         "gt": null,
         "it": null,
-        "l1": "PL"
-      },
-      "aggregation_level": "same_bucket",
-      "source": "facts_agg",
-      "n_total": 1,
-      "iso_distribution": [
-        {
-          "iso": "301",
-          "n": 1,
-          "pct": 100.0
-        }
-      ],
-      "methods": [
-        {
-          "name": "TOPSTITCH",
-          "n": 1,
-          "pct": 100.0
-        }
-      ]
-    },
-    {
-      "key": {
-        "gender": null,
-        "dept": null,
-        "gt": null,
-        "it": null,
         "l1": "RS"
       },
       "aggregation_level": "same_bucket",
       "source": "facts_agg",
-      "n_total": 6,
+      "n_total": 2,
       "iso_distribution": [
         {
           "iso": "301",
-          "n": 2,
-          "pct": 40.0
-        },
-        {
-          "iso": "401",
-          "n": 2,
-          "pct": 40.0
-        },
-        {
-          "iso": "406",
           "n": 1,
-          "pct": 20.0
+          "pct": 100.0
         }
       ],
       "methods": [
         {
-          "name": "CHAINSTITCH",
-          "n": 2,
-          "pct": 33.3
-        },
-        {
           "name": "BONDED",
           "n": 1,
-          "pct": 16.7
+          "pct": 50.0
         },
         {
           "name": "BARTACK",
           "n": 1,
-          "pct": 16.7
-        },
-        {
-          "name": "TOPSTITCH",
-          "n": 1,
-          "pct": 16.7
-        },
-        {
-          "name": "COVERSTITCH",
-          "n": 1,
-          "pct": 16.7
-        }
-      ]
-    },
-    {
-      "key": {
-        "gender": null,
-        "dept": null,
-        "gt": null,
-        "it": null,
-        "l1": "SB"
-      },
-      "aggregation_level": "same_bucket",
-      "source": "facts_agg",
-      "n_total": 2,
-      "iso_distribution": [
-        {
-          "iso": "301",
-          "n": 2,
-          "pct": 100.0
-        }
-      ],
-      "methods": [
-        {
-          "name": "TOPSTITCH",
-          "n": 2,
-          "pct": 100.0
-        }
-      ]
-    },
-    {
-      "key": {
-        "gender": null,
-        "dept": null,
-        "gt": null,
-        "it": null,
-        "l1": "SS"
-      },
-      "aggregation_level": "same_bucket",
-      "source": "facts_agg",
-      "n_total": 2,
-      "iso_distribution": [
-        {
-          "iso": "301",
-          "n": 2,
-          "pct": 100.0
-        }
-      ],
-      "methods": [
-        {
-          "name": "TOPSTITCH",
-          "n": 2,
-          "pct": 100.0
+          "pct": 50.0
         }
       ]
     },
@@ -18933,44 +18491,29 @@
       },
       "aggregation_level": "same_bucket",
       "source": "facts_agg",
-      "n_total": 5,
+      "n_total": 3,
       "iso_distribution": [
         {
           "iso": "301",
           "n": 2,
-          "pct": 40.0
+          "pct": 66.7
         },
         {
           "iso": "401",
-          "n": 2,
-          "pct": 40.0
-        },
-        {
-          "iso": "406",
           "n": 1,
-          "pct": 20.0
+          "pct": 33.3
         }
       ],
       "methods": [
         {
           "name": "BARTACK",
           "n": 2,
-          "pct": 40.0
+          "pct": 66.7
         },
         {
           "name": "SN CS",
           "n": 1,
-          "pct": 20.0
-        },
-        {
-          "name": "COVERSTITCH",
-          "n": 1,
-          "pct": 20.0
-        },
-        {
-          "name": "CHAINSTITCH",
-          "n": 1,
-          "pct": 20.0
+          "pct": 33.3
         }
       ]
     },
@@ -20388,58 +19931,6 @@
         "dept": null,
         "gt": null,
         "it": null,
-        "l1": "LO"
-      },
-      "aggregation_level": "same_bucket",
-      "source": "facts_agg",
-      "n_total": 1,
-      "iso_distribution": [
-        {
-          "iso": "406",
-          "n": 1,
-          "pct": 100.0
-        }
-      ],
-      "methods": [
-        {
-          "name": "COVERSTITCH",
-          "n": 1,
-          "pct": 100.0
-        }
-      ]
-    },
-    {
-      "key": {
-        "gender": null,
-        "dept": null,
-        "gt": null,
-        "it": null,
-        "l1": "PK"
-      },
-      "aggregation_level": "same_bucket",
-      "source": "facts_agg",
-      "n_total": 1,
-      "iso_distribution": [
-        {
-          "iso": "401",
-          "n": 1,
-          "pct": 100.0
-        }
-      ],
-      "methods": [
-        {
-          "name": "CHAINSTITCH",
-          "n": 1,
-          "pct": 100.0
-        }
-      ]
-    },
-    {
-      "key": {
-        "gender": null,
-        "dept": null,
-        "gt": null,
-        "it": null,
         "l1": "HD"
       },
       "aggregation_level": "same_bucket",
@@ -20680,26 +20171,15 @@
       },
       "aggregation_level": "same_bucket",
       "source": "facts_agg",
-      "n_total": 2,
+      "n_total": 1,
       "iso_distribution": [
         {
           "iso": "406",
           "n": 1,
-          "pct": 50.0
-        },
-        {
-          "iso": "301",
-          "n": 1,
-          "pct": 50.0
-        }
-      ],
-      "methods": [
-        {
-          "name": "LOCKSTITCH",
-          "n": 1,
           "pct": 100.0
         }
-      ]
+      ],
+      "methods": []
     },
     {
       "key": {
@@ -20711,29 +20191,19 @@
       },
       "aggregation_level": "same_bucket",
       "source": "facts_agg",
-      "n_total": 7,
+      "n_total": 1,
       "iso_distribution": [
         {
           "iso": "301",
-          "n": 6,
-          "pct": 85.7
-        },
-        {
-          "iso": "406",
           "n": 1,
-          "pct": 14.3
+          "pct": 100.0
         }
       ],
       "methods": [
         {
           "name": "TOPSTITCH",
-          "n": 6,
-          "pct": 85.7
-        },
-        {
-          "name": "COVERSTITCH",
           "n": 1,
-          "pct": 14.3
+          "pct": 100.0
         }
       ]
     },
@@ -20784,32 +20254,6 @@
         "dept": null,
         "gt": null,
         "it": null,
-        "l1": "LI"
-      },
-      "aggregation_level": "same_bucket",
-      "source": "facts_agg",
-      "n_total": 2,
-      "iso_distribution": [
-        {
-          "iso": "514",
-          "n": 2,
-          "pct": 100.0
-        }
-      ],
-      "methods": [
-        {
-          "name": "OVERLOCK",
-          "n": 2,
-          "pct": 100.0
-        }
-      ]
-    },
-    {
-      "key": {
-        "gender": null,
-        "dept": null,
-        "gt": null,
-        "it": null,
         "l1": "OT"
       },
       "aggregation_level": "same_bucket",
@@ -20845,34 +20289,19 @@
       },
       "aggregation_level": "same_bucket",
       "source": "facts_agg",
-      "n_total": 20,
+      "n_total": 1,
       "iso_distribution": [
         {
-          "iso": "514",
-          "n": 11,
-          "pct": 55.0
-        },
-        {
           "iso": "301",
-          "n": 9,
-          "pct": 45.0
+          "n": 1,
+          "pct": 100.0
         }
       ],
       "methods": [
         {
-          "name": "OVERLOCK",
-          "n": 11,
-          "pct": 55.0
-        },
-        {
-          "name": "TOPSTITCH",
-          "n": 8,
-          "pct": 40.0
-        },
-        {
           "name": "SNTS",
           "n": 1,
-          "pct": 5.0
+          "pct": 100.0
         }
       ]
     },
@@ -20886,44 +20315,34 @@
       },
       "aggregation_level": "same_bucket",
       "source": "facts_agg",
-      "n_total": 8,
+      "n_total": 3,
       "iso_distribution": [
         {
           "iso": "301",
-          "n": 6,
-          "pct": 75.0
+          "n": 2,
+          "pct": 66.7
         },
         {
           "iso": "406",
           "n": 1,
-          "pct": 12.5
-        },
-        {
-          "iso": "514",
-          "n": 1,
-          "pct": 12.5
+          "pct": 33.3
         }
       ],
       "methods": [
         {
-          "name": "TOPSTITCH",
-          "n": 5,
-          "pct": 62.5
-        },
-        {
           "name": "CLEAN FINISH",
           "n": 1,
-          "pct": 12.5
+          "pct": 33.3
+        },
+        {
+          "name": "TOPSTITCH",
+          "n": 1,
+          "pct": 33.3
         },
         {
           "name": "DNTS",
           "n": 1,
-          "pct": 12.5
-        },
-        {
-          "name": "OVERLOCK",
-          "n": 1,
-          "pct": 12.5
+          "pct": 33.3
         }
       ]
     },
@@ -20937,59 +20356,44 @@
       },
       "aggregation_level": "same_bucket",
       "source": "facts_agg",
-      "n_total": 13,
+      "n_total": 6,
       "iso_distribution": [
-        {
-          "iso": "301",
-          "n": 7,
-          "pct": 58.3
-        },
         {
           "iso": "406",
           "n": 4,
-          "pct": 33.3
+          "pct": 80.0
         },
         {
-          "iso": "514",
+          "iso": "301",
           "n": 1,
-          "pct": 8.3
+          "pct": 20.0
         }
       ],
       "methods": [
         {
-          "name": "TOPSTITCH",
-          "n": 6,
-          "pct": 46.2
-        },
-        {
           "name": "DNTS",
           "n": 2,
-          "pct": 15.4
+          "pct": 33.3
         },
         {
           "name": "‘-SLEEVE HEM 5/8” TURNBACK W/ 1/8\" 2N #406",
           "n": 1,
-          "pct": 7.7
+          "pct": 16.7
         },
         {
           "name": "BINDING",
           "n": 1,
-          "pct": 7.7
+          "pct": 16.7
         },
         {
           "name": "~ SLEEVE HEM 5/8\" TURNBACK W/ 1/8\" 2N #406 CT",
           "n": 1,
-          "pct": 7.7
+          "pct": 16.7
         },
         {
           "name": "SNTS",
           "n": 1,
-          "pct": 7.7
-        },
-        {
-          "name": "OVERLOCK",
-          "n": 1,
-          "pct": 7.7
+          "pct": 16.7
         }
       ]
     },
@@ -21003,49 +20407,29 @@
       },
       "aggregation_level": "same_bucket",
       "source": "facts_agg",
-      "n_total": 13,
+      "n_total": 3,
       "iso_distribution": [
         {
           "iso": "301",
-          "n": 6,
-          "pct": 46.2
+          "n": 2,
+          "pct": 66.7
         },
         {
           "iso": "406",
-          "n": 5,
-          "pct": 38.5
-        },
-        {
-          "iso": "514",
-          "n": 2,
-          "pct": 15.4
+          "n": 1,
+          "pct": 33.3
         }
       ],
       "methods": [
         {
-          "name": "TOPSTITCH",
-          "n": 4,
-          "pct": 30.8
-        },
-        {
-          "name": "COVERSTITCH",
-          "n": 4,
-          "pct": 30.8
-        },
-        {
           "name": "SNTS",
           "n": 2,
-          "pct": 15.4
-        },
-        {
-          "name": "OVERLOCK",
-          "n": 2,
-          "pct": 15.4
+          "pct": 66.7
         },
         {
           "name": "DNTS",
           "n": 1,
-          "pct": 7.7
+          "pct": 33.3
         }
       ]
     },
@@ -21059,80 +20443,34 @@
       },
       "aggregation_level": "same_bucket",
       "source": "facts_agg",
-      "n_total": 17,
+      "n_total": 4,
       "iso_distribution": [
         {
-          "iso": "301",
-          "n": 10,
-          "pct": 58.8
-        },
-        {
           "iso": "406",
-          "n": 6,
-          "pct": 35.3
+          "n": 3,
+          "pct": 75.0
         },
         {
-          "iso": "514",
+          "iso": "301",
           "n": 1,
-          "pct": 5.9
+          "pct": 25.0
         }
       ],
       "methods": [
         {
-          "name": "TOPSTITCH",
-          "n": 9,
-          "pct": 52.9
-        },
-        {
-          "name": "COVERSTITCH",
-          "n": 3,
-          "pct": 17.6
-        },
-        {
           "name": "DNTS",
           "n": 2,
-          "pct": 11.8
+          "pct": 50.0
         },
         {
           "name": "TURN_BACK",
           "n": 1,
-          "pct": 5.9
+          "pct": 25.0
         },
         {
           "name": "CLEAN FINISH",
           "n": 1,
-          "pct": 5.9
-        },
-        {
-          "name": "OVERLOCK",
-          "n": 1,
-          "pct": 5.9
-        }
-      ]
-    },
-    {
-      "key": {
-        "gender": null,
-        "dept": null,
-        "gt": null,
-        "it": null,
-        "l1": "SP"
-      },
-      "aggregation_level": "same_bucket",
-      "source": "facts_agg",
-      "n_total": 2,
-      "iso_distribution": [
-        {
-          "iso": "301",
-          "n": 2,
-          "pct": 100.0
-        }
-      ],
-      "methods": [
-        {
-          "name": "TOPSTITCH",
-          "n": 2,
-          "pct": 100.0
+          "pct": 25.0
         }
       ]
     },
@@ -21146,44 +20484,44 @@
       },
       "aggregation_level": "same_bucket",
       "source": "facts_agg",
-      "n_total": 7,
+      "n_total": 4,
       "iso_distribution": [
         {
-          "iso": "514",
-          "n": 3,
-          "pct": 50.0
+          "iso": "301",
+          "n": 1,
+          "pct": 33.3
         },
         {
-          "iso": "301",
-          "n": 2,
+          "iso": "514",
+          "n": 1,
           "pct": 33.3
         },
         {
           "iso": "406",
           "n": 1,
-          "pct": 16.7
+          "pct": 33.3
         }
       ],
       "methods": [
         {
-          "name": "OVERLOCK",
-          "n": 3,
-          "pct": 42.9
-        },
-        {
           "name": "TOPSTITCH",
-          "n": 2,
-          "pct": 28.6
+          "n": 1,
+          "pct": 25.0
         },
         {
           "name": "BINDING",
           "n": 1,
-          "pct": 14.3
+          "pct": 25.0
+        },
+        {
+          "name": "OVERLOCK",
+          "n": 1,
+          "pct": 25.0
         },
         {
           "name": "~ 5/8\" TURNBACK W/ 2N 406 STITCH",
           "n": 1,
-          "pct": 14.3
+          "pct": 25.0
         }
       ]
     },
@@ -21197,54 +20535,18 @@
       },
       "aggregation_level": "same_bucket",
       "source": "facts_agg",
-      "n_total": 3,
+      "n_total": 1,
       "iso_distribution": [
-        {
-          "iso": "514",
-          "n": 2,
-          "pct": 66.7
-        },
         {
           "iso": "301",
           "n": 1,
-          "pct": 33.3
-        }
-      ],
-      "methods": [
-        {
-          "name": "OVERLOCK",
-          "n": 2,
-          "pct": 66.7
-        },
-        {
-          "name": "SNTS",
-          "n": 1,
-          "pct": 33.3
-        }
-      ]
-    },
-    {
-      "key": {
-        "gender": null,
-        "dept": null,
-        "gt": null,
-        "it": null,
-        "l1": "ZP"
-      },
-      "aggregation_level": "same_bucket",
-      "source": "facts_agg",
-      "n_total": 2,
-      "iso_distribution": [
-        {
-          "iso": "514",
-          "n": 2,
           "pct": 100.0
         }
       ],
       "methods": [
         {
-          "name": "OVERLOCK",
-          "n": 2,
+          "name": "SNTS",
+          "n": 1,
           "pct": 100.0
         }
       ]
@@ -21809,29 +21111,29 @@
       },
       "aggregation_level": "same_bucket",
       "source": "facts_agg",
-      "n_total": 4,
+      "n_total": 3,
       "iso_distribution": [
         {
           "iso": "406",
-          "n": 4,
+          "n": 3,
           "pct": 100.0
         }
       ],
       "methods": [
         {
           "name": "COVERSTITCH",
-          "n": 2,
-          "pct": 50.0
+          "n": 1,
+          "pct": 33.3
         },
         {
           "name": "BACK WITH 2N 406, FOLLOW",
           "n": 1,
-          "pct": 25.0
+          "pct": 33.3
         },
         {
           "name": "SLEEVE: 1/4\" 2ND 406",
           "n": 1,
-          "pct": 25.0
+          "pct": 33.3
         }
       ]
     },
@@ -21845,129 +21147,114 @@
       },
       "aggregation_level": "same_bucket",
       "source": "facts_agg",
-      "n_total": 39,
+      "n_total": 26,
       "iso_distribution": [
         {
           "iso": "406",
-          "n": 17,
-          "pct": 47.2
+          "n": 11,
+          "pct": 45.8
         },
         {
           "iso": "301",
-          "n": 9,
-          "pct": 25.0
+          "n": 8,
+          "pct": 33.3
         },
         {
           "iso": "602",
-          "n": 4,
-          "pct": 11.1
+          "n": 3,
+          "pct": 12.5
         },
         {
           "iso": "605",
-          "n": 4,
-          "pct": 11.1
-        },
-        {
-          "iso": "514",
           "n": 2,
-          "pct": 5.6
+          "pct": 8.3
         }
       ],
       "methods": [
         {
-          "name": "TURN_BACK",
-          "n": 8,
-          "pct": 20.5
-        },
-        {
           "name": "TURNBACK",
           "n": 5,
-          "pct": 12.8
+          "pct": 19.2
         },
         {
           "name": "HEM: SINGLE TURN W/ 1/8\" 406",
           "n": 4,
-          "pct": 10.3
-        },
-        {
-          "name": "COVERSTITCH",
-          "n": 4,
-          "pct": 10.3
+          "pct": 15.4
         },
         {
           "name": "BONDED",
           "n": 2,
-          "pct": 5.1
+          "pct": 7.7
         },
         {
           "name": "WELT: NOT FUNCTIONAL, 301 ALL AROUND 1/16\"",
           "n": 2,
-          "pct": 5.1
+          "pct": 7.7
         },
         {
-          "name": "OVERLOCK",
-          "n": 2,
-          "pct": 5.1
+          "name": "TURN_BACK",
+          "n": 1,
+          "pct": 3.8
         },
         {
           "name": "HEM: SINGLE FOLD 605",
           "n": 1,
-          "pct": 2.6
+          "pct": 3.8
         },
         {
           "name": "HEM: SINGLE TUR WI 178° 406 = SE",
           "n": 1,
-          "pct": 2.6
+          "pct": 3.8
         },
         {
           "name": "| HEM: SINGLE TURN WI/ 1/4\" 406.",
           "n": 1,
-          "pct": 2.6
+          "pct": 3.8
         },
         {
           "name": "HEM: SINGLE TURN W/ 602",
           "n": 1,
-          "pct": 2.6
+          "pct": 3.8
         },
         {
           "name": "| HEM: SINGLE TURN WI 1/8\" 406 TREW",
           "n": 1,
-          "pct": 2.6
+          "pct": 3.8
         },
         {
           "name": "ISO 406, 1/8\" GG \\ | \\ |",
           "n": 1,
-          "pct": 2.6
+          "pct": 3.8
         },
         {
           "name": "SKIRT HEM: SINGLE TURN WI 602",
           "n": 1,
-          "pct": 2.6
+          "pct": 3.8
         },
         {
           "name": "ISO 406, 1/8\" GG",
           "n": 1,
-          "pct": 2.6
+          "pct": 3.8
         },
         {
           "name": "TURN BACK",
           "n": 1,
-          "pct": 2.6
+          "pct": 3.8
+        },
+        {
+          "name": "COVERSTITCH",
+          "n": 1,
+          "pct": 3.8
         },
         {
           "name": "ISO 605",
           "n": 1,
-          "pct": 2.6
+          "pct": 3.8
         },
         {
           "name": "180 406, 1/4\" GG IP \"",
           "n": 1,
-          "pct": 2.6
-        },
-        {
-          "name": "LOCKSTITCH",
-          "n": 1,
-          "pct": 2.6
+          "pct": 3.8
         }
       ]
     },
@@ -22011,31 +21298,6 @@
           "pct": 33.3
         }
       ]
-    },
-    {
-      "key": {
-        "gender": null,
-        "dept": null,
-        "gt": null,
-        "it": null,
-        "l1": "DC"
-      },
-      "aggregation_level": "same_bucket",
-      "source": "facts_agg",
-      "n_total": 4,
-      "iso_distribution": [
-        {
-          "iso": "607",
-          "n": 2,
-          "pct": 66.7
-        },
-        {
-          "iso": "406",
-          "n": 1,
-          "pct": 33.3
-        }
-      ],
-      "methods": []
     },
     {
       "key": {
@@ -22195,84 +21457,84 @@
       },
       "aggregation_level": "same_bucket",
       "source": "facts_agg",
-      "n_total": 22,
+      "n_total": 19,
       "iso_distribution": [
-        {
-          "iso": "514",
-          "n": 6,
-          "pct": 30.0
-        },
         {
           "iso": "607",
           "n": 5,
-          "pct": 25.0
+          "pct": 29.4
         },
         {
           "iso": "401",
           "n": 4,
-          "pct": 20.0
+          "pct": 23.5
+        },
+        {
+          "iso": "514",
+          "n": 3,
+          "pct": 17.6
         },
         {
           "iso": "406",
           "n": 2,
-          "pct": 10.0
+          "pct": 11.8
         },
         {
           "iso": "301",
           "n": 2,
-          "pct": 10.0
+          "pct": 11.8
         },
         {
           "iso": "605",
           "n": 1,
-          "pct": 5.0
+          "pct": 5.9
         }
       ],
       "methods": [
         {
-          "name": "OVERLOCK",
-          "n": 4,
-          "pct": 28.6
-        },
-        {
           "name": "COVERSTITCH",
           "n": 2,
-          "pct": 14.3
+          "pct": 18.2
         },
         {
           "name": "FLATLOCK",
           "n": 2,
-          "pct": 14.3
+          "pct": 18.2
         },
         {
           "name": "CLEAN_FINISH",
           "n": 1,
-          "pct": 7.1
+          "pct": 9.1
+        },
+        {
+          "name": "OVERLOCK",
+          "n": 1,
+          "pct": 9.1
         },
         {
           "name": "BARTACK",
           "n": 1,
-          "pct": 7.1
+          "pct": 9.1
         },
         {
           "name": "NING FRONT SEAM: 1S0 401, 1/8\" MG RISES: BARTACK",
           "n": 1,
-          "pct": 7.1
+          "pct": 9.1
         },
         {
           "name": "*ALL STITCHES ARE ISO 514",
           "n": 1,
-          "pct": 7.1
+          "pct": 9.1
         },
         {
           "name": "ISO 401, 1/16\" MG",
           "n": 1,
-          "pct": 7.1
+          "pct": 9.1
         },
         {
           "name": "1S0 607 =A",
           "n": 1,
-          "pct": 7.1
+          "pct": 9.1
         }
       ]
     },
@@ -22312,34 +21574,24 @@
       },
       "aggregation_level": "same_bucket",
       "source": "facts_agg",
-      "n_total": 3,
+      "n_total": 2,
       "iso_distribution": [
         {
           "iso": "401",
           "n": 1,
-          "pct": 33.3
+          "pct": 50.0
         },
         {
           "iso": "406",
           "n": 1,
-          "pct": 33.3
-        },
-        {
-          "iso": "514",
-          "n": 1,
-          "pct": 33.3
+          "pct": 50.0
         }
       ],
       "methods": [
         {
           "name": "COVERSTITCH",
           "n": 1,
-          "pct": 50.0
-        },
-        {
-          "name": "OVERLOCK",
-          "n": 1,
-          "pct": 50.0
+          "pct": 100.0
         }
       ]
     },
@@ -22353,27 +21605,27 @@
       },
       "aggregation_level": "same_bucket",
       "source": "facts_agg",
-      "n_total": 44,
+      "n_total": 42,
       "iso_distribution": [
         {
           "iso": "514",
-          "n": 18,
-          "pct": 42.9
+          "n": 17,
+          "pct": 41.5
         },
         {
           "iso": "607",
           "n": 16,
-          "pct": 38.1
+          "pct": 39.0
         },
         {
           "iso": "406",
           "n": 5,
-          "pct": 11.9
+          "pct": 12.2
         },
         {
           "iso": "301",
           "n": 2,
-          "pct": 4.8
+          "pct": 4.9
         },
         {
           "iso": "605",
@@ -22385,162 +21637,157 @@
         {
           "name": "ALL BODY SEAMS ARE 607 UNLESS OTHERWISE NOTED***",
           "n": 4,
-          "pct": 9.8
+          "pct": 10.0
         },
         {
           "name": "ALL BODY SEAMS ARE 607",
           "n": 4,
-          "pct": 9.8
+          "pct": 10.0
         },
         {
           "name": "ALL BODY SEAMS ARE 514 UNLESS OTHERWISE",
           "n": 2,
-          "pct": 4.9
+          "pct": 5.0
         },
         {
           "name": "ALL BODY SEAMS ARE 514 UNLESS OTHERWISE NOTED***",
           "n": 2,
-          "pct": 4.9
+          "pct": 5.0
         },
         {
           "name": "CLEAN FINISH",
           "n": 2,
-          "pct": 4.9
+          "pct": 5.0
         },
         {
           "name": "WAIST: FOLDED TOP EDGE, ATTACHED TO BODY W/ 514 +",
           "n": 1,
-          "pct": 2.4
+          "pct": 2.5
         },
         {
           "name": "ALL BODY SEAMS ARE 514 UNLESS",
           "n": 1,
-          "pct": 2.4
+          "pct": 2.5
         },
         {
           "name": "ALL BODY SEAMS ARE 607 UNLESS OTHERWISE",
           "n": 1,
-          "pct": 2.4
+          "pct": 2.5
         },
         {
           "name": "WAIST: FOLDED TOP EDGE 1/ 1/8\" 406 UNDERSTITCH W! INTERNAL",
           "n": 1,
-          "pct": 2.4
+          "pct": 2.5
         },
         {
           "name": "MESH. ATTACHED TO BODY W/ 514 + 605",
           "n": 1,
-          "pct": 2.4
+          "pct": 2.5
         },
         {
           "name": "*ALL BODY SEAMS ARE ISO 607 UNLESS.",
           "n": 1,
-          "pct": 2.4
+          "pct": 2.5
         },
         {
           "name": "ISO 406, 1/8\" GG UNDERSTITCH WITH",
           "n": 1,
-          "pct": 2.4
+          "pct": 2.5
         },
         {
           "name": "ATTACHED TO BODY WITH ISO 514 + 605.",
           "n": 1,
-          "pct": 2.4
+          "pct": 2.5
         },
         {
           "name": "*ALL BODY SEAMS ARE ISO 607",
           "n": 1,
-          "pct": 2.4
+          "pct": 2.5
         },
         {
           "name": "ISO 406, 1/8\" GG UNDERSTITCH",
           "n": 1,
-          "pct": 2.4
+          "pct": 2.5
         },
         {
           "name": "ALL BODY SEAMS ARE 514 + 602",
           "n": 1,
-          "pct": 2.4
+          "pct": 2.5
         },
         {
           "name": "| ALL BODY SEAMS ARE 514 UNLESS OTHERWISE NOTED'**",
           "n": 1,
-          "pct": 2.4
+          "pct": 2.5
         },
         {
           "name": "*ALL BODY SEAMS ARE ISO 607 >",
           "n": 1,
-          "pct": 2.4
+          "pct": 2.5
         },
         {
           "name": "SKIRT SIDE SEAM: ISO 514",
           "n": 1,
-          "pct": 2.4
+          "pct": 2.5
         },
         {
           "name": "FLATLOCK",
           "n": 1,
-          "pct": 2.4
+          "pct": 2.5
         },
         {
           "name": "TO BODY WITH ISO 514 + ISO ’",
           "n": 1,
-          "pct": 2.4
+          "pct": 2.5
         },
         {
           "name": "605",
           "n": 1,
-          "pct": 2.4
+          "pct": 2.5
         },
         {
           "name": "*ALL BODY SEAMS ARE ISO 607 ,",
           "n": 1,
-          "pct": 2.4
+          "pct": 2.5
         },
         {
           "name": "ISO 406, 1/8\" GG |",
           "n": 1,
-          "pct": 2.4
+          "pct": 2.5
         },
         {
           "name": "ISO 514 + ISO 605 }",
           "n": 1,
-          "pct": 2.4
+          "pct": 2.5
         },
         {
           "name": "‘ALL BODY SEAMS ARE 607 UNLESS OTHERWISE",
           "n": 1,
-          "pct": 2.4
+          "pct": 2.5
         },
         {
           "name": "| ‘SIDE SEAM & BACK WAIST: 514 + 605",
           "n": 1,
-          "pct": 2.4
+          "pct": 2.5
         },
         {
           "name": "AL BODY SEAMS ARE 607 UNLESS OTHERWISE NOTED\"",
           "n": 1,
-          "pct": 2.4
+          "pct": 2.5
         },
         {
           "name": "WAIST. FOLDED TOP EDGE W/ 1/8\" 406 UNDERSTITCH W/ INTERNAL",
           "n": 1,
-          "pct": 2.4
+          "pct": 2.5
         },
         {
           "name": "IMESH. ATTACHED TO BODY WI 514 + 605",
           "n": 1,
-          "pct": 2.4
+          "pct": 2.5
         },
         {
           "name": "WAISTBAND: FOLDED EDGE, ATTACHED TO BODY WI 514 + 605. SIDE SEAM IS CLEAN FINISHED.",
           "n": 1,
-          "pct": 2.4
-        },
-        {
-          "name": "OVERLOCK",
-          "n": 1,
-          "pct": 2.4
+          "pct": 2.5
         }
       ]
     },
@@ -22683,64 +21930,54 @@
       },
       "aggregation_level": "same_bucket",
       "source": "facts_agg",
-      "n_total": 7,
+      "n_total": 6,
       "iso_distribution": [
         {
           "iso": "514",
           "n": 2,
-          "pct": 28.6
+          "pct": 33.3
         },
         {
           "iso": "607",
           "n": 2,
-          "pct": 28.6
+          "pct": 33.3
         },
         {
           "iso": "605",
           "n": 2,
-          "pct": 28.6
-        },
-        {
-          "iso": "406",
-          "n": 1,
-          "pct": 14.3
+          "pct": 33.3
         }
       ],
       "methods": [
         {
           "name": "ALL BODY SEAMS ARE 514 UNLESS",
           "n": 1,
-          "pct": 14.3
+          "pct": 16.7
         },
         {
           "name": "ALL BODY SEAMS ARE 607 UNLESS",
           "n": 1,
-          "pct": 14.3
+          "pct": 16.7
         },
         {
           "name": "605",
           "n": 1,
-          "pct": 14.3
+          "pct": 16.7
         },
         {
           "name": "ALL BODY SEAMS ARE 514 UNLESS OTHERWISE",
           "n": 1,
-          "pct": 14.3
+          "pct": 16.7
         },
         {
           "name": "ALL BODY SEAMS ARE 607 UNLESS OTHERWISE",
           "n": 1,
-          "pct": 14.3
+          "pct": 16.7
         },
         {
           "name": "SHELF BRA: ELASTIC ATTACHED TO BODY W/ 605",
           "n": 1,
-          "pct": 14.3
-        },
-        {
-          "name": "COVERSTITCH",
-          "n": 1,
-          "pct": 14.3
+          "pct": 16.7
         }
       ]
     },
@@ -23045,34 +22282,29 @@
       },
       "aggregation_level": "same_bucket",
       "source": "facts_agg",
-      "n_total": 6,
+      "n_total": 5,
       "iso_distribution": [
         {
           "iso": "406",
-          "n": 3,
-          "pct": 60.0
+          "n": 2,
+          "pct": 50.0
         },
         {
           "iso": "514",
           "n": 1,
-          "pct": 20.0
+          "pct": 25.0
         },
         {
           "iso": "401",
           "n": 1,
-          "pct": 20.0
+          "pct": 25.0
         }
       ],
       "methods": [
         {
           "name": "BINDING",
           "n": 1,
-          "pct": 50.0
-        },
-        {
-          "name": "COVERSTITCH",
-          "n": 1,
-          "pct": 50.0
+          "pct": 100.0
         }
       ]
     },
@@ -23565,88 +22797,6 @@
         "dept": null,
         "gt": null,
         "it": null,
-        "l1": "DC"
-      },
-      "aggregation_level": "same_bucket",
-      "source": "facts_agg",
-      "n_total": 6,
-      "iso_distribution": [
-        {
-          "iso": "301",
-          "n": 4,
-          "pct": 66.7
-        },
-        {
-          "iso": "401",
-          "n": 2,
-          "pct": 33.3
-        }
-      ],
-      "methods": [
-        {
-          "name": "TOPSTITCH",
-          "n": 4,
-          "pct": 66.7
-        },
-        {
-          "name": "CHAINSTITCH",
-          "n": 2,
-          "pct": 33.3
-        }
-      ]
-    },
-    {
-      "key": {
-        "gender": null,
-        "dept": null,
-        "gt": null,
-        "it": null,
-        "l1": "LO"
-      },
-      "aggregation_level": "same_bucket",
-      "source": "facts_agg",
-      "n_total": 5,
-      "iso_distribution": [
-        {
-          "iso": "406",
-          "n": 2,
-          "pct": 40.0
-        },
-        {
-          "iso": "514",
-          "n": 2,
-          "pct": 40.0
-        },
-        {
-          "iso": "401",
-          "n": 1,
-          "pct": 20.0
-        }
-      ],
-      "methods": [
-        {
-          "name": "COVERSTITCH",
-          "n": 2,
-          "pct": 40.0
-        },
-        {
-          "name": "OVERLOCK",
-          "n": 2,
-          "pct": 40.0
-        },
-        {
-          "name": "CHAINSTITCH",
-          "n": 1,
-          "pct": 20.0
-        }
-      ]
-    },
-    {
-      "key": {
-        "gender": null,
-        "dept": null,
-        "gt": null,
-        "it": null,
         "l1": "NK"
       },
       "aggregation_level": "same_bucket",
@@ -23656,32 +22806,6 @@
       "methods": [
         {
           "name": "BINDING",
-          "n": 1,
-          "pct": 100.0
-        }
-      ]
-    },
-    {
-      "key": {
-        "gender": null,
-        "dept": null,
-        "gt": null,
-        "it": null,
-        "l1": "PK"
-      },
-      "aggregation_level": "same_bucket",
-      "source": "facts_agg",
-      "n_total": 1,
-      "iso_distribution": [
-        {
-          "iso": "301",
-          "n": 1,
-          "pct": 100.0
-        }
-      ],
-      "methods": [
-        {
-          "name": "TOPSTITCH",
           "n": 1,
           "pct": 100.0
         }
@@ -23710,94 +22834,6 @@
           "name": "TOPSTITCH",
           "n": 1,
           "pct": 100.0
-        }
-      ]
-    },
-    {
-      "key": {
-        "gender": null,
-        "dept": null,
-        "gt": null,
-        "it": null,
-        "l1": "SS"
-      },
-      "aggregation_level": "same_bucket",
-      "source": "facts_agg",
-      "n_total": 1,
-      "iso_distribution": [
-        {
-          "iso": "301",
-          "n": 1,
-          "pct": 100.0
-        }
-      ],
-      "methods": [
-        {
-          "name": "TOPSTITCH",
-          "n": 1,
-          "pct": 100.0
-        }
-      ]
-    },
-    {
-      "key": {
-        "gender": null,
-        "dept": null,
-        "gt": null,
-        "it": null,
-        "l1": "ST"
-      },
-      "aggregation_level": "same_bucket",
-      "source": "facts_agg",
-      "n_total": 1,
-      "iso_distribution": [
-        {
-          "iso": "406",
-          "n": 1,
-          "pct": 100.0
-        }
-      ],
-      "methods": [
-        {
-          "name": "COVERSTITCH",
-          "n": 1,
-          "pct": 100.0
-        }
-      ]
-    },
-    {
-      "key": {
-        "gender": null,
-        "dept": null,
-        "gt": null,
-        "it": null,
-        "l1": "WB"
-      },
-      "aggregation_level": "same_bucket",
-      "source": "facts_agg",
-      "n_total": 3,
-      "iso_distribution": [
-        {
-          "iso": "406",
-          "n": 2,
-          "pct": 66.7
-        },
-        {
-          "iso": "401",
-          "n": 1,
-          "pct": 33.3
-        }
-      ],
-      "methods": [
-        {
-          "name": "COVERSTITCH",
-          "n": 2,
-          "pct": 66.7
-        },
-        {
-          "name": "CHAINSTITCH",
-          "n": 1,
-          "pct": 33.3
         }
       ]
     },
@@ -23868,34 +22904,19 @@
       },
       "aggregation_level": "same_bucket",
       "source": "facts_agg",
-      "n_total": 6,
+      "n_total": 2,
       "iso_distribution": [
         {
           "iso": "301",
-          "n": 5,
-          "pct": 83.3
-        },
-        {
-          "iso": "514",
-          "n": 1,
-          "pct": 16.7
+          "n": 2,
+          "pct": 100.0
         }
       ],
       "methods": [
         {
-          "name": "TOPSTITCH",
-          "n": 3,
-          "pct": 50.0
-        },
-        {
           "name": "TURN BACK",
           "n": 2,
-          "pct": 33.3
-        },
-        {
-          "name": "OVERLOCK",
-          "n": 1,
-          "pct": 16.7
+          "pct": 100.0
         }
       ]
     },
@@ -23909,29 +22930,24 @@
       },
       "aggregation_level": "same_bucket",
       "source": "facts_agg",
-      "n_total": 5,
+      "n_total": 2,
       "iso_distribution": [
         {
           "iso": "301",
-          "n": 4,
+          "n": 1,
           "pct": 100.0
         }
       ],
       "methods": [
         {
-          "name": "TOPSTITCH",
-          "n": 3,
-          "pct": 60.0
-        },
-        {
           "name": "BARTACK",
           "n": 1,
-          "pct": 20.0
+          "pct": 50.0
         },
         {
           "name": "BINDING",
           "n": 1,
-          "pct": 20.0
+          "pct": 50.0
         }
       ]
     },
@@ -23945,80 +22961,19 @@
       },
       "aggregation_level": "same_bucket",
       "source": "facts_agg",
-      "n_total": 6,
+      "n_total": 1,
       "iso_distribution": [
         {
           "iso": "301",
-          "n": 3,
-          "pct": 50.0
-        },
-        {
-          "iso": "406",
-          "n": 2,
-          "pct": 33.3
-        },
-        {
-          "iso": "514",
           "n": 1,
-          "pct": 16.7
+          "pct": 100.0
         }
       ],
       "methods": [
-        {
-          "name": "COVERSTITCH",
-          "n": 2,
-          "pct": 33.3
-        },
-        {
-          "name": "TOPSTITCH",
-          "n": 2,
-          "pct": 33.3
-        },
         {
           "name": "ENCASED_ELASTIC",
           "n": 1,
-          "pct": 16.7
-        },
-        {
-          "name": "OVERLOCK",
-          "n": 1,
-          "pct": 16.7
-        }
-      ]
-    },
-    {
-      "key": {
-        "gender": null,
-        "dept": null,
-        "gt": null,
-        "it": null,
-        "l1": "SP"
-      },
-      "aggregation_level": "same_bucket",
-      "source": "facts_agg",
-      "n_total": 2,
-      "iso_distribution": [
-        {
-          "iso": "301",
-          "n": 1,
-          "pct": 50.0
-        },
-        {
-          "iso": "514",
-          "n": 1,
-          "pct": 50.0
-        }
-      ],
-      "methods": [
-        {
-          "name": "TOPSTITCH",
-          "n": 1,
-          "pct": 50.0
-        },
-        {
-          "name": "OVERLOCK",
-          "n": 1,
-          "pct": 50.0
+          "pct": 100.0
         }
       ]
     },
