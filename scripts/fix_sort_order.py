@@ -14,10 +14,14 @@ Combined (ROMPER_JUMPSUIT/SET/BODYSUIT):
 
 Within each zone, sort by median position from raw mc_pom data as tiebreaker.
 """
-import json, os, re
+import json, os, re, sys
 from collections import defaultdict
+from pathlib import Path
 
-BASE = '/sessions/stoic-magical-curie/mnt/ONY'
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _pipeline_base import get_base_dir  # noqa: E402
+
+BASE = str(get_base_dir(description=__doc__))
 
 # ─── Zone definitions ───
 # Each POM code prefix maps to a zone number.

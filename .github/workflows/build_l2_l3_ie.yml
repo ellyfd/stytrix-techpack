@@ -1,0 +1,50 @@
+name: Rebuild l2_l3_ie from xlsx
+
+# 觸發:任何 push 到 main 都會評估,但 job-level if 會過濾掉沒碰 xlsx 的 commit
+# 也可由「🛠 IE 底稿管理」Modal 用 workflow_dispatch 手動觸發。
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # 只在 manual dispatch,或 push 碰到 五階層展開項目_*.xlsx 時才跑
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      contains(toJSON(github.event.commits.*.modified), '五階層展開項目_') ||
+      contains(toJSON(github.event.commits.*.added), '五階層展開項目_')
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # build_l2_l3_ie.py 是純 stdlib,不用裝依賴
+      - name: Rebuild l2_l3_ie/*.json
+        run: python scripts/build_l2_l3_ie.py
+
+      - name: Commit regenerated files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add l2_l3_ie/
+
+          if git diff --cached --quiet; then
+            echo "No changes — l2_l3_ie already up to date."
+          else
+            git commit -m "chore(ie): auto-rebuild l2_l3_ie from latest 五階層展開項目 xlsx [skip ci]"
+            git push origin HEAD
+          fi

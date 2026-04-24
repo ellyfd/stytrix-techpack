@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 """Rebuild measurement_profiles_union.json from mc_pom_combined.jsonl"""
-import json, re
+import json, re, sys
+from pathlib import Path
 
-BASE = '/sessions/stoic-magical-curie/mnt/ONY'
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _pipeline_base import get_base_dir  # noqa: E402
+
+BASE = str(get_base_dir(description=__doc__))
 
 def extract_gender(brand_division, department=''):
     bd = (brand_division or '').upper()

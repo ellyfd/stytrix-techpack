@@ -17,10 +17,14 @@ Reads:
 Outputs:
   - pom_analysis_v5.5.1/data/grading_patterns.json
 """
-import json, os, re
+import json, os, re, sys
 from collections import defaultdict, Counter
+from pathlib import Path
 
-BASE = '/sessions/stoic-magical-curie/mnt/ONY'
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _pipeline_base import get_base_dir  # noqa: E402
+
+BASE = str(get_base_dir(description=__doc__))
 DATA = os.path.join(BASE, 'pom_analysis_v5.5.1', 'data')
 PARSED = os.path.join(BASE, '_parsed')
 

@@ -5,10 +5,15 @@ Batch extract MC+POM from new PDFs:
 Resume-safe: skips already-processed source files.
 """
 import json, os, sys, time, re
-sys.path.insert(0, '/sessions/stoic-magical-curie')
-from extract_techpack import extract
+from pathlib import Path
 
-BASE = '/sessions/stoic-magical-curie/mnt/ONY'
+_HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(_HERE))
+sys.path.insert(0, str(_HERE.parent / 'pom_analysis_v5.5.1' / 'scripts'))
+from _pipeline_base import get_base_dir  # noqa: E402
+from extract_techpack import extract  # noqa: E402
+
+BASE = str(get_base_dir(description=__doc__))
 OUTPUT_2026 = os.path.join(BASE, '_parsed/mc_pom_2026.jsonl')
 META_FILE = os.path.join(BASE, '_parsed/all_years.jsonl')
 MAX_SECONDS = 540  # 9 min safety
