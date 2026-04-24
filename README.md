@@ -28,10 +28,10 @@ api/
   │                                             mode=universal 時只跑 Pass 1；module init 讀 l2_visual_guide /
   │                                             l2_decision_trees / l1_standard_38 / techpack-translation-style-guide
   ├─ push-pom-dict.js                         ← Admin：POM 翻譯表寫回 data/pom_dictionary.json
-  ├─ ingest_token.js                          ← Admin：發 GITHUB_PAT 讓瀏覽器直連 GitHub（繞 4.5MB body 上限）
-  └─ ingest_upload.js                         ← Admin：≤4.5MB 的 PDF/PPTX 經 Vercel 代 commit 到 data/ingest/uploads/
+  └─ ingest_token.js                          ← Admin：發 GITHUB_PAT 讓瀏覽器直連 GitHub（繞 4.5MB body 上限）
 .github/workflows/
-  └─ rebuild_master.yml                       ← push 到 data/ingest/uploads/** 時觸發；自動重建 recipes_master 並 push 回 main
+  ├─ rebuild_master.yml                       ← push 到 data/ingest/uploads/** 時觸發；自動重建 recipes_master 並 push 回 main
+  └─ build_l2_l3_ie.yml                       ← push 到 五階層展開項目_*.xlsx 時觸發；自動重建 l2_l3_ie/*.json
 vercel.json                                   ← functions config：includeFiles 把 data/** + techpack-translation-style-guide.md 編進 analyze.js bundle
 data/
   ├─ l2_visual_guide.json                     ← 聚陽模型 Pass 1/2 視覺指引（由 analyze.js 靠 includeFiles 編進 bundle）
@@ -60,8 +60,8 @@ data/
       │                                       ←   Step 2b 輸出（**vlm/**，不是 vlm_v1）
       ├─ consensus_v1/entries.jsonl           ←   手動 bucket consensus 規則（275 條，build_recipes_master 吃）
       ├─ construction_by_bucket/              ←   外部資料源（688 設計，Step 2a 讀）
-      ├─ consensus_rules/                     ←   ⚠ orphan：275 筆與 consensus_v1 同源，無人讀，待清
-      └─ ocr_v1/                              ←   ⚠ orphan：舊 OCR 輸出，無人讀，待清
+      ├─ consensus_rules/                     ← 275 筆 `source=consensus_rules_final`，build_recipes_master 透過 `*/facts.jsonl` glob 讀；大多跟 consensus_v1 重疊被 dedup，但仍貢獻少數 entries
+      └─ ocr_v1/                              ← 1202 筆 OCR 輸出，同樣靠 glob 被讀到；貢獻 ~249 個 entries（2026-04-24 實測）
 l2_l3_ie/*.json                               ← 聚陽模型：38 個 L1 部位的 L2-L3-IE 規則（39 檔 = 38 L1 + 1 index）
 pom_rules/*.json                              ← POM 規則（81 bucket + _index.json = 82 檔，由 scripts/reclassify_and_rebuild.py 產出）
 General Model_Path2_Construction Suggestion/
@@ -152,13 +152,30 @@ Validator: `python3 scripts/validate_buckets.py` 檢查:
 
 `--strict` 旗標把 warning 也當 error。加到 CI 的方式:在 `.github/workflows/rebuild_master.yml` 的 Step 3 前加一步 `python3 scripts/validate_buckets.py --strict`。
 
+### Extract scripts 三個位置的角色分工
+
+Repo 裡有三個位置各有 `extract*.py`,形狀相似但**產出格式完全不同、餵不同 pipeline**,常混淆:
+
+| 位置 | 腳本 | 輸入 | 輸出格式 | 餵誰 | 現狀 |
+|---|---|---|---|---|---|
+| `pom_analysis_v5.5.1/scripts/` | `extract_techpack.py` | Centric 8 ONY 單份 PDF | in-memory dict:`{design_number, mcs:[{poms:[{POM_Code,sizes:{...}}]}]}` | 被 `scripts/run_extract_*.py` import 當底層 parser | **活**(純函式庫) |
+| `pom_analysis_v5.5.1/scripts/` | `run_extract.py` | 批量 PDF 樹 + 年份參數 | `$BASE/_parsed/mc_pom_<year>.jsonl` | (歷史版) | **凍結 snapshot,不跑** — header 宣稱「取代 run_extract_new / 2025_seasonal」但從未真的取代,root 的 2 支才是實際跑的 |
+| `scripts/` | `run_extract_2025_seasonal.py` | `$BASE/2025/{FA25,HO25,SP25,SU25}/**/*.pdf` | `$BASE/_parsed/mc_pom_2025.jsonl` | Pipeline B(POM RULES)的 `rebuild_profiles.py` | **活** — 2025 backlog 專用 |
+| `scripts/` | `run_extract_new.py` | `$BASE/2026/{5,FA26,HO26,SP26,SU26,SP23,SP27}/**/*.pdf` | `$BASE/_parsed/mc_pom_2026.jsonl` | 同上 | **活** — 2026 production(~5K PDF)|
+| `star_schema/scripts/` | `extract_raw_text.py` | `data/ingest/uploads/*.pdf`、`*.pptx` | `data/ingest/metadata/designs.jsonl` + `pptx/*.txt` + `pdf/callout_images/*.png` | Pipeline A(recipes_master)Step 1 | **活** — CI 每次 push uploads/ 自動跑 |
+| `star_schema/scripts/` | `extract_unified.py` | `data/ingest/{metadata,pptx,pdf,vlm}/` | `data/ingest/unified/{dim,facts}.jsonl` | Pipeline A Step 2a | **活** — 同上,CI 自動跑 |
+
+**怎麼選用**:
+
+- 重建 **POM RULES**(81 bucket 尺寸規則)→ 用 `scripts/run_extract_*.py`(+ `pom_analysis_v5.5.1/scripts/extract_techpack.py` 當 parser)。`mc_pom_*.jsonl` 含 measurement chart + POM rows,是 `rebuild_profiles.py` 的唯一進料
+- 重建 **recipes_master**(做工配方)→ 用 `star_schema/scripts/extract_*.py`。不關心 MC/POM 尺寸,抓的是做工 callout + ISO zone
+- **絕對不要用 v5.5.1/run_extract.py**:它被 header 宣稱取代 run_extract_{new,2025_seasonal},但實際上 root 那兩支才是 production。v5.5.1/scripts/ 視為 2026-04-22 snapshot,正本永遠看根目錄
+
 ### 線上 ingest pipeline（`star_schema/scripts/` + GitHub Actions）
 
 Admin 在前端「📤 上傳 Techpack」丟一份 PDF/PPTX：
 
-1. **上傳路徑（前端自動分流）**：
-   - 檔案 ≤ 4.5 MB：`POST /api/ingest_upload`，Vercel 代 commit 到 `data/ingest/uploads/`
-   - 檔案 > 4.5 MB：`POST /api/ingest_token` 取 `GITHUB_PAT`，瀏覽器直連 GitHub `PUT contents`
+1. **上傳路徑**：`POST /api/ingest_token` 取 `GITHUB_PAT`，瀏覽器直連 GitHub `PUT contents` 把檔案送進 `data/ingest/uploads/`。沒檔案大小分流（歷史上曾規劃走 `/api/ingest_upload` 的小檔路徑，2026-04-24 移除未實作的 endpoint；現在任何大小都走直連）。
 2. **GitHub Actions 觸發**（`.github/workflows/rebuild_master.yml`，`push: paths: data/ingest/uploads/**`）。實際步驟順序是 **1 → 2b → 2a → 3**（2b 刻意排在 2a 前，讓 2a 的 unified 合併能吃到本次 run 剛產出的 VLM facts）：
    - **Step 1** `extract_raw_text.py` — 掃 uploads/；PDF 讀首頁元資料（季節 / 品牌 / 類型）+ 抽 D-number，PPTX 逐頁取文字，PDF callout 頁面評分後 216 DPI 渲染成 PNG。`--allow-empty` 允許首次空掃，`--force` 忽略已處理重跑。
    - **Step 2b** `vlm_pipeline.py --map-iso --ingest-dir data/ingest --out data/ingest/vlm` — 若沒預填 `vlm_raw_extracts.json` 但 `ANTHROPIC_API_KEY` 有設，會對每張 callout PNG 呼叫 Claude Haiku 自動分析（`requirements-pipeline.txt` 加 `anthropic>=0.25.0`）；否則讀既有 `vlm_raw_extracts.json` 走手填路徑。輸出 `vlm/facts.jsonl`（含 `bucket` 欄位，Step 3 才能用）+ `vlm_callout_extracts.json`。**資料夾是 `vlm/`，不是 `vlm_v1/`**。`continue-on-error`，失敗不擋 build。
@@ -184,7 +201,7 @@ Admin 在前端「📤 上傳 Techpack」丟一份 PDF/PPTX：
 |---|---|---|---|
 | 📦 下載 Pipeline 包（PackageModal） | 組 zip 給外部協作單位在本機跑 **Pipeline A(recipes_master)+ Pipeline B(POM RULES)** 兩條線。含 13 個 py + 參考資料 + 2 份 pom pipeline .md + 自動產 README / VERSION / `.env.example` / `run.sh` / `run_pom_rules.sh` | 取 PAT → GitHub API 抓 main sha + recipes/ 列表 → 並行拉 raw.githubusercontent.com → JSZip 瀏覽器組 zip → 觸發下載 | — |
 | 📥 上傳 Pipeline 結果（ResultsUploadModal） | 吃外部送回的 zip / jsonl,merge 到 `data/ingest/{unified,vlm}/facts.jsonl` + `metadata/designs.jsonl`(append 或 append-dedup by design_id) | JSZip 瀏覽器解壓 → 比對 path → GET 現有 → merge → 直連 `PUT contents` | 無實質上限 |
-| 📤 上傳 Techpack（UploadModal） | 丟 PDF/PPTX 進 `data/ingest/uploads/`,觸發 Actions 重建 recipes_master | ≤ 4.5 MB: `POST /api/ingest_upload`(Vercel)<br/>\> 4.5 MB: `POST /api/ingest_token` → 瀏覽器直連 GitHub `PUT` | 無實質上限 |
+| 📤 上傳 Techpack（UploadModal） | 丟 PDF/PPTX 進 `data/ingest/uploads/`,觸發 Actions 重建 recipes_master | `POST /api/ingest_token` → 瀏覽器直連 GitHub `PUT` | 無實質上限 |
 | 📝 POM 翻譯表編輯（AdminModal） | 編 `data/pom_dictionary.json`,自動 diff + commit msg | `POST /api/push-pom-dict`(Vercel endpoint) | 小 |
 | 🛠 IE 底稿管理（IEAdminModal） | 聚陽送新版 `五階層展開項目_YYYYMMDD.xlsx` 時上傳,觸發 `build_l2_l3_ie.yml` workflow 自動重建 `l2_l3_ie/*.json`。xlsx 通常 9.5 MB。 | `POST /api/ingest_token` → 瀏覽器直連 GitHub `PUT`(因 xlsx 超過 Vercel 4.5 MB) | 無實質上限 |
 | 📚 權威手冊登記表（ManualsModal） | Read-only,顯示 7 份權威手冊的角色 / 引用鏈 | 無後端呼叫 | — |
@@ -225,7 +242,7 @@ GitHub push → Vercel 自動建置（preview / production）。
 **Vercel 環境變數**（Project Settings）：
 - `ANTHROPIC_API_KEY` — `api/analyze.js` 呼叫 Claude Vision 用
 - `ADMIN_TOKEN` — 所有 admin 端點共享的驗證 token
-- `GITHUB_PAT` — `api/push-pom-dict.js` / `api/ingest_upload.js` / `api/ingest_token.js` 寫回 GitHub 用（需 `contents: write`）
+- `GITHUB_PAT` — `api/push-pom-dict.js` / `api/ingest_token.js` 寫回 GitHub 用（需 `contents: write`）
 
 **GitHub Actions secrets**（Repo Settings）：
 - `ANTHROPIC_API_KEY` — workflow Step 2b VLM pipeline 用（沒設定時 2b 跳過，不擋 build）

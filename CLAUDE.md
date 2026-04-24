@@ -25,7 +25,8 @@
 |--------|----------------------|------|------------|
 | `data/` | **線上系統直接讀取的成品資料**。像給工廠的最終 techpack PDF,前端跟 API runtime 就是開這個 | `l2_visual_guide.json`(L2 零件視覺指引)、`l2_decision_trees.json`(AI 判斷樹)、`grading_patterns.json`(跳碼 pattern) | 原始 PPTX/PDF/xlsx 底稿;沒人線上讀的存檔 |
 | `pom_rules/` | **自動產生的 POM 規則庫**。81 個 bucket(性別 × 部門 × GT 品類 × Fabric),像 81 本機器編的規格書 | `pom_rules/*.json`(由 `scripts/reclassify_and_rebuild.py` 產出) | 手寫規則;說明文件 |
-| `l2_l3_ie/` | **38 個 L1 部位的 L2-L3-IE 工時規則**。每個部位自己的工段 sheet | 按 L1 代號分檔的 JSON | 其他層級的規則 |
+| `l2_l3_ie/` | **38 個 L1 部位的 L2-L3-IE 工時規則**(聚陽 IE 資料)。每個部位自己的工段 sheet。從 `五階層展開項目_YYYYMMDD.xlsx` 用 `scripts/build_l2_l3_ie.py` 拆出來;聚陽送新版時用前端「🛠 IE 底稿管理」Modal 上傳,CI 自動重建 | 按 L1 代號分檔的 JSON | 其他層級的規則;手改(會被 CI 蓋掉) |
+| `pom_analysis_v5.5.1/` | **2026-04-22 的 frozen snapshot**,凍結當時的 `scripts/` + `data/` 狀態。正本永遠看根目錄 `scripts/` + `data/`,這個資料夾**不再維護**;`run_extract.py` 的 header 宣稱它取代 root 的 `run_extract_{new,2025_seasonal}.py`,但**實際上從未取代**,root 那兩支才是 production | `pom_analysis_v5.5.1/scripts/extract_techpack.py` 當 PDF parser 被 import(純函式庫) | 新產線腳本(放 `scripts/`);新 reference data(放 `data/`) |
 | `General Model_Path2_Construction Suggestion/` | **通用模型(不分客戶/品牌)的做工推薦資料源**。ISO 工藝代號查表、knit/woven 做工紀錄、PATH2 pipeline 文件 | `iso_lookup_factory_v4.3.json`、`knit_pptx_construction_context.json`、`PATH2_通用模型_做工推薦Pipeline.md` | 前端 runtime fetch 的檔(那該放 `data/`) |
 | `scripts/` | **資料產線腳本**。像後勤的「資料重建 SOP」,在內部環境跑,重建上面幾個資料夾的內容 | `reclassify_and_rebuild.py`、`build_l2_visual_guide.py` | 一次性 ad-hoc 腳本 |
 | `api/` | **線上系統後端 endpoint**。目前只有 `analyze.js`,接 Claude Vision 做 AI 辨識 | `api/analyze.js` | 靜態資料 |
@@ -155,7 +156,17 @@ git commit -m "chore: 移除孤兒 $CANDIDATE (已通過 grep gate 驗證)"
 
 - ~~`L2_Confusion_Pairs_Matrix.md`~~ — 2026-04-23 已合併入 `L2_VLM_Decision_Tree_Prompts_v2.md` 末尾(§ 混淆對照表)
 - `L1_部位定義_Sketch視覺指引.md`(根目錄 + PATH2 兩份,MD5 相同) — 兩個 pipeline 各自 CWD 相對讀,保守留雙份
-- `scripts/` 裡路徑寫死 `/sessions/` 的腳本 — README 明列為「內部環境再生 pom_rules/ 來源參考」,不可刪
+- ~~`scripts/` 裡路徑寫死 `/sessions/` 的腳本~~ — 2026-04-24 已改用 `--base-dir` / `$POM_PIPELINE_BASE`,可在外部環境跑(見 `scripts/_pipeline_base.py`)
+- `data/ingest/consensus_rules/facts.jsonl`(275 筆)、`data/ingest/ocr_v1/facts.jsonl`(1202 筆) — **一度被誤判為孤兒**,但 `build_recipes_master.py:629` 的 `data/ingest/*/facts.jsonl` glob 會吃它們,2026-04-24 實測刪除會讓 recipes_master 掉 249 entries(1414 → 1165)。**不可刪**
+
+### 真實教訓 (2026-04-24)
+
+原以為 `data/ingest/consensus_rules/` + `ocr_v1/` 沒人用(全文 grep 不到 literal 字串),code review agent 也回報「零引用」。**實際上** `build_recipes_master.py` 用 glob pattern `data/ingest/*/facts.jsonl` 讀,不需要 hardcode 目錄名,因此 grep 抓不到。
+
+教訓(加到 Part B SOP 的 Step 5 後面):
+
+- **Step 6 — 檢查 glob / wildcard 讀取**:看消費端有沒有用 `glob("*/...")`、`os.listdir()`、`Path.iterdir()` 這類動態掃描。candidate 目錄若位於 glob 的掃描範圍內,一定是活檔,grep literal 字串永遠抓不到。
+- 實務上:對 `data/ingest/` 下任何新資料夾,都要先搜 `grep "ingest.*glob\|ingest.*iterdir\|ingest/\*"` 在 `*.py` / `*.js` 裡;不是 literal 比對。
 
 ---
 
