@@ -68,15 +68,14 @@
 **唯一職責**：把 `GITHUB_PAT` 發給已驗證的 admin。不做檔案處理、不做
 proxy——所有真正的上傳都在前端直連 GitHub。
 
-### `/api/ingest_upload`（POST，**前端目前不使用**）
+### ~~`/api/ingest_upload`（已移除）~~
 
-檔：`api/ingest_upload.js`
+2026-04-24 移除。原本構想是給 ≤ 4.5 MB 的檔走 Vercel 代 commit,
+但 admin UI 從頭到尾沒串進來,端點保留了半年都沒被呼叫過。code
+review 盤點時發現前端跟 README 對此有落差,決定直接刪 endpoint +
+`vercel.json` 條目,上傳路徑統一為 `ingest_token` → 瀏覽器直連 GitHub。
 
-原本設計給 Vercel 代 commit 用，但 admin UI 一律走 direct-to-GitHub
-路徑。端點仍保留作為小檔（≤ 4.5 MB）的後備方案，前端若未來要加
-「不暴露 PAT」模式可切回這條。
-
-`vercel.json` 仍列 `maxDuration: 60`。
+未來若要加「不暴露 PAT」模式,再重建 endpoint 即可。
 
 ---
 
@@ -309,7 +308,7 @@ trigger path 不匹配，Actions 還是不會跑。只有 Vercel 重新部署會
 
 本文件描述的內容散佈在以下檔案，任何歧異**以程式碼為準**：
 
-- 端點：`api/ingest_token.js`、`api/ingest_upload.js`
+- 端點：`api/ingest_token.js`
 - Workflow：`.github/workflows/rebuild_master.yml`
 - Pipeline scripts：`star_schema/scripts/{extract_raw_text,extract_unified,vlm_pipeline,build_recipes_master}.py`
 - 前端 UI：`index.html` 內 `UploadModal` / `PatchUploadModal` / `CI_STEP_LABELS` / `mergeRecipesMaster` / `PATCH_TARGET`
