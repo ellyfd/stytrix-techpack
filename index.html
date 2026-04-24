@@ -2383,31 +2383,53 @@ function UploadModal({ open, onClose, token }) {
 /* PackageModal:組 zip 讓外部單位離線跑 pipeline
    scripts + reference data + 自動產 README/VERSION/.env.example/run.sh */
 const PACKAGE_FILES = [
+  // ── Pipeline A:recipes_master ──
   'star_schema/scripts/extract_raw_text.py',
   'star_schema/scripts/extract_unified.py',
   'star_schema/scripts/vlm_pipeline.py',
   'star_schema/scripts/build_recipes_master.py',
+  // ── Pipeline B:POM RULES(81 buckets) ──
+  'scripts/_pipeline_base.py',
+  'scripts/run_extract_new.py',
+  'scripts/run_extract_2025_seasonal.py',
+  'scripts/rebuild_profiles.py',
+  'scripts/reclassify_and_rebuild.py',
+  'scripts/enforce_tier1.py',
+  'scripts/rebuild_grading_3d.py',
+  'scripts/rebuild_all_analysis_v2.py',
+  'scripts/fix_sort_order.py',
+  'pom_analysis_v5.5.1/scripts/extract_techpack.py',
+  // ── 共用 reference data ──
   'requirements-pipeline.txt',
   'techpack-translation-style-guide.md',
   'data/construction_bridge_v6.json',
   'data/bucket_taxonomy.json',
   'data/l1_standard_38.json',
+  'data/pom_dictionary.json',
   'data/ingest/consensus_v1/entries.jsonl',
   'General Model_Path2_Construction Suggestion/iso_lookup_factory_v4.3.json',
   'General Model_Path2_Construction Suggestion/iso_lookup_factory_v4.json',
+  // ── POM RULES 產線文件 ──
+  'pom_rules_pipeline_guide_v2.md',
+  'pom_rules_v55_classification_logic.md',
 ];
 
 const PKG_README = (sha, date) => `# StyTrix Techpack Pipeline 外送包
 
 > 版本: ${sha} · 產出: ${date}
 
-這包含線上 recipes_master pipeline 的完整腳本 + 參考資料,讓協作單位在本機跑 PDF/PPTX → facts → recipes。
+本包含兩條 pipeline 的腳本 + 參考資料,協作單位可在自己機器上重建:
 
-## ⚠ 前置條件 — 需自備 Anthropic API Key
+- **Pipeline A — recipes_master**:PDF/PPTX → facts → \`data/recipes_master.json\`(做工配方總表)
+- **Pipeline B — POM RULES**:Centric 8 ONY Techpack PDF → \`pom_rules/*.json\`(81 bucket 尺寸規則庫)
 
-Step 2b 會呼叫 Claude Vision 分析 PDF callout 圖。請先到 https://console.anthropic.com → API Keys → 建一組自己的 key,**不要用 Stytrix 團隊的 key**。
+兩條獨立,可單跑也可都跑。
 
-沒 key 也能跑,Step 2b 會安靜跳過,callout 訊號不進資料。
+## ⚠ 前置條件 — 需自備 Anthropic API Key(僅 Pipeline A 用)
+
+Pipeline A 的 Step 2b 會呼叫 Claude Vision 分析 PDF callout 圖。請先到 https://console.anthropic.com → API Keys → 建一組自己的 key,**不要用 Stytrix 團隊的 key**。沒 key 也能跑,Step 2b 會安靜跳過。
+
+Pipeline B 不需 API key。
 
 ## 環境
 
@@ -2419,10 +2441,12 @@ Python 3.10+ · pip / venv · 約 500 MB 空間
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements-pipeline.txt
 cp .env.example .env
-# 編輯 .env 填入 ANTHROPIC_API_KEY
+# 編輯 .env 填入 ANTHROPIC_API_KEY(Pipeline A 用;B 不需)
 \`\`\`
 
-## 跑 Pipeline
+---
+
+## Pipeline A:跑 recipes_master
 
 \`\`\`bash
 # 把 PDF/PPTX 放進 data/ingest/uploads/
@@ -2431,15 +2455,60 @@ cp .env.example .env
 
 順序照線上 workflow:Step 1(抽文字+圖) → 2b(VLM callout) → 2a(合併 unified) → 3(重建 recipes_master)。
 
-## 產出 & 回傳
+**產出 & 回傳**:跑完 \`data/ingest/{metadata/designs.jsonl, unified/facts.jsonl, vlm/facts.jsonl}\` 打成一包 zip,到 Stytrix 前台管理選單 → 📥 上傳 Pipeline 結果 → 拖入 → 合併。
 
-跑完 \`data/ingest/{metadata/designs.jsonl, unified/facts.jsonl, vlm/facts.jsonl}\` 打成一包 zip,到 Stytrix 前台管理選單 → 📥 上傳 Pipeline 結果 → 拖入 → 合併。
+---
+
+## Pipeline B:跑 POM RULES(81 bucket 尺寸規則庫)
+
+### 前置:準備 BASE 資料夾
+
+POM RULES 吃的是 **Centric 8 ONY Techpack PDF 樹**,跟 Pipeline A 的 \`data/ingest/uploads/\` 不同。
+
+把 PDF 按年 / 季整理成:
+
+\`\`\`
+/你指定的 BASE/
+  2024/1/*.pdf      2024/2/*.pdf     …(月份,平放)
+  2025/FA25/*.pdf   2025/HO25/*.pdf  2025/SP25/*.pdf   2025/SU25/*.pdf
+  2026/5/*.pdf      2026/FA26/*.pdf  2026/HO26/*.pdf   2026/SP26/*.pdf
+  _parsed/          ← 腳本會自動建
+  all_years.jsonl   ← metadata 來源(Design Number / Description / Brand 等)
+\`\`\`
+
+\`all_years.jsonl\` 每行一個物件,至少含:\`{file, year, meta:{...}}\`。Stytrix 會另外交給你,或從 Centric 匯出。
+
+初次要把 \`data/pom_dictionary.json\` 複製一份到 \`$BASE/pom_dictionary.json\`(POM 中英對照字典,做 reclassify 用)。
+
+### 跑 Pipeline
+
+\`\`\`bash
+export POM_PIPELINE_BASE=/你指定的 BASE
+./run_pom_rules.sh
+\`\`\`
+
+或用 CLI flag(每支腳本都接受 \`--base-dir\`):
+
+\`\`\`bash
+python scripts/reclassify_and_rebuild.py --base-dir /你指定的 BASE
+\`\`\`
+
+### 產出
+
+跑完 \`$BASE/pom_rules/*.json\`(81 bucket + _index.json)+ \`$BASE/pom_analysis_v5.5.1/data/*.json\`(gender_gt_pom_rules / grading_patterns / bodytype_variance / client_rules / design_classification_v5 / construction_bridge_v6)。
+
+想推回 Stytrix repo:把 \`$BASE/pom_rules/\` 整個覆蓋 repo 的 \`pom_rules/\` 目錄,PR 推上去。
+
+---
 
 ## 常見問題
 
-- **沒 ANTHROPIC_API_KEY**: Step 2b 跳過,2a + 3 仍會跑。
-- **PDF 讀不進去**: 確認有文字層(非掃描件)。
-- **PPTX 空白**: 文字需是 text frame,不是圖片。
+- **\`POM pipeline BASE directory not set\`**:沒設 \`POM_PIPELINE_BASE\` env var,也沒傳 \`--base-dir\`。
+- **Pipeline A 沒 ANTHROPIC_API_KEY**: Step 2b 跳過,2a + 3 仍會跑。
+- **PDF 讀不進去**:確認有文字層(非掃描件)。
+- **PPTX 空白**:文字需是 text frame,不是圖片。
+- **Pipeline B 第一次跑缺 \`_parsed/mc_pom_*.jsonl\`**:先跑 \`run_extract_new.py\` / \`run_extract_2025_seasonal.py\` 把 PDF 抽成 jsonl。
+- **更詳細的 Pipeline B 規格**:看 \`pom_rules_pipeline_guide_v2.md\` 與 \`pom_rules_v55_classification_logic.md\`。
 `;
 
 const PKG_VERSION = (sha, shortSha, date) => `StyTrix Techpack Pipeline Package
@@ -2476,6 +2545,44 @@ echo "→ Step 3: build_recipes_master.py"
 python star_schema/scripts/build_recipes_master.py --strict
 
 echo "✓ 完成:data/recipes_master.json + data/ingest/{unified,vlm}/facts.jsonl"
+`;
+
+const PKG_RUN_POM_RULES_SH = `#!/usr/bin/env bash
+# Pipeline B — POM RULES 重建。吃 Centric 8 ONY Techpack PDF 樹 → 81 bucket JSON。
+set -e
+
+if [ -z "\$POM_PIPELINE_BASE" ]; then
+  echo "error: 請先 export POM_PIPELINE_BASE=/你的 BASE 路徑"
+  echo "       (BASE 底下要有 2024/ 2025/ 2026/ PDF 目錄 + all_years.jsonl + pom_dictionary.json)"
+  exit 2
+fi
+
+echo "BASE = \$POM_PIPELINE_BASE"
+mkdir -p "\$POM_PIPELINE_BASE/_parsed" "\$POM_PIPELINE_BASE/pom_rules"
+
+echo "→ Step 1a: extract 2025 seasonal PDFs"
+python scripts/run_extract_2025_seasonal.py || echo "⚠ 沒 2025 PDF 或已處理完,跳過"
+
+echo "→ Step 1b: extract 2026 PDFs"
+python scripts/run_extract_new.py || echo "⚠ 沒 2026 PDF 或已處理完,跳過"
+
+echo "→ Step 2: rebuild_profiles (→ measurement_profiles_union.json)"
+python scripts/rebuild_profiles.py
+
+echo "→ Step 3: reclassify_and_rebuild (→ pom_rules/*.json)"
+python scripts/reclassify_and_rebuild.py
+
+echo "→ Step 4: rebuild_all_analysis_v2 (→ 6 analysis files)"
+python scripts/rebuild_all_analysis_v2.py
+
+echo "→ Step 5: rebuild_grading_3d (→ grading_patterns.json)"
+python scripts/rebuild_grading_3d.py
+
+echo "→ Step 6: fix_sort_order (→ 整理各 bucket 的 pom_sort_order)"
+python scripts/fix_sort_order.py
+
+echo "✓ 完成:\$POM_PIPELINE_BASE/pom_rules/*.json(81 bucket)"
+echo "  想推回 Stytrix repo:覆蓋 repo 的 pom_rules/ 目錄,PR 推上去。"
 `;
 
 function PackageModal({ open, onClose, token }) {
@@ -2538,6 +2645,7 @@ function PackageModal({ open, onClose, token }) {
       zip.file('VERSION', PKG_VERSION(sha, shortSha, date));
       zip.file('.env.example', PKG_ENV_EXAMPLE);
       zip.file('run.sh', PKG_RUN_SH, { unixPermissions: '755' });
+      zip.file('run_pom_rules.sh', PKG_RUN_POM_RULES_SH, { unixPermissions: '755' });
       zip.file('data/ingest/uploads/.gitkeep', '');
       const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
       const filename = `stytrix-pipeline-${shortSha}-${dayStr}.zip`;
@@ -2575,7 +2683,7 @@ function PackageModal({ open, onClose, token }) {
 
         <div style={{ marginBottom: '14px', padding: '10px 12px', background: '#f9fafb', border: '1px solid #e5e5e5', borderRadius: '8px', fontSize: '12px', color: '#374151', lineHeight: 1.7 }}>
           <div><strong>版本</strong>:<code style={{ fontFamily: "'JetBrains Mono',monospace" }}>{shortSha}</code> (main 最新)</div>
-          <div><strong>包含</strong>:{PACKAGE_FILES.length} 份固定檔 + {recipesList.length} 個 recipe JSON + 自動產 README / VERSION / .env.example / run.sh</div>
+          <div><strong>包含</strong>:{PACKAGE_FILES.length} 份固定檔 + {recipesList.length} 個 recipe JSON + 自動產 README / VERSION / .env.example / run.sh / run_pom_rules.sh</div>
           <div><strong>格式</strong>:zip,~5 MB</div>
         </div>
 
@@ -2607,6 +2715,234 @@ function PackageModal({ open, onClose, token }) {
           {phase === 'building' && (
             <button disabled style={{ padding: '8px 20px', fontSize: '13px', fontWeight: 600, border: 'none', background: '#e5e7eb', color: '#9ca3af', borderRadius: '6px', fontFamily: 'inherit' }}>
               打包中...
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* IEAdminModal:聚陽送來新版 五階層展開項目_YYYYMMDD.xlsx 時上傳。
+   push 到 main → rebuild_l2_l3_ie workflow 自動跑 scripts/build_l2_l3_ie.py
+   → 覆蓋 l2_l3_ie/*.json。xlsx 通常 9.5 MB,走 PAT 直連 GitHub PUT(不走 Vercel 4.5 MB 限制)。 */
+function IEAdminModal({ open, onClose, token }) {
+  const [pickedFile, setPickedFile] = React.useState(null);
+  const [phase, setPhase] = React.useState('idle'); // idle | uploading | ci | done | error
+  const [statusMsg, setStatusMsg] = React.useState('');
+  const [commitSha, setCommitSha] = React.useState(null);
+  const cancelRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (open) {
+      cancelRef.current = false;
+      setPickedFile(null); setPhase('idle'); setStatusMsg(''); setCommitSha(null);
+    } else {
+      cancelRef.current = true;
+    }
+  }, [open]);
+
+  // 今天日期 YYYYMMDD,加在檔名裡
+  const todayStr = () => {
+    const d = new Date();
+    return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+  };
+  const plannedName = pickedFile ? `五階層展開項目_${todayStr()}.xlsx` : '';
+
+  const handleUpload = async () => {
+    if (!pickedFile) return;
+    if (!token) { setPhase('error'); setStatusMsg('請先至「⚙ 設定」填入 Admin Token'); return; }
+    setPhase('uploading'); setStatusMsg('取得 GITHUB_PAT...');
+    try {
+      const tokResp = await fetch('/api/ingest_token', { method: 'POST', headers: { 'x-admin-token': token } });
+      if (!tokResp.ok) {
+        throw new Error(tokResp.status === 401 ? 'Admin Token 錯誤' : `Token 端點 ${tokResp.status}`);
+      }
+      const { github_pat } = await tokResp.json();
+
+      setStatusMsg('UTF-8 安全編碼中...');
+      const buf = await pickedFile.arrayBuffer();
+      const bytes = new Uint8Array(buf);
+      let binary = '';
+      for (let i = 0; i < bytes.length; i += 8192)
+        binary += String.fromCharCode(...bytes.subarray(i, Math.min(i + 8192, bytes.length)));
+      const b64 = btoa(binary);
+
+      const OWNER = 'ellyfd', REPO = 'stytrix-techpack', BRANCH = 'main';
+      const filePath = plannedName;
+      // 路徑含中文 → 每一段都要 encodeURIComponent,不要整串 encode
+      const encodedPath = filePath.split('/').map(encodeURIComponent).join('/');
+      const apiUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${encodedPath}`;
+      const ghHeaders = {
+        Authorization: `token ${github_pat}`, Accept: 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json', 'User-Agent': 'stytrix-ie-admin/1.0',
+      };
+
+      setStatusMsg('推送至 GitHub...');
+      // 若同名檔已存在,取 sha 以便覆蓋(同日重上傳)
+      let sha;
+      const getResp = await fetch(apiUrl, { headers: ghHeaders });
+      if (getResp.ok) { const ex = await getResp.json(); sha = ex.sha; }
+
+      const putBody = { message: `chore(ie): upload ${filePath}`, content: b64, branch: BRANCH };
+      if (sha) putBody.sha = sha;
+
+      const putResp = await fetch(apiUrl, { method: 'PUT', headers: ghHeaders, body: JSON.stringify(putBody) });
+      if (!putResp.ok) throw new Error(`GitHub API ${putResp.status}: ${(await putResp.text()).slice(0, 160)}`);
+      const result = await putResp.json();
+      const newSha = result.commit?.sha;
+      setCommitSha(newSha);
+      setPhase('ci');
+      setStatusMsg(`✓ 已推送 ${filePath}\n等待「Rebuild l2_l3_ie from xlsx」workflow 跑完(約 1–2 分鐘)...`);
+
+      if (!newSha) {
+        setPhase('done');
+        setStatusMsg(prev => prev + '\n⚠ 無 commit SHA,無法追蹤 CI;到 Actions 頁看狀態。');
+        return;
+      }
+
+      // 輪詢 workflow run — 比 UploadModal 的 pollCi 簡化(沒 step 明細,只顯示 success/fail)
+      const actionsBase = `https://api.github.com/repos/${OWNER}/${REPO}/actions`;
+      const actH = { Authorization: `token ${github_pat}`, Accept: 'application/vnd.github.v3+json' };
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+      let runId = null;
+      for (let i = 0; i < 15 && !cancelRef.current; i++) {
+        await sleep(3000);
+        try {
+          const r = await fetch(`${actionsBase}/runs?head_sha=${newSha}&per_page=5`, { headers: actH });
+          if (r.ok) {
+            const d = await r.json();
+            // 找 "Rebuild l2_l3_ie from xlsx" 那條
+            const run = (d.workflow_runs || []).find(w => /l2_l3_ie/i.test(w.name || w.path));
+            if (run) { runId = run.id; break; }
+          }
+        } catch {}
+      }
+      if (!runId) {
+        setPhase('done');
+        setStatusMsg(prev => prev + '\n⚠ 45 秒內沒看到 workflow 啟動,到 Actions 頁確認。');
+        return;
+      }
+
+      for (let tick = 0; tick < 60 && !cancelRef.current; tick++) {
+        await sleep(5000);
+        try {
+          const r = await fetch(`${actionsBase}/runs/${runId}`, { headers: actH });
+          if (!r.ok) continue;
+          const run = await r.json();
+          if (run.status === 'completed') {
+            setPhase(run.conclusion === 'success' ? 'done' : 'error');
+            setStatusMsg(prev =>
+              run.conclusion === 'success'
+                ? prev + `\n✓ l2_l3_ie/ 已自動重建。前端下次 fetch 即生效。`
+                : prev + `\n❌ workflow 失敗 (${run.conclusion}),到 Actions 頁看 log。`);
+            return;
+          }
+        } catch {}
+      }
+      if (!cancelRef.current) {
+        setPhase('error');
+        setStatusMsg(prev => prev + '\n⚠ 追蹤逾時(5 分鐘),到 Actions 頁看實際狀態。');
+      }
+    } catch (e) {
+      setPhase('error'); setStatusMsg(`錯誤: ${e.message}`);
+    }
+  };
+
+  if (!open) return null;
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: '20px',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background: '#fff', borderRadius: '12px', padding: '24px',
+        width: '100%', maxWidth: '500px', boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '14px' }}>
+          <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 700 }}>🛠 IE 底稿管理 — 五階層展開項目</h2>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '22px', color: '#999', lineHeight: 1, padding: '0 4px', fontFamily: 'inherit' }}>×</button>
+        </div>
+
+        <div style={{ marginBottom: '14px', padding: '10px 12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', fontSize: '12px', color: '#78350f', lineHeight: 1.55 }}>
+          聚陽送來新版 xlsx 時,從這裡上傳。push 後 GitHub Actions 會跑 <code style={{ background: '#fef3c7', padding: '0 4px', borderRadius: 3 }}>scripts/build_l2_l3_ie.py</code> 自動重建 <code>l2_l3_ie/*.json</code>(38 份)。xlsx 檔名會統一改成 <code>五階層展開項目_&lt;今日&gt;.xlsx</code>,舊版留在 repo 當歷史。
+        </div>
+
+        {!token && (
+          <div style={{ marginBottom: '14px', padding: '8px 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', fontSize: '12px', color: '#991b1b' }}>
+            ⚠ Admin Token 尚未設定 — 請先點右上角 <strong>⚙ 設定</strong> 填入。
+          </div>
+        )}
+
+        {(phase === 'idle' || phase === 'uploading') && (
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '12px' }}>
+            <label style={{ padding: '7px 14px', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+              border: '1px solid #fcd34d', background: '#fff', color: '#92400e', borderRadius: '6px' }}>
+              選擇 xlsx
+              <input type="file" accept=".xlsx" style={{ display: 'none' }}
+                onChange={e => { setPickedFile(e.target.files?.[0] || null); setPhase('idle'); setStatusMsg(''); e.target.value = ''; }} />
+            </label>
+            {pickedFile && (
+              <span style={{ fontSize: '12px', color: '#374151', maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {pickedFile.name} ({(pickedFile.size/1024/1024).toFixed(1)} MB)
+              </span>
+            )}
+          </div>
+        )}
+
+        {pickedFile && phase === 'idle' && (
+          <div style={{ marginBottom: '12px', padding: '8px 12px', background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '6px', fontSize: '12px', color: '#075985' }}>
+            上傳後存為:<strong style={{ fontFamily: "'JetBrains Mono',monospace" }}>{plannedName}</strong>
+          </div>
+        )}
+
+        {statusMsg && (
+          <div style={{ marginBottom: '12px', padding: '10px 12px', borderRadius: '6px', fontSize: '12px',
+            whiteSpace: 'pre-wrap', lineHeight: 1.55,
+            background: phase === 'done' ? '#f0fdf4' : phase === 'error' ? '#fef2f2' : '#f9fafb',
+            color: phase === 'done' ? '#166534' : phase === 'error' ? '#dc2626' : '#374151',
+            border: `1px solid ${phase === 'done' ? '#bbf7d0' : phase === 'error' ? '#fecaca' : '#e5e5e5'}`,
+          }}>
+            {statusMsg}
+          </div>
+        )}
+
+        {commitSha && (
+          <div style={{ marginBottom: '12px', fontSize: '11px', color: '#6b7280' }}>
+            <a href={`https://github.com/ellyfd/stytrix-techpack/commit/${commitSha}`} target="_blank" rel="noopener noreferrer"
+              style={{ color: '#2563eb', textDecoration: 'underline' }}>
+              查看 commit {commitSha.slice(0,7)} →
+            </a>
+            {' · '}
+            <a href={`https://github.com/ellyfd/stytrix-techpack/actions/workflows/build_l2_l3_ie.yml`} target="_blank" rel="noopener noreferrer"
+              style={{ color: '#2563eb', textDecoration: 'underline' }}>
+              Actions 頁 →
+            </a>
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+          <button onClick={onClose}
+            style={{ padding: '8px 16px', fontSize: '13px', border: '1px solid #d1d5db', background: '#f9fafb', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit' }}>
+            關閉
+          </button>
+          {(phase === 'idle' || phase === 'uploading') && (
+            <button onClick={handleUpload} disabled={!pickedFile || !token || phase === 'uploading'}
+              style={{ padding: '8px 20px', fontSize: '13px', fontWeight: 600,
+                cursor: pickedFile && token && phase !== 'uploading' ? 'pointer' : 'not-allowed',
+                border: 'none',
+                background: pickedFile && token && phase !== 'uploading' ? '#b45309' : '#fef3c7',
+                color: pickedFile && token && phase !== 'uploading' ? '#fff' : '#9ca3af',
+                borderRadius: '6px', fontFamily: 'inherit' }}>
+              {phase === 'uploading' ? '上傳中...' : '上傳並重建'}
+            </button>
+          )}
+          {(phase === 'done' || phase === 'error') && (
+            <button onClick={() => { setPickedFile(null); setPhase('idle'); setStatusMsg(''); setCommitSha(null); }}
+              style={{ padding: '8px 20px', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+                border: 'none', background: '#6366f1', color: '#fff', borderRadius: '6px', fontFamily: 'inherit' }}>
+              再上傳
             </button>
           )}
         </div>
@@ -3426,7 +3762,7 @@ function ManualsModal({ open, onClose }) {
       file: '五階層展開項目_20260402.xlsx',
       what: '部位(L1) → 零件(L2) → 形狀(L3) → 工法(L4) → 工段(L5) + 每個工段的 IE 秒數 的完整展開表。9.5 MB 的 Excel,是所有 l2_l3_ie/*.json 的原始底稿。',
       who: 'IE / 打版室 / 工段部的參考底稿',
-      impact: '線下重建 l2_l3_ie/ 時的人工參考,不會被腳本直接讀。',
+      impact: '由 scripts/build_l2_l3_ie.py 讀取並拆分成 38 份 l2_l3_ie/*.json;聚陽送新版時用「🛠 IE 底稿管理」上傳新 xlsx 會自動重跑。',
     },
   ];
 
@@ -3621,6 +3957,7 @@ function App() {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [packageOpen, setPackageOpen] = useState(false);
   const [resultsOpen, setResultsOpen] = useState(false);
+  const [ieOpen, setIeOpen] = useState(false);
   const [manualsOpen, setManualsOpen] = useState(false);
   const [mgmtMenuOpen, setMgmtMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -4854,6 +5191,7 @@ function App() {
                   { key: 'upload',  label: '上傳 Techpack',      hint: 'PDF / PPTX',     dot: '#16a34a', onClick: () => setUploadOpen(true) },
                   { key: '_divider', divider: true },
                   { key: 'dict',    label: 'POM 翻譯表編輯',     hint: '中英對照',        dot: '#0891b2', onClick: () => setAdminOpen(true) },
+                  { key: 'ie',      label: 'IE 底稿管理',        hint: '聚陽 xlsx',       dot: '#b45309', onClick: () => setIeOpen(true) },
                   { key: 'manuals', label: '權威手冊登記表',     hint: '7 份規格手冊',    dot: '#7e22ce', onClick: () => setManualsOpen(true) },
                 ].map(item => item.divider ? (
                   <div key={item.key} style={{
@@ -7193,6 +7531,11 @@ function App() {
         onClose={() => setAdminOpen(false)}
         pomNames={pomNames}
         onPushDict={pushPomDict}
+        token={adminToken}
+      />
+      <IEAdminModal
+        open={ieOpen}
+        onClose={() => setIeOpen(false)}
         token={adminToken}
       />
       <ManualsModal open={manualsOpen} onClose={() => setManualsOpen(false)} />

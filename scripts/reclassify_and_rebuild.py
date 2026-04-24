@@ -14,14 +14,16 @@ Legacy fixes (v5.0-v5.5):
 """
 import json, re, math, os, sys
 from collections import defaultdict, Counter
+from pathlib import Path
 
 # Pipeline post-step:強制 tier1 POM 進入 measurement_rules.must,跟
 # foundational_measurements.enforced 規則一致。這裡 import 同目錄下的模組。
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from enforce_tier1 import enforce_bucket  # noqa: E402
+from _pipeline_base import get_base_dir  # noqa: E402
 
 # ─── Load ───
-BASE = '/sessions/stoic-magical-curie/mnt/ONY'
+BASE = str(get_base_dir(description=__doc__))
 with open(os.path.join(BASE, 'measurement_profiles_union.json')) as f:
     pdata = json.load(f)
 # Filter: has MC data + exclude ATHLETA brand (Old Navy only)

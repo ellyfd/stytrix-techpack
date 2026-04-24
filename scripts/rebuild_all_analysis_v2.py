@@ -15,10 +15,14 @@ Outputs (all to _parsed/):
   ⑤ all_designs_gt_it_classification.json
   ⑥ construction_bridge_v6.json
 """
-import json, os, re, math
+import json, os, re, math, sys
 from collections import defaultdict, Counter
+from pathlib import Path
 
-BASE = '/sessions/stoic-magical-curie/mnt/ONY'
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _pipeline_base import get_base_dir  # noqa: E402
+
+BASE = str(get_base_dir(description=__doc__))
 PARSED = os.path.join(BASE, '_parsed')
 
 # ─── Load classification ───

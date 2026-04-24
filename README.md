@@ -100,7 +100,7 @@ v4.3 GT 已經對齊 UI，不再需要 `BOTTOM` 粗桶，alias 縮到只剩 `BOD
 | | 線下規則產線 (`scripts/`) | 線上 ingest pipeline (`star_schema/scripts/`) |
 |---|---|---|
 | **Trigger** | 手動執行 | GitHub Actions：push 到 `data/ingest/uploads/**` |
-| **執行環境** | 內部路徑 `/sessions/.../mnt/ONY`（非本 repo 可獨立跑） | `ubuntu-latest` runner，依 `requirements-pipeline.txt` 裝 Python 依賴 |
+| **執行環境** | 本機或 CI 皆可；BASE 目錄用 `--base-dir` CLI 或 `$POM_PIPELINE_BASE` env var 指定（見 `scripts/_pipeline_base.py`） | `ubuntu-latest` runner，依 `requirements-pipeline.txt` 裝 Python 依賴 |
 | **主要輸出** | `pom_rules/*.json`（81 bucket）、`l2_l3_ie/*.json`、`data/l2_visual_guide.json`、`data/l2_decision_trees.json`、`l1_*.json` 等 | `data/recipes_master.json`、`data/iso_dictionary.json`、`data/l1_standard_38.json`、`data/ingest/**` |
 | **操作文件** | `pom_rules_pipeline_guide_v2.md` | `General Model_Path2_Construction Suggestion/PATH2_Phase2_Upload_Pipeline.md` |
 
@@ -116,14 +116,41 @@ v4.3 GT 已經對齊 UI，不再需要 `BOTTOM` 粗桶，alias 縮到只剩 `BOD
 | `fix_sort_order.py` | 修 bucket 內 `pom_sort_order` 欄位排序 | 覆蓋 `pom_rules/*.json` |
 | `run_extract_2025_seasonal.py` / `run_extract_new.py` | 從 2025 / 2026 PDF 抽 MC+POM | `mc_pom_*.jsonl` |
 | `build_l2_visual_guide.py` / `build_l2_decision_trees.py` | 從 xlsx + md 產生 Pass 2 guide / decision tree | `data/l2_visual_guide.json` / `data/l2_decision_trees.json` |
-| `rebuild_all_analysis_v2.py` / `rebuild_grading_3d.py` | 全量分析 / 3D grading 重建 | 內部路徑 |
+| `build_l2_l3_ie.py` | 從 `五階層展開項目_YYYYMMDD.xlsx` 拆分成 38 個 L1 JSON(純 stdlib,自動抓最新日期的 xlsx) | `l2_l3_ie/*.json`(+ `_index.json`) |
+| `rebuild_all_analysis_v2.py` / `rebuild_grading_3d.py` | 全量分析 / 3D grading 重建 | `data/*.json`(吃 `$POM_PIPELINE_BASE`) |
+| `validate_buckets.py` | 驗證 `bucket_taxonomy.json` + `pom_rules/*.json` 一致性 | exit 0 / 1 |
 
-分類邏輯改了或新資料進來時的流程：
-1. 跑 `run_extract_*.py` 把新 PDF 轉成 `mc_pom_*.jsonl`
-2. 跑 `rebuild_profiles.py` 合併 profile union
-3. 跑 `reclassify_and_rebuild.py` 重算 → 覆蓋 `pom_rules/`
-4. 跑 `enforce_tier1.py` + `fix_sort_order.py` 做後處理
-5. push 到 `main`，前端自動套用
+分類邏輯改了或新資料進來時的流程（每支腳本都接受 `--base-dir` 或 `$POM_PIPELINE_BASE`）：
+
+```bash
+export POM_PIPELINE_BASE=/你的 BASE 路徑
+python3 scripts/run_extract_new.py              # 1. 新 PDF → mc_pom_*.jsonl
+python3 scripts/rebuild_profiles.py             # 2. 合併 profile union
+python3 scripts/reclassify_and_rebuild.py       # 3. 重算 → 覆蓋 pom_rules/
+python3 scripts/enforce_tier1.py                # 4a. 後處理:tier1 強制
+python3 scripts/fix_sort_order.py               # 4b. 後處理:排序
+# 5. push 到 main,前端自動套用
+```
+
+BASE 目錄需包含 `2024/ 2025/ 2026/` PDF 樹 + `_parsed/` + `all_years.jsonl` + `pom_dictionary.json`（詳情看 `scripts/_pipeline_base.py` docstring）。想給外部單位跑,用前端「📦 打包 Pipeline」下載 zip。
+
+### 新增 bucket 的 SOP
+
+兩組 bucket 有不同來源和新增方式,**不要混淆**:
+
+| Bucket 集 | 位置 | 形狀 | 新增方式 |
+|---|---|---|---|
+| **Pipeline A (recipes_master) 的 59 bucket** | `data/bucket_taxonomy.json` | `<gender>_<dept>_<gt>` (lowercase) | **手動** — 編輯 JSON 加新 entry,每個 entry 必須有 `gender` / `dept` / `gt` 三個非空 list。加完跑 `python3 scripts/validate_buckets.py` 驗證一致性,再重新跑 `python3 star_schema/scripts/build_recipes_master.py --strict` 確認 facts 被接受。 |
+| **Pipeline B (POM RULES) 的 81 bucket** | `pom_rules/*.json` + `pom_rules/_index.json` | `<DEPT>_<GT>\|<GENDER>` (UPPERCASE) | **自動** — 不要手改。把新 PDF 放進 BASE 資料夾,跑 `reclassify_and_rebuild.py`,它會自動建出新 bucket 檔。 |
+
+**Recipes** (`recipes/recipe_<GENDER>_<DEPT>_<GT>_<IT>.json`) 是第三個維度(多個 item_type),跟兩組 bucket 不是 1:1,由 Pipeline A 的 ingest 產生,一般不手動改。
+
+Validator: `python3 scripts/validate_buckets.py` 檢查:
+- `pom_rules/_index.json` 跟磁碟上的檔案對得上
+- 每個 bucket 檔的 `bucket` 字串跟自己 `gender`/`department`/`garment_type` 欄位一致
+- `bucket_taxonomy.json` keys 全 lowercase、無 case collision、三欄位齊全
+
+`--strict` 旗標把 warning 也當 error。加到 CI 的方式:在 `.github/workflows/rebuild_master.yml` 的 Step 3 前加一步 `python3 scripts/validate_buckets.py --strict`。
 
 ### 線上 ingest pipeline（`star_schema/scripts/` + GitHub Actions）
 
@@ -155,10 +182,11 @@ Admin 在前端「📤 上傳 Techpack」丟一份 PDF/PPTX：
 
 | 入口 | 做什麼 | 走哪 | Body 大小 |
 |---|---|---|---|
-| 📦 下載 Pipeline 包（PackageModal） | 組 zip 給外部協作單位在本機跑整套 ingest pipeline。含 4 個 py + ~84 個 reference JSON + 自動產 README / VERSION / `.env.example` / `run.sh` | 取 PAT → GitHub API 抓 main sha + recipes/ 列表 → 並行拉 raw.githubusercontent.com → JSZip 瀏覽器組 zip → 觸發下載 | — |
+| 📦 下載 Pipeline 包（PackageModal） | 組 zip 給外部協作單位在本機跑 **Pipeline A(recipes_master)+ Pipeline B(POM RULES)** 兩條線。含 13 個 py + 參考資料 + 2 份 pom pipeline .md + 自動產 README / VERSION / `.env.example` / `run.sh` / `run_pom_rules.sh` | 取 PAT → GitHub API 抓 main sha + recipes/ 列表 → 並行拉 raw.githubusercontent.com → JSZip 瀏覽器組 zip → 觸發下載 | — |
 | 📥 上傳 Pipeline 結果（ResultsUploadModal） | 吃外部送回的 zip / jsonl,merge 到 `data/ingest/{unified,vlm}/facts.jsonl` + `metadata/designs.jsonl`(append 或 append-dedup by design_id) | JSZip 瀏覽器解壓 → 比對 path → GET 現有 → merge → 直連 `PUT contents` | 無實質上限 |
 | 📤 上傳 Techpack（UploadModal） | 丟 PDF/PPTX 進 `data/ingest/uploads/`,觸發 Actions 重建 recipes_master | ≤ 4.5 MB: `POST /api/ingest_upload`(Vercel)<br/>\> 4.5 MB: `POST /api/ingest_token` → 瀏覽器直連 GitHub `PUT` | 無實質上限 |
 | 📝 POM 翻譯表編輯（AdminModal） | 編 `data/pom_dictionary.json`,自動 diff + commit msg | `POST /api/push-pom-dict`(Vercel endpoint) | 小 |
+| 🛠 IE 底稿管理（IEAdminModal） | 聚陽送新版 `五階層展開項目_YYYYMMDD.xlsx` 時上傳,觸發 `build_l2_l3_ie.yml` workflow 自動重建 `l2_l3_ie/*.json`。xlsx 通常 9.5 MB。 | `POST /api/ingest_token` → 瀏覽器直連 GitHub `PUT`(因 xlsx 超過 Vercel 4.5 MB) | 無實質上限 |
 | 📚 權威手冊登記表（ManualsModal） | Read-only,顯示 7 份權威手冊的角色 / 引用鏈 | 無後端呼叫 | — |
 
 > ~~🩹 上傳 Patch (JSON)（PatchUploadModal）~~ — 2026-04-23 移除,由 📥 上傳 Pipeline 結果取代(新通道吃 raw facts.jsonl 而非 recipes_master.json patch,更符合外部協作實際流程)。
@@ -168,11 +196,15 @@ Admin 在前端「📤 上傳 Techpack」丟一份 PDF/PPTX：
 ### Pipeline 外送包
 
 📦 下載後交給協作單位,內含:
-- `star_schema/scripts/*.py`(4 檔)、`requirements-pipeline.txt`、`techpack-translation-style-guide.md`
-- 所有 reference JSON(construction_bridge / bucket_taxonomy / l1_standard_38 / consensus / iso_lookup × 2 / recipes × 72)
-- 動態產:`README.md`(繁中含 setup/run/回傳步驟)、`VERSION`(commit sha)、`.env.example`(提醒自備 ANTHROPIC_API_KEY)、`run.sh`(照 workflow 順序一鍵跑)
+- **Pipeline A 腳本**:`star_schema/scripts/*.py`(4 檔)
+- **Pipeline B 腳本**:`scripts/*.py`(8 檔包含 `_pipeline_base.py` + 7 支改用 `--base-dir` / `$POM_PIPELINE_BASE` 的產線腳本)+ `pom_analysis_v5.5.1/scripts/extract_techpack.py`
+- `requirements-pipeline.txt`、`techpack-translation-style-guide.md`
+- 所有 reference JSON(construction_bridge / bucket_taxonomy / l1_standard_38 / pom_dictionary / consensus / iso_lookup × 2 / recipes × 72)
+- Pipeline B 產線文件:`pom_rules_pipeline_guide_v2.md` + `pom_rules_v55_classification_logic.md`
+- 動態產:`README.md`(繁中含兩條 pipeline 的 setup/run/回傳步驟)、`VERSION`(commit sha)、`.env.example`(提醒自備 `ANTHROPIC_API_KEY`)、`run.sh`(Pipeline A)、`run_pom_rules.sh`(Pipeline B)
 
-外部跑完 `./run.sh` 後,把 `data/ingest/{metadata,unified,vlm}/*.jsonl` 打成 zip → 📥 上傳回來 → 到 Actions 手動 workflow_dispatch 重建 recipes_master。
+外部跑完 Pipeline A 的 `./run.sh` 後,把 `data/ingest/{metadata,unified,vlm}/*.jsonl` 打成 zip → 📥 上傳回來 → 到 Actions 手動 workflow_dispatch 重建 recipes_master。
+Pipeline B(`./run_pom_rules.sh`)跑完產出的 `$POM_PIPELINE_BASE/pom_rules/` 整個覆蓋 repo 的 `pom_rules/` 目錄 → PR 推上去。
 
 ## 本機預覽
 

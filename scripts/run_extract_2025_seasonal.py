@@ -3,10 +3,15 @@ Batch extract MC+POM from 2025 seasonal PDFs (FA25/HO25/SP25/SU25).
 Appends to mc_pom_2025.jsonl. Resume-safe.
 """
 import json, os, sys, time, re
-sys.path.insert(0, '/sessions/stoic-magical-curie')
-from extract_techpack import extract
+from pathlib import Path
 
-BASE = '/sessions/stoic-magical-curie/mnt/ONY'
+_HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(_HERE))
+sys.path.insert(0, str(_HERE.parent / 'pom_analysis_v5.5.1' / 'scripts'))
+from _pipeline_base import get_base_dir  # noqa: E402
+from extract_techpack import extract  # noqa: E402
+
+BASE = str(get_base_dir(description=__doc__))
 OUTPUT = os.path.join(BASE, '_parsed/mc_pom_2025.jsonl')
 META_FILE = os.path.join(BASE, '_parsed/all_years.jsonl')
 MAX_SECONDS = 540
