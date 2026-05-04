@@ -2599,6 +2599,7 @@ function PackageModal({ open, onClose, token }) {
     if (!open) return;
     setPhase('fetching'); setDiagnostic(null); setDiagExpanded(false);
     setProgress({ fetched: 0, total: 0 });
+    setPat(null); setSha(null); setRecipesList([]);
     (async () => {
       if (!token) { setPhase('error'); setDiagnostic({ kind: 'scope', title: '未設定 Admin Token', hint: '請先至「⚙ 設定」填入。', detail: '' }); return; }
       try {
@@ -2628,12 +2629,16 @@ function PackageModal({ open, onClose, token }) {
     try {
       if (typeof JSZip === 'undefined') throw new Error('JSZip 未載入');
       const zip = new JSZip();
-      const rawBase = `https://raw.githubusercontent.com/${OWNER}/${REPO}/${sha}`;
-      const headers = { Authorization: `token ${pat}` };
+      // 用 contents API 拿 raw bytes,不走 raw.githubusercontent.com —
+      // private repo 必須帶 Authorization,但 raw host 不處理 CORS preflight,
+      // 帶 token 的 fetch 會被瀏覽器擋成 "Failed to fetch"。api.github.com 有正確的 CORS。
+      const apiBase = `https://api.github.com/repos/${OWNER}/${REPO}/contents`;
+      const headers = { Authorization: `token ${pat}`, Accept: 'application/vnd.github.v3.raw' };
       const paths = [...PACKAGE_FILES, ...recipesList.map(r => `recipes/${r.name}`)];
       setProgress({ fetched: 0, total: paths.length });
       await Promise.all(paths.map(async (p) => {
-        const r = await fetch(`${rawBase}/${p.split('/').map(encodeURIComponent).join('/')}`, { headers });
+        const encoded = p.split('/').map(encodeURIComponent).join('/');
+        const r = await fetch(`${apiBase}/${encoded}?ref=${sha}`, { headers });
         if (!r.ok) throw new Error(`${p}: HTTP ${r.status}`);
         zip.file(p, await r.blob());
         setProgress(pr => ({ fetched: pr.fetched + 1, total: pr.total }));
