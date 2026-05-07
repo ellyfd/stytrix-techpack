@@ -7358,8 +7358,10 @@ function App() {
                 }
                 return applyRunOffset(code, v);
               };
-              // 顯示哪些 sizes:預設只 missy;showPlus=true 才 append plus
-              const visibleSizes = showPlus ? [...missySeq, ...plusSeq] : missySeq;
+              // 顯示哪些 sizes:
+              // 全碼頁身型 radio 是單選互斥 — gradingBodytype='plus' 整張表只看 1X–4X(2X 為基),
+              // 其餘(regular/petite/tall)則用 Missy XXS–XXL。基碼頁的 showPlus toggle 不適用此處。
+              const visibleSizes = gradingBodytype === 'plus' ? plusSeq : missySeq;
               // size_run_offsets 是 legacy 結構(bucket 大多沒有此欄),保留以防舊 bucket 還在用。
               // bodytype 切換改走 gradingBodytype + bodytype_variance,不再透過 offset 加總。
               const runOffsets = currentBucket.size_run_offsets || {};
