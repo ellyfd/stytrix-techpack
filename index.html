@@ -4096,20 +4096,57 @@ function App() {
       .catch(err => { console.error('載入 bucket 失敗:', err); setCurrentBucket(null); })
       .finally(() => setBucketLoading(false));
   }, [bucketMeta]);
+  // Re-encode uploaded image to PNG via canvas before storing. The Anthropic
+  // Vision API only accepts JPEG/PNG/GIF/WebP and rejects oddities like CMYK
+  // JPEG, HEIC/AVIF, or oversized images even when labeled `image/jpeg` —
+  // canvas → PNG normalizes all of that into bytes Claude can read. Cap at
+  // 4096px on the longest edge to stay under the 8000px API limit.
+  const normalizeSketchToPng = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error || new Error("FileReader failed"));
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("圖片格式無法解碼(請改用 PNG / JPEG)"));
+      img.onload = () => {
+        const MAX = 4096;
+        let w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) { reject(new Error("圖片尺寸讀取失敗")); return; }
+        if (w > MAX || h > MAX) {
+          const r = Math.min(MAX / w, MAX / h);
+          w = Math.round(w * r); h = Math.round(h * r);
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+        try { resolve(canvas.toDataURL("image/png")); }
+        catch (e) { reject(e); }
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+  const loadSketchFile = async (file) => {
+    if (!file) return;
+    try {
+      const dataUrl = await normalizeSketchToPng(file);
+      setSketchSrc(dataUrl);
+    } catch (err) {
+      console.error("[sketch] normalize failed:", err);
+      alert(err?.message || "圖片無法讀取,請改用 PNG / JPEG");
+    }
+  };
   const handleSketchUpload = (e) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => setSketchSrc(ev.target.result);
-    reader.readAsDataURL(file);
+    loadSketchFile(file);
+    // Reset value so picking the same file again still fires onChange.
+    if (e.target) e.target.value = "";
   };
   const handleSketchDrop = (e) => {
     e.preventDefault();
-    const file = e.dataTransfer?.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => setSketchSrc(ev.target.result);
-    reader.readAsDataURL(file);
+    loadSketchFile(e.dataTransfer?.files?.[0]);
   };
 
   /* ── 作工建議 tab state ── */
