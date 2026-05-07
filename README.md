@@ -100,7 +100,7 @@ star_schema/scripts/                          ← **線上 ingest pipeline**(由
   ├─ vlm_pipeline.py                          ← Step 2b:讀 vlm_raw_extracts.json → ISO 對映 → data/ingest/vlm/facts.jsonl(continue-on-error)
   └─ build_recipes_master.py                  ← Step 3 (--strict):5 來源合併 → data/runtime/{recipes_master,iso_dictionary,l1_standard_38}.json
 requirements-pipeline.txt                     ← GitHub Actions 用的 Python 依賴(pymupdf + python-pptx)
-README.md / CLAUDE.md / PIPELINE.md           ← 入口三件套(只剩這三份在 root)
+README.md / CLAUDE.md                         ← 入口兩件套(只剩這兩份 .md 在 root)
 ```
 
 ### ISO 查表版本演進

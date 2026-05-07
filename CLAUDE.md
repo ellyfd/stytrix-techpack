@@ -42,7 +42,7 @@
 | `api/` | **線上系統後端 endpoint**(Vercel functions) | `analyze.js`(Claude Vision)、`push-pom-dict.js`、`ingest_token.js` | 靜態資料 |
 | `docs/spec/` | **跨模組共用規格文件**(被 code 或 LLM prompt 引用) | `L1_部位定義_Sketch視覺指引.md`、`L2_VLM_Decision_Tree_Prompts_v2.md`、`L2_Visual_Differentiation_FullAnalysis_修正版.md`、`techpack-translation-style-guide.md`(api/analyze.js 啟動時 inject)、`pom_rules_v55_classification_logic.md`、`網站架構圖.md` | 純人類操作 SOP(放 `docs/sop/`);子系統內部文件 |
 | `docs/sop/` | **純人類操作流程**(沒有 code 引用) | `pom_rules_pipeline_guide_v2.md` | 規格文件(放 `docs/spec/`) |
-| repo 根目錄 `.md` | **入口三件套**(專案最頂層的 README / CLAUDE / PIPELINE 摘要) | `README.md`、`CLAUDE.md`、`PIPELINE.md` | 規格文件(放 `docs/spec/`);SOP(放 `docs/sop/`) |
+| repo 根目錄 `.md` | **入口兩件套**(專案最頂層的 README / CLAUDE) | `README.md`、`CLAUDE.md` | 規格文件(放 `docs/spec/`);SOP(放 `docs/sop/`) |
 
 ### 新資料進來時,該放哪?
 
