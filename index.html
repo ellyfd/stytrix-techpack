@@ -4444,6 +4444,23 @@ function App() {
     setCustomPoms([]);
   }, [appMode]);
 
+  // Brand 可選清單依 appMode 過濾。聚陽模式吃 pom_rules / bodytype_variance /
+  // grading_patterns 三套 brand-keyed 資料,目前 pipeline 只產 ONY (見 data 檔
+  // 的 source_brand / _meta.source_brand),所以非 ONY 在聚陽會無資料可顯示。
+  // 通用模型走 ISO 字典 + recipes_master,跟 brand 無關,十家都通用。
+  const availableBrands = useMemo(
+    () => (appMode === "makalot" ? BRANDS.filter(b => b.code === "ONY") : BRANDS),
+    [appMode]
+  );
+  // 切到聚陽且當前 brand 非 ONY 時自動 snap 回 ONY,避免 filter 留著一個假選擇
+  // 跑 Generate Spec / Analyze 結果全空。第一次切換會 toast 提示原因。
+  useEffect(() => {
+    if (appMode === "makalot" && brand && brand !== "ONY") {
+      setBrand("ONY");
+      showInfo(`聚陽模式僅支援 ONY 資料,已自動切換(原:${brand})`);
+    }
+  }, [appMode]); // eslint-disable-line react-hooks/exhaustive-deps
+
   /* ── Derived ── */
   const canAnalyze = brand && fabric && dept && gender && gt && sketchSrc;
   const canGenerateSpec = brand && fabric && dept && gender && gt; // 尺寸表不需要 sketch
@@ -5359,7 +5376,7 @@ function App() {
                 alignItems: "start",
               }}>
               <Sel label="Brand" value={brand} onChange={setBrand}
-                options={BRANDS.map(b => b.code)} badgeMap={brandBadgeMap}
+                options={availableBrands.map(b => b.code)} badgeMap={brandBadgeMap}
                 locked={!!locks.brand} onToggleLock={() => toggleLock("brand")} />
               <Sel label="Fabric" value={fabric}
                 onChange={v => { setFabric(v); setIt(""); }}
