@@ -201,7 +201,11 @@ for group_key, poms in median_groups.items():
         med[code] = {sz: round(median(vals), 4) for sz, vals in sizes.items() if median(vals) is not None}
     median_values[group_key] = med
 
-out1 = {'gender_gt_rules': gender_gt_rules, 'median_values': median_values}
+# `_meta.source_brand`: every input profile is filtered to Old Navy upstream
+# (see reclassify_and_rebuild.py, ATHLETA excluded), so the entire output is
+# ONY-derived. Front-end reads this to flag when a different brand is selected.
+out1 = {'_meta': {'source_brand': 'ONY'},
+        'gender_gt_rules': gender_gt_rules, 'median_values': median_values}
 with open(os.path.join(PARSED, 'gender_gt_pom_rules.json'), 'w') as f:
     json.dump(out1, f, ensure_ascii=False)
 print(f"  {len(gender_gt_rules)} combos, {len(median_values)} median groups")
@@ -279,8 +283,11 @@ total_pom_families = sum(len(v) for v in grading.values())
 inflection_count = sum(1 for v in grading.values() for p in v.values() if p.get('inflection'))
 inflection_rate = round(inflection_count / total_pom_families * 100, 1) if total_pom_families > 0 else 0
 
+# `_meta` sibling carries the brand attribution. Composite keys never start
+# with `_`, so this doesn't collide with any real Dept_GT|Gender bucket.
+grading_out = {'_meta': {'source_brand': 'ONY'}, **grading}
 with open(os.path.join(PARSED, 'grading_patterns.json'), 'w') as f:
-    json.dump(grading, f, ensure_ascii=False)
+    json.dump(grading_out, f, ensure_ascii=False)
 print(f"  {len(grading)} combos, {total_pom_families} POM families, inflection rate {inflection_rate}%")
 
 # ═══════════════════════════════════════════════
@@ -374,8 +381,11 @@ for combo, dids in sorted(gender_gt_groups.items()):
                 'grading_deltas': grading_deltas
             }
 
+bodytype_var_out = {'_meta': {'source_brand': 'ONY'}, **bodytype_var}
+# Indented on purpose — humans review this file directly when validating
+# bodytype-specific deltas; matches the on-disk convention in repo.
 with open(os.path.join(PARSED, 'bodytype_variance.json'), 'w') as f:
-    json.dump(bodytype_var, f, ensure_ascii=False)
+    json.dump(bodytype_var_out, f, ensure_ascii=False, indent=2)
 print(f"  {len(bodytype_var)} comparisons")
 
 # ═══════════════════════════════════════════════

@@ -1276,21 +1276,22 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
             );
           })()}
           {appMode !== "universal" && card.l2Variants && card.l2Variants.length > 1 && (
-            <div style={{ marginTop: "10px", border: "1px solid #eee", borderRadius: "6px", background: "#f8fafc", padding: "8px 10px" }}>
+            <div style={{ marginTop: "10px", border: "1px solid #eee", borderRadius: "8px", background: "#f8fafc", padding: "10px 12px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
-                <div style={{ fontSize: "11px", color: "#555", fontWeight: 600 }}>
-                  L2 零件 · {card.l2Variants[card.l2Idx ?? 0]?.display_name || card.l2Variants[card.l2Idx ?? 0]?.xlsx_name || "—"}
-                  {card.l2Variants[card.l2Idx ?? 0]?.freq_pct != null && (
-                    <span style={{ marginLeft: "6px", fontSize: "10px", color: "#555", background: "#f1f5f9", padding: "1px 6px", borderRadius: "6px", fontWeight: 600 }}>歷史 {card.l2Variants[card.l2Idx ?? 0].freq_pct}%</span>
-                  )}
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0, flex: 1 }}>
+                  <span style={{ fontSize: "10px", color: "#94a3b8", fontWeight: 700, letterSpacing: "0.05em", flexShrink: 0 }}>L2 零件</span>
+                  <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: col, flexShrink: 0 }} aria-hidden="true" />
+                  <span style={{ fontSize: "12px", fontWeight: 700, color: "#1a1a1a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {card.l2Variants[card.l2Idx ?? 0]?.display_name || card.l2Variants[card.l2Idx ?? 0]?.xlsx_name || "—"}
+                  </span>
                 </div>
                 <button onClick={() => setShowL2Alts(v => !v)}
-                  style={{ fontSize: "11px", color: col, background: "#fff", border: `1px solid ${col}40`, padding: "3px 10px", borderRadius: "6px", cursor: "pointer", fontWeight: 600, fontFamily: "inherit" }}>
-                  {showL2Alts ? "收合" : `切換 (${card.l2Variants.length})`} ▾
+                  style={{ fontSize: "11px", color: col, background: "#fff", border: `1px solid ${col}40`, padding: "4px 12px", borderRadius: "6px", cursor: "pointer", fontWeight: 600, fontFamily: "inherit", flexShrink: 0 }}>
+                  {showL2Alts ? "▴ 收合" : `▾ 展開 ${card.l2Variants.length}`}
                 </button>
               </div>
               {showL2Alts && (
-                <div style={{ marginTop: "8px", maxHeight: "280px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "4px" }}>
+                <div style={{ marginTop: "8px", maxHeight: "280px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "6px" }}>
                   {card.l2Variants.map((v, idx) => {
                     const active = idx === (card.l2Idx ?? 0);
                     const isAiPick = card.ai_l2_code && v.code === card.ai_l2_code;
@@ -1318,21 +1319,39 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
                     return (
                       <div key={v.code} onClick={() => onSwitchL2 && onSwitchL2(card.id, idx)}
                         style={{
-                          padding: "6px 10px", borderRadius: "6px", cursor: "pointer",
-                          background: active ? col + "10" : "#fff",
-                          border: active ? `1.5px solid ${col}` : "1px solid #eee"
+                          padding: "8px 12px", borderRadius: "8px", cursor: "pointer",
+                          background: active ? col + "15" : "#fff",
+                          border: active ? `2px solid ${col}` : "1px solid #e5e7eb",
+                          transition: "all 0.15s",
                         }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
-                          <span style={{ fontSize: "12px", color: active ? col : "#1a1a1a", fontWeight: active ? 700 : 600 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                          <span aria-hidden="true" style={{
+                            width: "14px", height: "14px", borderRadius: "50%",
+                            background: active ? col : "#fff",
+                            border: active ? `2px solid ${col}` : "2px solid #d1d5db",
+                            boxShadow: active ? "inset 0 0 0 2px #fff" : "none",
+                            flexShrink: 0,
+                          }} />
+                          <span style={{ flex: 1, fontSize: "12px", color: active ? col : "#1a1a1a", fontWeight: active ? 700 : 600, minWidth: 0 }}>
                             {v.code} · {v.display_name}
                           </span>
+                          {active && (
+                            <span style={{ fontSize: "10px", fontWeight: 700, color: "#fff", background: col, padding: "2px 8px", borderRadius: "10px", flexShrink: 0 }}>
+                              已選
+                            </span>
+                          )}
                           {v.freq_pct != null && (
-                            <span style={{ fontSize: "10px", color: "#555", fontFamily: "'JetBrains Mono',monospace", flexShrink: 0 }}>
+                            <span style={{ fontSize: "10px", color: active ? col : "#94a3b8", fontFamily: "'JetBrains Mono',monospace", flexShrink: 0, fontWeight: active ? 600 : 500 }}>
                               {v.freq_pct}%
                             </span>
                           )}
                         </div>
-                        {v.feature && <div style={{ fontSize: "11px", color: "#555", marginTop: "2px", lineHeight: 1.35 }}>{v.feature}</div>}
+                        {v.feature && <div style={{ fontSize: "11px", color: "#555", marginTop: "4px", lineHeight: 1.4, paddingLeft: "24px" }}>{v.feature}</div>}
+                        {aiCue && (
+                          <div style={{ fontSize: "11px", color: aiCue.color, marginTop: "4px", lineHeight: 1.4, paddingLeft: "24px" }}>
+                            {aiCue.icon} {aiCue.text}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -1341,36 +1360,50 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
             </div>
           )}
           {appMode !== "universal" && card.l3Variants && card.l3Variants.length > 1 && (
-            <div style={{ marginTop: "10px", border: "1px solid #eee", borderRadius: "6px", background: "#fafaf9", padding: "8px 10px" }}>
+            <div style={{ marginTop: "10px", border: "1px solid #eee", borderRadius: "8px", background: "#fafaf9", padding: "10px 12px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
-                <div style={{ fontSize: "11px", color: "#555", fontWeight: 600 }}>
-                  L3 形狀 · {card.l3Variants[card.l3Idx ?? 0]?.l3 || "—"}
-                  {card.l3Variants[card.l3Idx ?? 0]?.freq_pct != null && (
-                    <span style={{ marginLeft: "6px", fontSize: "10px", color: "#555", background: "#f1f5f9", padding: "1px 6px", borderRadius: "6px", fontWeight: 600 }}>歷史 {card.l3Variants[card.l3Idx ?? 0].freq_pct}%</span>
-                  )}
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0, flex: 1 }}>
+                  <span style={{ fontSize: "10px", color: "#94a3b8", fontWeight: 700, letterSpacing: "0.05em", flexShrink: 0 }}>L3 形狀</span>
+                  <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: col, flexShrink: 0 }} aria-hidden="true" />
+                  <span style={{ fontSize: "12px", fontWeight: 700, color: "#1a1a1a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {card.l3Variants[card.l3Idx ?? 0]?.l3 || "—"}
+                  </span>
                 </div>
                 <button onClick={() => setShowL3Alts(v => !v)}
-                  style={{ fontSize: "11px", color: col, background: "#fff", border: `1px solid ${col}40`, padding: "3px 10px", borderRadius: "6px", cursor: "pointer", fontWeight: 600, fontFamily: "inherit" }}>
-                  {showL3Alts ? "收合" : `切換 (${card.l3Variants.length})`} ▾
+                  style={{ fontSize: "11px", color: col, background: "#fff", border: `1px solid ${col}40`, padding: "4px 12px", borderRadius: "6px", cursor: "pointer", fontWeight: 600, fontFamily: "inherit", flexShrink: 0 }}>
+                  {showL3Alts ? "▴ 收合" : `▾ 展開 ${card.l3Variants.length}`}
                 </button>
               </div>
               {showL3Alts && (
-                <div style={{ marginTop: "8px", maxHeight: "280px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "4px" }}>
+                <div style={{ marginTop: "8px", maxHeight: "280px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "6px" }}>
                   {card.l3Variants.map((v, idx) => {
                     const active = idx === (card.l3Idx ?? 0);
                     return (
                       <div key={idx} onClick={() => onSwitchL3 && onSwitchL3(card.id, idx)}
                         style={{
-                          padding: "6px 10px", borderRadius: "6px", cursor: "pointer",
-                          background: active ? col + "10" : "#fff",
-                          border: active ? `1.5px solid ${col}` : "1px solid #eee",
-                          display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px"
+                          padding: "8px 12px", borderRadius: "8px", cursor: "pointer",
+                          background: active ? col + "15" : "#fff",
+                          border: active ? `2px solid ${col}` : "1px solid #e5e7eb",
+                          display: "flex", alignItems: "center", gap: "10px",
+                          transition: "all 0.15s",
                         }}>
-                        <span style={{ fontSize: "12px", color: active ? col : "#1a1a1a", fontWeight: active ? 700 : 600 }}>
+                        <span aria-hidden="true" style={{
+                          width: "14px", height: "14px", borderRadius: "50%",
+                          background: active ? col : "#fff",
+                          border: active ? `2px solid ${col}` : "2px solid #d1d5db",
+                          boxShadow: active ? "inset 0 0 0 2px #fff" : "none",
+                          flexShrink: 0,
+                        }} />
+                        <span style={{ flex: 1, fontSize: "12px", color: active ? col : "#1a1a1a", fontWeight: active ? 700 : 600, minWidth: 0 }}>
                           {v.l3 || "—"}
                         </span>
+                        {active && (
+                          <span style={{ fontSize: "10px", fontWeight: 700, color: "#fff", background: col, padding: "2px 8px", borderRadius: "10px", flexShrink: 0 }}>
+                            已選
+                          </span>
+                        )}
                         {v.freq_pct != null && (
-                          <span style={{ fontSize: "10px", color: "#555", fontFamily: "'JetBrains Mono',monospace", flexShrink: 0 }}>
+                          <span style={{ fontSize: "10px", color: active ? col : "#94a3b8", fontFamily: "'JetBrains Mono',monospace", flexShrink: 0, fontWeight: active ? 600 : 500 }}>
                             {v.freq_pct}%
                           </span>
                         )}
@@ -1382,41 +1415,53 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
             </div>
           )}
           {appMode !== "universal" && card.methodVariants && card.methodVariants.length > 1 && (
-            <div style={{ marginTop: "10px", border: "1px solid #eee", borderRadius: "6px", background: "#fafafa", padding: "8px 10px" }}>
+            <div style={{ marginTop: "10px", border: "1px solid #eee", borderRadius: "8px", background: "#fafafa", padding: "10px 12px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
-                <div style={{ fontSize: "11px", color: "#555", fontWeight: 600 }}>
-                  L4 工法 · 目前第 {(card.methodIdx ?? 0) + 1} / {card.methodVariants.length}
-                  {card.methodVariants[card.methodIdx ?? 0]?.freq_pct != null && (
-                    <span style={{ marginLeft: "6px", fontSize: "10px", color: "#555", background: "#f1f5f9", padding: "1px 6px", borderRadius: "6px", fontWeight: 600 }}>歷史 {card.methodVariants[card.methodIdx ?? 0].freq_pct}%</span>
-                  )}
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0, flex: 1 }}>
+                  <span style={{ fontSize: "10px", color: "#94a3b8", fontWeight: 700, letterSpacing: "0.05em", flexShrink: 0 }}>L4 工法</span>
+                  <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: col, flexShrink: 0 }} aria-hidden="true" />
+                  <span style={{ fontSize: "12px", fontWeight: 700, color: "#1a1a1a", whiteSpace: "nowrap" }}>
+                    第 {(card.methodIdx ?? 0) + 1} / {card.methodVariants.length}
+                  </span>
                 </div>
                 <button onClick={() => setShowMethods(v => !v)}
-                  style={{ fontSize: "11px", color: col, background: "#fff", border: `1px solid ${col}40`, padding: "3px 10px", borderRadius: "6px", cursor: "pointer", fontWeight: 600, fontFamily: "inherit" }}>
-                  {showMethods ? "收合" : "展開切換"} ▾
+                  style={{ fontSize: "11px", color: col, background: "#fff", border: `1px solid ${col}40`, padding: "4px 12px", borderRadius: "6px", cursor: "pointer", fontWeight: 600, fontFamily: "inherit", flexShrink: 0 }}>
+                  {showMethods ? "▴ 收合" : `▾ 展開 ${card.methodVariants.length}`}
                 </button>
               </div>
               {showMethods && (
-                <div style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "4px" }}>
+                <div style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "6px" }}>
                   {card.methodVariants.map((v, idx) => {
                     const active = idx === (card.methodIdx ?? 0);
                     return (
                       <div key={idx} onClick={() => onSwitchMethod && onSwitchMethod(card.id, idx)}
                         style={{
-                          padding: "6px 10px", borderRadius: "6px", cursor: "pointer",
-                          background: active ? col + "10" : "#fff",
-                          border: active ? `1.5px solid ${col}` : "1px solid #eee",
-                          display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px"
+                          padding: "8px 12px", borderRadius: "8px", cursor: "pointer",
+                          background: active ? col + "15" : "#fff",
+                          border: active ? `2px solid ${col}` : "1px solid #e5e7eb",
+                          display: "flex", alignItems: "center", gap: "10px",
+                          transition: "all 0.15s",
                         }}>
-                        <span style={{ fontSize: "11px", color: active ? col : "#444", fontWeight: active ? 700 : 500, flex: 1, lineHeight: 1.4 }}>
+                        <span aria-hidden="true" style={{
+                          width: "14px", height: "14px", borderRadius: "50%",
+                          background: active ? col : "#fff",
+                          border: active ? `2px solid ${col}` : "2px solid #d1d5db",
+                          boxShadow: active ? "inset 0 0 0 2px #fff" : "none",
+                          flexShrink: 0,
+                        }} />
+                        <span style={{ flex: 1, fontSize: "11px", color: active ? col : "#444", fontWeight: active ? 700 : 500, lineHeight: 1.4, minWidth: 0 }}>
                           {v.l4 || "—"}
                         </span>
-                        <span style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
-                          {v.freq_pct != null && (
-                            <span style={{ fontSize: "10px", color: "#555", fontFamily: "'JetBrains Mono',monospace" }}>{v.freq_pct}%</span>
-                          )}
-                          <span style={{ fontSize: "11px", color: "#888", fontFamily: "'JetBrains Mono',monospace" }}>
-                            {v.totalSec}秒
+                        {active && (
+                          <span style={{ fontSize: "10px", fontWeight: 700, color: "#fff", background: col, padding: "2px 8px", borderRadius: "10px", flexShrink: 0 }}>
+                            已選
                           </span>
+                        )}
+                        {v.freq_pct != null && (
+                          <span style={{ fontSize: "10px", color: active ? col : "#94a3b8", fontFamily: "'JetBrains Mono',monospace", flexShrink: 0, fontWeight: active ? 600 : 500 }}>{v.freq_pct}%</span>
+                        )}
+                        <span style={{ fontSize: "11px", color: active ? col : "#888", fontFamily: "'JetBrains Mono',monospace", flexShrink: 0, fontWeight: active ? 700 : 500 }}>
+                          {v.totalSec}秒
                         </span>
                       </div>
                     );
@@ -4091,10 +4136,13 @@ function App() {
     return out;
   }, [currentBucket, universalSpec]);
   const bucketKey = (dept && gt && gender) ? `${dept}_${gt}|${gender}` : null;
+  // appMode === "makalot" 且 brand 跟資料 source_brand 不符 → bucketMeta 直接 null,
+  // 後續 bucket fetch 不發,currentBucket 保持空,POM tier / 基碼 / 全碼整塊不渲染。
   const bucketMeta = useMemo(() => {
     if (!bucketKey || !pomRules) return null;
+    if (appMode === "makalot" && !dataBrandMatches) return null;
     return pomRules.buckets.find(b => b.bucket === bucketKey) || null;
-  }, [bucketKey, pomRules]);
+  }, [bucketKey, pomRules, appMode, dataBrandMatches]);
   useEffect(() => {
     if (!bucketMeta) { setCurrentBucket(null); return; }
     setBucketLoading(true);
@@ -4443,9 +4491,28 @@ function App() {
     setCustomPoms([]);
   }, [appMode]);
 
+  // 聚陽模式吃 brand-stamped 的 pom_rules / bodytype_variance / grading_patterns,
+  // 目前 pipeline 只產 ONY (見 _index._meta.source_brand)。當 brand ≠ source_brand
+  // 時整套 ONY 數據就不該滲到 UI,讓使用者自己看到「這個 brand 還沒接資料」。
+  // 通用模型走 ISO 字典 + recipes_master,跟 brand 無關,brand 一律放行。
+  const dataBrandMatches = useMemo(() => {
+    if (appMode !== "makalot") return true;
+    if (!brand) return true; // 還沒選就先放行,反正 bucketMeta 也會是 null
+    const stamp = pomRules?._meta?.source_brand || "ONY";
+    return brand === stamp;
+  }, [appMode, brand, pomRules]);
+  // 從 ONY 切到非 ONY 時把先前生成過的 spec 退回未生成,避免
+  // mDone=true 但 currentBucket 已被 brand gate 清空時,UI 落到
+  // 「mDone && !currentBucket」的 hardcoded MISSY_POMS fallback,
+  // 那塊 fallback 也是 ONY 學出來的數字。
+  useEffect(() => {
+    if (!dataBrandMatches && mStep > 0) setMStep(0);
+  }, [dataBrandMatches]); // eslint-disable-line react-hooks/exhaustive-deps
+
   /* ── Derived ── */
   const canAnalyze = brand && fabric && dept && gender && gt && sketchSrc;
-  const canGenerateSpec = brand && fabric && dept && gender && gt; // 尺寸表不需要 sketch
+  // 尺寸表不需要 sketch;聚陽模式還要 brand 跟資料 source_brand 對得上才能生成
+  const canGenerateSpec = brand && fabric && dept && gender && gt && dataBrandMatches;
   const cDone = cStep >= 2;
   const mDone = mStep >= 2;
 
@@ -6198,7 +6265,9 @@ function App() {
                 <div style={{ fontSize: isMobile ? "12px" : "13px", color: "#888", maxWidth: "360px", lineHeight: 1.6 }}>
                   {canGenerateSpec
                     ? "依據左方 filter 推導 POM 建議、公差與 Base (M)。生成後可以基碼 / 全碼兩種檢視切換。"
-                    : "請先在上方完成 Brand / Fabric / Gender / Department / Garment Type 等 filter 才能生成。"}
+                    : (appMode === "makalot" && brand && !dataBrandMatches)
+                      ? `${brand} 目前在聚陽模式無 POM / 跳碼歷史資料(現有資料皆為 ${pomRules?._meta?.source_brand || "ONY"})。請改選 ${pomRules?._meta?.source_brand || "ONY"},或切到通用模式跑 ISO + recipes_master。`
+                      : "請先在上方完成 Brand / Fabric / Gender / Department / Garment Type 等 filter 才能生成。"}
                 </div>
                 <button onClick={runMeasurement} disabled={!canGenerateSpec}
                   style={{

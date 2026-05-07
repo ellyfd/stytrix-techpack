@@ -609,6 +609,11 @@ for bucket, designs in sorted(bucket_profiles.items(), key=lambda x: -len(x[1]))
 
     bucket_data = {
         'bucket': bucket,
+        # Brand whose techpack history these numbers were learned from. The
+        # ATHLETA filter above keeps the input strictly Old Navy ("ONY"), so
+        # every bucket emitted here is single-source. Front-end uses this to
+        # tell the user when the selected brand is borrowing ONY-derived data.
+        'source_brand': 'ONY',
         'department': dept,
         'garment_type': gt,
         'gender': gender,
@@ -652,6 +657,7 @@ for bucket, designs in sorted(bucket_profiles.items(), key=lambda x: -len(x[1]))
 index_data = {
     '_meta': {
         'version': '5.5.1',
+        'source_brand': 'ONY',
         'source': '{} designs x mc_pom_2024/2025/2026 (Old Navy only, ATHLETA excluded)'.format(total),
         'date': '2026-04-20',
         'departments': sorted(set(e['department'] for e in index_entries)),
