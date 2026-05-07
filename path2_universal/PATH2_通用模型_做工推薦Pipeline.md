@@ -1,5 +1,7 @@
 # Path 2 通用模型：AI 做工推薦 Pipeline
 
+> **2026-05-07 改名公告**:本資料夾原名 `General Model_Path2_Construction Suggestion/`,改名為 `path2_universal/`。SOP 中提到的檔案位置以新路徑為準。
+
 > **路線**：AI 判視 → 直接推 ISO 給工廠，不走五階層
 > **模型定位**：通用版（不分品牌），適用所有客人
 > **建立日期**：2026-04-20
@@ -43,7 +45,7 @@
 
 ### Stage ① VLM 部位偵測
 
-**輸入檔案**：`L1_部位定義_Sketch視覺指引.md`
+**輸入檔案**：`docs/spec/L1_部位定義_Sketch視覺指引.md`
 
 **做法**：把視覺指引餵給 VLM（Qwen-VL / GPT-4o）當 system prompt，再丟 sketch 圖。
 
@@ -58,7 +60,7 @@
 3. 每個 L1 只列一次，不重複
 
 L1 部位定義如下：
-{貼入 L1_部位定義_Sketch視覺指引.md 的表格內容}
+{貼入 docs/spec/L1_部位定義_Sketch視覺指引.md 的表格內容}
 
 請輸出 JSON：
 {
@@ -251,7 +253,7 @@ ISO 406（替代）← 「口袋 反折一次压1/8'' 406，袋口套结」(D206
 
 | 檔案 | 用途 | Stage |
 |------|------|-------|
-| `L1_部位定義_Sketch視覺指引.md` | VLM 的 system prompt，38 個 L1 視覺定義 | ① |
+| `docs/spec/L1_部位定義_Sketch視覺指引.md` | VLM 的 system prompt，38 個 L1 視覺定義 | ① |
 | `iso_lookup_factory_v4.3.json` | 四維查表：Department × Gender × GT(fine) × L1 → ISO（130 entries, 292 designs） | ② |
 | `l1_code_to_v3_mapping.json` | L1 code ↔ 中文部位名對照（VLM code→查表名稱橋接） | ①→② 橋接 |
 | `construction_recipes/` | v4.1 做工配方：71 recipes, 505 designs（Gender × Dept × GT(fine) × IT） | 參考 |
