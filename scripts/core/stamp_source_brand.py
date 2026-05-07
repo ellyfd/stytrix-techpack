@@ -16,9 +16,9 @@ What it stamps
 --------------
 - pom_rules/<bucket>.json — top-level `source_brand: "ONY"` (flat schema)
 - pom_rules/_index.json    — `_meta.source_brand: "ONY"`
-- data/bodytype_variance.json
-- data/grading_patterns.json
-- data/gender_gt_pom_rules.json
+- data/runtime/bodytype_variance.json
+- data/runtime/grading_patterns.json
+- data/runtime/gender_gt_pom_rules.json
    ↑ these three are flat dicts keyed by composite strings; a top-level
      `_meta` sibling doesn't collide with any composite key (none start with
      `_`) and front-end consumers always use direct keyed lookup, never
@@ -30,7 +30,8 @@ import json
 import sys
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parent.parent
+# scripts/core/<this>.py → repo root is two parents up.
+REPO = Path(__file__).resolve().parents[2]
 SOURCE_BRAND = "ONY"
 
 
@@ -52,7 +53,7 @@ def stamp_bucket_file(path: Path) -> bool:
 
 # Files whose pre-existing on-disk form is indented (humans inspect them).
 # Keep that style so the stamp diff stays reviewable.
-INDENTED_META_FILES = {"data/bodytype_variance.json"}
+INDENTED_META_FILES = {"data/runtime/bodytype_variance.json"}
 
 
 def stamp_meta_file(path: Path, repo_root: Path) -> bool:
@@ -100,9 +101,10 @@ def main() -> int:
             changed += 1
             print("  stamped pom_rules/_index.json")
 
-    for rel in ("data/bodytype_variance.json",
-                "data/grading_patterns.json",
-                "data/gender_gt_pom_rules.json"):
+    # Per the data/ restructure (PR #275) these live under data/runtime/.
+    for rel in ("data/runtime/bodytype_variance.json",
+                "data/runtime/grading_patterns.json",
+                "data/runtime/gender_gt_pom_rules.json"):
         path = REPO / rel
         if not path.exists():
             print(f"  skip (missing): {rel}", file=sys.stderr)
