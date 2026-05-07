@@ -4136,6 +4136,16 @@ function App() {
     return out;
   }, [currentBucket, universalSpec]);
   const bucketKey = (dept && gt && gender) ? `${dept}_${gt}|${gender}` : null;
+  // 聚陽模式吃 brand-stamped 的 pom_rules / bodytype_variance / grading_patterns,
+  // 目前 pipeline 只產 ONY (見 _index._meta.source_brand)。當 brand ≠ source_brand
+  // 時整套 ONY 數據就不該滲到 UI,讓使用者自己看到「這個 brand 還沒接資料」。
+  // 通用模型走 ISO 字典 + recipes_master,跟 brand 無關,brand 一律放行。
+  const dataBrandMatches = useMemo(() => {
+    if (appMode !== "makalot") return true;
+    if (!brand) return true; // 還沒選就先放行,反正 bucketMeta 也會是 null
+    const stamp = pomRules?._meta?.source_brand || "ONY";
+    return brand === stamp;
+  }, [appMode, brand, pomRules]);
   // appMode === "makalot" 且 brand 跟資料 source_brand 不符 → bucketMeta 直接 null,
   // 後續 bucket fetch 不發,currentBucket 保持空,POM tier / 基碼 / 全碼整塊不渲染。
   const bucketMeta = useMemo(() => {
@@ -4491,16 +4501,6 @@ function App() {
     setCustomPoms([]);
   }, [appMode]);
 
-  // 聚陽模式吃 brand-stamped 的 pom_rules / bodytype_variance / grading_patterns,
-  // 目前 pipeline 只產 ONY (見 _index._meta.source_brand)。當 brand ≠ source_brand
-  // 時整套 ONY 數據就不該滲到 UI,讓使用者自己看到「這個 brand 還沒接資料」。
-  // 通用模型走 ISO 字典 + recipes_master,跟 brand 無關,brand 一律放行。
-  const dataBrandMatches = useMemo(() => {
-    if (appMode !== "makalot") return true;
-    if (!brand) return true; // 還沒選就先放行,反正 bucketMeta 也會是 null
-    const stamp = pomRules?._meta?.source_brand || "ONY";
-    return brand === stamp;
-  }, [appMode, brand, pomRules]);
   // 從 ONY 切到非 ONY 時把先前生成過的 spec 退回未生成,避免
   // mDone=true 但 currentBucket 已被 brand gate 清空時,UI 落到
   // 「mDone && !currentBucket」的 hardcoded MISSY_POMS fallback,
