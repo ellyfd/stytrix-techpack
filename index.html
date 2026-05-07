@@ -4757,7 +4757,7 @@ function App() {
       if (!resp.ok) {
         const err = new Error(data?.error || `HTTP ${resp.status}${resp.statusText ? " " + resp.statusText : ""}`);
         err.status = resp.status;
-        err.detail = data?.detail ?? (data ? null : rawText || null);
+        err.detail = data?.detail ?? data?.raw ?? (data ? null : rawText || null);
         throw err;
       }
       if (!data) throw new Error(`HTTP ${resp.status}: response 不是 JSON`);
