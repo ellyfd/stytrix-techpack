@@ -11,8 +11,8 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / 'scripts'))
+ROOT = Path(__file__).resolve().parent.parent.parent
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _recipe_text import tokenize  # noqa: E402
 
 DEFAULT_INDEX = ROOT / 'data/ingest/recipe_index/index.json'

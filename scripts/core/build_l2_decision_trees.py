@@ -29,9 +29,11 @@ import json
 import re
 import os
 import datetime
+from pathlib import Path
 
-SRC = 'L2_VLM_Decision_Tree_Prompts_v2.md'
-OUT = 'data/l2_decision_trees.json'
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+SRC = str(REPO_ROOT / 'docs' / 'spec' / 'L2_VLM_Decision_Tree_Prompts_v2.md')
+OUT = str(REPO_ROOT / 'data' / 'runtime' / 'l2_decision_trees.json')
 
 with open(SRC, encoding='utf-8') as f:
     md = f.read()

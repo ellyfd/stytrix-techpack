@@ -2389,29 +2389,29 @@ const PACKAGE_FILES = [
   'star_schema/scripts/vlm_pipeline.py',
   'star_schema/scripts/build_recipes_master.py',
   // ── Pipeline B:POM RULES(81 buckets) ──
-  'scripts/_pipeline_base.py',
-  'scripts/run_extract_new.py',
-  'scripts/run_extract_2025_seasonal.py',
-  'scripts/rebuild_profiles.py',
-  'scripts/reclassify_and_rebuild.py',
-  'scripts/enforce_tier1.py',
-  'scripts/rebuild_grading_3d.py',
-  'scripts/rebuild_all_analysis_v2.py',
-  'scripts/fix_sort_order.py',
-  'pom_analysis_v5.5.1/scripts/extract_techpack.py',
+  'scripts/core/_pipeline_base.py',
+  'scripts/core/run_extract_new.py',
+  'scripts/core/run_extract_2025_seasonal.py',
+  'scripts/core/rebuild_profiles.py',
+  'scripts/core/reclassify_and_rebuild.py',
+  'scripts/core/enforce_tier1.py',
+  'scripts/core/rebuild_grading_3d.py',
+  'scripts/core/rebuild_all_analysis_v2.py',
+  'scripts/core/fix_sort_order.py',
+  'scripts/lib/extract_techpack.py',
   // ── 共用 reference data ──
   'requirements-pipeline.txt',
-  'techpack-translation-style-guide.md',
-  'data/construction_bridge_v6.json',
-  'data/bucket_taxonomy.json',
-  'data/l1_standard_38.json',
-  'data/pom_dictionary.json',
+  'docs/spec/techpack-translation-style-guide.md',
+  'data/runtime/construction_bridge_v6.json',
+  'data/runtime/bucket_taxonomy.json',
+  'data/runtime/l1_standard_38.json',
+  'data/runtime/pom_dictionary.json',
   'data/ingest/consensus_v1/entries.jsonl',
-  'General Model_Path2_Construction Suggestion/iso_lookup_factory_v4.3.json',
-  'General Model_Path2_Construction Suggestion/iso_lookup_factory_v4.json',
+  'path2_universal/iso_lookup_factory_v4.3.json',
+  'path2_universal/iso_lookup_factory_v4.json',
   // ── POM RULES 產線文件 ──
-  'pom_rules_pipeline_guide_v2.md',
-  'pom_rules_v55_classification_logic.md',
+  'docs/sop/pom_rules_pipeline_guide_v2.md',
+  'docs/spec/pom_rules_v55_classification_logic.md',
 ];
 
 const PKG_README = (sha, date) => `# StyTrix Techpack Pipeline 外送包
@@ -2420,7 +2420,7 @@ const PKG_README = (sha, date) => `# StyTrix Techpack Pipeline 外送包
 
 本包含兩條 pipeline 的腳本 + 參考資料,協作單位可在自己機器上重建:
 
-- **Pipeline A — recipes_master**:PDF/PPTX → facts → \`data/recipes_master.json\`(做工配方總表)
+- **Pipeline A — recipes_master**:PDF/PPTX → facts → \`data/runtime/recipes_master.json\`(做工配方總表)
 - **Pipeline B — POM RULES**:Centric 8 ONY Techpack PDF → \`pom_rules/*.json\`(81 bucket 尺寸規則庫)
 
 兩條獨立,可單跑也可都跑。
@@ -2478,7 +2478,7 @@ POM RULES 吃的是 **Centric 8 ONY Techpack PDF 樹**,跟 Pipeline A 的 \`data
 
 \`all_years.jsonl\` 每行一個物件,至少含:\`{file, year, meta:{...}}\`。Stytrix 會另外交給你,或從 Centric 匯出。
 
-初次要把 \`data/pom_dictionary.json\` 複製一份到 \`$BASE/pom_dictionary.json\`(POM 中英對照字典,做 reclassify 用)。
+初次要把 \`data/runtime/pom_dictionary.json\` 複製一份到 \`$BASE/pom_dictionary.json\`(POM 中英對照字典,做 reclassify 用)。
 
 ### 跑 Pipeline
 
@@ -2490,7 +2490,7 @@ export POM_PIPELINE_BASE=/你指定的 BASE
 或用 CLI flag(每支腳本都接受 \`--base-dir\`):
 
 \`\`\`bash
-python scripts/reclassify_and_rebuild.py --base-dir /你指定的 BASE
+python scripts/core/reclassify_and_rebuild.py --base-dir /你指定的 BASE
 \`\`\`
 
 ### 產出
@@ -2544,7 +2544,7 @@ python star_schema/scripts/extract_unified.py --ingest-dir data/ingest --out dat
 echo "→ Step 3: build_recipes_master.py"
 python star_schema/scripts/build_recipes_master.py --strict
 
-echo "✓ 完成:data/recipes_master.json + data/ingest/{unified,vlm}/facts.jsonl"
+echo "✓ 完成:data/runtime/recipes_master.json + data/ingest/{unified,vlm}/facts.jsonl"
 `;
 
 const PKG_RUN_POM_RULES_SH = `#!/usr/bin/env bash
@@ -2561,25 +2561,25 @@ echo "BASE = \$POM_PIPELINE_BASE"
 mkdir -p "\$POM_PIPELINE_BASE/_parsed" "\$POM_PIPELINE_BASE/pom_rules"
 
 echo "→ Step 1a: extract 2025 seasonal PDFs"
-python scripts/run_extract_2025_seasonal.py || echo "⚠ 沒 2025 PDF 或已處理完,跳過"
+python scripts/core/run_extract_2025_seasonal.py || echo "⚠ 沒 2025 PDF 或已處理完,跳過"
 
 echo "→ Step 1b: extract 2026 PDFs"
-python scripts/run_extract_new.py || echo "⚠ 沒 2026 PDF 或已處理完,跳過"
+python scripts/core/run_extract_new.py || echo "⚠ 沒 2026 PDF 或已處理完,跳過"
 
 echo "→ Step 2: rebuild_profiles (→ measurement_profiles_union.json)"
-python scripts/rebuild_profiles.py
+python scripts/core/rebuild_profiles.py
 
 echo "→ Step 3: reclassify_and_rebuild (→ pom_rules/*.json)"
-python scripts/reclassify_and_rebuild.py
+python scripts/core/reclassify_and_rebuild.py
 
 echo "→ Step 4: rebuild_all_analysis_v2 (→ 6 analysis files)"
-python scripts/rebuild_all_analysis_v2.py
+python scripts/core/rebuild_all_analysis_v2.py
 
 echo "→ Step 5: rebuild_grading_3d (→ grading_patterns.json)"
-python scripts/rebuild_grading_3d.py
+python scripts/core/rebuild_grading_3d.py
 
 echo "→ Step 6: fix_sort_order (→ 整理各 bucket 的 pom_sort_order)"
-python scripts/fix_sort_order.py
+python scripts/core/fix_sort_order.py
 
 echo "✓ 完成:\$POM_PIPELINE_BASE/pom_rules/*.json(81 bucket)"
 echo "  想推回 Stytrix repo:覆蓋 repo 的 pom_rules/ 目錄,PR 推上去。"
@@ -2729,7 +2729,7 @@ function PackageModal({ open, onClose, token }) {
 }
 
 /* IEAdminModal:聚陽送來新版 五階層展開項目_YYYYMMDD.xlsx 時上傳。
-   push 到 main → rebuild_l2_l3_ie workflow 自動跑 scripts/build_l2_l3_ie.py
+   push 到 main → rebuild_l2_l3_ie workflow 自動跑 scripts/core/build_l2_l3_ie.py
    → 覆蓋 l2_l3_ie/*.json。xlsx 通常 9.5 MB,走 PAT 直連 GitHub PUT(不走 Vercel 4.5 MB 限制)。 */
 function IEAdminModal({ open, onClose, token }) {
   const [pickedFile, setPickedFile] = React.useState(null);
@@ -2774,7 +2774,7 @@ function IEAdminModal({ open, onClose, token }) {
       const b64 = btoa(binary);
 
       const OWNER = 'ellyfd', REPO = 'stytrix-techpack', BRANCH = 'main';
-      const filePath = plannedName;
+      const filePath = 'data/source/' + plannedName;
       // 路徑含中文 → 每一段都要 encodeURIComponent,不要整串 encode
       const encodedPath = filePath.split('/').map(encodeURIComponent).join('/');
       const apiUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${encodedPath}`;
@@ -2871,7 +2871,7 @@ function IEAdminModal({ open, onClose, token }) {
         </div>
 
         <div style={{ marginBottom: '14px', padding: '10px 12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', fontSize: '12px', color: '#78350f', lineHeight: 1.55 }}>
-          聚陽送來新版 xlsx 時,從這裡上傳。push 後 GitHub Actions 會跑 <code style={{ background: '#fef3c7', padding: '0 4px', borderRadius: 3 }}>scripts/build_l2_l3_ie.py</code> 自動重建 <code>l2_l3_ie/*.json</code>(38 份)。xlsx 檔名會統一改成 <code>五階層展開項目_&lt;今日&gt;.xlsx</code>,舊版留在 repo 當歷史。
+          聚陽送來新版 xlsx 時,從這裡上傳。push 後 GitHub Actions 會跑 <code style={{ background: '#fef3c7', padding: '0 4px', borderRadius: 3 }}>scripts/core/build_l2_l3_ie.py</code> 自動重建 <code>l2_l3_ie/*.json</code>(38 份)。xlsx 上傳到 <code>data/source/</code>,檔名會統一改成 <code>五階層展開項目_&lt;今日&gt;.xlsx</code>,舊版留在 repo 當歷史。
         </div>
 
         {!token && (
@@ -3191,7 +3191,7 @@ function ResultsUploadModal({ open, onClose, token }) {
   );
 }
 
-/* AdminModal:POM 翻譯表編輯器(data/pom_dictionary.json) */
+/* AdminModal:POM 翻譯表編輯器(data/runtime/pom_dictionary.json) */
 function AdminModal({ open, onClose, pomNames, onPushDict, token }) {
   const [draft, setDraft] = React.useState({});
   const [search, setSearch] = React.useState('');
@@ -3397,7 +3397,7 @@ function AdminModal({ open, onClose, pomNames, onPushDict, token }) {
     if (diff.added.length)    parts.push(`+${diff.added.length} (${diff.added.slice(0, 4).join(', ')}${diff.added.length > 4 ? '…' : ''})`);
     if (diff.modified.length) parts.push(`~${diff.modified.length} (${diff.modified.slice(0, 4).join(', ')}${diff.modified.length > 4 ? '…' : ''})`);
     if (diff.removed.length)  parts.push(`-${diff.removed.length} (${diff.removed.slice(0, 4).join(', ')}${diff.removed.length > 4 ? '…' : ''})`);
-    if (!parts.length) return `Update data/pom_dictionary.json via admin (${pomCount} entries, no content change)`;
+    if (!parts.length) return `Update data/runtime/pom_dictionary.json via admin (${pomCount} entries, no content change)`;
     return `Update pom_dictionary: ${parts.join(' / ')}`;
   }, [diff, pomCount]);
 
@@ -3694,7 +3694,7 @@ function OnboardingModal({ open, onDismiss }) {
 }
 
 /* ManualsModal:權威靜態手冊登記表(read-only)
-   服裝業術語優先,技術路徑為次要資訊。來源:網站架構圖.md 第 8 節。 */
+   服裝業術語優先,技術路徑為次要資訊。來源:docs/spec/網站架構圖.md 第 8 節。 */
 function ManualsModal({ open, onClose }) {
   const [filter, setFilter] = React.useState('all'); // 'all' | 'ai' | 'rule'
   React.useEffect(() => { if (open) setFilter('all'); }, [open]);
@@ -3713,16 +3713,15 @@ function ManualsModal({ open, onClose }) {
     {
       kind: 'ai',
       title: 'Step 1｜L1 部位定義 · 38 個大部位',
-      file: 'L1_部位定義_Sketch視覺指引.md',
+      file: 'docs/spec/L1_部位定義_Sketch視覺指引.md',
       what: '【先分部位】把一件衣服拆成 38 個大部位(前領、後領、肩、前身、後身、袖襱、袖身、袖口、下襬、側縫、前襠、後襠、腰頭...)。像打版師攤開一張草圖,第一件事是用手指圈出「這塊是肩、這塊是袖」——沒先分部位,後面零件都談不上。',
       who: 'AI 辨識 Pass 1:框出「這個框起來的是什麼部位」',
       impact: '38 個部位是整個辨識流程的地基;部位認錯,後面零件判斷全錯。',
-      note: '同一份在根目錄與 General Model_Path2 兩處各有一份(MD5 相同)。',
     },
     {
       kind: 'ai',
       title: 'Step 2｜L2 零件視覺辨識圖鑑 · 282 個零件「長什麼樣」',
-      file: 'L2_Visual_Differentiation_FullAnalysis_修正版.md',
+      file: 'docs/spec/L2_Visual_Differentiation_FullAnalysis_修正版.md',
       what: '【再認零件外觀】每個 L1 部位下面還有很多種 L2 零件。這份是 282 個零件的「圖解辭典」:SET-IN 袖肩峰有弧線接合、RAGLAN 袖從領口斜切到腋下、公主線從肩中直下到腰...每個零件長什麼樣、輪廓怎麼走、接合線在哪,全部一條一條描述。',
       who: 'AI 辨識 Pass 1/2 的視覺字典',
       impact: 'AI 要先認識每個零件長什麼樣,才有辦法指認 sketch 上看到的是哪個。',
@@ -3730,7 +3729,7 @@ function ManualsModal({ open, onClose }) {
     {
       kind: 'ai',
       title: 'Step 3｜L2 零件判斷樹 + 混淆對照表 · 「怎麼分辨長得像的」',
-      file: 'L2_VLM_Decision_Tree_Prompts_v2.md',
+      file: 'docs/spec/L2_VLM_Decision_Tree_Prompts_v2.md',
       what: '【最後做判斷】光看外觀有時分不清——SET-IN 跟 RAGLAN 從某些角度看會很像、公主線跟剪接片都是直線。這份是打版師教新人的判斷口訣:「先看肩線位置、再看接合角度、最後看有無斷開」。末尾附 49 組最容易看錯的配對,告訴 AI 每一組要抓哪個關鍵差異。',
       who: 'AI 辨識 Pass 2 的判斷流程 + 精度保險',
       impact: '決定 AI 遇到邊緣案例時選得對不對;49 組混淆對照表已合併入本檔末尾(§ 混淆對照表)。',
@@ -3739,7 +3738,7 @@ function ManualsModal({ open, onClose }) {
     {
       kind: 'rule',
       title: 'POM 規則分類邏輯 (v5.5.1)',
-      file: 'pom_rules_v55_classification_logic.md',
+      file: 'docs/spec/pom_rules_v55_classification_logic.md',
       what: '同一件衣服為什麼要依「性別 × 部門 × 品類 × 布料」分成 81 個 bucket?為什麼 Active 跟 Casual 的 POM 要分開、什麼時候 GT 要細分(PANTS / LEGGINGS / SHORTS)、什麼時候可合併。',
       who: '打版室 / IE / 資料管理者理解分類邏輯',
       impact: '改這份會影響整個 pom_rules/ 怎麼被產出來。',
@@ -3747,7 +3746,7 @@ function ManualsModal({ open, onClose }) {
     {
       kind: 'rule',
       title: 'POM 規則庫更新 SOP',
-      file: 'pom_rules_pipeline_guide_v2.md',
+      file: 'docs/sop/pom_rules_pipeline_guide_v2.md',
       what: '新一季的 techpack PDF / PPTX 進來了,要怎麼重建整個 81 bucket POM 規則庫的五階段 SOP:抽料 → 重分類 → 套 tier-1 必備 POM → 修排序 → push 上線。',
       who: '資料管理者跑產線照這份',
       impact: '從原始 PDF 到線上可用的 pom_rules/,每一步都照這份走。',
@@ -3756,7 +3755,7 @@ function ManualsModal({ open, onClose }) {
     {
       kind: 'rule',
       title: 'POM 翻譯統一字典',
-      file: 'techpack-translation-style-guide.md',
+      file: 'docs/spec/techpack-translation-style-guide.md',
       what: '四家客戶(ONY / ATH / BNN / GAP)各有一套翻法,系統採哪家的裁決。例如 Armhole 用「袖襱」不用「袖窿」、Rise 用「襠」不用「檔」、Cuff 用「克夫」不用「袖口羅紋」。基礎共 10,035 筆翻譯。這份現在會被 api/analyze.js 在啟動時讀入 system prompt,所以 AI 回覆的中文都會依這份風格。',
       who: 'api/analyze.js 在 runtime 吃 · 打版室 / POM 建檔人員 / 翻譯者',
       impact: '新增 POM 中文名之前先查這份,避免四家風格混進系統;2026-04-23 起此檔也影響 AI 回覆用字。',
@@ -3764,10 +3763,10 @@ function ManualsModal({ open, onClose }) {
     {
       kind: 'rule',
       title: 'L2–L5 + IE 秒數原始展開表',
-      file: '五階層展開項目_20260402.xlsx',
+      file: 'data/source/五階層展開項目_20260402.xlsx',
       what: '部位(L1) → 零件(L2) → 形狀(L3) → 工法(L4) → 工段(L5) + 每個工段的 IE 秒數 的完整展開表。9.5 MB 的 Excel,是所有 l2_l3_ie/*.json 的原始底稿。',
       who: 'IE / 打版室 / 工段部的參考底稿',
-      impact: '由 scripts/build_l2_l3_ie.py 讀取並拆分成 38 份 l2_l3_ie/*.json;聚陽送新版時用「🛠 IE 底稿管理」上傳新 xlsx 會自動重跑。',
+      impact: '由 scripts/core/build_l2_l3_ie.py 讀取並拆分成 38 份 l2_l3_ie/*.json;聚陽送新版時用「🛠 IE 底稿管理」上傳新 xlsx 會自動重跑。',
     },
   ];
 
@@ -3889,8 +3888,8 @@ function ManualsModal({ open, onClose }) {
         </div>
 
         <div style={{ marginTop: '12px', fontSize: '11px', color: '#888', textAlign: 'center' }}>
-          完整技術依賴圖:<a href={ghLink("網站架構圖.md", "8-權威靜態手冊登記表")} target="_blank" rel="noopener noreferrer"
-            style={{ color: '#525252', textDecoration: 'underline' }}>網站架構圖.md § 8</a>
+          完整技術依賴圖:<a href={ghLink("docs/spec/網站架構圖.md", "8-權威靜態手冊登記表")} target="_blank" rel="noopener noreferrer"
+            style={{ color: '#525252', textDecoration: 'underline' }}>docs/spec/網站架構圖.md § 8</a>
         </div>
       </div>
     </div>
@@ -4017,15 +4016,15 @@ function App() {
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(data => { setPomRules(data); window.POM_RULES = data; })
       .catch(err => console.error('載入 pom_rules/_index.json 失敗:', err));
-    fetch('./data/grading_patterns.json')
+    fetch('./data/runtime/grading_patterns.json')
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(setGradingPatterns)
       .catch(err => console.error('載入 grading_patterns 失敗:', err));
-    fetch('./data/bodytype_variance.json')
+    fetch('./data/runtime/bodytype_variance.json')
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(setBodytypeVariance)
       .catch(err => console.error('載入 bodytype_variance 失敗:', err));
-    fetch('./data/pom_dictionary.json')
+    fetch('./data/runtime/pom_dictionary.json')
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(data => { setPomNames(data); window.POM_NAMES = data; })
       .catch(err => console.error('載入 pom_dictionary 失敗:', err));
@@ -4169,20 +4168,20 @@ function App() {
   const [partPresence, setPartPresence] = useState(null);
   const [visualGuide, setVisualGuide] = useState(null);
   // 通用模型 Path 2 — 單一 master + 獨立 ISO 字典 + 38 碼正名表:
-  //   data/recipes_master.json  — 4 層 aggregation 合併後的 entries(由 scripts/build_recipes_master.py 產出)
+  //   data/runtime/recipes_master.json  — 4 層 aggregation 合併後的 entries(由 star_schema/scripts/build_recipes_master.py 產出)
   //                                same_sub(recipe,71 檔)→ same_gt(v4.3)→ general(v4)→ cross_design(bridge)
-  //   data/iso_dictionary.json  — ISO code → {zh, en, machine} 顯示字典
-  //   data/l1_standard_38.json  — 38 碼 L1 正名表({code: {zh, en}}),取自 v4.3 的 l1_standard_38
+  //   data/runtime/iso_dictionary.json  — ISO code → {zh, en, machine} 顯示字典
+  //   data/runtime/l1_standard_38.json  — 38 碼 L1 正名表({code: {zh, en}}),取自 v4.3 的 l1_standard_38
   // 原始 4 本手冊(v4.3 / v4 / bridge v6 / recipes/*)保留在 repo,master 由 script 重建。
   const [recipesMaster, setRecipesMaster] = useState(null);
   const [isoDictionary, setIsoDictionary] = useState(null);
   const [l1Standard38, setL1Standard38] = useState(null);
-  // v6 grading_patterns(data/grading_patterns.json):
+  // v6 grading_patterns(data/runtime/grading_patterns.json):
   // {category|gender: {POM: {m_median, pairs:{S→M,M→L,...}, inflection, delta_sm, delta_ml}}}
   // 33 combos × 1,016 POM families,20.6% POM 有 inflection(S→M 和 M→L 的 delta 不同)。
   // 拿來取代基碼頁目前用 pom_rules.grading_rules.typical_increment(固定遞增)的線性推導。
   const [gradingPatterns, setGradingPatterns] = useState(null);
-  // bodytype_variance(data/bodytype_variance.json):
+  // bodytype_variance(data/runtime/bodytype_variance.json):
   // {GENDER|GT|BODYTYPE: {m_size_comparison: {POM: {delta, n_pairs}},
   //                        grading_deltas:   {POM: {regular_grading, <bt>_grading, same_pattern}}}}
   // 絕對值 = bucket.median_values[POM].size_medians.M + delta
@@ -4231,37 +4230,37 @@ function App() {
   useEffect(() => {
     if (!sketchSrc) return;
     if (!isoRec) {
-      fetch('./data/l1_iso_recommendations_v1.json')
+      fetch('./data/runtime/l1_iso_recommendations_v1.json')
         .then(r => r.ok ? r.json() : Promise.reject(r.status))
         .then(setIsoRec)
         .catch(err => console.error('載入 l1_iso_recommendations 失敗:', err));
     }
     if (!partPresence) {
-      fetch('./data/l1_part_presence_v1.json')
+      fetch('./data/runtime/l1_part_presence_v1.json')
         .then(r => r.ok ? r.json() : Promise.reject(r.status))
         .then(setPartPresence)
         .catch(err => console.error('載入 l1_part_presence 失敗:', err));
     }
     if (!visualGuide) {
-      fetch('./data/l2_visual_guide.json')
+      fetch('./data/runtime/l2_visual_guide.json')
         .then(r => r.ok ? r.json() : Promise.reject(r.status))
         .then(setVisualGuide)
         .catch(err => console.error('載入 l2_visual_guide 失敗:', err));
     }
     if (!recipesMaster && appMode === "universal") {
-      fetch('./data/recipes_master.json')
+      fetch('./data/runtime/recipes_master.json')
         .then(r => r.ok ? r.json() : Promise.reject(r.status))
         .then(setRecipesMaster)
         .catch(err => console.error('載入 recipes_master 失敗:', err));
     }
     if (!isoDictionary && appMode === "universal") {
-      fetch('./data/iso_dictionary.json')
+      fetch('./data/runtime/iso_dictionary.json')
         .then(r => r.ok ? r.json() : Promise.reject(r.status))
         .then(setIsoDictionary)
         .catch(err => console.error('載入 iso_dictionary 失敗:', err));
     }
     if (!l1Standard38 && appMode === "universal") {
-      fetch('./data/l1_standard_38.json')
+      fetch('./data/runtime/l1_standard_38.json')
         .then(r => r.ok ? r.json() : Promise.reject(r.status))
         .then(setL1Standard38)
         .catch(err => console.error('載入 l1_standard_38 失敗:', err));
@@ -4824,8 +4823,8 @@ function App() {
       }
       const detected = Array.from(byCode.values());
 
-      // ── Path 2 通用模型 — VLM(L1) → data/recipes_master.json 單一資料源 ──
-      // master 由 scripts/build_recipes_master.py 合併 recipe / v4.3 / v4 / bridge 產出,
+      // ── Path 2 通用模型 — VLM(L1) → data/runtime/recipes_master.json 單一資料源 ──
+      // master 由 star_schema/scripts/build_recipes_master.py 合併 recipe / v4.3 / v4 / bridge 產出,
       // 4 層 aggregation(same_sub → same_gt → general → cross_design)由 buildUniversalCard
       // 內部 isoOptionsFor 依序 fallback。methods 一律從 cross_design(bridge)拿。
       if (appMode === "universal") {
@@ -6447,7 +6446,7 @@ function App() {
                 return (k3d && gradingPatterns?.[k3d]) || (k2d && gradingPatterns?.[k2d]) || null;
               })();
               const hasInflection = (code) => !!inflectionCombo?.[code]?.inflection;
-              // bodytype_variance lookup(data/bodytype_variance.json):
+              // bodytype_variance lookup(data/runtime/bodytype_variance.json):
               // key = GENDER|GT|<BT>,值為 { m_size_comparison, grading_deltas }。
               // m_size_comparison.<POM> 只含 { delta, n_pairs } — 絕對值用
               // bucket median + delta 算(不同母體,不可直接拿 <bt>_M)。
