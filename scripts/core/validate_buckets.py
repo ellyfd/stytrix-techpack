@@ -4,7 +4,7 @@
 Two independent bucket sets coexist — they serve different pipelines and
 have different naming conventions, so they are NOT meant to line up 1:1:
 
-  1. ``data/bucket_taxonomy.json`` — 59 buckets, keyed lowercase as
+  1. ``data/runtime/bucket_taxonomy.json`` — 59 buckets, keyed lowercase as
      ``<gender>_<dept>_<gt>`` (e.g. ``boys_fleece_bottoms``). Used by
      ``build_recipes_master.py --strict`` to gate Pipeline A consensus/facts
      rows. Adding a new bucket here is MANUAL: new gender × dept × gt combos
@@ -23,7 +23,7 @@ This validator checks the things that SHOULD line up:
   * ``pom_rules/_index.json`` entries match the actual JSON files present.
   * Each pom_rules bucket file's ``bucket`` string is consistent with its
     ``gender``/``department``/``garment_type`` fields.
-  * ``data/bucket_taxonomy.json`` keys are normalised (lowercase, no dupes
+  * ``data/runtime/bucket_taxonomy.json`` keys are normalised (lowercase, no dupes
     when uppercased).
 
 Drift between taxonomy and consensus/facts rows is handled upstream by
@@ -46,8 +46,8 @@ import json
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
-TAXONOMY = REPO_ROOT / "data" / "bucket_taxonomy.json"
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+TAXONOMY = REPO_ROOT / "data" / "runtime" / "bucket_taxonomy.json"
 POM_RULES_DIR = REPO_ROOT / "pom_rules"
 POM_INDEX = POM_RULES_DIR / "_index.json"
 

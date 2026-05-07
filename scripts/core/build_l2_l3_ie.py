@@ -47,19 +47,20 @@ from collections import OrderedDict, defaultdict
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
-REGISTRY_XLSX = REPO_ROOT / "L2_代號中文對照表.xlsx"
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+REGISTRY_XLSX = REPO_ROOT / "data" / "source" / "L2_代號中文對照表.xlsx"
+SOURCE_DIR = REPO_ROOT / "data" / "source"
 OUT_DIR = REPO_ROOT / "l2_l3_ie"
 
 
 def find_latest_source() -> Path | None:
-    """Pick the newest ``五階層展開項目_YYYYMMDD.xlsx`` at repo root.
+    """Pick the newest ``data/source/五階層展開項目_YYYYMMDD.xlsx``.
 
     Filename date suffix wins over mtime (uploader can commit files out of
     chronological order). Falls back to mtime if no file matches the date
     pattern.
     """
-    candidates = sorted(REPO_ROOT.glob("五階層展開項目_*.xlsx"))
+    candidates = sorted(SOURCE_DIR.glob("五階層展開項目_*.xlsx"))
     if not candidates:
         return None
 
@@ -268,7 +269,7 @@ def write_outputs(data: dict[str, dict], out_dir: Path) -> None:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--source", type=Path, default=None,
-                    help="xlsx path (default: newest 五階層展開項目_YYYYMMDD.xlsx at repo root)")
+                    help="xlsx path (default: newest data/source/五階層展開項目_YYYYMMDD.xlsx)")
     ap.add_argument("--out-dir", type=Path, default=OUT_DIR,
                     help=f"output dir (default: {OUT_DIR})")
     ap.add_argument("--registry", type=Path, default=REGISTRY_XLSX,

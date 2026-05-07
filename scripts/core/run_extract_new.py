@@ -9,7 +9,7 @@ from pathlib import Path
 
 _HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(_HERE))
-sys.path.insert(0, str(_HERE.parent / 'pom_analysis_v5.5.1' / 'scripts'))
+sys.path.insert(0, str(_HERE.parent / 'lib'))
 from _pipeline_base import get_base_dir  # noqa: E402
 from extract_techpack import extract  # noqa: E402
 

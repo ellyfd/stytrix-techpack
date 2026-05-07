@@ -1,5 +1,5 @@
 """
-Parse L2_Visual_Differentiation_FullAnalysis_修正版.md → data/l2_visual_guide.json
+Parse docs/spec/L2_Visual_Differentiation_FullAnalysis_修正版.md → data/runtime/l2_visual_guide.json
 
 Goal: give /api/analyze and the UI a structured JSON of every L2's
 visual feature + AI-ability tier, grouped by L1 code. Also join with
@@ -7,7 +7,7 @@ l2_l3_ie/*.json row counts so we have a historical-frequency number
 per L2 for dropdown sorting when AI can't decide.
 
 Primary L2 registry (authoritative list of every valid L2 code + its
-xlsx name) comes from L2_代號中文對照表.xlsx (L1代碼 / L1名稱 /
+xlsx name) comes from data/source/L2_代號中文對照表.xlsx (L1代碼 / L1名稱 /
 L2代碼 / L2名稱 / L3數). Markdown only supplies visual-feature text
 that overlays this.
 
@@ -40,14 +40,17 @@ Tier markers in the markdown:
 
 import json, re, os, zipfile, datetime
 from collections import OrderedDict
+from pathlib import Path
 from xml.etree import ElementTree as ET
 
 NS = '{http://schemas.openxmlformats.org/spreadsheetml/2006/main}'
 
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+
 # ------------------------------------------------------------
 # 1. Read the L2 code registry (authoritative)
 # ------------------------------------------------------------
-def read_registry(path='L2_代號中文對照表.xlsx'):
+def read_registry(path=str(REPO_ROOT / 'data' / 'source' / 'L2_代號中文對照表.xlsx')):
     with zipfile.ZipFile(path) as z:
         with z.open('xl/worksheets/sheet1.xml') as f:
             root = ET.parse(f).getroot()
@@ -77,16 +80,16 @@ def read_registry(path='L2_代號中文對照表.xlsx'):
 # ------------------------------------------------------------
 # 2. Parse markdown for per-L2 feature text
 # ------------------------------------------------------------
-MD = open('L2_Visual_Differentiation_FullAnalysis_修正版.md', encoding='utf-8').read()
+MD = open(REPO_ROOT / 'docs' / 'spec' / 'L2_Visual_Differentiation_FullAnalysis_修正版.md', encoding='utf-8').read()
 SECTION_RE = re.compile(r'^###\s+([A-Z]{2})(?:([^\s—]+))?\s*—\s*(\d+)\s+L2\s*(.*)$', re.M)
 
 # Parse L1 sketch definitions from sister doc. Table format:
 #   | L1 | 部位名稱 | L2 數 | Sketch 上的視覺定義 |
 #   | AE | 袖孔 | 9 | Sketch 上**無袖/背心**款式...↔ AH... |
-L1_DEF_PATH = 'L1_部位定義_Sketch視覺指引.md'
+L1_DEF_PATH = REPO_ROOT / 'docs' / 'spec' / 'L1_部位定義_Sketch視覺指引.md'
 l1_sketch_defs = {}
-if os.path.exists(L1_DEF_PATH):
-    L1_MD = open(L1_DEF_PATH, encoding='utf-8').read()
+if L1_DEF_PATH.exists():
+    L1_MD = L1_DEF_PATH.read_text(encoding='utf-8')
     L1_ROW_RE = re.compile(r'^\|\s*([A-Z]{2})\s*\|\s*[^|]+?\s*\|\s*\d+\s*\|\s*(.+?)\s*\|\s*$', re.M)
     for m in L1_ROW_RE.finditer(L1_MD):
         l1_sketch_defs[m.group(1)] = m.group(2).strip()
@@ -127,9 +130,9 @@ for i, m in enumerate(sections):
 # 3. Read xlsx row-count frequency from l2_l3_ie/*.json
 # ------------------------------------------------------------
 def freq_for(l1_code):
-    path = f'l2_l3_ie/{l1_code}.json'
-    if not os.path.exists(path): return {}
-    ie = json.load(open(path, encoding='utf-8'))
+    path = REPO_ROOT / 'l2_l3_ie' / f'{l1_code}.json'
+    if not path.exists(): return {}
+    ie = json.loads(path.read_text(encoding='utf-8'))
     freq = {}
     for fk in ('knit', 'woven'):
         for l2 in ie.get(fk, []):
@@ -189,9 +192,9 @@ out = {
     "version": "v2",
     "created": datetime.date.today().isoformat(),
     "sources": {
-        "registry": "L2_代號中文對照表.xlsx (283 L2s, authoritative)",
-        "l1_sketch_def": "L1_部位定義_Sketch視覺指引.md (per-L1 sketch visual definition + sibling contrasts)",
-        "markdown": "L2_Visual_Differentiation_FullAnalysis_修正版.md (per-L2 visual features overlay)",
+        "registry": "data/source/L2_代號中文對照表.xlsx (283 L2s, authoritative)",
+        "l1_sketch_def": "docs/spec/L1_部位定義_Sketch視覺指引.md (per-L1 sketch visual definition + sibling contrasts)",
+        "markdown": "docs/spec/L2_Visual_Differentiation_FullAnalysis_修正版.md (per-L2 visual features overlay)",
         "freq": "l2_l3_ie/*.json row counts (historical frequency)"
     },
     "tier_rules": {
@@ -203,7 +206,8 @@ out = {
     "l1": l1_data,
 }
 os.makedirs('data', exist_ok=True)
-with open('data/l2_visual_guide.json', 'w', encoding='utf-8') as f:
+OUT_PATH = REPO_ROOT / 'data' / 'runtime' / 'l2_visual_guide.json'
+with open(OUT_PATH, 'w', encoding='utf-8') as f:
     json.dump(out, f, ensure_ascii=False, indent=2)
 
 total_l2 = sum(len(v['l2']) for v in l1_data.values())
@@ -216,5 +220,5 @@ print(f'L1 sections: {len(l1_data)}')
 print(f'L2 entries (registry): {total_l2}')
 print(f'  with markdown feature text: {with_feat}')
 print(f'  tier breakdown: {by_tier}')
-print(f'Output: data/l2_visual_guide.json ({os.path.getsize("data/l2_visual_guide.json")/1024:.1f} KB)')
+print(f'Output: {OUT_PATH} ({OUT_PATH.stat().st_size/1024:.1f} KB)')
 

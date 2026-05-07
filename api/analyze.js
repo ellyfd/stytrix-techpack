@@ -9,7 +9,7 @@ import { join } from "node:path";
 // handler to hang for the full maxDuration without issuing a single outgoing
 // request. vercel.json includeFiles bundles data/*.json into the function
 // so fs works.
-const DATA_DIR = join(process.cwd(), "data");
+const DATA_DIR = join(process.cwd(), "data", "runtime");
 let GUIDE = null, TREES = null, L1_CODES = {};
 try { GUIDE = JSON.parse(readFileSync(join(DATA_DIR, "l2_visual_guide.json"), "utf8")); }
 catch (e) { console.warn("[analyze] guide not loaded:", e.message); }
@@ -22,7 +22,7 @@ try {
 
 let STYLE_GUIDE_TERMS = '';
 try {
-  const raw = readFileSync(join(process.cwd(), 'techpack-translation-style-guide.md'), 'utf8');
+  const raw = readFileSync(join(process.cwd(), 'docs', 'spec', 'techpack-translation-style-guide.md'), 'utf8');
   // Extract Part A1 (ISO terms table) and Part C1 (L1 code table) for prompt injection
   const partA1 = raw.match(/### A1\..*?(?=### A2\.)/s)?.[0] || '';
   const partC1 = raw.match(/### C1\..*?(?=### C2\.)/s)?.[0] || '';

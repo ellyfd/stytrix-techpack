@@ -18,7 +18,7 @@ Usage (from repo root):
 import argparse, json, sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 DEFAULT_RULES_DIR = REPO_ROOT / "pom_rules"
 
 TIERS = ("must", "recommend", "optional")
