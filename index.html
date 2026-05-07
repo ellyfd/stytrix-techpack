@@ -4092,10 +4092,13 @@ function App() {
     return out;
   }, [currentBucket, universalSpec]);
   const bucketKey = (dept && gt && gender) ? `${dept}_${gt}|${gender}` : null;
+  // appMode === "makalot" 且 brand 跟資料 source_brand 不符 → bucketMeta 直接 null,
+  // 後續 bucket fetch 不發,currentBucket 保持空,POM tier / 基碼 / 全碼整塊不渲染。
   const bucketMeta = useMemo(() => {
     if (!bucketKey || !pomRules) return null;
+    if (appMode === "makalot" && !dataBrandMatches) return null;
     return pomRules.buckets.find(b => b.bucket === bucketKey) || null;
-  }, [bucketKey, pomRules]);
+  }, [bucketKey, pomRules, appMode, dataBrandMatches]);
   useEffect(() => {
     if (!bucketMeta) { setCurrentBucket(null); return; }
     setBucketLoading(true);
@@ -4444,26 +4447,28 @@ function App() {
     setCustomPoms([]);
   }, [appMode]);
 
-  // Brand 可選清單依 appMode 過濾。聚陽模式吃 pom_rules / bodytype_variance /
-  // grading_patterns 三套 brand-keyed 資料,目前 pipeline 只產 ONY (見 data 檔
-  // 的 source_brand / _meta.source_brand),所以非 ONY 在聚陽會無資料可顯示。
-  // 通用模型走 ISO 字典 + recipes_master,跟 brand 無關,十家都通用。
-  const availableBrands = useMemo(
-    () => (appMode === "makalot" ? BRANDS.filter(b => b.code === "ONY") : BRANDS),
-    [appMode]
-  );
-  // 切到聚陽且當前 brand 非 ONY 時自動 snap 回 ONY,避免 filter 留著一個假選擇
-  // 跑 Generate Spec / Analyze 結果全空。第一次切換會 toast 提示原因。
+  // 聚陽模式吃 brand-stamped 的 pom_rules / bodytype_variance / grading_patterns,
+  // 目前 pipeline 只產 ONY (見 _index._meta.source_brand)。當 brand ≠ source_brand
+  // 時整套 ONY 數據就不該滲到 UI,讓使用者自己看到「這個 brand 還沒接資料」。
+  // 通用模型走 ISO 字典 + recipes_master,跟 brand 無關,brand 一律放行。
+  const dataBrandMatches = useMemo(() => {
+    if (appMode !== "makalot") return true;
+    if (!brand) return true; // 還沒選就先放行,反正 bucketMeta 也會是 null
+    const stamp = pomRules?._meta?.source_brand || "ONY";
+    return brand === stamp;
+  }, [appMode, brand, pomRules]);
+  // 從 ONY 切到非 ONY 時把先前生成過的 spec 退回未生成,避免
+  // mDone=true 但 currentBucket 已被 brand gate 清空時,UI 落到
+  // 「mDone && !currentBucket」的 hardcoded MISSY_POMS fallback,
+  // 那塊 fallback 也是 ONY 學出來的數字。
   useEffect(() => {
-    if (appMode === "makalot" && brand && brand !== "ONY") {
-      setBrand("ONY");
-      showInfo(`聚陽模式僅支援 ONY 資料,已自動切換(原:${brand})`);
-    }
-  }, [appMode]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!dataBrandMatches && mStep > 0) setMStep(0);
+  }, [dataBrandMatches]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ── Derived ── */
   const canAnalyze = brand && fabric && dept && gender && gt && sketchSrc;
-  const canGenerateSpec = brand && fabric && dept && gender && gt; // 尺寸表不需要 sketch
+  // 尺寸表不需要 sketch;聚陽模式還要 brand 跟資料 source_brand 對得上才能生成
+  const canGenerateSpec = brand && fabric && dept && gender && gt && dataBrandMatches;
   const cDone = cStep >= 2;
   const mDone = mStep >= 2;
 
@@ -5376,7 +5381,7 @@ function App() {
                 alignItems: "start",
               }}>
               <Sel label="Brand" value={brand} onChange={setBrand}
-                options={availableBrands.map(b => b.code)} badgeMap={brandBadgeMap}
+                options={BRANDS.map(b => b.code)} badgeMap={brandBadgeMap}
                 locked={!!locks.brand} onToggleLock={() => toggleLock("brand")} />
               <Sel label="Fabric" value={fabric}
                 onChange={v => { setFabric(v); setIt(""); }}
@@ -6202,7 +6207,9 @@ function App() {
                 <div style={{ fontSize: isMobile ? "12px" : "13px", color: "#888", maxWidth: "360px", lineHeight: 1.6 }}>
                   {canGenerateSpec
                     ? "依據左方 filter 推導 POM 建議、公差與 Base (M)。生成後可以基碼 / 全碼兩種檢視切換。"
-                    : "請先在上方完成 Brand / Fabric / Gender / Department / Garment Type 等 filter 才能生成。"}
+                    : (appMode === "makalot" && brand && !dataBrandMatches)
+                      ? `${brand} 目前在聚陽模式無 POM / 跳碼歷史資料(現有資料皆為 ${pomRules?._meta?.source_brand || "ONY"})。請改選 ${pomRules?._meta?.source_brand || "ONY"},或切到通用模式跑 ISO + recipes_master。`
+                      : "請先在上方完成 Brand / Fabric / Gender / Department / Garment Type 等 filter 才能生成。"}
                 </div>
                 <button onClick={runMeasurement} disabled={!canGenerateSpec}
                   style={{
