@@ -1,21 +1,21 @@
 #!/usr/bin/env python3
-"""Build data/recipes_master.json + data/l1_standard_38.json.
+"""Build data/runtime/recipes_master.json + data/runtime/l1_standard_38.json.
 
 Merges five construction handbooks into a single unified master file that the
 index.html universal-mode viewer can query with a single fallback cascade.
 
 Sources (all inputs kept read-only):
-  - General Model_Path2_Construction Suggestion/iso_lookup_factory_v4.3.json
+  - path2_universal/iso_lookup_factory_v4.3.json
     (230 entries; Department × Gender × GT × L1 with iso_distribution + n_designs)
-  - General Model_Path2_Construction Suggestion/iso_lookup_factory_v4.json
+  - path2_universal/iso_lookup_factory_v4.json
     (282 entries; Fabric × Department × GT × L1_code with iso_zh / machine)
-  - data/construction_bridge_v6.json
+  - data/runtime/construction_bridge_v6.json
     (bridges[GT][zones][zh_zone] with methods + iso_codes)
   - recipes/*.json (71 files; same-sub-category stats)
-  - star_schema/data/ingest/consensus_v1/entries.jsonl + bucket_taxonomy.json
+  - data/ingest/consensus_v1/entries.jsonl + data/runtime/bucket_taxonomy.json
     (275 entries; same_bucket consensus rules with ISO from unified extraction + OCR)
 
-Output schema (data/recipes_master.json):
+Output schema (data/runtime/recipes_master.json):
 {
   "generated_at": "...",
   "source_versions": {...},
@@ -55,15 +55,15 @@ STAR_SCHEMA = Path(__file__).resolve().parent.parent
 REPO_ROOT = STAR_SCHEMA.parent
 
 # Input sources (all relative to repo root)
-V43_PATH = REPO_ROOT / "General Model_Path2_Construction Suggestion" / "iso_lookup_factory_v4.3.json"
-V4_PATH  = REPO_ROOT / "General Model_Path2_Construction Suggestion" / "iso_lookup_factory_v4.json"
-BRIDGE_PATH = REPO_ROOT / "data" / "construction_bridge_v6.json"
+V43_PATH = REPO_ROOT / "path2_universal" / "iso_lookup_factory_v4.3.json"
+V4_PATH  = REPO_ROOT / "path2_universal" / "iso_lookup_factory_v4.json"
+BRIDGE_PATH = REPO_ROOT / "data" / "runtime" / "construction_bridge_v6.json"
 RECIPES_DIR = REPO_ROOT / "recipes"
 
 # Star schema ingest paths
 CONSENSUS_PATH = REPO_ROOT / "data" / "ingest" / "consensus_v1" / "entries.jsonl"
 INGEST_DIR = REPO_ROOT / "data" / "ingest"
-BUCKET_TAX_PATH = REPO_ROOT / "data" / "bucket_taxonomy.json"
+BUCKET_TAX_PATH = REPO_ROOT / "data" / "runtime" / "bucket_taxonomy.json"
 
 # L1 standard 38 codes — facts with l1_code outside this set are skipped
 L1_VALID_38 = frozenset(
@@ -80,8 +80,8 @@ L1_VALID_38 = frozenset(
 L1_SPECIAL = frozenset({"_DEFAULT"})
 L1_ACCEPTED = L1_VALID_38 | L1_SPECIAL
 
-OUT_MASTER = REPO_ROOT / "data" / "recipes_master.json"
-OUT_L1_STD = REPO_ROOT / "data" / "l1_standard_38.json"
+OUT_MASTER = REPO_ROOT / "data" / "runtime" / "recipes_master.json"
+OUT_L1_STD = REPO_ROOT / "data" / "runtime" / "l1_standard_38.json"
 
 
 # ── Gate Report ────────────────────────────────────────────────────────────
@@ -248,7 +248,7 @@ def build_l1_standard_38(v43) -> dict:
     """Load L1 standard 38 — prefer star_schema/data/l1_standard_38.json (ground truth),
     fall back to v4.3's l1_standard_38 field if file not found."""
     # Ground truth file (already corrected to IE standard)
-    gt_path = REPO_ROOT / "data" / "l1_standard_38.json"
+    gt_path = REPO_ROOT / "data" / "runtime" / "l1_standard_38.json"
     if gt_path.exists():
         gt = json.loads(gt_path.read_text(encoding="utf-8"))
         return gt
@@ -716,7 +716,7 @@ def aggregate_facts_to_entries(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Build data/recipes_master.json from 5 construction handbooks.",
+        description="Build data/runtime/recipes_master.json from 5 construction handbooks.",
     )
     parser.add_argument(
         "--strict",
@@ -876,7 +876,7 @@ def main():
             hints.append(f"• {sum(GATE.b_l1_not_38.values())} 筆 L1 錯 → 檢查 extract 的 L1 分類")
         if sum(GATE.b_bucket_consensus.values()) or sum(GATE.b_bucket_facts.values()):
             missing = set(GATE.b_bucket_consensus) | set(GATE.b_bucket_facts)
-            hints.append(f"• {len(missing)} 個 bucket 未登錄 → 加進 data/bucket_taxonomy.json")
+            hints.append(f"• {len(missing)} 個 bucket 未登錄 → 加進 data/runtime/bucket_taxonomy.json")
         if GATE.b_recipe_parse:
             hints.append(f"• {len(GATE.b_recipe_parse)} 檔 recipe 語法壞 → 開檔修 JSON")
         print(f"\n🛑 STRICT MODE BLOCKED — {b_total} 件 B-tier 違規", file=sys.stderr)

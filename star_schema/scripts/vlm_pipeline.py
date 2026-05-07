@@ -53,14 +53,16 @@ OUT_DIR = os.path.join(_INGEST, "vlm")                              # vlm output
 CALLOUT_IMG_DIR = os.path.join(_INGEST, "pdf", "callout_images")     # read PNGs from Step 1
 
 # GT classification file — used by --pilot / --detect-only for design selection.
-# Prefer the main repo's data/ (production copy, 1292 designs, kept in sync with
-# ingest + frontend). Fall back to the legacy pom_analysis_v5.5.1 snapshot (1305
-# designs, 13 of which are None-gender noise) only when running outside a git
-# checkout. CI path (--map-iso) never reads this file.
-if _REPO_ROOT and (_REPO_ROOT / "data" / "all_designs_gt_it_classification.json").exists():
-    CLASS_FILE = str(_REPO_ROOT / "data" / "all_designs_gt_it_classification.json")
+# Prefer the main repo's data/runtime/ (production copy, 1292 designs, kept in
+# sync with ingest + frontend). Fall back to the data/legacy/ snapshot (1305
+# designs, 13 of which are None-gender noise) when the runtime file is absent.
+# CI path (--map-iso) never reads this file.
+if _REPO_ROOT and (_REPO_ROOT / "data" / "runtime" / "all_designs_gt_it_classification.json").exists():
+    CLASS_FILE = str(_REPO_ROOT / "data" / "runtime" / "all_designs_gt_it_classification.json")
+elif _REPO_ROOT and (_REPO_ROOT / "data" / "legacy" / "all_designs_gt_it_classification.json").exists():
+    CLASS_FILE = str(_REPO_ROOT / "data" / "legacy" / "all_designs_gt_it_classification.json")
 else:
-    CLASS_FILE = os.path.join(BASE, "pom_analysis_v5.5.1", "data",
+    CLASS_FILE = os.path.join(BASE, "data", "legacy",
                               "all_designs_gt_it_classification.json")
 
 # ============================================================
