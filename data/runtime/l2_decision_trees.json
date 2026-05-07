@@ -1,7 +1,7 @@
 {
   "version": "v2",
-  "created": "2026-04-20",
-  "source": "L2_VLM_Decision_Tree_Prompts_v2.md",
+  "created": "2026-05-07",
+  "source": "docs/spec/L2_VLM_Decision_Tree_Prompts_v2.md",
   "common": "你是成衣五階層 AI 辨識系統。你的任務是從 sketch crop（服裝設計圖的局部裁切）判定該部位的 L2 零件類型。\n\n規則：\n1. 先確認這張 crop 屬於哪個 L1 部位（已由上游 bbox 提供）\n2. 依據下方判定邏輯樹，逐步排除不可能的 L2\n3. 如果圖片特徵不足以區分（如壓線數、收邊方式、內部結構等），回傳「合併候選」並標示需從 callout 文字判定\n4. 回傳格式：\n   {\n     \"l2_code\": \"XX_NNN\",\n     \"confidence\": 0.0~1.0,\n     \"reasoning\": \"判定依據的視覺特徵描述\",\n     \"needs_text\": true/false,\n     \"merged_candidates\": [\"XX_NNN\", \"XX_NNN\"]\n   }\n\n重要：\n- 你不需要判定 L3（形狀設計），只判定 L2（零件類型）\n- 「看不出來」是合法回答——標示 needs_text=true 即可\n- 同一大類的工法差異（壓線數/收邊密度/機器類型/內部結構/片數）你看不出，不要猜\n- 七大 AI 無法區分模式：壓線數｜收邊方式（密拷vs拷邊）｜反摺高度｜片數（一片vs二片）｜內部結構（有無內貼邊）｜機器/工具差異｜抽褶材料（平車vs鬆緊帶vsQQ帶）",
   "l1": {
     "AE": {

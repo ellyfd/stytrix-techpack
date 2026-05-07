@@ -856,8 +856,8 @@ def load_gt_backfill(classification_file: str | None = None):
     """Load external GT classification to resolve UNKNOWN designs.
 
     If `classification_file` is provided, load that one file. Otherwise, try
-    legacy local-dev paths (star_schema/../pom_analysis_v5.5.1/data/*.json).
-    Missing files are silently skipped.
+    the repo's runtime + legacy fallback paths. Missing files are silently
+    skipped.
     """
     gt_map = {}  # design_id → {gt, item_type, dept, desc, ...}
 
@@ -866,9 +866,9 @@ def load_gt_backfill(classification_file: str | None = None):
         candidates.append(classification_file)
     else:
         _script_dir = Path(__file__).resolve().parent
-        _ony_root = _script_dir.parent.parent  # star_schema/../ = ONY/
-        candidates.append(str(_ony_root / "pom_analysis_v5.5.1" / "data" / "all_designs_gt_it_classification.json"))
-        candidates.append(str(_ony_root / "pom_analysis_v5.5.1" / "data" / "design_classification.json"))
+        _repo_root = _script_dir.parent.parent  # star_schema/scripts/../../ = repo root
+        candidates.append(str(_repo_root / "data" / "runtime" / "all_designs_gt_it_classification.json"))
+        candidates.append(str(_repo_root / "data" / "legacy" / "all_designs_gt_it_classification.json"))
 
     for path in candidates:
         if not os.path.exists(path):

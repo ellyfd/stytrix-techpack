@@ -13,8 +13,8 @@ import json
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / 'scripts'))
+ROOT = Path(__file__).resolve().parent.parent.parent
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _recipe_text import query_text_from_describes  # noqa: E402
 from search_recipes import load_index, query_vector, search, format_key  # noqa: E402
 

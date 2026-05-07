@@ -14,8 +14,8 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / 'scripts'))
+ROOT = Path(__file__).resolve().parent.parent.parent
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _recipe_text import tokenize, doc_text  # noqa: E402
 
 DEFAULT_IN = ROOT / 'data/ingest/uploads/recipes_master_v6.jsonl'
