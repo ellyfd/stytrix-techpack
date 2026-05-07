@@ -71,7 +71,7 @@ for i, (code, start, header_end, header_line) in enumerate(sections):
 out = {
     "version": "v2",
     "created": datetime.date.today().isoformat(),
-    "source": SRC,
+    "source": str(Path(SRC).relative_to(REPO_ROOT)),
     "common": common_text,
     "l1": l1_map,
 }
