@@ -382,8 +382,10 @@ for combo, dids in sorted(gender_gt_groups.items()):
             }
 
 bodytype_var_out = {'_meta': {'source_brand': 'ONY'}, **bodytype_var}
+# Indented on purpose — humans review this file directly when validating
+# bodytype-specific deltas; matches the on-disk convention in repo.
 with open(os.path.join(PARSED, 'bodytype_variance.json'), 'w') as f:
-    json.dump(bodytype_var_out, f, ensure_ascii=False)
+    json.dump(bodytype_var_out, f, ensure_ascii=False, indent=2)
 print(f"  {len(bodytype_var)} comparisons")
 
 # ═══════════════════════════════════════════════

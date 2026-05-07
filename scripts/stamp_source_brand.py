@@ -50,9 +50,15 @@ def stamp_bucket_file(path: Path) -> bool:
     return True
 
 
-def stamp_meta_file(path: Path) -> bool:
+# Files whose pre-existing on-disk form is indented (humans inspect them).
+# Keep that style so the stamp diff stays reviewable.
+INDENTED_META_FILES = {"data/bodytype_variance.json"}
+
+
+def stamp_meta_file(path: Path, repo_root: Path) -> bool:
     """For files whose top-level is a flat dict of composite-key buckets, add
-    or update a `_meta.source_brand` field. Preserves existing `_meta` content."""
+    or update a `_meta.source_brand` field. Preserves existing `_meta` content
+    and the file's original indented/compact formatting."""
     data = json.loads(path.read_text())
     meta = data.get("_meta") if isinstance(data.get("_meta"), dict) else {}
     if meta.get("source_brand") == SOURCE_BRAND:
@@ -63,7 +69,9 @@ def stamp_meta_file(path: Path) -> bool:
         if k == "_meta":
             continue
         new_data[k] = v
-    path.write_text(json.dumps(new_data, ensure_ascii=False) + "\n")
+    rel = str(path.relative_to(repo_root))
+    indent = 2 if rel in INDENTED_META_FILES else None
+    path.write_text(json.dumps(new_data, ensure_ascii=False, indent=indent) + "\n")
     return True
 
 
@@ -99,7 +107,7 @@ def main() -> int:
         if not path.exists():
             print(f"  skip (missing): {rel}", file=sys.stderr)
             continue
-        if stamp_meta_file(path):
+        if stamp_meta_file(path, REPO):
             changed += 1
             print(f"  stamped {rel}")
 
