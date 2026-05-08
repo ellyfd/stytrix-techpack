@@ -4484,11 +4484,13 @@ function App() {
     setLocks(anyLocked ? {} : Object.fromEntries(keys.map(k => [k, true])));
   };
   useEffect(() => {
-    localStorage.setItem("stytrix_locks", JSON.stringify(locks));
-    const vals = { brand, fabric, dept, gender, gt, it };
-    const toSave = {};
-    Object.keys(locks).forEach(k => { if (locks[k] && vals[k]) toSave[k] = vals[k]; });
-    localStorage.setItem("stytrix_values", JSON.stringify(toSave));
+    try {
+      localStorage.setItem("stytrix_locks", JSON.stringify(locks));
+      const vals = { brand, fabric, dept, gender, gt, it };
+      const toSave = {};
+      Object.keys(locks).forEach(k => { if (locks[k] && vals[k]) toSave[k] = vals[k]; });
+      localStorage.setItem("stytrix_values", JSON.stringify(toSave));
+    } catch {}
   }, [locks, brand, fabric, dept, gender, gt, it]);
 
   /* ── 切換 tab ── */
