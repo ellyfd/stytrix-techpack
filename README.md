@@ -422,7 +422,7 @@ Admin 在前端「📤 上傳 Techpack」丟一份 PDF/PPTX：
 ### Pipeline 外送包
 
 📦 下載後交給協作單位,內含:
-- **Pipeline A 腳本**:`star_schema/scripts/*.py`(6 檔 — `extract_raw_text.py` + `extract_unified.py` + `vlm_pipeline.py` + `build_recipes_master.py` + `derive_view_recipes_master.py` + `derive_view_l2_l3_ie.py`;**注意**:目前 PackageModal 只 bundle 前 4 支,derive_view 兩支需手動加進外送包,或外部跑完不做 derive 直接送回 `data/ingest/{metadata,unified,vlm}/*.jsonl` 由 main CI 重新衍生)
+- **Pipeline A 腳本**:`star_schema/scripts/*.py`(6 檔總共,外送包 bundle 5 檔 — Step 1-3 + Step 4a `derive_view_recipes_master.py`;**Step 4b `derive_view_l2_l3_ie.py` 不送外部** — 它需要 `data/ingest/m7_pullon/designs.jsonl.gz`(聚陽 PullOn 內部工段資料,IP 敏感)+ `l2_l3_ie/*.json` 38 檔(74 MB),由 main CI 接手。外部跑完 Step 1-4a 後送回 raw `data/ingest/{metadata,unified,vlm}/*.jsonl`,main CI 合併 + 重跑 Step 3 + 4a + 4b 產最終 view)
 - **Pipeline B 腳本**:`scripts/core/*.py`(8 檔包含 `_pipeline_base.py` + 7 支改用 `--base-dir` / `$POM_PIPELINE_BASE` 的產線腳本)+ `scripts/lib/extract_techpack.py`
 - `requirements-pipeline.txt`、`docs/spec/techpack-translation-style-guide.md`
 - 所有 reference JSON(construction_bridge / bucket_taxonomy / l1_standard_38 / pom_dictionary / consensus / iso_lookup × 2 / recipes × 72)
