@@ -1047,10 +1047,31 @@ function L3Line({ l3, editId, setEditId, idx, col }) {
 
 /* ─── PartTableRow (v11) ───
    緊湊表格列,取代桌機版 Card 在中欄的卡片堆疊。
-   點擊 → 切換右欄細節 + sketch dot 高亮。Card 元件不動,仍用於右欄 fixed detail 與手機版 inline 展開。 */
-function PartTableRow({ card, isActive, onToggle, onRemove, col, appMode }) {
-  const src = SRC[card.source] || SRC.struct;
+   欄位:#  L1部位  L2零件·L3形狀  IE秒  工段  可調
+   點擊 → 切換右欄細節 + sketch dot 高亮。 */
+function PartTableRow({ card, isActive, onToggle, onRemove, col, appMode, isFixed, fixedLabel }) {
   const sec = Math.round(card.ie || 0);
+  const stepCount = (card.l3s || []).length;
+  const adjN = (card.l3s || []).filter(l => !l.auto).length;
+  // L2 零件·L3 形狀 inline 顯示;L2 為 brand color,L3 為灰
+  const l2Disp = card.l2Variants?.[card.l2Idx ?? 0]?.display_name
+    || card.l2Variants?.[card.l2Idx ?? 0]?.xlsx_name
+    || (card.l2 ? card.l2.split("·")[0] : null);
+  const l3Disp = card.l3Variants?.[card.l3Idx ?? 0]?.l3
+    || (card.l2 && card.l2.indexOf("·") > 0 ? card.l2.split("·").slice(1).join("·") : null);
+  const Cell = ({ w, align = "left", children, style = {} }) => (
+    <div style={{
+      width: w, flexShrink: 0,
+      textAlign: align,
+      ...style,
+    }}>{children}</div>
+  );
+  const idBg = isFixed
+    ? (isActive ? "#b45309" : "#fef3c7")
+    : (isActive ? "#065f46" : "#fff");
+  const idFg = isFixed
+    ? (isActive ? "#fff" : "#92400e")
+    : (isActive ? "#fff" : "#888");
   return (
     <div
       role="button"
@@ -1059,8 +1080,8 @@ function PartTableRow({ card, isActive, onToggle, onRemove, col, appMode }) {
       onClick={onToggle}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onToggle(); } }}
       style={{
-        display: "flex", alignItems: "center", gap: "8px",
-        height: "44px", padding: "0 8px 0 10px",
+        display: "flex", alignItems: "center", gap: "10px",
+        height: "44px", padding: "0 12px 0 9px",
         borderLeft: isActive ? "3px solid #065f46" : "3px solid transparent",
         background: isActive ? "#f0fdf4" : "#fff",
         borderBottom: "1px solid #f0eeeb",
@@ -1069,53 +1090,374 @@ function PartTableRow({ card, isActive, onToggle, onRemove, col, appMode }) {
       }}
       onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = "#fafaf9"; }}
       onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = "#fff"; }}
-      onFocus={e => { e.currentTarget.style.boxShadow = `inset 0 0 0 2px ${col}40`; }}
-      onBlur={e => { e.currentTarget.style.boxShadow = "none"; }}
     >
-      <div style={{
-        width: "24px", height: "24px", borderRadius: "5px",
-        background: isActive ? "#065f46" : "#fff",
-        color: isActive ? "#fff" : "#888",
-        border: isActive ? "none" : "1px solid #eee",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        fontSize: "11px", fontWeight: 800, flexShrink: 0,
-      }}>{card.id}</div>
-      <div style={{
-        width: "92px", fontSize: "13px", fontWeight: 600,
-        color: "#1a1a1a", flexShrink: 0,
-        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-      }}>{card.l1}</div>
-      <span style={{
-        fontSize: "10px", color: src.c, background: src.bg,
-        padding: "2px 6px", borderRadius: "5px", fontWeight: 600,
-        flexShrink: 0, whiteSpace: "nowrap",
-      }}>{src.icon} {src.label}</span>
-      <div style={{
-        flex: 1, minWidth: 0, fontSize: "12px", color: "#555",
-        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-      }}>{card.l2 || "—"}</div>
-      {appMode !== "universal" && (
+      {/* # */}
+      <Cell w="28px" align="center">
         <div style={{
-          width: "56px", textAlign: "right", flexShrink: 0,
-          fontSize: "13px", fontWeight: 700, color: "#065f46",
-          fontFamily: "'JetBrains Mono', monospace", fontVariantNumeric: "tabular-nums",
-        }}>{sec}<span style={{ fontSize: "10px", color: "#888", marginLeft: "2px", fontWeight: 500 }}>秒</span></div>
-      )}
+          width: "22px", height: "22px", margin: "0 auto", borderRadius: "5px",
+          background: idBg, color: idFg,
+          border: (isActive || isFixed) ? "none" : "1px solid #eee",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: "11px", fontWeight: 800,
+        }}>{fixedLabel || card.id}</div>
+      </Cell>
+      {/* L1 部位 */}
+      <Cell w="84px" style={{
+        fontSize: "13px", fontWeight: 600, color: "#1a1a1a",
+        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+      }}>{card.l1}</Cell>
+      {/* L2 零件 · L3 形狀 (flex 1) */}
+      <div style={{ flex: 1, minWidth: 0, fontSize: "12px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        {l2Disp && <span style={{ color: "#0369a1", fontWeight: 500 }}>{l2Disp}</span>}
+        {l3Disp && <>
+          <span style={{ color: "#bbb", margin: "0 6px" }}>·</span>
+          <span style={{ color: "#555" }}>{l3Disp}</span>
+        </>}
+        {!l2Disp && !l3Disp && <span style={{ color: "#bbb" }}>—</span>}
+      </div>
+      {/* IE 秒 */}
+      <Cell w="56px" align="right" style={{
+        fontSize: "13px", fontWeight: 700, color: "#065f46",
+        fontFamily: "'JetBrains Mono', monospace", fontVariantNumeric: "tabular-nums",
+      }}>
+        {appMode === "universal" ? "—" : <>{sec}<span style={{ fontSize: "10px", color: "#888", marginLeft: "2px", fontWeight: 500 }}>秒</span></>}
+      </Cell>
+      {/* 工段 */}
+      <Cell w="36px" align="center" style={{
+        fontSize: "12px", color: stepCount > 0 ? "#1a1a1a" : "#bbb",
+        fontFamily: "'JetBrains Mono', monospace", fontVariantNumeric: "tabular-nums",
+      }}>{appMode === "universal" ? "—" : (stepCount || "—")}</Cell>
+      {/* 可調 */}
+      <Cell w="36px" align="center" style={{
+        fontSize: "12px", color: adjN > 0 ? "#b45309" : "#bbb",
+        fontFamily: "'JetBrains Mono', monospace", fontVariantNumeric: "tabular-nums",
+      }}>{appMode === "universal" ? "—" : (adjN || "—")}</Cell>
+      {/* 刪除 */}
       <button
-        onClick={(e) => { e.stopPropagation(); onRemove(card.id); }}
+        onClick={(e) => { e.stopPropagation(); onRemove && onRemove(card.id); }}
         title="刪除部位"
         style={{
           background: "none", border: "none", cursor: "pointer",
-          fontSize: "13px", color: "#dc2626", opacity: 0.55,
+          fontSize: "12px", color: "#dc2626", opacity: 0.45,
           padding: "4px", flexShrink: 0,
+          visibility: isFixed ? "hidden" : "visible",
         }}
         onMouseEnter={e => e.currentTarget.style.opacity = "1"}
-        onMouseLeave={e => e.currentTarget.style.opacity = "0.55"}
+        onMouseLeave={e => e.currentTarget.style.opacity = "0.45"}
       >🗑</button>
+    </div>
+  );
+}
+
+/* ─── PartTableHeader (v11) ─── */
+function PartTableHeader({ appMode }) {
+  const Cell = ({ w, align = "left", children }) => (
+    <div style={{ width: w, flexShrink: 0, textAlign: align }}>{children}</div>
+  );
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: "10px",
+      padding: "8px 12px 8px 12px",
+      borderBottom: "2px solid #e5e5e3",
+      background: "#fafaf9",
+      fontSize: "11px", color: "#888", fontWeight: 600, letterSpacing: "0.04em",
+    }}>
+      <Cell w="28px" align="center">#</Cell>
+      <Cell w="84px">L1 部位</Cell>
+      <div style={{ flex: 1, minWidth: 0 }}>L2 零件 · L3 形狀</div>
+      <Cell w="56px" align="right">IE 秒</Cell>
+      <Cell w="36px" align="center">工段</Cell>
+      <Cell w="36px" align="center">可調</Cell>
+      <div style={{ width: "20px", flexShrink: 0 }} />
+    </div>
+  );
+}
+
+/* ─── DetailPanel (v11) ───
+   桌機右欄細節面板。取代 v10 Card 的 inline 展開。L2/L3/L4 用 radio list 直接列出,
+   下方收合「工段明細」保留 v10 的 L3Line / IE 細算 / ref code。
+   makalot 模式為主;universal 模式仍 fallback 用 Card。 */
+function DetailPanel({ card, col, appMode, displayMode, setDisplayMode,
+                      onSwitchMethod, onSwitchL2, onSwitchL3, onPickUniversalIso,
+                      onClose, onRemove }) {
+  const [showSteps, setShowSteps] = useState(false);
+  if (!card) return null;
+  const src = SRC[card.source] || SRC.struct;
+  const autoN = (card.l3s || []).filter(l => l.auto).length;
+  const adjN = (card.l3s || []).length - autoN;
+
+  const Group = ({ title, children, hint }) => (
+    <div style={{ marginTop: "10px" }}>
       <div style={{
-        width: "14px", textAlign: "center", flexShrink: 0,
-        fontSize: "12px", color: isActive ? "#065f46" : "#bbb", fontWeight: 700,
-      }}>▸</div>
+        display: "flex", alignItems: "baseline", gap: "8px",
+        fontSize: "11px", fontWeight: 700, color: "#888",
+        letterSpacing: "0.04em", marginBottom: "6px",
+      }}>
+        <span style={{
+          fontSize: "10px", color: "#fff", background: "#b45309",
+          padding: "1px 6px", borderRadius: "4px", letterSpacing: "0.05em",
+        }}>{title.split(" ")[0]}</span>
+        <span style={{ color: "#1a1a1a", fontSize: "12px", fontWeight: 700 }}>{title.split(" ").slice(1).join(" ")}</span>
+        {hint && <span style={{ marginLeft: "auto", fontSize: "10px", color: "#bbb", fontWeight: 400 }}>{hint}</span>}
+      </div>
+      {children}
+    </div>
+  );
+
+  const Radio = ({ active, accent = "#065f46", label, suffix, onClick, disabled }) => (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        display: "flex", alignItems: "center", gap: "8px",
+        width: "100%", padding: "8px 10px",
+        background: active ? `${accent}10` : "#fff",
+        border: active ? `1.5px solid ${accent}` : "1px solid #e5e5e5",
+        borderRadius: "8px",
+        cursor: disabled ? "not-allowed" : "pointer",
+        fontFamily: "inherit", textAlign: "left",
+        marginBottom: "4px",
+        transition: "border-color 0.12s, background 0.12s",
+      }}
+      onMouseEnter={e => { if (!active && !disabled) e.currentTarget.style.borderColor = "#bbb"; }}
+      onMouseLeave={e => { if (!active && !disabled) e.currentTarget.style.borderColor = "#e5e5e5"; }}
+    >
+      <span aria-hidden="true" style={{
+        width: "16px", height: "16px", borderRadius: "50%",
+        border: active ? `5px solid ${accent}` : "1.5px solid #ccc",
+        background: "#fff",
+        flexShrink: 0,
+      }} />
+      <span style={{
+        flex: 1, minWidth: 0, fontSize: "13px",
+        color: active ? "#1a1a1a" : "#555",
+        fontWeight: active ? 600 : 500,
+        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+      }}>{label}</span>
+      {suffix != null && (
+        <span style={{
+          fontSize: "11px", color: active ? accent : "#888",
+          fontFamily: "'JetBrains Mono', monospace", flexShrink: 0,
+        }}>{suffix}</span>
+      )}
+    </button>
+  );
+
+  // L2 / L3 / L4 lists
+  const l2List = (card.l2Variants && card.l2Variants.length > 0) ? card.l2Variants : null;
+  const l2Idx = card.l2Idx ?? 0;
+  const l3List = (card.l3Variants && card.l3Variants.length > 0) ? card.l3Variants : null;
+  const l3Idx = card.l3Idx ?? 0;
+  const l4List = (card.methodVariants && card.methodVariants.length > 0) ? card.methodVariants : null;
+  const l4Idx = card.methodIdx ?? 0;
+
+  const renderListByMode = (items, idx, render) => {
+    if (!items || items.length === 0) return null;
+    if (displayMode === "group") {
+      // 疊起:只顯示當前選中,點擊切到 expand
+      return (
+        <button onClick={() => setDisplayMode("expand")}
+          style={{
+            width: "100%", padding: "8px 10px",
+            background: "#fff", border: "1px dashed #ddd", borderRadius: "8px",
+            fontSize: "13px", color: "#555", textAlign: "left", cursor: "pointer", fontFamily: "inherit",
+          }}>
+          {render(items[idx], idx, true)} <span style={{ float: "right", color: "#bbb" }}>▾ 展開 {items.length}</span>
+        </button>
+      );
+    }
+    if (displayMode === "grid") {
+      return (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px" }}>
+          {items.map((it, i) => render(it, i, false))}
+        </div>
+      );
+    }
+    // expand (default)
+    return items.map((it, i) => render(it, i, false));
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "0px" }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
+        <div style={{
+          width: "26px", height: "26px", borderRadius: "6px",
+          background: "#065f46", color: "#fff",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: "13px", fontWeight: 800, flexShrink: 0,
+        }}>{card.id}</div>
+        <span style={{ fontSize: "15px", fontWeight: 700, color: "#1a1a1a" }}>{card.l1}</span>
+        <span style={{
+          fontSize: "10px", color: src.c, background: src.bg,
+          padding: "2px 7px", borderRadius: "5px", fontWeight: 600,
+        }}>● {src.label}</span>
+        {onClose && (
+          <button onClick={onClose} title="收合"
+            style={{
+              marginLeft: "auto", background: "none", border: "none", cursor: "pointer",
+              fontSize: "13px", color: "#888", padding: "4px 6px", fontFamily: "inherit",
+            }}>×</button>
+        )}
+      </div>
+
+      {/* Stats + mode toggle */}
+      <div style={{
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        marginBottom: "8px", gap: "8px",
+      }}>
+        <div style={{ fontSize: "11px", color: "#888" }}>
+          {(card.l3s || []).length} 工段
+          {adjN > 0 && <span style={{ marginLeft: "6px" }}>· {adjN} 可調</span>}
+        </div>
+        {appMode !== "universal" && (
+          <div style={{ display: "inline-flex", border: "1px solid #e5e5e5", borderRadius: "6px", overflow: "hidden" }}>
+            {[
+              { k: "expand", l: "展開" },
+              { k: "group",  l: "分組" },
+              { k: "grid",   l: "格狀" },
+            ].map(m => {
+              const on = displayMode === m.k;
+              return (
+                <button key={m.k}
+                  onClick={() => setDisplayMode(m.k)}
+                  style={{
+                    padding: "4px 10px", fontSize: "11px", fontFamily: "inherit",
+                    background: on ? "#1a1a1a" : "#fff",
+                    color: on ? "#fff" : "#555",
+                    border: "none", borderRight: "1px solid #e5e5e5", cursor: "pointer",
+                    fontWeight: on ? 600 : 400,
+                  }}>{m.l}</button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* universal 模式 fallback:沿用 Card 的 ISO 區塊樣式概念,但簡化 */}
+      {appMode === "universal" && card.universal && (
+        <div style={{ padding: "10px 12px", background: "#fafaf9", border: "1px solid #e8e5e1", borderRadius: "8px", marginTop: "4px" }}>
+          {card.universal.iso ? (
+            <>
+              <div style={{ fontSize: "16px", fontWeight: 800, fontFamily: "'JetBrains Mono',monospace" }}>
+                ISO {card.universal.iso}
+              </div>
+              {card.universal.iso_zh && <div style={{ fontSize: "13px", color: "#555", marginTop: "2px" }}>{card.universal.iso_zh}</div>}
+              {card.universal.alternatives?.length > 0 && (
+                <div style={{ marginTop: "10px", borderTop: "1px dashed #e8e5e1", paddingTop: "8px" }}>
+                  <div style={{ fontSize: "10px", color: "#555", fontWeight: 600, marginBottom: "6px" }}>替代 ISO</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                    {card.universal.alternatives.map((a, i) => (
+                      <button key={i}
+                        onClick={() => onPickUniversalIso && onPickUniversalIso(card.id, a.iso)}
+                        style={{
+                          fontSize: "11px", padding: "3px 8px", borderRadius: "6px",
+                          background: "#fff", border: "1px solid #e8e5e1", color: "#555",
+                          fontFamily: "'JetBrains Mono',monospace", fontWeight: 600, cursor: "pointer",
+                        }}>ISO {a.iso}{a.pct != null ? <span style={{ marginLeft: "6px", color: "#b45309" }}>{a.pct}%</span> : null}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <div style={{ fontSize: "12px", color: "#b91c1c" }}>此組合無對應 ISO</div>
+          )}
+        </div>
+      )}
+
+      {/* L2 */}
+      {appMode !== "universal" && l2List && (
+        <Group title="L2 零件選擇">
+          {renderListByMode(l2List, l2Idx, (v, i) => (
+            <Radio key={`l2-${i}`}
+              active={i === l2Idx}
+              accent="#065f46"
+              label={v.display_name || v.xlsx_name || `L2 ${i + 1}`}
+              suffix={v.freq_pct != null ? `${v.freq_pct}%` : null}
+              onClick={() => onSwitchL2 && onSwitchL2(card.id, i)} />
+          ))}
+        </Group>
+      )}
+
+      {/* L3 (active 用 amber 語意:可調 vs 自動) */}
+      {appMode !== "universal" && l3List && (
+        <Group title="L3 形狀選擇">
+          {renderListByMode(l3List, l3Idx, (v, i) => (
+            <Radio key={`l3-${i}`}
+              active={i === l3Idx}
+              accent="#b45309"
+              label={v.l3 || `L3 ${i + 1}`}
+              onClick={() => onSwitchL3 && onSwitchL3(card.id, i)} />
+          ))}
+        </Group>
+      )}
+
+      {/* L4 */}
+      {appMode !== "universal" && l4List && l4List.length > 1 && (
+        <Group title="L4 工法選擇">
+          {renderListByMode(l4List, l4Idx, (v, i) => {
+            const trunc = v.l4 ? (v.l4.length > 28 ? v.l4.slice(0, 28) + "…" : v.l4) : `方法 ${i + 1}`;
+            return (
+              <Radio key={`l4-${i}`}
+                active={i === l4Idx}
+                accent="#065f46"
+                label={`第${i + 1}/${l4List.length} — ${trunc}`}
+                suffix={v.totalSec != null ? `${Math.round(v.totalSec)}秒` : null}
+                onClick={() => onSwitchMethod && onSwitchMethod(card.id, i)} />
+            );
+          })}
+        </Group>
+      )}
+
+      {/* 工段明細 — default 疊起 */}
+      {appMode !== "universal" && (card.l3s || []).length > 0 && (
+        <div style={{ marginTop: "10px", borderTop: "1px solid #eee", paddingTop: "10px" }}>
+          <button onClick={() => setShowSteps(s => !s)}
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              width: "100%", padding: "6px 0", background: "none", border: "none",
+              cursor: "pointer", fontFamily: "inherit",
+              fontSize: "11px", color: "#888", fontWeight: 600,
+            }}>
+            <span>工段明細{card.matchCode ? ` · ref: ${card.matchCode}` : ""}</span>
+            <span style={{ fontSize: "10px", color: "#bbb" }}>{showSteps ? "▴ 收合" : `▾ 展開 ${(card.l3s || []).length}`}</span>
+          </button>
+          {showSteps && (
+            <div style={{ marginTop: "6px", padding: "6px 10px", background: "#fafaf9", borderRadius: "6px", maxHeight: "260px", overflowY: "auto" }}>
+              {(card.l3s || []).map((s, i) => (
+                <div key={i} style={{
+                  display: "flex", justifyContent: "space-between", gap: "8px",
+                  padding: "4px 0", borderBottom: i < card.l3s.length - 1 ? "1px solid #f0eeeb" : "none",
+                  fontSize: "12px",
+                }}>
+                  <span style={{ flex: 1, minWidth: 0, color: "#1a1a1a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.name}</span>
+                  <span style={{ flexShrink: 0, fontFamily: "'JetBrains Mono',monospace", color: "#555", fontWeight: 600 }}>
+                    {Math.round(s.ie)}<span style={{ fontSize: "10px", color: "#888", marginLeft: "2px" }}>秒</span>
+                  </span>
+                  {s.auto && <span style={{ flexShrink: 0, fontSize: "9px", color: "#065f46", background: "#ecfdf5", padding: "1px 5px", borderRadius: "4px", fontWeight: 600 }}>auto</span>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Total + footer */}
+      {appMode !== "universal" && (
+        <div style={{
+          marginTop: "12px", padding: "10px 12px",
+          background: "#f8fafc", borderRadius: "8px",
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+          fontSize: "12px",
+        }}>
+          <span style={{ color: "#555" }}>{(card.l3s || []).length} 工段　小計</span>
+          <span style={{ fontSize: "16px", fontWeight: 800, color: "#065f46", fontFamily: "'JetBrains Mono',monospace" }}>
+            {Math.round(card.ie || 0)}<span style={{ fontSize: "10px", color: "#888", marginLeft: "2px" }}>秒</span>
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -4296,6 +4638,8 @@ function App() {
   const [cStage, setCStage] = useState(0);
   const [removed, setRemoved] = useState(new Set());
   const [openId, setOpenId] = useState(null);
+  // v11: 細節欄 displayMode (展開 / 分組 / 格狀);default expand。
+  const [detailDisplayMode, setDetailDisplayMode] = useState("expand");
   // v11: openId 變動時(包含 sketch dot 點擊),把中欄對應 PartTableRow 捲入可視範圍。
   // scrollIntoView block:'nearest' 已可視就 no-op,無須區分點擊來源。
   useEffect(() => {
@@ -6014,6 +6358,9 @@ function App() {
                     </div>
                   )}
 
+                  {/* v11: 桌機顯示表格 column header */}
+                  {!isMobile && cDone && <PartTableHeader appMode={appMode} />}
+
                   {(() => {
                     const TIER_META = {
                       essential:  { label: "必備",   hint: "歷史 ≥80%" },
@@ -6307,6 +6654,70 @@ function App() {
                     }
                   })()}
 
+                  {/* v11: 桌機顯示「系統必備」amber section + 合計 footer。
+                      ADDON brand bundle 資料源不變,只在中欄補一個固定列示意,
+                      勾選 / 5 個 sub-step 仍透過 sketch 欄下方原 UI 操作。 */}
+                  {!isMobile && cDone && appMode !== "universal" && (
+                    <div style={{ marginTop: "16px" }}>
+                      <div style={{
+                        padding: "8px 12px",
+                        background: "#fffbeb", borderTop: "1px solid #fde68a",
+                        borderBottom: "1px solid #fde68a",
+                        fontSize: "11px", fontWeight: 700, color: "#92400e",
+                        letterSpacing: "0.04em",
+                      }}>
+                        系統必備（依 {brand || "客戶"} 客戶規則）
+                      </div>
+                      {(() => {
+                        // ADDON 為單一 bundle,在 mockup 視覺上拆成 F1/F2,但本輪僅用 1 列示意。
+                        const fakeFixedCard = {
+                          id: 0,
+                          l1: ADDON.name,
+                          l1_code: "_addon",
+                          l2: addonOn ? `${addonSteps.size}/${ADDON.steps.length} 工段` : "未啟用",
+                          l2Variants: null, l3Variants: null, methodVariants: null,
+                          l3s: addonOn ? Array.from(addonSteps).map(i => ({ name: ADDON.steps[i]?.n || "—", ie: ADDON.steps[i]?.ie || 0, auto: false })) : [],
+                          ie: Array.from(addonSteps).reduce((s, i) => s + (ADDON.steps[i]?.ie || 0), 0),
+                          source: "struct",
+                          presenceTier: "essential",
+                          presencePct: 100,
+                        };
+                        return (
+                          <PartTableRow
+                            card={fakeFixedCard}
+                            isActive={false}
+                            isFixed={true}
+                            fixedLabel="F1"
+                            col="#b45309"
+                            appMode={appMode}
+                            onToggle={() => setShowAddonSteps(v => !v)}
+                            onRemove={() => {}}
+                          />
+                        );
+                      })()}
+                    </div>
+                  )}
+
+                  {/* 合計 footer */}
+                  {!isMobile && cDone && appMode !== "universal" && (
+                    <div style={{
+                      display: "flex", alignItems: "center", justifyContent: "flex-end",
+                      gap: "12px",
+                      padding: "12px 14px",
+                      borderTop: "2px solid #e5e5e3",
+                      background: "#fafaf9",
+                      marginTop: "0",
+                    }}>
+                      <span style={{ fontSize: "13px", color: "#555", fontWeight: 600 }}>合計</span>
+                      <span style={{
+                        fontSize: "20px", fontWeight: 800, color: "#065f46",
+                        fontFamily: "'JetBrains Mono', monospace", fontVariantNumeric: "tabular-nums",
+                      }}>
+                        {Math.round(totalIE)}<span style={{ fontSize: "12px", color: "#888", marginLeft: "3px", fontWeight: 500 }}>秒</span>
+                      </span>
+                    </div>
+                  )}
+
                   <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "20px" }}>
                     <button onClick={exportTechpack}
                       title="下載目前 techpack 狀態為 JSON 檔"
@@ -6327,35 +6738,17 @@ function App() {
                 </div>}
               </div>
 
-              {/* ─── v11 Detail panel (右欄,桌機固定) ─── */}
+              {/* ─── v11 Detail panel (右欄,桌機固定;改用 DetailPanel 元件) ─── */}
               {!isMobile && (
                 <div style={{
                   alignSelf: "start",
                   position: "sticky", top: "16px",
-                  background: "#fafaf9", border: "1px solid #e8e5e1",
+                  background: "#fff", border: "1px solid #e5e5e3",
                   borderRadius: "12px",
-                  padding: "12px",
+                  padding: "14px",
                   maxHeight: "calc(100vh - 32px)",
                   overflowY: "auto",
                 }}>
-                  <div style={{
-                    fontSize: "11px", fontWeight: 700, color: "#888",
-                    letterSpacing: "0.05em", textTransform: "uppercase",
-                    marginBottom: "10px", display: "flex",
-                    alignItems: "center", justifyContent: "space-between",
-                  }}>
-                    <span>細節</span>
-                    {openId != null && (
-                      <button
-                        onClick={() => setOpenId(null)}
-                        title="收合細節"
-                        style={{
-                          background: "none", border: "none", cursor: "pointer",
-                          fontSize: "12px", color: "#888",
-                          padding: "2px 6px", fontFamily: "inherit",
-                        }}>×</button>
-                    )}
-                  </div>
                   {(() => {
                     if (!cDone) {
                       return (
@@ -6380,48 +6773,74 @@ function App() {
                     }
                     const acIdx = cards.findIndex(c => c.id === openId);
                     return (
-                      <Card key={`detail-${ac.id}`} card={ac} col={MC[acIdx]} isOpen={true}
-                        appMode={appMode}
-                        onToggle={() => setOpenId(null)}
-                        onRemove={id => { setRemoved(p => new Set([...p, id])); setOpenId(null); }}
-                        onSwitchMethod={(cardId, newIdx) => setCards(cs => cs.map(cc => {
-                          if (cc.id !== cardId) return cc;
-                          const v = cc.methodVariants?.[newIdx];
-                          if (!v) return cc;
-                          const l4Short = v.l4 ? (v.l4.length > 40 ? v.l4.slice(0, 40) + "…" : v.l4) : null;
-                          return {
-                            ...cc,
-                            methodIdx: newIdx,
-                            l3s: v.steps.length ? v.steps : cc.l3s,
-                            ie: v.totalSec,
-                            l2: cc.l2Base ? `${cc.l2Base}${l4Short ? " · " + l4Short : ""}` : cc.l2
-                          };
-                        }))}
-                        onSwitchL2={(cardId, newL2Idx) => {
-                          const cc = cards.find(x => x.id === cardId);
-                          if (cc) rebuildCardFromL2(cc, newL2Idx, null, fabric, setCards);
-                        }}
-                        onSwitchL3={(cardId, newL3Idx) => {
-                          const cc = cards.find(x => x.id === cardId);
-                          if (cc) rebuildCardFromL2(cc, cc.l2Idx ?? 0, newL3Idx, fabric, setCards);
-                        }}
-                        onPickUniversalIso={(cardId, newIso) => setCards(cs => cs.map(cc => {
-                          if (cc.id !== cardId) return cc;
-                          const u = cc.universal;
-                          if (!u || u.iso === newIso) return cc;
-                          const filters = { fabric, dept, gender, gt, it };
-                          const det = {
-                            code: cc.l1_code,
-                            x: cc.px, y: cc.py,
-                            side: cc.side === "right" ? "back" : "front",
-                            confidence: cc.conf,
-                            _fromPresence: cc.source === "struct",
-                          };
-                          const pres = { [cc.l1_code]: { tier_en: cc.presenceTier, presence_pct: cc.presencePct } };
-                          const rebuilt = buildUniversalCard(det, filters, recipesMaster, isoDictionary, l1Standard38, pres, cc.id - 1, newIso);
-                          if (!rebuilt) return cc;
-                          return { ...rebuilt, id: cc.id };
-                        }))} />
+                      <>
+                        <DetailPanel
+                          card={ac} col={MC[acIdx]} appMode={appMode}
+                          displayMode={detailDisplayMode}
+                          setDisplayMode={setDetailDisplayMode}
+                          onClose={() => setOpenId(null)}
+                          onRemove={id => { setRemoved(p => new Set([...p, id])); setOpenId(null); }}
+                          onSwitchMethod={(cardId, newIdx) => setCards(cs => cs.map(cc => {
+                            if (cc.id !== cardId) return cc;
+                            const v = cc.methodVariants?.[newIdx];
+                            if (!v) return cc;
+                            const l4Short = v.l4 ? (v.l4.length > 40 ? v.l4.slice(0, 40) + "…" : v.l4) : null;
+                            return {
+                              ...cc,
+                              methodIdx: newIdx,
+                              l3s: v.steps.length ? v.steps : cc.l3s,
+                              ie: v.totalSec,
+                              l2: cc.l2Base ? `${cc.l2Base}${l4Short ? " · " + l4Short : ""}` : cc.l2
+                            };
+                          }))}
+                          onSwitchL2={(cardId, newL2Idx) => {
+                            const cc = cards.find(x => x.id === cardId);
+                            if (cc) rebuildCardFromL2(cc, newL2Idx, null, fabric, setCards);
+                          }}
+                          onSwitchL3={(cardId, newL3Idx) => {
+                            const cc = cards.find(x => x.id === cardId);
+                            if (cc) rebuildCardFromL2(cc, cc.l2Idx ?? 0, newL3Idx, fabric, setCards);
+                          }}
+                          onPickUniversalIso={(cardId, newIso) => setCards(cs => cs.map(cc => {
+                            if (cc.id !== cardId) return cc;
+                            const u = cc.universal;
+                            if (!u || u.iso === newIso) return cc;
+                            const filters = { fabric, dept, gender, gt, it };
+                            const det = {
+                              code: cc.l1_code,
+                              x: cc.px, y: cc.py,
+                              side: cc.side === "right" ? "back" : "front",
+                              confidence: cc.conf,
+                              _fromPresence: cc.source === "struct",
+                            };
+                            const pres = { [cc.l1_code]: { tier_en: cc.presenceTier, presence_pct: cc.presencePct } };
+                            const rebuilt = buildUniversalCard(det, filters, recipesMaster, isoDictionary, l1Standard38, pres, cc.id - 1, newIso);
+                            if (!rebuilt) return cc;
+                            return { ...rebuilt, id: cc.id };
+                          }))} />
+                        {/* Footer:重設 / 確認 */}
+                        <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+                          <button
+                            onClick={() => {
+                              const cc = cards.find(x => x.id === ac.id);
+                              if (cc) rebuildCardFromL2(cc, 0, 0, fabric, setCards);
+                            }}
+                            style={{
+                              flex: 1, padding: "10px", background: "#fff",
+                              border: "1px solid #e5e5e3", borderRadius: "8px",
+                              fontSize: "13px", color: "#555", fontWeight: 600,
+                              cursor: "pointer", fontFamily: "inherit",
+                            }}>重設</button>
+                          <button
+                            onClick={() => setOpenId(null)}
+                            style={{
+                              flex: 1, padding: "10px", background: "#065f46",
+                              color: "#fff", border: "none", borderRadius: "8px",
+                              fontSize: "13px", fontWeight: 600,
+                              cursor: "pointer", fontFamily: "inherit",
+                            }}>確認</button>
+                        </div>
+                      </>
                     );
                   })()}
                 </div>
