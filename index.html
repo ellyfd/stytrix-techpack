@@ -1292,7 +1292,8 @@ function DetailPanel({ card, col, appMode,
   const l4List = (card.methodVariants && card.methodVariants.length > 0) ? card.methodVariants : null;
   const l4Idx = card.methodIdx ?? 0;
 
-  // 永遠採分組模式:每個 level 預設只顯示當前選中,點「展開 N」單獨展開該 level。
+  // 永遠採分組模式:每個 level 預設只顯示當前選中,點「展開 N」單獨展開該 level
+  // (展開時用 2-col 格狀,長中文自動 wrap;只有 1 個選項就不顯示連結)。
   const renderLevel = (levelKey, items, idx, render) => {
     if (!items || items.length === 0) return null;
     const isExpanded = expandedLevels.has(levelKey);
@@ -1306,11 +1307,19 @@ function DetailPanel({ card, col, appMode,
           display: "inline-flex", alignItems: "center", gap: "3px",
         }}>{isExpanded ? "▴ 收合" : `▾ 展開 ${items.length}`}</button>
     ) : null;
+    if (!isExpanded) {
+      return (
+        <>
+          {render(items[idx], idx, false)}
+          {linkBtn}
+        </>
+      );
+    }
     return (
       <>
-        {isExpanded
-          ? items.map((it, i) => render(it, i, false))
-          : render(items[idx], idx, false)}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px" }}>
+          {items.map((it, i) => render(it, i, false))}
+        </div>
         {linkBtn}
       </>
     );
