@@ -1214,6 +1214,13 @@ function DetailPanel({ card, col, appMode, displayMode, setDisplayMode,
                       onSwitchMethod, onSwitchL2, onSwitchL3, onPickUniversalIso,
                       onClose, onRemove }) {
   const [showSteps, setShowSteps] = useState(false);
+  // 分組 mode 下,使用者可單獨展開特定 level (l2 / l3 / l4) 而不影響其他 level。
+  const [expandedLevels, setExpandedLevels] = useState(() => new Set());
+  const toggleLevel = (k) => setExpandedLevels(s => {
+    const n = new Set(s);
+    if (n.has(k)) n.delete(k); else n.add(k);
+    return n;
+  });
   if (!card) return null;
   const src = SRC[card.source] || SRC.struct;
   const autoN = (card.l3s || []).filter(l => l.auto).length;
@@ -1285,19 +1292,30 @@ function DetailPanel({ card, col, appMode, displayMode, setDisplayMode,
   const l4List = (card.methodVariants && card.methodVariants.length > 0) ? card.methodVariants : null;
   const l4Idx = card.methodIdx ?? 0;
 
-  const renderListByMode = (items, idx, render) => {
+  const renderListByMode = (levelKey, items, idx, render) => {
     if (!items || items.length === 0) return null;
-    if (displayMode === "group") {
-      // 疊起:只顯示當前選中,點擊切到 expand
-      return (
-        <button onClick={() => setDisplayMode("expand")}
+    const isLocallyExpanded = expandedLevels.has(levelKey);
+    const showAll = displayMode === "expand" || (displayMode !== "grid" && isLocallyExpanded);
+    const linkBtn = (label) => (
+      items.length > 1 ? (
+        <button
+          onClick={(e) => { e.stopPropagation(); toggleLevel(levelKey); }}
           style={{
-            width: "100%", padding: "8px 10px",
-            background: "#fff", border: "1px dashed #ddd", borderRadius: "8px",
-            fontSize: "13px", color: "#555", textAlign: "left", cursor: "pointer", fontFamily: "inherit",
-          }}>
-          {render(items[idx], idx, true)} <span style={{ float: "right", color: "#bbb" }}>▾ 展開 {items.length}</span>
-        </button>
+            background: "none", border: "none",
+            fontSize: "11px", color: "#888", cursor: "pointer",
+            fontFamily: "inherit", padding: "4px 6px", marginTop: "2px",
+            display: "inline-flex", alignItems: "center", gap: "3px",
+          }}>{label}</button>
+      ) : null
+    );
+
+    if (displayMode === "group" && !showAll) {
+      // 分組 collapsed:只顯示當前選中 + 一個獨立的「展開 N」連結;只展開這個 level。
+      return (
+        <>
+          {render(items[idx], idx, false)}
+          {linkBtn(`▾ 展開 ${items.length}`)}
+        </>
       );
     }
     if (displayMode === "grid") {
@@ -1307,8 +1325,13 @@ function DetailPanel({ card, col, appMode, displayMode, setDisplayMode,
         </div>
       );
     }
-    // expand (default)
-    return items.map((it, i) => render(it, i, false));
+    // expand 全展開,或 group + 該 level 已局部展開 → 列出全部 + 收合連結
+    return (
+      <>
+        {items.map((it, i) => render(it, i, false))}
+        {displayMode === "group" && isLocallyExpanded && linkBtn("▴ 收合")}
+      </>
+    );
   };
 
   return (
@@ -1354,7 +1377,7 @@ function DetailPanel({ card, col, appMode, displayMode, setDisplayMode,
               const on = displayMode === m.k;
               return (
                 <button key={m.k}
-                  onClick={() => setDisplayMode(m.k)}
+                  onClick={() => { setExpandedLevels(new Set()); setDisplayMode(m.k); }}
                   style={{
                     padding: "4px 10px", fontSize: "11px", fontFamily: "inherit",
                     background: on ? "#1a1a1a" : "#fff",
@@ -1403,7 +1426,7 @@ function DetailPanel({ card, col, appMode, displayMode, setDisplayMode,
       {/* L2 */}
       {appMode !== "universal" && l2List && (
         <Group title="L2 零件選擇">
-          {renderListByMode(l2List, l2Idx, (v, i) => (
+          {renderListByMode("l2", l2List, l2Idx, (v, i) => (
             <Radio key={`l2-${i}`}
               active={i === l2Idx}
               accent="#065f46"
@@ -1417,7 +1440,7 @@ function DetailPanel({ card, col, appMode, displayMode, setDisplayMode,
       {/* L3 (active 用 amber 語意:可調 vs 自動) */}
       {appMode !== "universal" && l3List && (
         <Group title="L3 形狀選擇">
-          {renderListByMode(l3List, l3Idx, (v, i) => (
+          {renderListByMode("l3", l3List, l3Idx, (v, i) => (
             <Radio key={`l3-${i}`}
               active={i === l3Idx}
               accent="#b45309"
@@ -1430,7 +1453,7 @@ function DetailPanel({ card, col, appMode, displayMode, setDisplayMode,
       {/* L4 */}
       {appMode !== "universal" && l4List && l4List.length > 1 && (
         <Group title="L4 工法選擇">
-          {renderListByMode(l4List, l4Idx, (v, i) => (
+          {renderListByMode("l4", l4List, l4Idx, (v, i) => (
             <Radio key={`l4-${i}`}
               active={i === l4Idx}
               accent="#065f46"
