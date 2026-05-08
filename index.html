@@ -1115,23 +1115,48 @@ function PartTableRow({ card, isActive, onToggle, onRemove, col, appMode, isFixe
         </>}
         {!l2Disp && !l3Disp && <span style={{ color: "#bbb" }}>—</span>}
       </div>
-      {/* IE 秒 */}
-      <Cell w="56px" align="right" style={{
-        fontSize: "13px", fontWeight: 700, color: "#065f46",
-        fontFamily: "'JetBrains Mono', monospace", fontVariantNumeric: "tabular-nums",
-      }}>
-        {appMode === "universal" ? "—" : <>{sec}<span style={{ fontSize: "10px", color: "#888", marginLeft: "2px", fontWeight: 500 }}>秒</span></>}
-      </Cell>
-      {/* 工段 */}
-      <Cell w="36px" align="center" style={{
-        fontSize: "12px", color: stepCount > 0 ? "#1a1a1a" : "#bbb",
-        fontFamily: "'JetBrains Mono', monospace", fontVariantNumeric: "tabular-nums",
-      }}>{appMode === "universal" ? "—" : (stepCount || "—")}</Cell>
-      {/* 可調 */}
-      <Cell w="36px" align="center" style={{
-        fontSize: "12px", color: adjN > 0 ? "#b45309" : "#bbb",
-        fontFamily: "'JetBrains Mono', monospace", fontVariantNumeric: "tabular-nums",
-      }}>{appMode === "universal" ? "—" : (adjN || "—")}</Cell>
+      {/* universal 模式:[IE秒 / 工段 / 可調] 三欄合併成「替代 ISO」chips;聚陽模式維持原 3 欄。 */}
+      {appMode === "universal" ? (
+        <div style={{
+          width: "168px", flexShrink: 0,
+          display: "flex", alignItems: "center", justifyContent: "flex-end",
+          gap: "4px", flexWrap: "wrap",
+          overflow: "hidden",
+        }}>
+          {(card.universal?.alternatives || []).slice(0, 3).map((a, i) => (
+            <span key={i} style={{
+              fontSize: "10px", padding: "2px 6px",
+              background: "#f5f5f4", color: "#555",
+              borderRadius: "4px", fontFamily: "'JetBrains Mono', monospace", fontWeight: 600,
+              whiteSpace: "nowrap",
+            }}>
+              ISO {a.iso}
+              {a.pct != null && <span style={{ marginLeft: "4px", color: "#b45309" }}>{a.pct}%</span>}
+            </span>
+          ))}
+          {(!card.universal?.alternatives || card.universal.alternatives.length === 0) && (
+            <span style={{ fontSize: "11px", color: "#bbb" }}>—</span>
+          )}
+        </div>
+      ) : (
+        <>
+          {/* IE 秒 */}
+          <Cell w="56px" align="right" style={{
+            fontSize: "13px", fontWeight: 700, color: "#065f46",
+            fontFamily: "'JetBrains Mono', monospace", fontVariantNumeric: "tabular-nums",
+          }}>{sec}<span style={{ fontSize: "10px", color: "#888", marginLeft: "2px", fontWeight: 500 }}>秒</span></Cell>
+          {/* 工段 */}
+          <Cell w="36px" align="center" style={{
+            fontSize: "12px", color: stepCount > 0 ? "#1a1a1a" : "#bbb",
+            fontFamily: "'JetBrains Mono', monospace", fontVariantNumeric: "tabular-nums",
+          }}>{stepCount || "—"}</Cell>
+          {/* 可調 */}
+          <Cell w="36px" align="center" style={{
+            fontSize: "12px", color: adjN > 0 ? "#b45309" : "#bbb",
+            fontFamily: "'JetBrains Mono', monospace", fontVariantNumeric: "tabular-nums",
+          }}>{adjN || "—"}</Cell>
+        </>
+      )}
       {/* 刪除 */}
       <button
         onClick={(e) => { e.stopPropagation(); onRemove && onRemove(card.id); }}
@@ -1164,10 +1189,16 @@ function PartTableHeader({ appMode }) {
     }}>
       <Cell w="28px" align="center">#</Cell>
       <Cell w="84px">L1 部位</Cell>
-      <div style={{ flex: 1, minWidth: 0 }}>L2 零件 · L3 形狀</div>
-      <Cell w="56px" align="right">IE 秒</Cell>
-      <Cell w="36px" align="center">工段</Cell>
-      <Cell w="36px" align="center">可調</Cell>
+      <div style={{ flex: 1, minWidth: 0 }}>{appMode === "universal" ? "ISO · 工法名稱" : "L2 零件 · L3 形狀"}</div>
+      {appMode === "universal" ? (
+        <Cell w="168px" align="right">替代 ISO</Cell>
+      ) : (
+        <>
+          <Cell w="56px" align="right">IE 秒</Cell>
+          <Cell w="36px" align="center">工段</Cell>
+          <Cell w="36px" align="center">可調</Cell>
+        </>
+      )}
       <div style={{ width: "20px", flexShrink: 0 }} />
     </div>
   );
@@ -1230,10 +1261,10 @@ function DetailPanel({ card, col, appMode, displayMode, setDisplayMode,
         flexShrink: 0,
       }} />
       <span style={{
-        flex: 1, minWidth: 0, fontSize: "13px",
+        flex: 1, minWidth: 0, fontSize: "13px", lineHeight: 1.4,
         color: active ? "#1a1a1a" : "#555",
         fontWeight: active ? 600 : 500,
-        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+        wordBreak: "break-word",
       }}>{label}</span>
       {suffix != null && (
         <span style={{
@@ -1397,17 +1428,14 @@ function DetailPanel({ card, col, appMode, displayMode, setDisplayMode,
       {/* L4 */}
       {appMode !== "universal" && l4List && l4List.length > 1 && (
         <Group title="L4 工法選擇">
-          {renderListByMode(l4List, l4Idx, (v, i) => {
-            const trunc = v.l4 ? (v.l4.length > 28 ? v.l4.slice(0, 28) + "…" : v.l4) : `方法 ${i + 1}`;
-            return (
-              <Radio key={`l4-${i}`}
-                active={i === l4Idx}
-                accent="#065f46"
-                label={`第${i + 1}/${l4List.length} — ${trunc}`}
-                suffix={v.totalSec != null ? `${Math.round(v.totalSec)}秒` : null}
-                onClick={() => onSwitchMethod && onSwitchMethod(card.id, i)} />
-            );
-          })}
+          {renderListByMode(l4List, l4Idx, (v, i) => (
+            <Radio key={`l4-${i}`}
+              active={i === l4Idx}
+              accent="#065f46"
+              label={`第${i + 1}/${l4List.length} — ${v.l4 || `方法 ${i + 1}`}`}
+              suffix={v.totalSec != null ? `${Math.round(v.totalSec)}秒` : null}
+              onClick={() => onSwitchMethod && onSwitchMethod(card.id, i)} />
+          ))}
         </Group>
       )}
 
@@ -5655,7 +5683,7 @@ function App() {
         background: "#fff", borderBottom: "1px solid #eee",
       }}>
       <div style={{
-        maxWidth: "1480px", margin: "0 auto",
+        maxWidth: "1680px", margin: "0 auto",
         display: "flex", justifyContent: "space-between", alignItems: "center",
         gap: "16px", flexWrap: "wrap",
       }}>
@@ -5781,7 +5809,7 @@ function App() {
       </div>
       </div>
 
-      <div style={{ maxWidth: "1480px", margin: "0 auto", padding: isMobile ? "14px 14px" : "24px 28px" }}>
+      <div style={{ maxWidth: "1680px", margin: "0 auto", padding: isMobile ? "14px 14px" : "24px 28px" }}>
         {/* ─── Filter (v10: flush underline selects) ─── */}
         {(() => {
           const selectedFilters = [
@@ -5862,14 +5890,18 @@ function App() {
               </div>
               <div style={{
                 display: "grid",
-                gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(6, 1fr)",
+                gridTemplateColumns: isMobile
+                  ? "repeat(2, 1fr)"
+                  : (appMode === "universal" ? "repeat(5, 1fr)" : "repeat(6, 1fr)"),
                 gap: isMobile ? "12px 14px" : "20px",
                 alignItems: "start",
               }}>
-              <Sel label="Brand" value={brand} onChange={setBrand}
-                options={BRANDS.map(b => b.code)} badgeMap={brandBadgeMap}
-                locked={appMode !== "universal" && !!locks.brand}
-                onToggleLock={appMode === "universal" ? undefined : () => toggleLock("brand")} />
+              {/* 通用模型 brand-agnostic by design,不顯示 brand selector;切回聚陽再出現 */}
+              {appMode !== "universal" && (
+                <Sel label="Brand" value={brand} onChange={setBrand}
+                  options={BRANDS.map(b => b.code)} badgeMap={brandBadgeMap}
+                  locked={!!locks.brand} onToggleLock={() => toggleLock("brand")} />
+              )}
               <Sel label="Fabric" value={fabric}
                 onChange={v => { setFabric(v); setIt(""); }}
                 options={["Woven", "Knit"]} badgeMap={fabricBadgeMap}
@@ -6042,7 +6074,7 @@ function App() {
             {/* v11 layout: sketch + part list + detail panel (桌機 3 欄，手機 1 欄堆疊回退到 v10 inline 展開) */}
             <div style={{
               display: "grid",
-              gridTemplateColumns: isMobile ? "1fr" : "minmax(300px, 360px) minmax(0, 1fr) 320px",
+              gridTemplateColumns: isMobile ? "1fr" : "minmax(280px, 320px) minmax(0, 1fr) minmax(380px, 420px)",
               gap: isMobile ? "12px" : "16px"
             }}>
               {/* Sketch upload + preview */}
