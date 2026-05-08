@@ -1,0 +1,1494 @@
+{
+  "version": "v1",
+  "generated_at": "2026-05-08T03:21:01+00:00",
+  "source": "M7列管_20260507.xlsx 總表 18,731 EIDH × PRODUCT_CATEGORY 投票",
+  "purity_threshold_pct": 60,
+  "rule": "purity >= 60% 才進 subgroup_to_gender。<{PURITY_THRESHOLD}% 為 mixed 不特列 — 由 PRODUCT_CATEGORY fallback chain 處理。",
+  "fallback_chain": [
+    "1. PRODUCT_CATEGORY 直接對應（最精準，每 EIDH 都有）",
+    "2. (client, subgroup) 查此 mapping",
+    "3. _GENDER_TOKENS regex（subgroup 含 MENS/MISSY/BOY/GIRL 字）",
+    "4. _CLIENT_DEFAULT_GENDER（client level default）",
+    "5. UNKNOWN"
+  ],
+  "client_canonical_mapping": {
+    "A & F": {
+      "aliases": [
+        "A & F",
+        "ANF",
+        "ABERCROMBIE"
+      ],
+      "n_total": 459,
+      "subgroup_to_gender": {
+        "ACTIVE": {
+          "gender": "WOMEN",
+          "n": 246,
+          "purity": 94
+        },
+        "BOY": {
+          "gender": "BOY",
+          "n": 4,
+          "purity": 100
+        },
+        "FLEECE": {
+          "gender": "WOMEN",
+          "n": 9,
+          "purity": 100
+        },
+        "GIRL": {
+          "gender": "GIRL",
+          "n": 3,
+          "purity": 100
+        },
+        "JACKET": {
+          "gender": "BABY",
+          "n": 2,
+          "purity": 100
+        },
+        "WOMEN": {
+          "gender": "WOMEN",
+          "n": 23,
+          "purity": 100
+        }
+      },
+      "subgroup_mixed_skipped": [
+        {
+          "subgroup": "F.R.",
+          "n": 172,
+          "purity": 49,
+          "votes": {
+            "BABY": 28,
+            "BOY": 60,
+            "GIRL": 84
+          },
+          "reason": "mixed_or_unknown"
+        }
+      ]
+    },
+    "AEOM": {
+      "aliases": [
+        "AEOM"
+      ],
+      "n_total": 8,
+      "subgroup_to_gender": {
+        "OTHERS": {
+          "gender": "WOMEN",
+          "n": 8,
+          "purity": 100
+        }
+      },
+      "subgroup_mixed_skipped": []
+    },
+    "ASICS-EU": {
+      "aliases": [
+        "ASICS-EU",
+        "ASICS"
+      ],
+      "n_total": 81,
+      "subgroup_to_gender": {},
+      "subgroup_mixed_skipped": [
+        {
+          "subgroup": "KNIT",
+          "n": 81,
+          "purity": 53,
+          "votes": {
+            "WOMEN": 43,
+            "MEN": 38
+          },
+          "reason": "mixed_or_unknown"
+        }
+      ]
+    },
+    "ATHLETA": {
+      "aliases": [
+        "ATHLETA",
+        "ATH"
+      ],
+      "n_total": 788,
+      "subgroup_to_gender": {
+        "GIRLS": {
+          "gender": "GIRL",
+          "n": 180,
+          "purity": 100
+        },
+        "WOMENS": {
+          "gender": "WOMEN",
+          "n": 608,
+          "purity": 100
+        }
+      },
+      "subgroup_mixed_skipped": []
+    },
+    "BANANA REPUBLIC": {
+      "aliases": [
+        "BANANA REPUBLIC",
+        "BR"
+      ],
+      "n_total": 546,
+      "subgroup_to_gender": {
+        "BR KNIT": {
+          "gender": "MEN",
+          "n": 40,
+          "purity": 95
+        },
+        "BRFS KNIT": {
+          "gender": "WOMEN",
+          "n": 503,
+          "purity": 75
+        },
+        "BRFS TSD": {
+          "gender": "MEN",
+          "n": 3,
+          "purity": 100
+        }
+      },
+      "subgroup_mixed_skipped": []
+    },
+    "BEYOND YOGA": {
+      "aliases": [
+        "BEYOND YOGA",
+        "BY"
+      ],
+      "n_total": 379,
+      "subgroup_to_gender": {
+        "PERFORMANCE": {
+          "gender": "WOMEN",
+          "n": 379,
+          "purity": 100
+        }
+      },
+      "subgroup_mixed_skipped": []
+    },
+    "CATO": {
+      "aliases": [
+        "CATO"
+      ],
+      "n_total": 38,
+      "subgroup_to_gender": {
+        "RTW KNIT TOP": {
+          "gender": "WOMEN",
+          "n": 25,
+          "purity": 100
+        },
+        "RTW MISSY": {
+          "gender": "WOMEN",
+          "n": 1,
+          "purity": 100
+        },
+        "RTW PONTE": {
+          "gender": "WOMEN",
+          "n": 12,
+          "purity": 100
+        }
+      },
+      "subgroup_mixed_skipped": []
+    },
+    "DICKS SPORTING GOODS": {
+      "aliases": [
+        "DICKS",
+        "DSG",
+        "DICKS SPORTING GOO"
+      ],
+      "n_total": 2216,
+      "subgroup_to_gender": {
+        "CALIA": {
+          "gender": "WOMEN",
+          "n": 396,
+          "purity": 100
+        },
+        "CALIA (LEGGING)": {
+          "gender": "WOMEN",
+          "n": 1,
+          "purity": 100
+        },
+        "CALIA COMPRESSION": {
+          "gender": "WOMEN",
+          "n": 79,
+          "purity": 100
+        },
+        "CALIA GOLF": {
+          "gender": "WOMEN",
+          "n": 228,
+          "purity": 100
+        },
+        "DSG COMPRESSION": {
+          "gender": "WOMEN",
+          "n": 250,
+          "purity": 68
+        },
+        "FOXBURG": {
+          "gender": "MEN",
+          "n": 2,
+          "purity": 100
+        },
+        "VRST": {
+          "gender": "MEN",
+          "n": 294,
+          "purity": 100
+        },
+        "VRST GOLF": {
+          "gender": "MEN",
+          "n": 149,
+          "purity": 95
+        }
+      },
+      "subgroup_mixed_skipped": [
+        {
+          "subgroup": "ALPINE DESIGN",
+          "n": 36,
+          "purity": 56,
+          "votes": {
+            "MEN": 20,
+            "WOMEN": 16
+          },
+          "reason": "mixed_or_unknown"
+        },
+        {
+          "subgroup": "DSG",
+          "n": 584,
+          "purity": 32,
+          "votes": {
+            "GIRL": 126,
+            "MEN": 182,
+            "WOMEN": 189,
+            "BOY": 87
+          },
+          "reason": "mixed_or_unknown"
+        },
+        {
+          "subgroup": "PERFECT GAME",
+          "n": 10,
+          "purity": 50,
+          "votes": {
+            "MEN": 5,
+            "BOY": 5
+          },
+          "reason": "mixed_or_unknown"
+        },
+        {
+          "subgroup": "WALTER HAGEN",
+          "n": 187,
+          "purity": 56,
+          "votes": {
+            "WOMEN": 81,
+            "MEN": 105,
+            "BOY": 1
+          },
+          "reason": "mixed_or_unknown"
+        }
+      ]
+    },
+    "DISTANCE": {
+      "aliases": [
+        "DISTANCE"
+      ],
+      "n_total": 54,
+      "subgroup_to_gender": {
+        "DISTANCE": {
+          "gender": "MEN",
+          "n": 38,
+          "purity": 68
+        },
+        "MENS": {
+          "gender": "MEN",
+          "n": 16,
+          "purity": 100
+        }
+      },
+      "subgroup_mixed_skipped": []
+    },
+    "GAP": {
+      "aliases": [
+        "GAP"
+      ],
+      "n_total": 1723,
+      "subgroup_to_gender": {
+        "BAC": {
+          "gender": "BOY",
+          "n": 132,
+          "purity": 80
+        },
+        "FIT ADULT": {
+          "gender": "MEN",
+          "n": 1,
+          "purity": 100
+        },
+        "GAC": {
+          "gender": "GIRL",
+          "n": 33,
+          "purity": 88
+        },
+        "GS WAC": {
+          "gender": "WOMEN",
+          "n": 2,
+          "purity": 100
+        },
+        "MAC": {
+          "gender": "MEN",
+          "n": 223,
+          "purity": 100
+        },
+        "SWIM": {
+          "gender": "BABY",
+          "n": 2,
+          "purity": 100
+        },
+        "TSD": {
+          "gender": "WOMEN",
+          "n": 623,
+          "purity": 99
+        },
+        "WAC": {
+          "gender": "WOMEN",
+          "n": 309,
+          "purity": 99
+        },
+        "WKN": {
+          "gender": "WOMEN",
+          "n": 11,
+          "purity": 100
+        }
+      },
+      "subgroup_mixed_skipped": [
+        {
+          "subgroup": "GS BAC",
+          "n": 5,
+          "purity": 40,
+          "votes": {
+            "BABY": 2,
+            "MEN": 1,
+            "BOY": 2
+          },
+          "reason": "mixed_or_unknown"
+        },
+        {
+          "subgroup": "KIDS FR",
+          "n": 337,
+          "purity": 57,
+          "votes": {
+            "BABY": 45,
+            "GIRL": 191,
+            "BOY": 101
+          },
+          "reason": "mixed_or_unknown"
+        },
+        {
+          "subgroup": "KIDS SWIM",
+          "n": 22,
+          "purity": 55,
+          "votes": {
+            "GIRL": 12,
+            "BABY": 10
+          },
+          "reason": "mixed_or_unknown"
+        },
+        {
+          "subgroup": "TSD KB",
+          "n": 23,
+          "purity": 57,
+          "votes": {
+            "GIRL": 13,
+            "BABY": 10
+          },
+          "reason": "mixed_or_unknown"
+        }
+      ]
+    },
+    "GAP OUTLET": {
+      "aliases": [
+        "GAP OUTLET",
+        "GAPO"
+      ],
+      "n_total": 747,
+      "subgroup_to_gender": {
+        "BAC": {
+          "gender": "BOY",
+          "n": 75,
+          "purity": 63
+        },
+        "FIT": {
+          "gender": "BOY",
+          "n": 155,
+          "purity": 82
+        },
+        "GAC": {
+          "gender": "GIRL",
+          "n": 17,
+          "purity": 76
+        },
+        "KIDS FR": {
+          "gender": "BOY",
+          "n": 16,
+          "purity": 100
+        },
+        "KNIT": {
+          "gender": "MEN",
+          "n": 1,
+          "purity": 100
+        },
+        "MAC": {
+          "gender": "MEN",
+          "n": 134,
+          "purity": 100
+        },
+        "TSD": {
+          "gender": "WOMEN",
+          "n": 178,
+          "purity": 100
+        },
+        "TSD KB": {
+          "gender": "BABY",
+          "n": 9,
+          "purity": 67
+        },
+        "WAC": {
+          "gender": "WOMEN",
+          "n": 103,
+          "purity": 98
+        }
+      },
+      "subgroup_mixed_skipped": [
+        {
+          "subgroup": "KIDS SWIM",
+          "n": 59,
+          "purity": 59,
+          "votes": {
+            "GIRL": 35,
+            "BABY": 20,
+            "BOY": 4
+          },
+          "reason": "mixed_or_unknown"
+        }
+      ]
+    },
+    "GILDAN": {
+      "aliases": [
+        "GILDAN"
+      ],
+      "n_total": 10,
+      "subgroup_to_gender": {
+        "MENS": {
+          "gender": "MEN",
+          "n": 7,
+          "purity": 86
+        },
+        "WOMENS": {
+          "gender": "WOMEN",
+          "n": 3,
+          "purity": 100
+        }
+      },
+      "subgroup_mixed_skipped": []
+    },
+    "GU": {
+      "aliases": [
+        "GU"
+      ],
+      "n_total": 1756,
+      "subgroup_to_gender": {
+        "10": {
+          "gender": "WOMEN",
+          "n": 1,
+          "purity": 100
+        },
+        "12": {
+          "gender": "GIRL",
+          "n": 175,
+          "purity": 80
+        },
+        "13": {
+          "gender": "GIRL",
+          "n": 28,
+          "purity": 100
+        },
+        "14": {
+          "gender": "GIRL",
+          "n": 16,
+          "purity": 100
+        },
+        "17": {
+          "gender": "GIRL",
+          "n": 41,
+          "purity": 100
+        },
+        "22": {
+          "gender": "WOMEN",
+          "n": 724,
+          "purity": 100
+        },
+        "23": {
+          "gender": "WOMEN",
+          "n": 257,
+          "purity": 99
+        },
+        "24": {
+          "gender": "WOMEN",
+          "n": 5,
+          "purity": 100
+        },
+        "27": {
+          "gender": "WOMEN",
+          "n": 76,
+          "purity": 100
+        },
+        "31": {
+          "gender": "MEN",
+          "n": 1,
+          "purity": 100
+        },
+        "32": {
+          "gender": "MEN",
+          "n": 393,
+          "purity": 99
+        },
+        "33": {
+          "gender": "MEN",
+          "n": 6,
+          "purity": 67
+        },
+        "34": {
+          "gender": "MEN",
+          "n": 14,
+          "purity": 100
+        },
+        "37": {
+          "gender": "MEN",
+          "n": 19,
+          "purity": 100
+        }
+      },
+      "subgroup_mixed_skipped": []
+    },
+    "HALARA": {
+      "aliases": [
+        "HALARA"
+      ],
+      "n_total": 80,
+      "subgroup_to_gender": {
+        "WOMENS": {
+          "gender": "WOMEN",
+          "n": 80,
+          "purity": 100
+        }
+      },
+      "subgroup_mixed_skipped": []
+    },
+    "HIGH LIFE LLC": {
+      "aliases": [
+        "HIGH LIFE LLC",
+        "HLF"
+      ],
+      "n_total": 467,
+      "subgroup_to_gender": {
+        "AND1": {
+          "gender": "BOY",
+          "n": 8,
+          "purity": 100
+        },
+        "GAIAM": {
+          "gender": "MEN",
+          "n": 5,
+          "purity": 100
+        }
+      },
+      "subgroup_mixed_skipped": [
+        {
+          "subgroup": "CHAMPION",
+          "n": 368,
+          "purity": 53,
+          "votes": {
+            "WOMEN": 196,
+            "MEN": 172
+          },
+          "reason": "mixed_or_unknown"
+        },
+        {
+          "subgroup": "REEBOK",
+          "n": 86,
+          "purity": 37,
+          "votes": {
+            "WOMEN": 31,
+            "GIRL": 32,
+            "MEN": 11,
+            "BOY": 12
+          },
+          "reason": "mixed_or_unknown"
+        }
+      ]
+    },
+    "JOE FRESH": {
+      "aliases": [
+        "JOE FRESH"
+      ],
+      "n_total": 98,
+      "subgroup_to_gender": {
+        "MEN": {
+          "gender": "MEN",
+          "n": 7,
+          "purity": 100
+        },
+        "WOMEN": {
+          "gender": "WOMEN",
+          "n": 91,
+          "purity": 100
+        }
+      },
+      "subgroup_mixed_skipped": []
+    },
+    "KOHLS": {
+      "aliases": [
+        "KOHLS",
+        "KOHL'S",
+        "KOH"
+      ],
+      "n_total": 1756,
+      "subgroup_to_gender": {
+        "ACT (FLX BOY)": {
+          "gender": "BOY",
+          "n": 59,
+          "purity": 95
+        },
+        "ACT (FLX GIRL)": {
+          "gender": "GIRL",
+          "n": 36,
+          "purity": 100
+        },
+        "ACT (FLX MEN)": {
+          "gender": "MEN",
+          "n": 239,
+          "purity": 97
+        },
+        "ACT (FLX WMN)": {
+          "gender": "WOMEN",
+          "n": 227,
+          "purity": 95
+        },
+        "ACT (TG BOY)": {
+          "gender": "BOY",
+          "n": 14,
+          "purity": 93
+        },
+        "ACT (TG MEN)": {
+          "gender": "MEN",
+          "n": 132,
+          "purity": 100
+        },
+        "ACT (TG WMN)": {
+          "gender": "WOMEN",
+          "n": 194,
+          "purity": 97
+        },
+        "RTW (A9 MEN)": {
+          "gender": "MEN",
+          "n": 54,
+          "purity": 100
+        },
+        "RTW (CB MEN)": {
+          "gender": "MEN",
+          "n": 2,
+          "purity": 100
+        },
+        "RTW (CB WMN)": {
+          "gender": "WOMEN",
+          "n": 95,
+          "purity": 100
+        },
+        "RTW (SO JUNIOR)": {
+          "gender": "WOMEN",
+          "n": 78,
+          "purity": 100
+        },
+        "RTW (SONOMA MEN)": {
+          "gender": "MEN",
+          "n": 57,
+          "purity": 100
+        },
+        "RTW (SONOMA WMN)": {
+          "gender": "WOMEN",
+          "n": 12,
+          "purity": 100
+        },
+        "SLEEPWEAR(CROFT & BARROW)": {
+          "gender": "WOMEN",
+          "n": 1,
+          "purity": 100
+        },
+        "SLW (CB WMN)": {
+          "gender": "WOMEN",
+          "n": 285,
+          "purity": 100
+        },
+        "SLW (SONOMA MEN)": {
+          "gender": "MEN",
+          "n": 26,
+          "purity": 100
+        },
+        "SLW (SONOMA WMN)": {
+          "gender": "WOMEN",
+          "n": 237,
+          "purity": 100
+        },
+        "SWIM (FLX WMN)": {
+          "gender": "WOMEN",
+          "n": 7,
+          "purity": 100
+        },
+        "SWIM (TG WMN)": {
+          "gender": "WOMEN",
+          "n": 1,
+          "purity": 100
+        }
+      },
+      "subgroup_mixed_skipped": []
+    },
+    "LEVIS": {
+      "aliases": [
+        "LEVIS",
+        "LEVI'S"
+      ],
+      "n_total": 50,
+      "subgroup_to_gender": {
+        "KNIT": {
+          "gender": "WOMEN",
+          "n": 45,
+          "purity": 64
+        },
+        "WOVEN": {
+          "gender": "WOMEN",
+          "n": 5,
+          "purity": 60
+        }
+      },
+      "subgroup_mixed_skipped": []
+    },
+    "NET": {
+      "aliases": [
+        "NET"
+      ],
+      "n_total": 154,
+      "subgroup_to_gender": {
+        "KNIT": {
+          "gender": "MEN",
+          "n": 68,
+          "purity": 68
+        },
+        "WOVEN": {
+          "gender": "WOMEN",
+          "n": 86,
+          "purity": 97
+        }
+      },
+      "subgroup_mixed_skipped": []
+    },
+    "OAKLEY": {
+      "aliases": [
+        "OAKLEY"
+      ],
+      "n_total": 16,
+      "subgroup_to_gender": {
+        "GOLF": {
+          "gender": "MEN",
+          "n": 12,
+          "purity": 100
+        },
+        "OTHERS": {
+          "gender": "MEN",
+          "n": 4,
+          "purity": 100
+        }
+      },
+      "subgroup_mixed_skipped": []
+    },
+    "OLD NAVY": {
+      "aliases": [
+        "ONY",
+        "ON",
+        "OLD NAVY",
+        "OLDNAVY"
+      ],
+      "n_total": 3841,
+      "subgroup_to_gender": {
+        "BAC": {
+          "gender": "BOY",
+          "n": 65,
+          "purity": 92
+        },
+        "GAC": {
+          "gender": "GIRL",
+          "n": 185,
+          "purity": 100
+        },
+        "INTIMATE(K)": {
+          "gender": "WOMEN",
+          "n": 15,
+          "purity": 100
+        },
+        "KNIT TOP": {
+          "gender": "WOMEN",
+          "n": 226,
+          "purity": 80
+        },
+        "MAC": {
+          "gender": "MEN",
+          "n": 230,
+          "purity": 100
+        },
+        "MEN": {
+          "gender": "MEN",
+          "n": 1,
+          "purity": 100
+        },
+        "MENS FLEECE": {
+          "gender": "MEN",
+          "n": 39,
+          "purity": 90
+        },
+        "TSD": {
+          "gender": "WOMEN",
+          "n": 604,
+          "purity": 91
+        },
+        "WAC": {
+          "gender": "WOMEN",
+          "n": 1248,
+          "purity": 100
+        },
+        "WKN": {
+          "gender": "WOMEN",
+          "n": 278,
+          "purity": 95
+        },
+        "WOMEN FLEECE": {
+          "gender": "WOMEN",
+          "n": 112,
+          "purity": 77
+        },
+        "WOMEN SWIM": {
+          "gender": "WOMEN",
+          "n": 128,
+          "purity": 99
+        }
+      },
+      "subgroup_mixed_skipped": [
+        {
+          "subgroup": "GIRLS FLEECE",
+          "n": 15,
+          "purity": 53,
+          "votes": {
+            "BOY": 4,
+            "BABY": 3,
+            "GIRL": 8
+          },
+          "reason": "mixed_or_unknown"
+        },
+        {
+          "subgroup": "KIDS FR",
+          "n": 285,
+          "purity": 44,
+          "votes": {
+            "BOY": 40,
+            "BABY": 121,
+            "GIRL": 124
+          },
+          "reason": "mixed_or_unknown"
+        },
+        {
+          "subgroup": "KIDS SWIM",
+          "n": 189,
+          "purity": 54,
+          "votes": {
+            "GIRL": 79,
+            "BABY": 103,
+            "BOY": 7
+          },
+          "reason": "mixed_or_unknown"
+        },
+        {
+          "subgroup": "TSD KB",
+          "n": 221,
+          "purity": 52,
+          "votes": {
+            "GIRL": 115,
+            "BABY": 94,
+            "BOY": 11,
+            "WOMEN": 1
+          },
+          "reason": "mixed_or_unknown"
+        }
+      ]
+    },
+    "QUINCE": {
+      "aliases": [
+        "QUINCE"
+      ],
+      "n_total": 166,
+      "subgroup_to_gender": {
+        "MENS": {
+          "gender": "MEN",
+          "n": 70,
+          "purity": 97
+        },
+        "WOMENS": {
+          "gender": "WOMEN",
+          "n": 80,
+          "purity": 100
+        }
+      },
+      "subgroup_mixed_skipped": [
+        {
+          "subgroup": "KIDS",
+          "n": 16,
+          "purity": 50,
+          "votes": {
+            "BABY": 3,
+            "GIRL": 5,
+            "BOY": 8
+          },
+          "reason": "mixed_or_unknown"
+        }
+      ]
+    },
+    "ROSS": {
+      "aliases": [
+        "ROSS"
+      ],
+      "n_total": 6,
+      "subgroup_to_gender": {
+        "ROSS": {
+          "gender": "WOMEN",
+          "n": 6,
+          "purity": 100
+        }
+      },
+      "subgroup_mixed_skipped": []
+    },
+    "S1 DEVELOPING": {
+      "aliases": [
+        "S1 DEVELOPING"
+      ],
+      "n_total": 73,
+      "subgroup_to_gender": {},
+      "subgroup_mixed_skipped": [
+        {
+          "subgroup": "DEVELOP",
+          "n": 73,
+          "purity": 53,
+          "votes": {
+            "MEN": 39,
+            "WOMEN": 32,
+            "BABY": 2
+          },
+          "reason": "mixed_or_unknown"
+        }
+      ]
+    },
+    "SANMAR": {
+      "aliases": [
+        "SANMAR"
+      ],
+      "n_total": 414,
+      "subgroup_to_gender": {
+        "MEN (EDDIE BAUER)": {
+          "gender": "MEN",
+          "n": 22,
+          "purity": 95
+        },
+        "MEN(BROOKS BROTHERS)": {
+          "gender": "MEN",
+          "n": 35,
+          "purity": 100
+        },
+        "MEN(CORNERSTONE)": {
+          "gender": "MEN",
+          "n": 4,
+          "purity": 100
+        },
+        "MEN(CUSTOM)": {
+          "gender": "MEN",
+          "n": 2,
+          "purity": 100
+        },
+        "MEN(MERCER METTLE)": {
+          "gender": "MEN",
+          "n": 27,
+          "purity": 89
+        },
+        "MEN(NEW ERA)": {
+          "gender": "MEN",
+          "n": 34,
+          "purity": 91
+        },
+        "MEN(OGIO)": {
+          "gender": "MEN",
+          "n": 38,
+          "purity": 97
+        },
+        "MEN(PORT AUTHORITY)": {
+          "gender": "MEN",
+          "n": 19,
+          "purity": 100
+        },
+        "MEN(SPORT TEK)": {
+          "gender": "MEN",
+          "n": 40,
+          "purity": 95
+        },
+        "WOMEN (BROOKS BROTHERS)": {
+          "gender": "WOMEN",
+          "n": 54,
+          "purity": 100
+        },
+        "WOMEN (EDDIE BAUER)": {
+          "gender": "WOMEN",
+          "n": 15,
+          "purity": 100
+        },
+        "WOMEN(MERCER METTLE)": {
+          "gender": "WOMEN",
+          "n": 38,
+          "purity": 100
+        },
+        "WOMEN(NEW ERA)": {
+          "gender": "WOMEN",
+          "n": 15,
+          "purity": 93
+        },
+        "WOMEN(OGIO)": {
+          "gender": "WOMEN",
+          "n": 30,
+          "purity": 100
+        },
+        "WOMEN(PORT AUTHORITY)": {
+          "gender": "WOMEN",
+          "n": 12,
+          "purity": 100
+        },
+        "WOMEN(SPORT TEK)": {
+          "gender": "WOMEN",
+          "n": 26,
+          "purity": 100
+        },
+        "YOUTH(SPORT TEK)": {
+          "gender": "BOY",
+          "n": 3,
+          "purity": 67
+        }
+      },
+      "subgroup_mixed_skipped": []
+    },
+    "SMART CLOTHING": {
+      "aliases": [
+        "SMART CLOTHING"
+      ],
+      "n_total": 16,
+      "subgroup_to_gender": {
+        "MEN": {
+          "gender": "MEN",
+          "n": 4,
+          "purity": 100
+        },
+        "ORDER": {
+          "gender": "MEN",
+          "n": 2,
+          "purity": 100
+        },
+        "WOMEN": {
+          "gender": "WOMEN",
+          "n": 10,
+          "purity": 100
+        }
+      },
+      "subgroup_mixed_skipped": []
+    },
+    "TARGET": {
+      "aliases": [
+        "TARGET",
+        "TGT"
+      ],
+      "n_total": 1527,
+      "subgroup_to_gender": {
+        "D20": {
+          "gender": "WOMEN",
+          "n": 133,
+          "purity": 100
+        },
+        "D20(STARS ABOVE)": {
+          "gender": "WOMEN",
+          "n": 2,
+          "purity": 100
+        },
+        "D20(WONDERSHOP)": {
+          "gender": "WOMEN",
+          "n": 23,
+          "purity": 100
+        },
+        "D214": {
+          "gender": "WOMEN",
+          "n": 430,
+          "purity": 99
+        },
+        "D32": {
+          "gender": "BOY",
+          "n": 3,
+          "purity": 67
+        },
+        "D327": {
+          "gender": "BABY",
+          "n": 91,
+          "purity": 86
+        },
+        "D327(WONDERSHOP)": {
+          "gender": "BABY",
+          "n": 6,
+          "purity": 100
+        },
+        "D40": {
+          "gender": "MEN",
+          "n": 31,
+          "purity": 100
+        },
+        "D41": {
+          "gender": "MEN",
+          "n": 109,
+          "purity": 100
+        },
+        "D44": {
+          "gender": "MEN",
+          "n": 3,
+          "purity": 100
+        },
+        "D44(WONDERSHOP)": {
+          "gender": "MEN",
+          "n": 17,
+          "purity": 100
+        },
+        "D75(WONDERSHOP)": {
+          "gender": "BOY",
+          "n": 6,
+          "purity": 100
+        }
+      },
+      "subgroup_mixed_skipped": [
+        {
+          "subgroup": "D217",
+          "n": 28,
+          "purity": 36,
+          "votes": {
+            "GIRL": 9,
+            "BOY": 9,
+            "BABY": 10
+          },
+          "reason": "mixed_or_unknown"
+        },
+        {
+          "subgroup": "D36",
+          "n": 32,
+          "purity": 53,
+          "votes": {
+            "GIRL": 17,
+            "BOY": 15
+          },
+          "reason": "mixed_or_unknown"
+        },
+        {
+          "subgroup": "D39",
+          "n": 472,
+          "purity": 55,
+          "votes": {
+            "GIRL": 258,
+            "BABY": 51,
+            "BOY": 162,
+            "WOMEN": 1
+          },
+          "reason": "mixed_or_unknown"
+        },
+        {
+          "subgroup": "D75",
+          "n": 141,
+          "purity": 57,
+          "votes": {
+            "BOY": 60,
+            "GIRL": 81
+          },
+          "reason": "mixed_or_unknown"
+        }
+      ]
+    },
+    "TOMS": {
+      "aliases": [
+        "TOMS"
+      ],
+      "n_total": 8,
+      "subgroup_to_gender": {
+        "KNIT": {
+          "gender": "MEN",
+          "n": 2,
+          "purity": 100
+        },
+        "SEASONAL": {
+          "gender": "MEN",
+          "n": 5,
+          "purity": 100
+        },
+        "YEARLY RUN": {
+          "gender": "MEN",
+          "n": 1,
+          "purity": 100
+        }
+      },
+      "subgroup_mixed_skipped": []
+    },
+    "UNDER ARMOUR": {
+      "aliases": [
+        "UNDER ARMOUR",
+        "UA",
+        "UNDERARMOUR"
+      ],
+      "n_total": 431,
+      "subgroup_to_gender": {
+        "CHINA": {
+          "gender": "WOMEN",
+          "n": 3,
+          "purity": 67
+        },
+        "UA(BOYS)": {
+          "gender": "BOY",
+          "n": 32,
+          "purity": 94
+        },
+        "UA(GIRLS)": {
+          "gender": "GIRL",
+          "n": 13,
+          "purity": 92
+        },
+        "UA(MENS)": {
+          "gender": "MEN",
+          "n": 271,
+          "purity": 97
+        },
+        "UA(MISSY)": {
+          "gender": "WOMEN",
+          "n": 82,
+          "purity": 100
+        },
+        "US LINE": {
+          "gender": "MEN",
+          "n": 30,
+          "purity": 60
+        }
+      },
+      "subgroup_mixed_skipped": []
+    },
+    "V1 DEVELOPING": {
+      "aliases": [
+        "V1 DEVELOPING"
+      ],
+      "n_total": 13,
+      "subgroup_to_gender": {
+        "V1A DEVELOP": {
+          "gender": "WOMEN",
+          "n": 13,
+          "purity": 62
+        }
+      },
+      "subgroup_mixed_skipped": []
+    },
+    "V2 DEVELOPING": {
+      "aliases": [
+        "V2 DEVELOPING"
+      ],
+      "n_total": 66,
+      "subgroup_to_gender": {
+        "V21 DEVELOP": {
+          "gender": "WOMEN",
+          "n": 46,
+          "purity": 100
+        },
+        "V22 DEVELOP": {
+          "gender": "WOMEN",
+          "n": 20,
+          "purity": 90
+        }
+      },
+      "subgroup_mixed_skipped": []
+    },
+    "V3 DEVELOPING": {
+      "aliases": [
+        "V3 DEVELOPING"
+      ],
+      "n_total": 14,
+      "subgroup_to_gender": {
+        "DEVELOP": {
+          "gender": "MEN",
+          "n": 9,
+          "purity": 89
+        },
+        "V3B": {
+          "gender": "MEN",
+          "n": 3,
+          "purity": 100
+        }
+      },
+      "subgroup_mixed_skipped": [
+        {
+          "subgroup": "V3D",
+          "n": 2,
+          "purity": 50,
+          "votes": {
+            "MEN": 1,
+            "WOMEN": 1
+          },
+          "reason": "mixed_or_unknown"
+        }
+      ]
+    },
+    "V5 DEVELOPING": {
+      "aliases": [
+        "V5 DEVELOPING"
+      ],
+      "n_total": 100,
+      "subgroup_to_gender": {
+        "V5C DEVELOP": {
+          "gender": "WOMEN",
+          "n": 89,
+          "purity": 79
+        }
+      },
+      "subgroup_mixed_skipped": [
+        {
+          "subgroup": "V5A DEVELOP",
+          "n": 11,
+          "purity": 45,
+          "votes": {
+            "MEN": 2,
+            "BOY": 5,
+            "BABY": 4
+          },
+          "reason": "mixed_or_unknown"
+        }
+      ]
+    },
+    "V7 DEVELOPING": {
+      "aliases": [
+        "V7 DEVELOPING"
+      ],
+      "n_total": 47,
+      "subgroup_to_gender": {
+        "V7C DEVELOP": {
+          "gender": "WOMEN",
+          "n": 47,
+          "purity": 91
+        }
+      },
+      "subgroup_mixed_skipped": []
+    },
+    "WAL-MART": {
+      "aliases": [
+        "WAL-MART",
+        "WALMART"
+      ],
+      "n_total": 196,
+      "subgroup_to_gender": {
+        "D#23K": {
+          "gender": "MEN",
+          "n": 10,
+          "purity": 80
+        },
+        "D#24": {
+          "gender": "BOY",
+          "n": 2,
+          "purity": 100
+        },
+        "D#24K": {
+          "gender": "BOY",
+          "n": 66,
+          "purity": 100
+        },
+        "D#33": {
+          "gender": "GIRL",
+          "n": 21,
+          "purity": 100
+        },
+        "D#33K": {
+          "gender": "GIRL",
+          "n": 92,
+          "purity": 98
+        },
+        "D#33W": {
+          "gender": "GIRL",
+          "n": 4,
+          "purity": 100
+        },
+        "D#34K": {
+          "gender": "GIRL",
+          "n": 1,
+          "purity": 100
+        }
+      },
+      "subgroup_mixed_skipped": []
+    },
+    "WAL-MART-CA": {
+      "aliases": [
+        "WAL-MART-CA",
+        "WALMART-CA"
+      ],
+      "n_total": 228,
+      "subgroup_to_gender": {
+        "#D23": {
+          "gender": "MEN",
+          "n": 51,
+          "purity": 94
+        },
+        "#D33": {
+          "gender": "GIRL",
+          "n": 39,
+          "purity": 100
+        },
+        "#D34": {
+          "gender": "WOMEN",
+          "n": 78,
+          "purity": 100
+        },
+        "#D34K": {
+          "gender": "WOMEN",
+          "n": 14,
+          "purity": 100
+        },
+        "#D36": {
+          "gender": "WOMEN",
+          "n": 46,
+          "purity": 100
+        }
+      },
+      "subgroup_mixed_skipped": []
+    },
+    "XBODY HUNGARY KFT": {
+      "aliases": [
+        "XBODY HUNGARY KFT"
+      ],
+      "n_total": 5,
+      "subgroup_to_gender": {
+        "EMS": {
+          "gender": "MEN",
+          "n": 5,
+          "purity": 100
+        }
+      },
+      "subgroup_mixed_skipped": []
+    },
+    "ZARA": {
+      "aliases": [
+        "ZARA"
+      ],
+      "n_total": 142,
+      "subgroup_to_gender": {
+        "CIRCULAR": {
+          "gender": "MEN",
+          "n": 142,
+          "purity": 77
+        }
+      },
+      "subgroup_mixed_skipped": []
+    }
+  }
+}
