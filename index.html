@@ -1115,23 +1115,48 @@ function PartTableRow({ card, isActive, onToggle, onRemove, col, appMode, isFixe
         </>}
         {!l2Disp && !l3Disp && <span style={{ color: "#bbb" }}>—</span>}
       </div>
-      {/* IE 秒 */}
-      <Cell w="56px" align="right" style={{
-        fontSize: "13px", fontWeight: 700, color: "#065f46",
-        fontFamily: "'JetBrains Mono', monospace", fontVariantNumeric: "tabular-nums",
-      }}>
-        {appMode === "universal" ? "—" : <>{sec}<span style={{ fontSize: "10px", color: "#888", marginLeft: "2px", fontWeight: 500 }}>秒</span></>}
-      </Cell>
-      {/* 工段 */}
-      <Cell w="36px" align="center" style={{
-        fontSize: "12px", color: stepCount > 0 ? "#1a1a1a" : "#bbb",
-        fontFamily: "'JetBrains Mono', monospace", fontVariantNumeric: "tabular-nums",
-      }}>{appMode === "universal" ? "—" : (stepCount || "—")}</Cell>
-      {/* 可調 */}
-      <Cell w="36px" align="center" style={{
-        fontSize: "12px", color: adjN > 0 ? "#b45309" : "#bbb",
-        fontFamily: "'JetBrains Mono', monospace", fontVariantNumeric: "tabular-nums",
-      }}>{appMode === "universal" ? "—" : (adjN || "—")}</Cell>
+      {/* universal 模式:[IE秒 / 工段 / 可調] 三欄合併成「替代 ISO」chips;聚陽模式維持原 3 欄。 */}
+      {appMode === "universal" ? (
+        <div style={{
+          width: "168px", flexShrink: 0,
+          display: "flex", alignItems: "center", justifyContent: "flex-end",
+          gap: "4px", flexWrap: "wrap",
+          overflow: "hidden",
+        }}>
+          {(card.universal?.alternatives || []).slice(0, 3).map((a, i) => (
+            <span key={i} style={{
+              fontSize: "10px", padding: "2px 6px",
+              background: "#f5f5f4", color: "#555",
+              borderRadius: "4px", fontFamily: "'JetBrains Mono', monospace", fontWeight: 600,
+              whiteSpace: "nowrap",
+            }}>
+              ISO {a.iso}
+              {a.pct != null && <span style={{ marginLeft: "4px", color: "#b45309" }}>{a.pct}%</span>}
+            </span>
+          ))}
+          {(!card.universal?.alternatives || card.universal.alternatives.length === 0) && (
+            <span style={{ fontSize: "11px", color: "#bbb" }}>—</span>
+          )}
+        </div>
+      ) : (
+        <>
+          {/* IE 秒 */}
+          <Cell w="56px" align="right" style={{
+            fontSize: "13px", fontWeight: 700, color: "#065f46",
+            fontFamily: "'JetBrains Mono', monospace", fontVariantNumeric: "tabular-nums",
+          }}>{sec}<span style={{ fontSize: "10px", color: "#888", marginLeft: "2px", fontWeight: 500 }}>秒</span></Cell>
+          {/* 工段 */}
+          <Cell w="36px" align="center" style={{
+            fontSize: "12px", color: stepCount > 0 ? "#1a1a1a" : "#bbb",
+            fontFamily: "'JetBrains Mono', monospace", fontVariantNumeric: "tabular-nums",
+          }}>{stepCount || "—"}</Cell>
+          {/* 可調 */}
+          <Cell w="36px" align="center" style={{
+            fontSize: "12px", color: adjN > 0 ? "#b45309" : "#bbb",
+            fontFamily: "'JetBrains Mono', monospace", fontVariantNumeric: "tabular-nums",
+          }}>{adjN || "—"}</Cell>
+        </>
+      )}
       {/* 刪除 */}
       <button
         onClick={(e) => { e.stopPropagation(); onRemove && onRemove(card.id); }}
@@ -1164,10 +1189,16 @@ function PartTableHeader({ appMode }) {
     }}>
       <Cell w="28px" align="center">#</Cell>
       <Cell w="84px">L1 部位</Cell>
-      <div style={{ flex: 1, minWidth: 0 }}>L2 零件 · L3 形狀</div>
-      <Cell w="56px" align="right">IE 秒</Cell>
-      <Cell w="36px" align="center">工段</Cell>
-      <Cell w="36px" align="center">可調</Cell>
+      <div style={{ flex: 1, minWidth: 0 }}>{appMode === "universal" ? "ISO · 工法名稱" : "L2 零件 · L3 形狀"}</div>
+      {appMode === "universal" ? (
+        <Cell w="168px" align="right">替代 ISO</Cell>
+      ) : (
+        <>
+          <Cell w="56px" align="right">IE 秒</Cell>
+          <Cell w="36px" align="center">工段</Cell>
+          <Cell w="36px" align="center">可調</Cell>
+        </>
+      )}
       <div style={{ width: "20px", flexShrink: 0 }} />
     </div>
   );
