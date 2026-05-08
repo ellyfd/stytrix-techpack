@@ -2600,6 +2600,26 @@ async function classifyActionsError(res, thrown) {
     hint: '未預期狀態。展開詳情看原始訊息。', detail: msg || '(no body)' };
 }
 
+/* GitHub PAT 取得 — 4 個 admin modal(Upload / Package / IEAdmin /
+   ResultsUpload)共用。throw on 401/不通,callsite 用 try/catch 接。
+   回傳 {pat, headers, rawHeaders};headers 拿 JSON、rawHeaders 拿 raw blob。*/
+async function fetchGithubAuth(adminToken) {
+  if (!adminToken) throw new Error('未設定 Admin Token');
+  const res = await fetch('/api/ingest_token', {
+    method: 'POST',
+    headers: { 'x-admin-token': adminToken },
+  });
+  if (!res.ok) {
+    throw new Error(res.status === 401 ? 'Admin Token 錯誤' : `Token 端點 ${res.status}`);
+  }
+  const { github_pat } = await res.json();
+  return {
+    pat: github_pat,
+    headers:    { Authorization: `token ${github_pat}`, Accept: 'application/vnd.github.v3+json' },
+    rawHeaders: { Authorization: `token ${github_pat}`, Accept: 'application/vnd.github.v3.raw' },
+  };
+}
+
 /* 診斷框:三個 modal 的錯誤 UI 共用(接 classifyActionsError 的回傳) */
 function DiagnosticBox({ diagnostic, expanded, onToggleExpand }) {
   if (!diagnostic) return null;
@@ -2771,12 +2791,7 @@ function UploadModal({ open, onClose, token }) {
     if (!token) { setPhase('error'); setStatusMsg('請先至「⚙ 設定」填入 Admin Token'); return; }
     setPhase('uploading'); setStatusMsg('準備上傳...');
     try {
-      const tokResp = await fetch('/api/ingest_token', { method: 'POST', headers: { 'x-admin-token': token } });
-      if (!tokResp.ok) {
-        const t = await tokResp.text();
-        throw new Error(tokResp.status === 401 ? 'Admin Token 錯誤' : `Token 端點錯誤: ${t}`);
-      }
-      const { github_pat } = await tokResp.json();
+      const { pat: github_pat } = await fetchGithubAuth(token);
 
       setStatusMsg('編碼中...');
       const buf = await uploadFile.arrayBuffer();
@@ -3164,10 +3179,7 @@ function PackageModal({ open, onClose, token }) {
     (async () => {
       if (!token) { setPhase('error'); setDiagnostic({ kind: 'scope', title: '未設定 Admin Token', hint: '請先至「⚙ 設定」填入。', detail: '' }); return; }
       try {
-        const tokResp = await fetch('/api/ingest_token', { method: 'POST', headers: { 'x-admin-token': token } });
-        if (!tokResp.ok) throw new Error(tokResp.status === 401 ? 'Admin Token 錯誤' : `Token 端點 ${tokResp.status}`);
-        const { github_pat } = await tokResp.json();
-        const ghH = { Authorization: `token ${github_pat}`, Accept: 'application/vnd.github.v3+json' };
+        const { pat: github_pat, headers: ghH } = await fetchGithubAuth(token);
         const commitResp = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/commits/main`, { headers: ghH });
         if (!commitResp.ok) { setDiagnostic(await classifyActionsError(commitResp)); setPhase('error'); return; }
         const { sha: commitSha } = await commitResp.json();
@@ -3320,11 +3332,7 @@ function IEAdminModal({ open, onClose, token }) {
     if (!token) { setPhase('error'); setStatusMsg('請先至「⚙ 設定」填入 Admin Token'); return; }
     setPhase('uploading'); setStatusMsg('取得 GITHUB_PAT...');
     try {
-      const tokResp = await fetch('/api/ingest_token', { method: 'POST', headers: { 'x-admin-token': token } });
-      if (!tokResp.ok) {
-        throw new Error(tokResp.status === 401 ? 'Admin Token 錯誤' : `Token 端點 ${tokResp.status}`);
-      }
-      const { github_pat } = await tokResp.json();
+      const { pat: github_pat } = await fetchGithubAuth(token);
 
       setStatusMsg('UTF-8 安全編碼中...');
       const buf = await pickedFile.arrayBuffer();
@@ -3593,10 +3601,7 @@ function ResultsUploadModal({ open, onClose, token }) {
     if (!preview || !token) return;
     setPhase('uploading'); setDiagnostic(null); setUploadResults([]);
     try {
-      const tokResp = await fetch('/api/ingest_token', { method: 'POST', headers: { 'x-admin-token': token } });
-      if (!tokResp.ok) throw new Error(tokResp.status === 401 ? 'Admin Token 錯誤' : `Token 端點 ${tokResp.status}`);
-      const { github_pat } = await tokResp.json();
-      const ghH = { Authorization: `token ${github_pat}`, Accept: 'application/vnd.github.v3+json' };
+      const { pat: github_pat, headers: ghH } = await fetchGithubAuth(token);
       const results = [];
 
       for (const item of preview.recognized) {
