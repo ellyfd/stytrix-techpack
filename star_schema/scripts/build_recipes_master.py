@@ -69,7 +69,7 @@ RECIPES_DIR = REPO_ROOT / "recipes"
 # Star schema ingest paths
 CONSENSUS_PATH = REPO_ROOT / "data" / "ingest" / "consensus_v1" / "entries.jsonl"
 INGEST_DIR = REPO_ROOT / "data" / "ingest"
-BUCKET_TAX_PATH = REPO_ROOT / "data" / "bucket_taxonomy.json"
+BUCKET_TAX_PATH = REPO_ROOT / "data" / "runtime" / "bucket_taxonomy.json"
 
 # M7 PullOn source (聚陽 Windows pipeline → push 進 ingest/m7_pullon/)
 M7_PULLON_PATH = REPO_ROOT / "data" / "ingest" / "m7_pullon" / "entries.jsonl"
@@ -1013,7 +1013,7 @@ def main():
             hints.append(f"• {sum(GATE.b_l1_not_38.values())} 筆 L1 錯 → 檢查 extract 的 L1 分類")
         if sum(GATE.b_bucket_consensus.values()) or sum(GATE.b_bucket_facts.values()):
             missing = set(GATE.b_bucket_consensus) | set(GATE.b_bucket_facts)
-            hints.append(f"• {len(missing)} 個 bucket 未登錄 → 加進 data/bucket_taxonomy.json")
+            hints.append(f"• {len(missing)} 個 bucket 未登錄 → 加進 data/runtime/bucket_taxonomy.json")
         if GATE.b_recipe_parse:
             hints.append(f"• {len(GATE.b_recipe_parse)} 檔 recipe 語法壞 → 開檔修 JSON")
         print(f"\n🛑 STRICT MODE BLOCKED — {b_total} 件 B-tier 違規", file=sys.stderr)

@@ -13,7 +13,7 @@
 | 資料來源 | 涵蓋範圍 | 完整度 |
 |---|---|---|
 | 客戶 PDF Techpack | 各客戶自己格式（Centric 8 / 自訂）| 不一致、欄位殘缺、格式各異 |
-| Platform v4.3 / v4 | 5 source 整合的 ISO recipe | 部分覆蓋（無 fabric / 無 gender / 無 it 細分）|
+| Platform v4.3 / v4 | 5 source 整合的 ISO recipe | 部分覆蓋（無 fabric / 無 gender / 無 item 細分）|
 | **聚陽 M7 索引** | **18,731 EIDH × 42 columns** | **100% cover 聚陽手上所有 design**，欄位齊全 |
 
 聚陽是「跨客戶 single point of integration」 — 唯一手上有**全部客戶+全部 design+完整 metadata** 的角色。
@@ -103,17 +103,20 @@
 從上面 5 個元素**推導**出 master key：
 
 ```
-gender × dept × gt × it × fabric × l1
+客人 × 針平織(fabric) × gender × dept × garment × item × L1
 ```
 
 | 維度 | enum | 推導 source |
 |---|---|---|
-| gender | WOMEN / MEN / GIRL / BOY / BABY / UNISEX / MATERNITY | M7 PRODUCT_CATEGORY 直接對應 |
+| 客人 | 39 enum(OLD NAVY / GAP / KOHLS / A&F / ...,完整列表見 client_canonical_mapping.json） | M7 `客戶` |
+| 針平織 (fabric) | KNIT / WOVEN | M7 `W/K` 直接對應 |
+| gender | WOMEN / MEN / GIRL / BOY / BABY / UNISEX / MATERNITY | M7 `PRODUCT_CATEGORY` 直接對應 |
 | dept | ACTIVE / RTW / SLEEPWEAR / SWIMWEAR / FLEECE / DENIM / MATERNITY | client_canonical_mapping (subgroup → dept) |
-| gt | BOTTOM / TOP / DRESS / OUTERWEAR / SET / SKIRT / SHORTS / ... | M7 Item 對照（Pull On Pants → BOTTOM）|
-| it | PANT / LEGGINGS / JOGGERS / SHORTS / BASIC_TOP / DRESS / ... | M7 Item + Subgroup heuristics |
-| fabric | KNIT / WOVEN | M7 W/K 直接對應 |
-| l1 | 38 部位 | callout zone → KW_TO_L1 router |
+| garment | BOTTOM / TOP / DRESS / OUTERWEAR / SET / SKIRT / SHORTS / ... | M7 `Item` 對照（Pull On Pants → BOTTOM）|
+| item | PANT / LEGGINGS / JOGGERS / SHORTS / BASIC_TOP / DRESS / ... | M7 `Item` + `Subgroup` heuristics |
+| L1 | 38 部位 | callout zone → KW_TO_L1 router |
+
+> **JSON key 命名相容性**:`bucket_taxonomy.json` 等 schema 內部 key 沿用簡寫 `gt` / `it`(歷史相容,動到會改 `build_recipes_master.py` 等 consumer);**概念名稱統一為 `garment` / `item`**,文件描述以全名為準。
 
 ---
 
@@ -141,9 +144,9 @@ gender × dept × gt × it × fabric × l1
 ```
 
 **規則**：
-- **4 維 key** = `<gender>_<dept>_<gt>_<it>`（POM 端用，做工 cascade 也認）
-- **6 維做工** = 4 維 + fabric + l1（做工 master.jsonl 用）
-- **POM 4 維** = 4 維 prefix（pom_rules/<bucket>.json 用相同命名）
+- **4 維 key** = `<gender>_<dept>_<garment>_<item>`(POM 端用,做工 cascade 也認;JSON key 簡寫為 `gt` / `it`)
+- **6 維做工** = 4 維 + fabric + L1(做工 master.jsonl 用)
+- **POM 4 維** = 4 維 prefix(pom_rules/<bucket>.json 用相同命名)
 
 cartesian product filter：只保留**實際在 M7 索引出現過的組合**，避免空 bucket。
 
@@ -190,9 +193,9 @@ bucket 命名 = MK 4 維（不再用獨立 POM bucket schema）：
 
 | Before | After |
 |---|---|
-| 用 `data/bucket_taxonomy.json` (59 buckets, hand-curate) 做 cascade | 用 `data/client_canonical_mapping.json` + `bucket_taxonomy.json` (v4 from MK) |
-| `<gender>_<dept>_<gt>` 3 維 bucket | `<gender>_<dept>_<gt>_<it>` 4 維 bucket |
-| `data/bucket_taxonomy.json` 手動編輯 | 從 MK 推導，每次新 design 進來自動更新 |
+| 用 `data/runtime/bucket_taxonomy.json` (59 buckets, hand-curate) 做 cascade | 用 `data/client_canonical_mapping.json` + `bucket_taxonomy.json` (v4 from MK) |
+| `<gender>_<dept>_<garment>` 3 維 bucket | `<gender>_<dept>_<garment>_<item>` 4 維 bucket |
+| `data/runtime/bucket_taxonomy.json` 手動編輯 | 從 MK 推導，每次新 design 進來自動更新 |
 
 `build_recipes_master.py` 的 `build_from_consensus()` 等函式 cascade key 從 3 維改 4 維。
 
@@ -214,7 +217,7 @@ bucket 命名 = MK 4 維（不再用獨立 POM bucket schema）：
 | 五階定義 | `data/zone_glossary.json` + `data/l2_visual_guide.json` + `data/l2_decision_trees.json` + `l2_l3_ie/*.json` |
 | ISO 字典 | `data/iso_dictionary.json` |
 | Callout router | `data/zone_glossary.json:KW_TO_L1_*` |
-| Canonical bucket | `data/bucket_taxonomy.json` (v4，從 MK 推) |
+| Canonical bucket | `data/runtime/bucket_taxonomy.json` (v4，從 MK 推) |
 | M7 索引（raw） | `M7列管_YYYYMMDD.xlsx`（聚陽端，每月更新）|
 
 ---

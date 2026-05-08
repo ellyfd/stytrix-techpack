@@ -2532,11 +2532,13 @@ function SettingsModal({ open, onClose, token, onSaveToken }) {
 
 /* UploadModal:上傳 Techpack PDF / PPTX → GitHub → 追蹤 CI pipeline 每步驟狀態 */
 const CI_STEP_LABELS = {
-  'Step 1 — extract raw text & callout images': '1｜拆解文字 & callout 圖片',
-  'Step 2a — unified extraction':               '2a｜統一萃取 (PPTX)',
-  'Step 2b — VLM callout extraction':           '2b｜VLM 分析 callout (PDF)',
-  'Step 3 — rebuild recipes_master':            '3｜重建 recipes_master',
-  'Commit updated data':                             '提交資料',
+  'Step 1 — extract raw text & callout images':                  '1｜拆解文字 & callout 圖片',
+  'Step 2a — unified extraction':                                '2a｜統一萃取 (PPTX)',
+  'Step 2b — VLM callout extraction':                            '2b｜VLM 分析 callout (PDF)',
+  'Step 3 — rebuild recipes_master':                             '3｜重建 recipes_master',
+  'Step 4a — derive View A (recipes_master.json strip _m7_*)':   '4a｜衍生 View A(輕量化 recipes_master)',
+  'Step 4b — derive View B (l2_l3_ie schema upgrade + actuals)': '4b｜衍生 View B(Bible 升級 + 掛實做)',
+  'Commit updated data':                                         '提交資料',
 };
 
 /* Base64 UTF-8 安全編解碼 — atob/btoa 預設會截斷 >0x7F 位元組,
@@ -2939,6 +2941,10 @@ const PACKAGE_FILES = [
   'star_schema/scripts/extract_unified.py',
   'star_schema/scripts/vlm_pipeline.py',
   'star_schema/scripts/build_recipes_master.py',
+  'star_schema/scripts/derive_view_recipes_master.py',  // Step 4a:剝 _m7_* 內部欄位產輕量化 View A
+  // 注:Step 4b derive_view_l2_l3_ie.py 不送外部 — 需聚陽內部 m7_pullon
+  // designs.jsonl.gz(6.6MB)+ l2_l3_ie/*.json(74MB),且為聚陽 IP。
+  // 由 main CI 接手,外部送回 raw facts.jsonl 即可。
   // ── Pipeline B:POM RULES(81 buckets) ──
   'scripts/core/_pipeline_base.py',
   'scripts/core/run_extract_new.py',
@@ -3004,7 +3010,7 @@ cp .env.example .env
 ./run.sh
 \`\`\`
 
-順序照線上 workflow:Step 1(抽文字+圖) → 2b(VLM callout) → 2a(合併 unified) → 3(重建 recipes_master)。
+順序照線上 workflow:Step 1(抽文字+圖) → 2b(VLM callout) → 2a(合併 unified) → 3(重建 recipes_master) → 4a(衍生 View A 輕量化)。**注意**:Step 4b(`derive_view_l2_l3_ie.py`,Bible schema 升級 + 掛 m7_pullon actuals)需聚陽內部 m7_pullon 資料,本外送包不送 — 由 main CI 接手。你跑完直接送 \`data/ingest/{metadata,unified,vlm}/*.jsonl\` 回去即可,main CI 會重新合併你的 facts + 聚陽端資料 → 重跑 Step 3 + 4a + 4b 產生最終 view。
 
 **產出 & 回傳**:跑完 \`data/ingest/{metadata/designs.jsonl, unified/facts.jsonl, vlm/facts.jsonl}\` 打成一包 zip,到 Stytrix 前台管理選單 → 📥 上傳 Pipeline 結果 → 拖入 → 合併。
 
@@ -3095,7 +3101,11 @@ python star_schema/scripts/extract_unified.py --ingest-dir data/ingest --out dat
 echo "→ Step 3: build_recipes_master.py"
 python star_schema/scripts/build_recipes_master.py --strict
 
-echo "✓ 完成:data/runtime/recipes_master.json + data/ingest/{unified,vlm}/facts.jsonl"
+echo "→ Step 4a: derive_view_recipes_master.py(剝 _m7_* 內部欄位)"
+python star_schema/scripts/derive_view_recipes_master.py
+
+echo "✓ 完成:data/runtime/recipes_master.json(View A 輕量化)+ data/ingest/{unified,vlm}/facts.jsonl"
+echo "  注:Step 4b(l2_l3_ie schema 升級 + actuals)由聚陽 main CI 接手,需 m7_pullon 內部資料,本外送包不跑。"
 `;
 
 const PKG_RUN_POM_RULES_SH = `#!/usr/bin/env bash
@@ -4474,11 +4484,13 @@ function App() {
     setLocks(anyLocked ? {} : Object.fromEntries(keys.map(k => [k, true])));
   };
   useEffect(() => {
-    localStorage.setItem("stytrix_locks", JSON.stringify(locks));
-    const vals = { brand, fabric, dept, gender, gt, it };
-    const toSave = {};
-    Object.keys(locks).forEach(k => { if (locks[k] && vals[k]) toSave[k] = vals[k]; });
-    localStorage.setItem("stytrix_values", JSON.stringify(toSave));
+    try {
+      localStorage.setItem("stytrix_locks", JSON.stringify(locks));
+      const vals = { brand, fabric, dept, gender, gt, it };
+      const toSave = {};
+      Object.keys(locks).forEach(k => { if (locks[k] && vals[k]) toSave[k] = vals[k]; });
+      localStorage.setItem("stytrix_values", JSON.stringify(toSave));
+    } catch {}
   }, [locks, brand, fabric, dept, gender, gt, it]);
 
   /* ── 切換 tab ── */

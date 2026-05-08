@@ -637,7 +637,8 @@ def load_source_cb(source_dir):
         for json_file in sorted(json_dir.glob('*.json')):
             try:
                 data = json.loads(json_file.read_text(encoding='utf-8'))
-            except:
+            except Exception as e:
+                print(f"[skip] {json_file}: {e}", file=sys.stderr)
                 continue
             design_id = data.get('design', json_file.stem)
             pages = data.get('pages', [])
@@ -654,8 +655,8 @@ def load_source_cb(source_dir):
                 try:
                     txt_lines = txt_file.read_text(encoding='utf-8', errors='replace').split('\n')
                     all_lines = list(set(all_lines + txt_lines))
-                except:
-                    pass
+                except Exception as e:
+                    print(f"[skip] {txt_file}: {e}", file=sys.stderr)
             designs.append({
                 'design_id': design_id,
                 'desc': data.get('desc', ''),
@@ -679,7 +680,8 @@ def load_source_dir5(source_dir):
     for json_file in sorted(Path(source_dir).glob('*.json')):
         try:
             data = json.loads(json_file.read_text(encoding='utf-8'))
-        except:
+        except Exception as e:
+            print(f"[skip] {json_file}: {e}", file=sys.stderr)
             continue
         design_id = data.get('design', json_file.stem)
         pages = data.get('pages', [])
@@ -717,7 +719,8 @@ def load_source_pptx_txt(source_dir):
         design_id = f'D{m.group(1)}'
         try:
             text = txt_file.read_text(encoding='utf-8', errors='replace')
-        except:
+        except Exception as e:
+            print(f"[skip] {txt_file}: {e}", file=sys.stderr)
             continue
 
         # Check if this file has Chinese construction content
@@ -810,7 +813,8 @@ def load_source_pdf_extracts(source_dir):
             continue
         try:
             text = txt_file.read_text(encoding='utf-8', errors='replace')
-        except:
+        except Exception as e:
+            print(f"[skip] {txt_file}: {e}", file=sys.stderr)
             continue
 
         # Only keep files with construction content
