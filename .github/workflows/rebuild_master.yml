@@ -109,10 +109,20 @@ jobs:
 
       # ── Step 3: rebuild recipes_master ────────────────────────────────────
       # Reads data/ingest/*/facts.jsonl + 4 source handbooks
-      # Writes data/runtime/recipes_master.json + data/runtime/l1_standard_38.json + data/master.jsonl
+      # Writes data/runtime/recipes_master.json + data/runtime/l1_standard_38.json
+      #        + data/master.jsonl + data/master.meta.json
       # --strict: exits 1 on any ingest/taxonomy violation → blocks commit
       - name: Step 3 — rebuild recipes_master
         run: python star_schema/scripts/build_recipes_master.py --strict
+
+      # ── Step 4: derive views (Phase 2 of PHASE2_DERIVE_VIEWS_SPEC.md) ──────
+      # Step 4a: View A — strip _m7_* internal fields, rewrite recipes_master.json
+      # Step 4b: View B — upgrade l2_l3_ie/<L1>.json schema + attach m7 actuals
+      - name: Step 4a — derive View A (recipes_master.json strip _m7_*)
+        run: python star_schema/scripts/derive_view_recipes_master.py
+
+      - name: Step 4b — derive View B (l2_l3_ie schema upgrade + actuals)
+        run: python star_schema/scripts/derive_view_l2_l3_ie.py --all --in-place
 
       # ── Commit derived outputs ─────────────────────────────────────────────
       - name: Commit updated data
@@ -128,6 +138,8 @@ jobs:
           git add data/runtime/recipes_master.json
           git add data/runtime/l1_standard_38.json
           git add data/master.jsonl
+          git add data/master.meta.json
+          git add l2_l3_ie/                                  # Phase 2.5a: Bible schema升級
           git add data/ingest/metadata/designs.jsonl || true
           git add data/ingest/pptx/ || true
           git add data/ingest/unified/ || true
