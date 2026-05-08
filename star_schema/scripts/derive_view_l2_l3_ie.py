@@ -16,10 +16,12 @@ Schema upgrade per L5 step:
       "ie_standard": {"sec": <num>, "grade": "<C/E/...>", "primary": "<主/副>", "machine": "<...>"},
       "actuals": {                    # optional, only when m7_pullon has matching data
         "n_steps": <int>, "n_designs": <int>,
-        "sec_median": <num>, "sec_p25": <num>, "sec_p75": <num>,
+        "sec_median": <num>,
+        "sec_p25": <num>, "sec_p75": <num>,    # ← omitted when degenerate (== median)
         "by_brand": {"<code>": {"sec_median": <num>, "n_designs": <int>}, ...},
-        "machine_distribution": {"<machine>": <pct 0..1>, ...},
-        "size_distribution": {"<size>": <pct 0..1>, ...},
+        "machine_top": "<machine>",            # ← when machine is single-valued
+        "machine_distribution": {"<machine>": <pct 0..1>, ...},   # ← when multi-valued
+        # size_distribution dropped (option B trim — size is per-design, not per-step)
       }
     }
 
@@ -110,7 +112,13 @@ def load_m7_step_aggregations() -> tuple[dict, dict]:
 
 
 def compute_actuals(rows: list[dict]) -> dict | None:
-    """Aggregate m7 step rows into the actuals dict per spec."""
+    """Aggregate m7 step rows into the actuals dict per spec.
+
+    Trim rules (option B, 2026-05-08):
+      - sec_p25 / sec_p75 dropped when degenerate (both == sec_median)
+      - machine_distribution dropped when single key, replaced by machine_top
+      - size_distribution dropped entirely (size is per-design, not per-step)
+    """
     if not rows:
         return None
     secs = [r["sec"] for r in rows if isinstance(r["sec"], (int, float))]
@@ -120,11 +128,15 @@ def compute_actuals(rows: list[dict]) -> dict | None:
         "n_designs": len(designs),
     }
     if secs:
-        actuals["sec_median"] = round(statistics.median(secs), 2)
+        med = round(statistics.median(secs), 2)
+        actuals["sec_median"] = med
         if len(secs) >= 4:
             qs = statistics.quantiles(secs, n=4)
-            actuals["sec_p25"] = round(qs[0], 2)
-            actuals["sec_p75"] = round(qs[2], 2)
+            p25 = round(qs[0], 2)
+            p75 = round(qs[2], 2)
+            if not (p25 == med == p75):
+                actuals["sec_p25"] = p25
+                actuals["sec_p75"] = p75
 
     by_brand = collections.defaultdict(list)
     by_brand_designs = collections.defaultdict(set)
@@ -143,18 +155,14 @@ def compute_actuals(rows: list[dict]) -> dict | None:
             for b in sorted(by_brand)
         }
 
-    def normalize(counter: collections.Counter) -> dict:
-        total = sum(counter.values())
-        if total == 0:
-            return {}
-        return {k: round(v / total, 4) for k, v in counter.most_common()}
-
     machines = collections.Counter(r["machine"] for r in rows if r["machine"])
-    if machines:
-        actuals["machine_distribution"] = normalize(machines)
-    sizes = collections.Counter(r["size"] for r in rows if r["size"] and r["size"] != "-")
-    if sizes:
-        actuals["size_distribution"] = normalize(sizes)
+    if len(machines) == 1:
+        actuals["machine_top"] = next(iter(machines))
+    elif len(machines) > 1:
+        total = sum(machines.values())
+        actuals["machine_distribution"] = {
+            k: round(v / total, 4) for k, v in machines.most_common()
+        }
 
     return actuals
 
@@ -192,7 +200,6 @@ def derive_one_l1(l1_code: str, agg: dict, out_dir: Path,
 
     n_l5_total = 0
     n_l5_with_actuals = 0
-    matched_keys = set()
 
     for fabric in ("knit", "woven"):
         for l2_node in bible.get(fabric, []) or []:
@@ -213,18 +220,11 @@ def derive_one_l1(l1_code: str, agg: dict, out_dir: Path,
                         key = (bible_l1, l2, l3, l4, l5)
                         rows = agg.get(key)
                         actuals = compute_actuals(rows) if rows else None
-                        if rows:
-                            matched_keys.add(key)
                         new_steps.append(upgrade_step(step, actuals))
                         n_l5_total += 1
                         if actuals:
                             n_l5_with_actuals += 1
                     method["steps"] = new_steps
-
-    n_unmatched_m7 = sum(
-        len(rows) for k, rows in agg.items()
-        if k[0] == bible_l1 and k not in matched_keys
-    )
 
     bible.setdefault("_metadata", {})
     bible["_metadata"]["schema"] = "phase2"
@@ -233,12 +233,15 @@ def derive_one_l1(l1_code: str, agg: dict, out_dir: Path,
     bible["_metadata"]["actuals_coverage_pct"] = (
         round(100.0 * n_l5_with_actuals / n_l5_total, 1) if n_l5_total else 0.0
     )
-    bible["_metadata"]["n_unmatched_m7_step_rows"] = n_unmatched_m7
 
     target_dir = BIBLE_DIR if in_place else out_dir
     target_dir.mkdir(parents=True, exist_ok=True)
     out_path = target_dir / f"{l1_code}.json"
-    out_path.write_text(json.dumps(bible, ensure_ascii=False, indent=2), encoding="utf-8")
+    # Compact JSON (no indent) — matches original Bible convention; saves ~67% size.
+    out_path.write_text(
+        json.dumps(bible, ensure_ascii=False, separators=(",", ":")),
+        encoding="utf-8",
+    )
 
     return {
         "l1": l1_code,
@@ -246,7 +249,6 @@ def derive_one_l1(l1_code: str, agg: dict, out_dir: Path,
         "n_l5_total": n_l5_total,
         "n_l5_with_actuals": n_l5_with_actuals,
         "actuals_coverage_pct": bible["_metadata"]["actuals_coverage_pct"],
-        "n_unmatched_m7_step_rows": n_unmatched_m7,
     }
 
 
@@ -278,15 +280,14 @@ def main():
 
     target_label = "l2_l3_ie/" if args.in_place else f"{out_dir.relative_to(REPO_ROOT)}/"
     print(f"[derive] {len(l1_codes)} L1 files → {target_label}", file=sys.stderr)
-    print(f"{'L1':<6} {'n_l5':>6} {'w/actuals':>11} {'cov%':>6} {'unmatched':>10}",
-          file=sys.stderr)
+    print(f"{'L1':<6} {'n_l5':>6} {'w/actuals':>11} {'cov%':>6}", file=sys.stderr)
     for l1 in l1_codes:
         r = derive_one_l1(l1, agg, out_dir, args.in_place)
         if "error" in r:
             print(f"{l1:<6} ERROR: {r['error']}", file=sys.stderr)
             continue
         print(f"{l1:<6} {r['n_l5_total']:>6} {r['n_l5_with_actuals']:>11} "
-              f"{r['actuals_coverage_pct']:>6}% {r['n_unmatched_m7_step_rows']:>10}",
+              f"{r['actuals_coverage_pct']:>6}%",
               file=sys.stderr)
 
 
