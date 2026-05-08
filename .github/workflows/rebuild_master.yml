@@ -107,6 +107,12 @@ jobs:
             --ingest-dir data/ingest \
             --out data/ingest/unified
 
+      # ── Pre-Step 3 sanity: validate bucket_taxonomy + pom_rules schema ────
+      # Cheap (<1s) early gate. Catches schema drift before Step 3 spends time
+      # on full cascade build. --strict treats warnings as errors.
+      - name: Pre-Step 3 — validate buckets
+        run: python scripts/core/validate_buckets.py --strict
+
       # ── Step 3: rebuild recipes_master ────────────────────────────────────
       # Reads data/ingest/*/facts.jsonl + 4 source handbooks
       # Writes data/runtime/recipes_master.json + data/runtime/l1_standard_38.json

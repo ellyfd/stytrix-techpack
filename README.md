@@ -346,7 +346,7 @@ BASE 目錄需包含 `2024/ 2025/ 2026/` PDF 樹 + `_parsed/` + `all_years.jsonl
 
 | Bucket 集 | 位置 | 形狀 | 新增方式 |
 |---|---|---|---|
-| **Pipeline A (recipes_master) 的 59 bucket** | `data/runtime/bucket_taxonomy.json` | `<gender>_<dept>_<garment>` (lowercase;JSON key 簡寫為 `gt`) | **手動** — 編輯 JSON 加新 entry,每個 entry 必須有 `gender` / `dept` / `gt`(garment 簡寫,沿用相容)三個非空 list。加完跑 `python3 scripts/core/validate_buckets.py` 驗證一致性,再重新跑 `python3 star_schema/scripts/build_recipes_master.py --strict` 確認 facts 被接受。 |
+| **Pipeline A (recipes_master) 的 28+59 bucket** | `data/runtime/bucket_taxonomy.json` | 兩段 schema:`buckets` 28 個 v4 4-dim `<GENDER>_<DEPT>_<GT>_<IT>` UPPERCASE 標量值;`legacy_buckets` 59 個 3-dim `<GENDER>_<DEPT>_<GT>` UPPERCASE list 值(給 pre-v4 facts/consensus 兜底,JSON key 簡寫為 `gt`/`it`) | **手動** — 編輯 JSON 加新 entry,v4 段每個 entry 必須有 `gender`/`dept`/`gt`/`it` 四個非空 scalar;legacy 段每個 entry 必須有 `gender`/`dept`/`gt` 三個非空 list。加完跑 `python3 scripts/core/validate_buckets.py` 驗證,再 `python3 star_schema/scripts/build_recipes_master.py --strict` 確認 facts 被接受。 |
 | **Pipeline B (POM RULES) 的 81 bucket** | `pom_rules/*.json` + `pom_rules/_index.json` | `<DEPT>_<GT>\|<GENDER>` (UPPERCASE) | **自動** — 不要手改。把新 PDF 放進 BASE 資料夾,跑 `reclassify_and_rebuild.py`,它會自動建出新 bucket 檔。 |
 
 **Recipes** (`recipes/recipe_<GENDER>_<DEPT>_<GT>_<IT>.json`) 是第三個維度(多個 item_type),跟兩組 bucket 不是 1:1,由 Pipeline A 的 ingest 產生,一般不手動改。
@@ -354,7 +354,8 @@ BASE 目錄需包含 `2024/ 2025/ 2026/` PDF 樹 + `_parsed/` + `all_years.jsonl
 Validator: `python3 scripts/core/validate_buckets.py` 檢查:
 - `pom_rules/_index.json` 跟磁碟上的檔案對得上
 - 每個 bucket 檔的 `bucket` 字串跟自己 `gender`/`department`/`garment_type` 欄位一致
-- `data/runtime/bucket_taxonomy.json` keys 全 lowercase、無 case collision、三欄位齊全
+- `data/runtime/bucket_taxonomy.json` 兩段都 keys UPPERCASE、無 case collision、必填欄位齊全(v4 4-dim scalar / legacy 3-dim list)
+- 額外 warning:legacy 3-dim key 跟 v4 4-dim key prefix 撞到時提示(cascade 可能 double-resolve)
 
 `--strict` 旗標把 warning 也當 error。加到 CI 的方式:在 `.github/workflows/rebuild_master.yml` 的 Step 3 前加一步 `python3 scripts/core/validate_buckets.py --strict`。
 
