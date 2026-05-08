@@ -54,8 +54,10 @@ data/
 
   legacy/                     退役 fallback (只縮不增)
 
-l2_l3_ie/<L1>.json (38 + _index)     Bible 五階層展開,從 xlsx 衍生(brand-agnostic)
-l2_l3_ie_by_client/<L1>.json (26)    ⛔ DEPRECATED,Phase 2.5 砍
+l2_l3_ie/<L1>.json (38 + _index)     Bible 五階層展開,Phase 2 dict schema (升級於 2026-05-08);
+                                     每 L5 step 含 ie_standard + 可選 actuals (m7_pullon by_brand 觀察值)
+# l2_l3_ie_by_client/                ✅ RETIRED 2026-05-08 (Phase 2.5b);功能由
+#                                     l2_l3_ie/ + frontend filterBibleByBrand() helper 取代
 recipes/                              PATH2 做工配方(72 檔)
 pom_rules/                            81 個 bucket(自動產)
 path2_universal/                      通用模型 ISO 查表 (v4.3 + v4)
@@ -214,16 +216,17 @@ python scripts/core/reclassify_and_rebuild.py
 | `recipes_master.json` 缺 m7_pullon entries | `data/ingest/m7_pullon/entries.jsonl` 沒 push 上 | 跑 M7 端 `push_m7_pullon_v3.ps1` |
 | `l2_l3_ie/<L1>.json` 沒更新 | xlsx 沒 build | 維護者本機跑 `scripts/core/build_l2_l3_ie.py` 後 push 38 JSON |
 | 前端看到舊 ISO | CI 沒重跑 | 確認 push 有碰 `data/ingest/uploads/**` 或 `m7_pullon/**`;否則手動 `workflow_dispatch` |
-| 五階層字典不對 | 用了 stale `l2_l3_ie_by_client/`(deprecated) | 改用 `l2_l3_ie/`(canonical Bible) |
+| brand-specific 五階層拿不到 | 還在試 fetch `/l2_l3_ie_by_client/`(已退役) | 改用 `l2_l3_ie/<L1>.json` + frontend `filterBibleByBrand()` (從 actuals.by_brand 過濾) |
 
 ---
 
 ## 10. 不要碰
 
-- ❌ `l2_l3_ie/` 38 檔手改 — CI 自動產(從 xlsx)
-- ❌ `recipes_master.json` 手改 — CI 自動產
+- ❌ `l2_l3_ie/` 38 檔手改 — CI 自動產(`derive_view_l2_l3_ie.py --in-place`,從 xlsx + m7_pullon)
+- ❌ `recipes_master.json` 手改 — CI 自動產(`derive_view_recipes_master.py`)
+- ❌ `data/runtime/designs_index/<EIDH>.json` 手改 — CI 自動產(`derive_view_designs_index.py`)
 - ❌ `pom_rules/*.json` 手改 — script 自動產
-- ❌ `l2_l3_ie_by_client/` 加新檔 — DEPRECATED, Phase 2.5 砍
+- ❌ `l2_l3_ie_by_client/` 加新檔 — RETIRED 2026-05-08 (Phase 2.5b),已 git rm
 - ❌ `data/legacy/` 加新檔 — 只縮不增
 - ❌ `data/source/五階層展開項目_*.xlsx` 進 repo — 留聚陽端
 
