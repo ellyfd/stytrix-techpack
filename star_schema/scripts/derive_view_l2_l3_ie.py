@@ -281,13 +281,45 @@ def main():
     target_label = "l2_l3_ie/" if args.in_place else f"{out_dir.relative_to(REPO_ROOT)}/"
     print(f"[derive] {len(l1_codes)} L1 files → {target_label}", file=sys.stderr)
     print(f"{'L1':<6} {'n_l5':>6} {'w/actuals':>11} {'cov%':>6}", file=sys.stderr)
+    results = []
     for l1 in l1_codes:
         r = derive_one_l1(l1, agg, out_dir, args.in_place)
         if "error" in r:
             print(f"{l1:<6} ERROR: {r['error']}", file=sys.stderr)
             continue
+        results.append(r)
         print(f"{l1:<6} {r['n_l5_total']:>6} {r['n_l5_with_actuals']:>11} "
               f"{r['actuals_coverage_pct']:>6}%",
+              file=sys.stderr)
+
+    # Refresh _index.json when --in-place + --all (otherwise we'd half-update it).
+    if args.in_place and args.all:
+        index_path = BIBLE_DIR / "_index.json"
+        existing = json.loads(index_path.read_text(encoding="utf-8")) if index_path.exists() else {}
+        parts = {}
+        for r in results:
+            l1 = r["l1"]
+            f = BIBLE_DIR / f"{l1}.json"
+            parts[l1] = {
+                "l1": existing.get("parts", {}).get(l1, {}).get("l1", l1),
+                "size": f.stat().st_size,
+                "n_l5_steps": r["n_l5_total"],
+                "actuals_coverage_pct": r["actuals_coverage_pct"],
+            }
+        new_index = {
+            "version": "v3.0-phase2",
+            "note": "L1→L2→L3→L4→L5 dict schema; each L5 carries ie_standard + optional actuals from m7_pullon",
+            "schema": "phase2",
+            "source": existing.get("source", "五階層展開項目_*.xlsx + m7_pullon"),
+            "total_size": sum(p["size"] for p in parts.values()),
+            "parts": parts,
+        }
+        index_path.write_text(
+            json.dumps(new_index, ensure_ascii=False, separators=(",", ":")),
+            encoding="utf-8",
+        )
+        print(f"[index] refreshed {index_path.relative_to(REPO_ROOT)} "
+              f"({new_index['total_size'] / 1024 / 1024:.1f} MB across {len(parts)} parts)",
               file=sys.stderr)
 
 

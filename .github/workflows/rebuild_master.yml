@@ -139,10 +139,10 @@ jobs:
             -exec git rm --force {} \; 2>/dev/null || true
 
           # Stage derived outputs (paths fixed 2026-05-08: 5/7 restructure 漏改)
+          # data/master.jsonl + master.meta.json 是 intermediate(只給 derive script 用),
+          # 不進 repo (.gitignore 已禁,CI job 內 build 完直接消費完)
           git add data/runtime/recipes_master.json
           git add data/runtime/l1_standard_38.json
-          git add data/master.jsonl
-          git add data/master.meta.json
           git add l2_l3_ie/                                  # Phase 2.5a: Bible schema升級
           git add data/runtime/designs_index/                # Phase 2.4: per-EIDH View C
           git add data/ingest/metadata/designs.jsonl || true
