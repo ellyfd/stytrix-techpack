@@ -31,6 +31,8 @@
 > `General Model_Path2_Construction Suggestion/` 改名 `path2_universal/`。
 > 詳細搬遷清單見 `git log --oneline pre-restructure-2026-05-07..HEAD`。
 
+> **Metadata schema canonical doc**:每個資料 source(Bible / m7_pullon / ISO dictionary 等)的欄位語意、來源、provenance 走 [`MK_METADATA.md`](./MK_METADATA.md)(2026-05-08 v1.0)為準。本文件 Part A 只記「資料夾分工」,不記欄位細節,避免兩處 schema 描述 diverge。
+
 把每個資料夾當成放特定文件的櫃子,就像打版室分「上衣版」「下身版」「配件版」,不會亂放。
 
 | 資料夾 | 放什麼(類比成衣流程) | 舉例 | 不要放什麼 |
@@ -40,8 +42,8 @@
 | `data/ingest/` | **Pipeline staging**(CI / 外部協作上傳處)。`build_recipes_master.py` 的 `data/ingest/*/facts.jsonl` glob 會掃 | `data/ingest/uploads/`(PDF/PPTX 上傳處)、`data/ingest/{unified,vlm,pdf,metadata}/`、`data/ingest/{consensus_rules,ocr_v1,consensus_v1}/`、**`data/ingest/m7_pullon/`(2026-05-08 加,聚陽端 PullOn pipeline 推進來)** | runtime 讀的成品(放 `data/runtime/`) |
 | `data/legacy/` | **舊 `pom_analysis_v5.5.1/` 退役後留下的 fallback**(只給 `vlm_pipeline.py` / `extract_unified.py` 在 runtime 找不到時用) | `all_designs_gt_it_classification.json`、`pom_dictionary.json` | 任何新檔(此資料夾只縮不增) |
 | `pom_rules/` | **自動產生的 POM 規則庫**。81 個 bucket(性別 × 部門 × GT 品類 × Fabric),像 81 本機器編的規格書 | `pom_rules/*.json`(由 `scripts/core/reclassify_and_rebuild.py` 產出) | 手寫規則;說明文件 |
-| `l2_l3_ie/` | **Bible 五階層展開** — 38 個 L1 部位,每部位 L1→L2→L3→L4→L5 工段樹。**Phase 2 schema 升級** (2026-05-08+):每個 L5 step 從 list `[name,grade,sec,primary,machine]` 升級成 dict `{l5, ie_standard, actuals?, callouts?}`,可掛多 source 填料(IE xlsx canonical + m7_pullon SSRS actuals + 未來 callouts)。Bible **結構** 由 IE xlsx 決定(brand-agnostic),**L1-L5 樹不被 per-design 改**,但結構之內可加多 source 觀察值。從 `五階層展開項目_*.xlsx` 用 `scripts/core/build_l2_l3_ie.py` 拆,xlsx 留聚陽端不進 repo,維護者本機 build + push JSON。**`new_part_*` / `new_method_describe_*` / `new_shape_design_*` / `(NEW)*` placeholder 在 derive 層全 drop 不進 Bible**(IE 治理任務,聚陽端 SSRS 處理) | 按 L1 代號分檔的 JSON,38 檔 + `_index.json` | 其他層級的規則;手改(會被 CI 蓋掉);brand 欄位嵌進樹結構(brand 走 actuals.by_brand);`new_*` placeholder |
-| `l2_l3_ie_by_client/` | **DEPRECATED**(Phase 2.5 砍掉,功能併入 `l2_l3_ie/` 升級 schema 的 `actuals.by_brand`)。現有 26 檔暫存,Phase 2 derive 完成後 git rm | 不要新增 | 不要新增 |
+| `l2_l3_ie/` | **Bible 五階層展開** — 38 個 L1 部位,每部位 L1→L2→L3→L4→L5 工段樹。**目前 schema 仍是 Phase 1 list**:每個 L5 step 是 5-elem list `[name, grade, sec, primary, machine]`(實測 `AE.json` 等 38 檔皆此格式)。**Phase 2 dict schema `{l5, ie_standard, actuals?, callouts?}` 仍規劃中**(spec 見 `docs/architecture/PHASE2_DERIVE_VIEWS_SPEC.md`,implementation TBD)。Bible **結構** 由 IE xlsx 決定(brand-agnostic),**L1-L5 樹不被 per-design 改**。從 `五階層展開項目_*.xlsx` 用 `scripts/core/build_l2_l3_ie.py` 拆,xlsx 留聚陽端不進 repo,維護者本機 build + push JSON。**`new_part_*` / `new_method_describe_*` / `new_shape_design_*` / `(NEW)*` placeholder 在 derive 層全 drop 不進 Bible**(IE 治理任務,聚陽端 SSRS 處理) | 按 L1 代號分檔的 JSON,38 檔 + `_index.json` | 其他層級的規則;手改(會被 CI 蓋掉);brand 欄位嵌進樹結構(等 Phase 2 走 `actuals.by_brand`);`new_*` placeholder |
+| `l2_l3_ie_by_client/` | **DEPRECATED — 但仍是活檔**(`index.html:5426` 前端 fetch 中)。Phase 2.5 規劃砍掉(功能併入 `l2_l3_ie/` schema 升級的 `actuals.by_brand`),需先做完三件事才能 git rm:① Phase 2 dict schema 真的 derive 出來;② 寫 `derive_view_by_client.py` 從 master.jsonl regroup;③ 拔掉 `index.html:5426` 的 fetch。現有 27 檔(實測 ls)暫存 | 不要新增 | 不要新增 |
 | `recipes/` | **PATH2 做工配方**(根目錄 72 檔)。是 `star_schema/scripts/build_recipes_master.py` 活檔的輸入,不是遺留 | `recipe_<GENDER>_<DEPT>_<GT>_<IT>.json`(72 檔)+ `_index.json` | 一次性實驗檔(放 Notion / Drive) |
 | `path2_universal/` | **通用模型(不分客戶/品牌)的做工推薦資料源**。ISO 工藝代號查表、knit/woven 做工紀錄、PATH2 pipeline 文件。前身為 `General Model_Path2_Construction Suggestion/`(2026-05-07 改名) | `iso_lookup_factory_v4.3.json`、`iso_lookup_factory_v4.json`、`PATH2_通用模型_做工推薦Pipeline.md` | 前端 runtime fetch 的檔(那該放 `data/runtime/`) |
 | `scripts/core/` | **資料產線腳本**(repo 內部執行的 build / rebuild / extract / search) | `build_l2_visual_guide.py`、`build_l2_l3_ie.py`、`run_extract_new.py`、`reclassify_and_rebuild.py`、`enforce_tier1.py` | 共用函式庫(放 `scripts/lib/`);一次性 ad-hoc 腳本 |
@@ -190,6 +192,9 @@ git commit -m "chore: 移除孤兒 $CANDIDATE (已通過 grep gate 驗證)"
 - ~~`scripts/` 裡路徑寫死 `/sessions/` 的腳本~~ — 2026-04-24 已改用 `--base-dir` / `$POM_PIPELINE_BASE`,可在外部環境跑(見 `scripts/core/_pipeline_base.py`)
 - ~~`pom_analysis_v5.5.1/`~~ — 2026-05-07 已徹底退役:`extract_techpack.py` 抽到 `scripts/lib/`,其餘 5 個 MD5 相同 JSON、6 支 fork 後沒人 import 的舊版 .py、`run_extract.py` 孤兒、舊版 pipeline guide MD 全清
 - `data/ingest/consensus_rules/facts.jsonl`(275 筆)、`data/ingest/ocr_v1/facts.jsonl`(1202 筆) — **一度被誤判為孤兒**,但 `build_recipes_master.py:629` 的 `data/ingest/*/facts.jsonl` glob 會吃它們,2026-04-24 實測刪除會讓 recipes_master 掉 249 entries(1414 → 1165)。**不可刪**
+- `l2_l3_ie_by_client/` 27 檔 — **2026-05-08 gate 攔下**:雖然 CLAUDE.md Part A 標 DEPRECATED,但 `index.html:5426` 仍 active fetch,`build_recipes_master.py:693` 也保留 `_m7_by_client` 欄位給 future `derive_view_by_client.py`。退役需先做 Phase 2 dict schema derive + 寫 derive_view_by_client + 拔 frontend fetch,三步缺一不可,**不可刪**
+- `data/ingest/pdf/callout_manifest.jsonl`(0 bytes 空檔) — **2026-05-08 gate 攔下**:`star_schema/scripts/extract_raw_text.py:572` 是 append 寫入目標,workflow `rebuild_master.yml:54` 也引用,是 active output target 只是還沒資料。**不可刪**
+- `scripts/core/{search_recipes,build_recipe_embeddings,eval_recipe_retrieval}.py` 三隻 — **2026-05-08 gate 攔下**:雖然不在 CI / workflow 內被呼叫,但 `data/ingest/recipe_index/index.json` 是 623 KB 真實 build 產物,代表是有人 build 過的離線評估工具。屬於手動 CLI(類似 eval 性質),**不是 dead code**
 
 ### 2026-05-07 重組:外部 BASE 與 repo 內部命名解耦
 
@@ -212,6 +217,17 @@ git commit -m "chore: 移除孤兒 $CANDIDATE (已通過 grep gate 驗證)"
 - **中文檔名 git mv**:含「五階層展開項目」、「部位定義」這類中文檔名,先 `git config core.quotepath false`,否則 `git status` 會顯示 `\xxx\xxx` 八進位編碼很難讀。macOS 還要設 `core.precomposeunicode true` 避免 NFD/NFC 不一致。
 - **rename 配對誤判**:兩份 MD5 相同的檔案(`L1_部位定義_Sketch視覺指引.md` root + PATH2 兩份),git 的 rename detection 會把刪 + 加配對成 rename,可能把錯的那份標 D。功能性無影響(內容仍在),但 `git log --follow` history chain 會斷在被誤標的那一邊。可接受。
 - **外部 BASE 路徑名 ≠ repo 路徑名**:`scripts/core/rebuild_grading_3d.py` 等腳本用 `BASE` 環境變數指向外部目錄,內部結構 `BASE/pom_analysis_v5.5.1/data/` 是外部使用者契約,不是這個 repo 的路徑。重組 repo 時這類字串故意保留,別誤改。
+
+### 真實教訓 (2026-05-08)
+
+第二輪 codebase audit(掃 dup / dead code / stale doc)時,gate 又攔下三個誤判,記下來避免下次重蹈:
+
+- **「DEPRECATED 標籤 ≠ 可刪」**:`l2_l3_ie_by_client/` 在 Part A 表上標 DEPRECATED,但 `index.html:5426` 仍 fetch、`build_recipes_master.py:693` 仍寫 `_m7_by_client`。退役只是「不要新增」,要 git rm 必須先把所有讀寫端切走。檢查 candidate 標 DEPRECATED 時務必 grep 線上前端 + 所有 producer 端,不可只看 Part A 文字。
+- **「空檔 ≠ 死檔」**:`data/ingest/pdf/callout_manifest.jsonl` 是 0 bytes,看似 placeholder,實際是 `extract_raw_text.py:572` 的 append target。空檔可能是「pipeline 還沒跑出資料」,不是「沒人要寫」。檢查空檔要 grep producer 端,不只看消費端。
+- **「不在 CI 內 ≠ dead code」**:`scripts/core/search_recipes.py` / `build_recipe_embeddings.py` / `eval_recipe_retrieval.py` 三隻沒在 workflow 內被呼叫,但 `data/ingest/recipe_index/index.json`(623 KB)是它們 build 出來的真實產物,代表有人手動跑過。離線評估 / 研究工具不會進 CI,但仍是活工具。
+- **「文件宣稱 ≠ 實況」**:CLAUDE.md L43 寫 Phase 2 schema 升級已完成,實測 `l2_l3_ie/AE.json` 仍是 5-elem list 的 Phase 1 格式。**文件描述要跟著事實改,不能寫成「目標狀態」當「現況」**(已修正,Part A 改回「Phase 1 list,Phase 2 規劃中」)。
+
+教訓加進 Part B SOP:Step 6 (glob check) 之後加 **Step 7 — frontend fetch + producer write check**,grep `fetch.*<candidate>`、`open.*<candidate>.*'a'`、`append`、`>>` 對候選的引用。
 
 ---
 

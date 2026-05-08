@@ -38,8 +38,8 @@ api/
   ├─ push-pom-dict.js                         ← Admin：POM 翻譯表寫回 data/runtime/pom_dictionary.json
   └─ ingest_token.js                          ← Admin：發 GITHUB_PAT 讓瀏覽器直連 GitHub（繞 4.5MB body 上限）
 .github/workflows/
-  ├─ rebuild_master.yml                       ← push 到 data/ingest/uploads/** 時觸發；自動重建 recipes_master 並 push 回 main
-  └─ build_l2_l3_ie.yml                       ← push 到 五階層展開項目_*.xlsx 時觸發；自動重建 l2_l3_ie/*.json
+  ├─ rebuild_master.yml                       ← push 到 main 或手動 workflow_dispatch 觸發；自動重建 recipes_master 並 push 回 main
+  └─ build_l2_l3_ie.yml                       ← workflow_dispatch only(2026-05-08+;xlsx >25 MB 不進 repo,維護者本機 build push JSON,workflow 多半不再用)
 vercel.json                                   ← functions config：includeFiles 把 data/** + docs/spec/techpack-translation-style-guide.md 編進 analyze.js bundle
 docs/
   ├─ spec/                                    ← 跨模組共用規格(被 code / LLM prompt 引用)
@@ -133,7 +133,7 @@ v4.3 GT 已經對齊 UI，不再需要 `BOTTOM` 粗桶，alias 縮到只剩 `BOD
 
 | | 線下規則產線 (`scripts/core/`) | 線上 ingest pipeline (`star_schema/scripts/`) |
 |---|---|---|
-| **Trigger** | 手動執行 | GitHub Actions：push 到 `data/ingest/uploads/**` |
+| **Trigger** | 手動執行 | GitHub Actions:push 到 `main` 或手動 `workflow_dispatch` |
 | **執行環境** | 本機或 CI 皆可；BASE 目錄用 `--base-dir` CLI 或 `$POM_PIPELINE_BASE` env var 指定（見 `scripts/core/_pipeline_base.py`） | `ubuntu-latest` runner，依 `requirements-pipeline.txt` 裝 Python 依賴 |
 | **主要輸出** | `pom_rules/*.json`（81 bucket）、`l2_l3_ie/*.json`、`data/runtime/{l2_visual_guide,l2_decision_trees,l1_*}.json` 等 | `data/runtime/{recipes_master,iso_dictionary,l1_standard_38}.json`、`data/ingest/**` |
 | **操作文件** | `docs/sop/pom_rules_pipeline_guide_v2.md` | `path2_universal/PATH2_Phase2_Upload_Pipeline.md` |
@@ -236,7 +236,7 @@ Admin 在前端「📤 上傳 Techpack」丟一份 PDF/PPTX：
 | 📥 上傳 Pipeline 結果（ResultsUploadModal） | 吃外部送回的 zip / jsonl,merge 到 `data/ingest/{unified,vlm}/facts.jsonl` + `metadata/designs.jsonl`(append 或 append-dedup by design_id) | JSZip 瀏覽器解壓 → 比對 path → GET 現有 → merge → 直連 `PUT contents` | 無實質上限 |
 | 📤 上傳 Techpack（UploadModal） | 丟 PDF/PPTX 進 `data/ingest/uploads/`,觸發 Actions 重建 recipes_master | `POST /api/ingest_token` → 瀏覽器直連 GitHub `PUT` | 無實質上限 |
 | 📝 POM 翻譯表編輯（AdminModal） | 編 `data/runtime/pom_dictionary.json`,自動 diff + commit msg | `POST /api/push-pom-dict`(Vercel endpoint) | 小 |
-| 🛠 IE 底稿管理（IEAdminModal） | 聚陽送新版 xlsx 時上傳到 `data/source/五階層展開項目_YYYYMMDD.xlsx`,觸發 `build_l2_l3_ie.yml` workflow 自動重建 `l2_l3_ie/*.json`。xlsx 通常 9.5 MB。 | `POST /api/ingest_token` → 瀏覽器直連 GitHub `PUT`(因 xlsx 超過 Vercel 4.5 MB) | 無實質上限 |
+| 🛠 IE 底稿管理（IEAdminModal） | **2026-05-08+ 改流程**:xlsx (>25 MB) 不再進 repo,聚陽送新版 xlsx 時維護者**本機**跑 `python3 scripts/core/build_l2_l3_ie.py` build 出 38 個 JSON,push `l2_l3_ie/*.json`(SOP 見 `data/source/BIBLE_UPGRADE.md`)。原 `build_l2_l3_ie.yml` workflow 改 workflow_dispatch only。 | 無線上上傳路徑(只送 JSON 不送 xlsx) | — |
 | 📚 權威手冊登記表（ManualsModal） | Read-only,顯示 7 份權威手冊的角色 / 引用鏈 | 無後端呼叫 | — |
 
 > ~~🩹 上傳 Patch (JSON)（PatchUploadModal）~~ — 2026-04-23 移除,由 📥 上傳 Pipeline 結果取代(新通道吃 raw facts.jsonl 而非 recipes_master.json patch,更符合外部協作實際流程)。
