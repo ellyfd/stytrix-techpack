@@ -15,10 +15,9 @@ Stripping rules:
   - Drop any key starting with `_m7_` from each entry.
   - Everything else passes through unchanged.
 
-The `_m7_*` fields (`_m7_by_client`, `_m7_design_ids`, `_m7_ie_total_seconds`)
-are produced by build_from_m7_pullon() in build_recipes_master.py for use by
-View B/C derive scripts. They are NOT consumed by the frontend (which reads
-View A) and would otherwise bloat recipes_master.json by ~15x.
+Defensive: build_recipes_master.py post-2026-05-08 no longer writes any `_m7_*`
+fields, so this strip is currently a no-op. Kept for safety in case future m7
+pipeline updates re-introduce internal fields that should not leak into View A.
 """
 from __future__ import annotations
 

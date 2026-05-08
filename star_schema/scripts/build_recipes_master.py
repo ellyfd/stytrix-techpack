@@ -696,12 +696,11 @@ def build_from_m7_pullon(path: Path, bucket_tax: dict, warns: list):
                 "methods": e.get("methods") or [],
                 "client_distribution": e.get("client_distribution") or [],
                 "confidence": e.get("confidence", "medium"),
-                # m7_pullon-specific (preserved for downstream derive views).
-                # _m7_by_client dropped 2026-05-08 (Phase 2.5b retire l2_l3_ie_by_client/);
-                # frontend now reads brand-specific data from l2_l3_ie/<L1>.json
-                # actuals.by_brand instead.
-                "_m7_design_ids": e.get("design_ids", []),
-                "_m7_ie_total_seconds": e.get("ie_total_seconds"),
+                # All `_m7_*` internal-only fields dropped 2026-05-08 (post-Phase 2):
+                # _m7_by_client was for retired l2_l3_ie_by_client/ derive (Phase 2.5b);
+                # _m7_design_ids + _m7_ie_total_seconds were earmarked for an unbuilt
+                # designs_index derive — actual View C (Phase 2.4) reads m7_pullon
+                # designs.jsonl.gz directly, not from master.jsonl.
             })
             n_loaded += 1
 

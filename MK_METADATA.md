@@ -164,10 +164,10 @@ python scripts\generate_bucket_taxonomy_from_mk.py
 Step 1 Raw → Step 2 Source (對齊 MK Metadata 5+1 維) → Step 3 Master → Step 4 Views
 ```
 
-每 master entry 用 6 維 key（4 維 from MK + fabric + l1）：
-- `recipes_master.json` (view A) — drop fabric/by_client，輕量化
-- `l2_l3_ie/<L1>.json` (view C) — drop brand 維度
-- `l2_l3_ie_by_client/<L1>.json` (view B) — 含 brand × knit/woven × L2-L5
+每 master entry 用 6 維 key（4 維 from MK + fabric + l1）。**2026-05-08 Phase 2 derive 完成後** 三個 view 對應(見 `docs/architecture/PHASE2_DERIVE_VIEWS_SPEC.md`):
+- `data/runtime/recipes_master.json` (View A) — strip `_m7_*` 內部欄,給通用模型 ISO consensus 用
+- `l2_l3_ie/<L1>.json` 38 檔 (View B) — Phase 2 dict schema,每 L5 step 含 `ie_standard` + 可選 `actuals` (含 `by_brand`,m7_pullon 觀察值);取代了已退役的 `l2_l3_ie_by_client/`
+- `data/runtime/designs_index/<EIDH>.json` 3,900 檔 (View C) — per-EIDH 詳情 lazy fetch
 
 ### POM Pipeline（獨立）
 

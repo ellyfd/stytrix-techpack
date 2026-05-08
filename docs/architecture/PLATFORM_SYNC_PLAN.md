@@ -1,9 +1,15 @@
 # Platform Sync Plan — Single Master + Multi-View 落地清單
 
-> **背景**：v2 架構升級後，需要**同步更新 platform stytrix-techpack repo 多個檔案**。
-> 此 doc 列出每個改動的 file / 動作 / 驗證點，依優先序排。
+> **狀態(2026-05-08)**:Phase 2 落地完成。本檔案為**歷史規劃紀錄**,實作後的權威 spec
+> 改看 [`PHASE2_DERIVE_VIEWS_SPEC.md`](./PHASE2_DERIVE_VIEWS_SPEC.md) 與
+> [`DATA_PIPELINE_MAPPING.md`](./DATA_PIPELINE_MAPPING.md)。文中 `derive_view_by_client.py`
+> / `l2_l3_ie_by_client/` 等都已退役(by_brand 走升級 Bible 的 `actuals.by_brand` +
+> frontend `filterBibleByBrand()`),不要照計畫再做新檔。
+
+> **背景**:v2 架構升級後,需要**同步更新 platform stytrix-techpack repo 多個檔案**。
+> 此 doc 列出每個改動的 file / 動作 / 驗證點,依優先序排。
 >
-> **依賴**：fetch_m7_report + fetch_m7_detail 跑完（4644 件 m7_report.jsonl + m7_detail.csv 完整）
+> **依賴**:fetch_m7_report + fetch_m7_detail 跑完(4644 件 m7_report.jsonl + m7_detail.csv 完整)
 
 ---
 
