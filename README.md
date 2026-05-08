@@ -5,6 +5,12 @@ Techpack Creation + Measurement Spec 合併介面。
 
 > 想直接看全貌 Mermaid 圖（4 張：高階流程 / 前端模式分流 / 資料依賴 / Ingest Pipeline）+ 資料夾對照表 + 架構債清單 + 權威手冊登記表：[`docs/spec/網站架構圖.md`](./docs/spec/網站架構圖.md)
 >
+> **2026-05-08 升級**(PR #283 + #285):
+> - **Bible 升級 20260507**:38 個 `l2_l3_ie/<L1>.json` 從 200K rows → 453K rows(2.3x)。`五階層展開項目_*.xlsx` 不再進 repo(>25 MB),改寫 SOP `data/source/BIBLE_UPGRADE.md`。維護者本機 build + push JSON。
+> - **m7_pullon source**:`data/ingest/m7_pullon/{entries,designs.jsonl.gz}` 從聚陽 PullOn pipeline (4,644 EIDH) 推進來,加進 `build_recipes_master.py` cascade 為第 7 個 source。
+> - **Phase 2 derive view spec** 已寫(`docs/architecture/PHASE2_DERIVE_VIEWS_SPEC.md`):master.jsonl 拆三 view (recipes_master / l2_l3_ie 升級 schema / designs_index per-EIDH)。implementation 進行中。
+> - **bucket_taxonomy v4 + legacy_buckets**:28 個 4-dim bucket + 59 個舊 3-dim alias(讓 facts/consensus 不掉資料)。
+>
 > **2026-05-07 重組**:資料夾大整理(`data/` 拆 runtime/ingest/source/legacy、`scripts/` 拆 core/lib、根目錄 .md 集中到 `docs/`、`General Model_Path2_Construction Suggestion/` → `path2_universal/`、`pom_analysis_v5.5.1/` 退役)。所有 GitHub 連結到舊路徑會 404,請用新路徑。
 
 ## 兩種模式
@@ -63,8 +69,10 @@ data/
   │   ├─ l1_part_presence_v1.json             ← 聚陽模型:GT×IT 下每個部位出現率(345 KB)
   │   └─ l1_iso_recommendations_v1.json       ← 聚陽模型:部位名 → ISO 建議(519 KB)
   ├─ source/                                  ← 手維護 / 上傳的原始底稿
-  │   ├─ 五階層展開項目_YYYYMMDD.xlsx         ← IE 五階層展開(9.5 MB,build_l2_l3_ie 拆成 38 份)
+  │   ├─ BIBLE_UPGRADE.md                     ← Bible 升級 SOP(xlsx 留聚陽端,JSON 進 repo)
+  │   ├─ M7_PULLON_DATA_SCHEMA.md             ← m7_pullon source schema 文件(2026-05-08+)
   │   └─ L2_代號中文對照表.xlsx               ← L1/L2 代號對照(283 L2,build_l2_visual_guide 讀)
+  │   # ⚠ 五階層展開項目_*.xlsx 不再進 repo (>25 MB),維護者本機 build + push 38 個 JSON
   ├─ legacy/                                  ← 退役的 pom_analysis_v5.5.1 留下的 fallback
   │   ├─ all_designs_gt_it_classification.json ← vlm_pipeline / extract_unified fallback
   │   └─ pom_dictionary.json                  ← snapshot 期版本(只給 fallback 用)
@@ -80,7 +88,10 @@ data/
       ├─ consensus_v1/entries.jsonl           ←   手動 bucket consensus 規則（275 條，build_recipes_master 吃）
       ├─ construction_by_bucket/              ←   外部資料源（688 設計，Step 2a 讀）
       ├─ consensus_rules/                     ← 275 筆 `source=consensus_rules_final`，build_recipes_master 透過 `*/facts.jsonl` glob 讀；大多跟 consensus_v1 重疊被 dedup，但仍貢獻少數 entries
-      └─ ocr_v1/                              ← 1202 筆 OCR 輸出，同樣靠 glob 被讀到；貢獻 ~249 個 entries（2026-04-24 實測）
+      ├─ ocr_v1/                              ← 1202 筆 OCR 輸出，同樣靠 glob 被讀到；貢獻 ~249 個 entries（2026-04-24 實測）
+      └─ m7_pullon/                           ← **2026-05-08 加**:聚陽 PullOn pipeline 推進來
+          ├─ entries.jsonl                    ←   aggregated by 6-dim key (gender/dept/gt/it/fabric/l1),build_recipes_master `build_from_m7_pullon()` 吃
+          └─ designs.jsonl.gz                 ←   per-EIDH 完整履歷 (3,900 件 PullOn,gzipped),Phase 2.4 designs_index derive 吃
 l2_l3_ie/*.json                               ← 聚陽模型:38 個 L1 部位的 L2-L3-IE 規則(39 檔 = 38 L1 + 1 index)
 pom_rules/*.json                              ← POM 規則(81 bucket + _index.json = 82 檔,由 scripts/core/reclassify_and_rebuild.py 產出)
 recipes/*.json                                ← PATH2 做工配方(72 檔,被 star_schema/scripts/build_recipes_master.py 吃)
@@ -98,7 +109,11 @@ star_schema/scripts/                          ← **線上 ingest pipeline**(由
   ├─ extract_raw_text.py                      ← Step 1:掃 uploads/,抽 PPTX 文字 + PDF callout 圖;支援 --allow-empty / --force
   ├─ extract_unified.py                       ← Step 2a:合併 4 來源 → data/ingest/unified/{dim,facts}.jsonl
   ├─ vlm_pipeline.py                          ← Step 2b:讀 vlm_raw_extracts.json → ISO 對映 → data/ingest/vlm/facts.jsonl(continue-on-error)
-  └─ build_recipes_master.py                  ← Step 3 (--strict):5 來源合併 → data/runtime/{recipes_master,iso_dictionary,l1_standard_38}.json
+  └─ build_recipes_master.py                  ← Step 3 (--strict):**7 來源合併** (recipe / consensus_v1 / facts_agg / m7_pullon / v4.3 / v4 / bridge) → data/runtime/{recipes_master,iso_dictionary,l1_standard_38}.json
+docs/architecture/                            ← 架構設計文件
+  ├─ STYTRIX_ARCHITECTURE.md                  ← 完整架構 v3.0 (Step 1/2/3/4 framework)
+  ├─ PHASE2_DERIVE_VIEWS_SPEC.md              ← Phase 2 三 view 衍生 spec (master.jsonl + recipes_master + l2_l3_ie 升級 + designs_index)
+  └─ PLATFORM_SYNC_PLAN.md                    ← 聚陽端 → platform sync plan
 requirements-pipeline.txt                     ← GitHub Actions 用的 Python 依賴(pymupdf + python-pptx)
 README.md / CLAUDE.md                         ← 入口兩件套(只剩這兩份 .md 在 root)
 ```

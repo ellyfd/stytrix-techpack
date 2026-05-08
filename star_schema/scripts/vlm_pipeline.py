@@ -699,9 +699,22 @@ def process_vlm_output(vlm_json, design_id, fabric=None):
     result = {}
     all_seams_iso = None
 
+    # ZH 字元 normalize:VLM 從 sketch 讀字常 hallucinate 出形似異體字
+    # (例如「襠底片」誤讀成「褶底片」/「檔底片」/簡體誤字)
+    # 修在 vlm_pipeline 處理層,確保 facts.jsonl 寫出去都是正規詞
+    ZH_NORMALIZE = {
+        '褶底片': '襠底片',  # VLM 常見 hallucinate(襠 ↔ 褶 形似)
+        '檔底片': '襠底片',  # 簡體誤字(檔 ↔ 襠)
+    }
+    def normalize_zh(s):
+        if not s: return s
+        for bad, good in ZH_NORMALIZE.items():
+            s = s.replace(bad, good)
+        return s
+
     for item in vlm_json:
-        zone = item.get('zone', '')
-        construction = item.get('construction', '')
+        zone = normalize_zh(item.get('zone', ''))
+        construction = normalize_zh(item.get('construction', ''))
         explicit_iso = item.get('iso')
 
         # Handle "ALL SEAMS" default

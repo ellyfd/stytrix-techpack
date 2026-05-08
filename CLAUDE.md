@@ -19,6 +19,13 @@
 
 ## Part A — 資料夾分工表
 
+> **2026-05-08 更新**(PR #283 + #285):
+> 1. **Bible 升級 20260507**:`data/source/五階層展開項目_20260507.xlsx` 35.7 MB(2.3x prior),sheet schema 改成「語系資料 + 全部五階層」雙 sheet,新增 `機種 / 尺寸 / 圖片名字 / *_Sort` 欄。**xlsx 不再進 repo**(>25 MB GitHub web 上限,clone 膨脹),改寫 SOP 文件 `data/source/BIBLE_UPGRADE.md`。
+> 2. **m7_pullon source 加進 ingest cascade**:`data/ingest/m7_pullon/{entries,designs.jsonl.gz}` 新 subsystem,從聚陽 M7 PullOn pipeline (4,644 EIDH) 推進來;`build_recipes_master.py` 加 `build_from_m7_pullon()` 為第 7 個 source。
+> 3. **bucket_taxonomy v4 + legacy_buckets**:`data/bucket_taxonomy.json` 改成 v4 4-dim key (`<gender>_<dept>_<gt>_<it>`) 28 個 + `legacy_buckets` 59 個 alias 給舊 facts/consensus 用。
+> 4. **Phase 2 derive view spec**:`docs/architecture/PHASE2_DERIVE_VIEWS_SPEC.md` 已寫,規劃 master.jsonl + 3 view 衍生(View A: recipes_master / View B: l2_l3_ie 升級 schema / View C: designs_index),implementation TBD。
+> 5. **5/7 升級後 `l2_l3_ie/<L1>.json` 38 檔內容** rebuild from 20260507(rows 200K → 453K,2.3x),step tuple 擴 5-elem 含 machine。
+
 > **2026-05-07 結構大調整**:把過去散在 root 的 14 份 .md / 2 份 .xlsx 集中,把 `data/`
 > 拆 runtime/ingest/source/legacy 四層,scripts/ 拆 core/lib,徹底退役 `pom_analysis_v5.5.1/`,
 > `General Model_Path2_Construction Suggestion/` 改名 `path2_universal/`。
@@ -29,12 +36,12 @@
 | 資料夾 | 放什麼(類比成衣流程) | 舉例 | 不要放什麼 |
 |--------|----------------------|------|------------|
 | `data/runtime/` | **線上系統 runtime 讀的成品 JSON**。前端 `fetch('./data/runtime/...')`、API `analyze.js` 啟動時讀 | `l1_standard_38.json`、`l2_visual_guide.json`、`l2_decision_trees.json`、`recipes_master.json`、`iso_dictionary.json`、`pom_dictionary.json`、`grading_patterns.json` | 原始 xlsx;靜態文件;ingest 中繼檔 |
-| `data/source/` | **手維護 / 上傳的原始底稿**(被 `scripts/core/build_*` 讀來生 runtime JSON) | `五階層展開項目_YYYYMMDD.xlsx`(IE 五階層展開,9.5 MB)、`L2_代號中文對照表.xlsx` | runtime 讀的檔;說明文件 |
-| `data/ingest/` | **Pipeline staging**(CI / 外部協作上傳處)。`build_recipes_master.py:629` 的 `data/ingest/*/facts.jsonl` glob 會掃 | `data/ingest/uploads/`、`data/ingest/{unified,vlm,pdf,metadata}/`、`data/ingest/{consensus_rules,ocr_v1,consensus_v1}/` | runtime 讀的成品(放 `data/runtime/`) |
+| `data/source/` | **手維護 / 上傳的原始底稿**(被 `scripts/core/build_*` 讀來生 runtime JSON) | `L2_代號中文對照表.xlsx`(L1/L2 代號對照,14 KB)、`BIBLE_UPGRADE.md`(SOP)、`M7_PULLON_DATA_SCHEMA.md`(m7_pullon source schema) | runtime 讀的檔;說明文件;**`五階層展開項目_*.xlsx` 不再進 repo**(2026-05-08 起,xlsx 留聚陽端,38 個 derive JSONs 進 repo) |
+| `data/ingest/` | **Pipeline staging**(CI / 外部協作上傳處)。`build_recipes_master.py` 的 `data/ingest/*/facts.jsonl` glob 會掃 | `data/ingest/uploads/`(PDF/PPTX 上傳處)、`data/ingest/{unified,vlm,pdf,metadata}/`、`data/ingest/{consensus_rules,ocr_v1,consensus_v1}/`、**`data/ingest/m7_pullon/`(2026-05-08 加,聚陽端 PullOn pipeline 推進來)** | runtime 讀的成品(放 `data/runtime/`) |
 | `data/legacy/` | **舊 `pom_analysis_v5.5.1/` 退役後留下的 fallback**(只給 `vlm_pipeline.py` / `extract_unified.py` 在 runtime 找不到時用) | `all_designs_gt_it_classification.json`、`pom_dictionary.json` | 任何新檔(此資料夾只縮不增) |
 | `pom_rules/` | **自動產生的 POM 規則庫**。81 個 bucket(性別 × 部門 × GT 品類 × Fabric),像 81 本機器編的規格書 | `pom_rules/*.json`(由 `scripts/core/reclassify_and_rebuild.py` 產出) | 手寫規則;說明文件 |
-| `l2_l3_ie/` | **bible 五階層展開**(聚陽 IE 部門獨立維護的 canonical 工法字典,**brand-agnostic by design**)。38 個 L1 部位,每部位 L1→L2→L3→L4→steps 工段樹,canonical 工法名 + IE 標準秒 + grade(A-E 等級)。**目前 xlsx 訓練樣本來源以 ONY 案件累積為主,但 schema 不含 brand 欄位,本質上是中央規範詞彙表**;未來會持續加入其他客戶的 case 餵 xlsx,但 schema/ontology 不會變。從 `data/source/五階層展開項目_YYYYMMDD.xlsx` 用 `scripts/core/build_l2_l3_ie.py` 拆出來;聚陽送新版時用前端「🛠 IE 底稿管理」Modal 上傳到 `data/source/`,CI 自動重建 | 按 L1 代號分檔的 JSON | 其他層級的規則;手改(會被 CI 蓋掉);brand 欄位(bible 不該綁 brand) |
-| `l2_l3_ie_by_client/` | **bible 詞彙規範下的 brand 量產實況**(獨立資料源,**不是 bible 的切片**)。10 brand × knit/woven 各自的 L1→L2→L3→L4→steps 樹。L2/L3 沿用 bible canonical 詞彙(WB 部位 ONY 切片 100% / 87% 對齊 bible),L4/step 是 M7 SSRS 量產報表的 raw 名 + 秒數(例:`40腰頭固雙_不含鬆緊帶`),跟 bible canonical L4(例:`**手工類`)**不對應、不能 join**。grade 欄全空(SSRS 報表沒抓)。**Source-of-truth 在外部 `M7_Pipeline/`**,本 repo 由 `merge_into_platform_repo.py` 推進來 | `<L1>.json`(26 檔,下身為主)+ `_index.json`,schema:`{l1, code, by_client: {<BRAND>: {knit, woven}}, client_stats}` | 上身 L1(本 pipeline 不 cover);手改;在本 repo 重建(要回 M7_Pipeline 跑) |
+| `l2_l3_ie/` | **Bible 五階層展開** — 38 個 L1 部位,每部位 L1→L2→L3→L4→L5 工段樹。**Phase 2 schema 升級** (2026-05-08+):每個 L5 step 從 list `[name,grade,sec,primary,machine]` 升級成 dict `{l5, ie_standard, actuals?, callouts?}`,可掛多 source 填料(IE xlsx canonical + m7_pullon SSRS actuals + 未來 callouts)。Bible **結構** 由 IE xlsx 決定(brand-agnostic),**L1-L5 樹不被 per-design 改**,但結構之內可加多 source 觀察值。從 `五階層展開項目_*.xlsx` 用 `scripts/core/build_l2_l3_ie.py` 拆,xlsx 留聚陽端不進 repo,維護者本機 build + push JSON。**`new_part_*` / `new_method_describe_*` / `new_shape_design_*` / `(NEW)*` placeholder 在 derive 層全 drop 不進 Bible**(IE 治理任務,聚陽端 SSRS 處理) | 按 L1 代號分檔的 JSON,38 檔 + `_index.json` | 其他層級的規則;手改(會被 CI 蓋掉);brand 欄位嵌進樹結構(brand 走 actuals.by_brand);`new_*` placeholder |
+| `l2_l3_ie_by_client/` | **DEPRECATED**(Phase 2.5 砍掉,功能併入 `l2_l3_ie/` 升級 schema 的 `actuals.by_brand`)。現有 26 檔暫存,Phase 2 derive 完成後 git rm | 不要新增 | 不要新增 |
 | `recipes/` | **PATH2 做工配方**(根目錄 72 檔)。是 `star_schema/scripts/build_recipes_master.py` 活檔的輸入,不是遺留 | `recipe_<GENDER>_<DEPT>_<GT>_<IT>.json`(72 檔)+ `_index.json` | 一次性實驗檔(放 Notion / Drive) |
 | `path2_universal/` | **通用模型(不分客戶/品牌)的做工推薦資料源**。ISO 工藝代號查表、knit/woven 做工紀錄、PATH2 pipeline 文件。前身為 `General Model_Path2_Construction Suggestion/`(2026-05-07 改名) | `iso_lookup_factory_v4.3.json`、`iso_lookup_factory_v4.json`、`PATH2_通用模型_做工推薦Pipeline.md` | 前端 runtime fetch 的檔(那該放 `data/runtime/`) |
 | `scripts/core/` | **資料產線腳本**(repo 內部執行的 build / rebuild / extract / search) | `build_l2_visual_guide.py`、`build_l2_l3_ie.py`、`run_extract_new.py`、`reclassify_and_rebuild.py`、`enforce_tier1.py` | 共用函式庫(放 `scripts/lib/`);一次性 ad-hoc 腳本 |
