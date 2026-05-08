@@ -1,21 +1,15 @@
-name: Rebuild l2_l3_ie from xlsx
+name: Rebuild l2_l3_ie from xlsx (manual)
 
-# 觸發:任何 push 到 main 都會評估,但 job-level if 會過濾掉沒碰 xlsx 的 commit
-# 也可由「🛠 IE 底稿管理」Modal 用 workflow_dispatch 手動觸發。
+# xlsx 太大不進 repo (見 data/source/BIBLE_UPGRADE.md),改 workflow_dispatch only。
+# 維護者本機跑 build_l2_l3_ie.py + push 38 JSON 是常規路徑;
+# 此 workflow 留作緊急覆寫工具(若有人 ad-hoc 把 xlsx push 進 repo 跑 reproducibility 用)。
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 jobs:
   rebuild:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # 只在 manual dispatch,或 push 碰到 五階層展開項目_*.xlsx 時才跑
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      contains(toJSON(github.event.commits.*.modified), '五階層展開項目_') ||
-      contains(toJSON(github.event.commits.*.added), '五階層展開項目_')
     permissions:
       contents: write
 
@@ -31,11 +25,28 @@ jobs:
         with:
           python-version: "3.11"
 
-      # build_l2_l3_ie.py 是純 stdlib,不用裝依賴
+      - name: Check xlsx availability
+        id: check
+        run: |
+          if ls data/source/五階層展開項目_*.xlsx 2>/dev/null | grep -q .; then
+            echo "found=true" >> $GITHUB_OUTPUT
+            ls -la data/source/五階層展開項目_*.xlsx
+          else
+            echo "found=false" >> $GITHUB_OUTPUT
+            echo "::warning::No xlsx in data/source/. workflow_dispatch needs xlsx pushed first."
+            echo "## ⚠ No xlsx found" >> $GITHUB_STEP_SUMMARY
+            echo "本 workflow 假設 xlsx 已 push 進 repo (ad-hoc reproducibility 用)。" >> $GITHUB_STEP_SUMMARY
+            echo "正常流程: 維護者本機跑 build_l2_l3_ie.py + push 38 JSON。" >> $GITHUB_STEP_SUMMARY
+            echo "見 [BIBLE_UPGRADE.md](../blob/main/data/source/BIBLE_UPGRADE.md)。" >> $GITHUB_STEP_SUMMARY
+            exit 0
+          fi
+
       - name: Rebuild l2_l3_ie/*.json
+        if: steps.check.outputs.found == 'true'
         run: python scripts/core/build_l2_l3_ie.py
 
       - name: Commit regenerated files
+        if: steps.check.outputs.found == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -45,6 +56,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes — l2_l3_ie already up to date."
           else
-            git commit -m "chore(ie): auto-rebuild l2_l3_ie from latest 五階層展開項目 xlsx [skip ci]"
+            git commit -m "chore(ie): auto-rebuild l2_l3_ie via workflow_dispatch [skip ci]"
             git push origin HEAD
           fi
