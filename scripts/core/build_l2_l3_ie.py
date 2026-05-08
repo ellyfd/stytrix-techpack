@@ -119,15 +119,96 @@ def _cell_value(c: ET.Element, shared: list[str]):
         return raw
 
 
+def _stream_shared_strings(z: zipfile.ZipFile) -> list[str]:
+    """Memory-efficient shared strings reader (uses iterparse).
+
+    The 20260507 xlsx has 30K+ shared strings; loading via fromstring OOMs in
+    constrained environments. iterparse + .clear() keeps peak memory low.
+    """
+    out: list[str] = []
+    try:
+        f = z.open("xl/sharedStrings.xml")
+    except KeyError:
+        return out
+    with f:
+        for _ev, el in ET.iterparse(f, events=("end",)):
+            if el.tag == f"{NS}si":
+                out.append("".join(t.text or "" for t in el.iter(f"{NS}t")))
+                el.clear()
+    return out
+
+
+def _resolve_sheet_xml(z: zipfile.ZipFile) -> str:
+    """Pick the sheet that holds the 5-level data.
+
+    The 20260402 xlsx has the data in sheet1.  The 20260507 xlsx moves it to
+    sheet2 (sheet1 = `語系資料` translation table; sheet2 = `全部五階層`).
+    Resolution rule:
+      1. Read workbook.xml; find sheet whose name contains "五階層"
+         and resolve to its sheet*.xml path via workbook rels.
+      2. Fall back to sheet1.xml if rule 1 doesn't match.
+    """
+    try:
+        wb_xml = z.read("xl/workbook.xml")
+    except KeyError:
+        return "xl/worksheets/sheet1.xml"
+    rels_xml = b""
+    try:
+        rels_xml = z.read("xl/_rels/workbook.xml.rels")
+    except KeyError:
+        pass
+
+    wb_root = ET.fromstring(wb_xml)
+    sheets = wb_root.find(f"{NS}sheets")
+    if sheets is None:
+        return "xl/worksheets/sheet1.xml"
+
+    # rId → sheet*.xml target
+    rid_to_target: dict[str, str] = {}
+    if rels_xml:
+        REL_NS = "{http://schemas.openxmlformats.org/package/2006/relationships}"
+        rels_root = ET.fromstring(rels_xml)
+        for r in rels_root.findall(f"{REL_NS}Relationship"):
+            rid_to_target[r.attrib["Id"]] = r.attrib["Target"]
+
+    REL_NS_R = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
+    candidate_idx = None  # fallback if no name match
+    for i, s in enumerate(sheets.findall(f"{NS}sheet")):
+        name = s.attrib.get("name", "")
+        rid = s.attrib.get(f"{REL_NS_R}id", "")
+        target = rid_to_target.get(rid, f"worksheets/sheet{i+1}.xml")
+        full = "xl/" + target.lstrip("/")
+        if "五階層" in name:
+            return full
+        if candidate_idx is None:
+            candidate_idx = full
+    return candidate_idx or "xl/worksheets/sheet1.xml"
+
+
 def iter_rows(xlsx_path: Path):
-    """Yield each row as a list of cell values (strings / numbers / None)."""
+    """Yield each row as a list of cell values (strings / numbers / None).
+
+    For very large sheets (20260507 sheet2 = 329 MB uncompressed), Python's
+    zipfile streaming via z.open() can raise BadZipFile CRC-32 errors when
+    iterparse stops mid-stream. We extract the sheet to a temp file first,
+    then iterparse from disk — adds ~1s but avoids the corruption false alarm.
+    """
+    import tempfile, os
     with zipfile.ZipFile(xlsx_path) as z:
-        shared = _read_shared_strings(z)
-        with z.open("xl/worksheets/sheet1.xml") as f:
-            for _ev, elem in ET.iterparse(f, events=("end",)):
-                if elem.tag == f"{NS}row":
-                    yield [_cell_value(c, shared) for c in elem.findall(f"{NS}c")]
-                    elem.clear()
+        shared = _stream_shared_strings(z)
+        sheet_path = _resolve_sheet_xml(z)
+        # Extract sheet to temp file (bypasses streaming CRC issue on large sheets)
+        tmpdir = tempfile.mkdtemp(prefix="l2l3ie_")
+        try:
+            extracted = z.extract(sheet_path, tmpdir)
+            with open(extracted, "rb") as f:
+                for _ev, elem in ET.iterparse(f, events=("end",)):
+                    if elem.tag == f"{NS}row":
+                        yield [_cell_value(c, shared) for c in elem.findall(f"{NS}c")]
+                        elem.clear()
+        finally:
+            import shutil
+            shutil.rmtree(tmpdir, ignore_errors=True)
 
 
 # ─── L1 name → code registry ──────────────────────────────────────────
@@ -155,34 +236,57 @@ def load_name_to_code(registry_path: Path) -> dict[str, str]:
 
 # ─── Builder ──────────────────────────────────────────────────────────
 
+def _build_col_index(header: list) -> dict[str, int]:
+    """Map header label → column index. Tolerates both 20260402 and 20260507
+    layouts by name-matching:
+      - 20260402: 部位/零件/形狀設計/工法描述/細工段/主副/等級/Woven_Knit/Second
+      - 20260507: adds 尺寸 / 機種 (between Woven_Knit and Second), 圖片名字, *_Sort
+    """
+    idx: dict[str, int] = {}
+    for i, h in enumerate(header):
+        key = str(h or "").strip()
+        if not key:
+            continue
+        idx[key] = i
+    return idx
+
+
 def build(source: Path, name_to_code: dict[str, str]):
     """Consume xlsx rows → per-code nested dicts.
 
     Returns (data, stats) where data is {code: {l1, code, knit, woven}}.
+    Step tuple: [step, grade, sec, main_sub, machine?]  — machine appended
+    when the source provides 機種 column (20260507+); 4-elem for older 20260402.
     """
     header_seen = False
+    col: dict[str, int] = {}
     unknown_l1 = defaultdict(int)
     row_count = 0
 
-    # per_code[code][fabric][l2][l3][l4] = [ [step, grade, sec, main_sub], ... ]
+    # per_code[code][fabric][l2][l3][l4] = [ [step, grade, sec, main_sub, ...], ... ]
     per_code: dict[str, dict[str, OrderedDict]] = {}
     l1_name_by_code: dict[str, str] = {}
 
     for row in iter_rows(source):
         if not header_seen:
             header_seen = True
+            col = _build_col_index(row)
             continue
-        if len(row) < 9:
-            continue
-        l1_name = str(row[0] or "").strip()
-        l2 = str(row[1] or "").strip()
-        l3 = str(row[2] or "").strip()
-        l4 = str(row[3] or "").strip()
-        step = str(row[4] or "").strip()
-        main_sub = str(row[5] or "").strip()
-        grade = str(row[6] or "").strip()
-        fabric = str(row[7] or "").strip().lower()
-        sec = row[8]
+
+        def _at(name: str, fallback_idx: int):
+            i = col.get(name, fallback_idx)
+            return row[i] if i is not None and i < len(row) else None
+
+        l1_name = str(_at("部位", 0) or "").strip()
+        l2 = str(_at("零件", 1) or "").strip()
+        l3 = str(_at("形狀設計", 2) or "").strip()
+        l4 = str(_at("工法描述", 3) or "").strip()
+        step = str(_at("細工段", 4) or "").strip()
+        main_sub = str(_at("主副", 5) or "").strip()
+        grade = str(_at("等級", 6) or "").strip()
+        fabric = str(_at("Woven_Knit", 7) or "").strip().lower()
+        machine = str(_at("機種", -1) or "").strip()  # 20260507+ column; "" for older
+        sec = _at("Second", 8)
         if not l1_name:
             continue
         code = name_to_code.get(l1_name)
@@ -206,7 +310,12 @@ def build(source: Path, name_to_code: dict[str, str]):
         l2_entry = l2_map.setdefault(l2, OrderedDict())
         l3_entry = l2_entry.setdefault(l3, OrderedDict())
         step_list = l3_entry.setdefault(l4, [])
-        step_list.append([step, grade, sec_val, main_sub])
+        # Step tuple: [step, grade, sec, main_sub, machine?]
+        # machine 留空 ("") 時不擴 5-elem,維持 20260402 backwards compat
+        if machine:
+            step_list.append([step, grade, sec_val, main_sub, machine])
+        else:
+            step_list.append([step, grade, sec_val, main_sub])
 
     # Convert nested OrderedDicts → list-of-dict shape that matches existing files.
     # Sort methods within each L3 by step count DESC (matches `_index.json`
@@ -313,3 +422,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
