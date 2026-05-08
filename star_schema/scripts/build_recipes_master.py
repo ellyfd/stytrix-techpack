@@ -92,6 +92,7 @@ L1_ACCEPTED = L1_VALID_38 | L1_SPECIAL
 OUT_MASTER = REPO_ROOT / "data" / "runtime" / "recipes_master.json"
 OUT_L1_STD = REPO_ROOT / "data" / "runtime" / "l1_standard_38.json"
 OUT_MASTER_JSONL = REPO_ROOT / "data" / "master.jsonl"
+OUT_MASTER_META = REPO_ROOT / "data" / "master.meta.json"
 
 
 # ── Gate Report ────────────────────────────────────────────────────────────
@@ -961,6 +962,13 @@ def main():
         for entry in all_entries:
             f.write(json.dumps(entry, ensure_ascii=False) + "\n")
     print(f"[master.jsonl] {len(all_entries)} entries → {OUT_MASTER_JSONL.name}", file=sys.stderr)
+
+    # Phase 2.2: sidecar metadata file (envelope without entries).
+    # derive_view_recipes_master.py reads this + master.jsonl to rebuild View A.
+    meta = {k: v for k, v in out.items() if k != "entries"}
+    meta["n_entries"] = len(all_entries)
+    OUT_MASTER_META.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"[master.meta] envelope (no entries) → {OUT_MASTER_META.name}", file=sys.stderr)
 
     print("--- stats ---", file=sys.stderr)
     for k, v in out["stats"].items():
