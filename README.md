@@ -173,7 +173,7 @@ data/
       ├─ consensus_rules/                     ← 275 筆 `source=consensus_rules_final`，build_recipes_master 透過 `*/facts.jsonl` glob 讀；大多跟 consensus_v1 重疊被 dedup，但仍貢獻少數 entries
       ├─ ocr_v1/                              ← 1202 筆 OCR 輸出，同樣靠 glob 被讀到；貢獻 ~249 個 entries（2026-04-24 實測）
       └─ m7_pullon/                           ← **2026-05-08 加**:聚陽 PullOn pipeline 推進來
-          ├─ entries.jsonl                    ←   aggregated by 6-dim key (gender/dept/gt/it/fabric/l1),build_recipes_master `build_from_m7_pullon()` 吃
+          ├─ entries.jsonl                    ←   aggregated by 6-dim key (gender/dept/garment/item/fabric/l1;JSON key 簡寫為 gt/it),build_recipes_master `build_from_m7_pullon()` 吃
           └─ designs.jsonl.gz                 ←   per-EIDH 完整履歷 (3,900 件 PullOn,gzipped),Phase 2.4 designs_index derive 吃
 l2_l3_ie/*.json                               ← 聚陽模型:38 個 L1 部位的 L2-L3-IE 規則(39 檔 = 38 L1 + 1 index)
 pom_rules/*.json                              ← POM 規則(81 bucket + _index.json = 82 檔,由 scripts/core/reclassify_and_rebuild.py 產出)
@@ -257,7 +257,7 @@ BASE 目錄需包含 `2024/ 2025/ 2026/` PDF 樹 + `_parsed/` + `all_years.jsonl
 
 | Bucket 集 | 位置 | 形狀 | 新增方式 |
 |---|---|---|---|
-| **Pipeline A (recipes_master) 的 59 bucket** | `data/runtime/bucket_taxonomy.json` | `<gender>_<dept>_<gt>` (lowercase) | **手動** — 編輯 JSON 加新 entry,每個 entry 必須有 `gender` / `dept` / `gt` 三個非空 list。加完跑 `python3 scripts/core/validate_buckets.py` 驗證一致性,再重新跑 `python3 star_schema/scripts/build_recipes_master.py --strict` 確認 facts 被接受。 |
+| **Pipeline A (recipes_master) 的 59 bucket** | `data/runtime/bucket_taxonomy.json` | `<gender>_<dept>_<garment>` (lowercase;JSON key 簡寫為 `gt`) | **手動** — 編輯 JSON 加新 entry,每個 entry 必須有 `gender` / `dept` / `gt`(garment 簡寫,沿用相容)三個非空 list。加完跑 `python3 scripts/core/validate_buckets.py` 驗證一致性,再重新跑 `python3 star_schema/scripts/build_recipes_master.py --strict` 確認 facts 被接受。 |
 | **Pipeline B (POM RULES) 的 81 bucket** | `pom_rules/*.json` + `pom_rules/_index.json` | `<DEPT>_<GT>\|<GENDER>` (UPPERCASE) | **自動** — 不要手改。把新 PDF 放進 BASE 資料夾,跑 `reclassify_and_rebuild.py`,它會自動建出新 bucket 檔。 |
 
 **Recipes** (`recipes/recipe_<GENDER>_<DEPT>_<GT>_<IT>.json`) 是第三個維度(多個 item_type),跟兩組 bucket 不是 1:1,由 Pipeline A 的 ingest 產生,一般不手動改。
