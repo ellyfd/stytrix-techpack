@@ -1,0 +1,262 @@
+# Platform Data Pipeline Mapping
+
+⚠️ **每次 build / 改 data path 之前 RTFM 這份。違反 = 資料用錯。**
+
+聚陽端 mirror 在 `M7_Pipeline/skills/data-pipeline-mapping/SKILL.md`。兩邊邊界:
+- 聚陽端負責 SSRS / TP fetch → push 進這個 repo 的 `data/ingest/m7_pullon/`
+- 這份文件從 `data/ingest/m7_pullon/` 收件開始
+
+---
+
+## 1. 資料夾分工(2026-05-08 結構)
+
+```
+data/
+  runtime/                    線上系統 runtime 讀的成品 JSON (前端 fetch / api/ 讀)
+    recipes_master.json       通用模型 ISO consensus,GitHub Actions 自動重建
+    iso_dictionary.json       ISO 字典,自動重建
+    l1_standard_38.json       38 個 L1 部位標準
+    l2_visual_guide.json      聚陽 Pass 1/2 視覺指引
+    l2_decision_trees.json    Pass 2 decision tree
+    pom_dictionary.json       POM 代號對照(admin 編)
+    construction_bridge_v6.json  跨設計 GT × zone 統計
+    bucket_taxonomy.json      v4 4-dim + legacy_buckets alias
+    grading_patterns.json     跳碼 pattern
+    bodytype_variance.json    Body Type 差異
+    gender_gt_pom_rules.json  Gender × GT POM 規則
+    all_designs_gt_it_classification.json
+    client_rules.json
+    design_classification_v5.json
+    l1_part_presence_v1.json   聚陽模型部位出現率
+    l1_iso_recommendations_v1.json
+
+  source/                     手維護 / 上傳的原始底稿
+    L2_代號中文對照表.xlsx    L1/L2 代號對照(14 KB)
+    BIBLE_UPGRADE.md          Bible 升級 SOP (xlsx 留聚陽端不進 repo)
+    M7_PULLON_DATA_SCHEMA.md  m7_pullon source schema 文件
+    # ❌ 五階層展開項目_*.xlsx 不再進 repo
+
+  ingest/                     Pipeline staging
+    uploads/                  使用者上傳 PDF/PPTX(處理完 workflow 刪)
+    metadata/designs.jsonl    Step 1 PDF/PPTX 抽出的 D-number + cover metadata
+    pptx/<slug>.txt           Step 1 PPTX 文字
+    pdf/callout_images/       Step 1 PDF callout PNG
+    pdf/callout_manifest.jsonl Step 1 manifest
+    unified/{dim,facts}.jsonl  Step 2a 全量合併
+    vlm/{facts.jsonl,...}     Step 2b VLM 抽出
+    consensus_v1/entries.jsonl  人工 consensus(275)
+    consensus_rules/facts.jsonl  舊 OCR consensus(275,glob)
+    ocr_v1/facts.jsonl        舊 OCR 1202(glob)
+    construction_by_bucket/   外部資料源(688)
+    m7_pullon/                ⭐ 2026-05-08+ 聚陽 PullOn pipeline 推進來
+      entries.jsonl           7.5 MB / 746 entries (aggregated)
+      designs.jsonl.gz        ~6 MB (gzipped per-EIDH 履歷)
+
+  legacy/                     退役 fallback (只縮不增)
+
+l2_l3_ie/<L1>.json (38 + _index)     Bible 五階層展開,從 xlsx 衍生(brand-agnostic)
+l2_l3_ie_by_client/<L1>.json (26)    ⛔ DEPRECATED,Phase 2.5 砍
+recipes/                              PATH2 做工配方(72 檔)
+pom_rules/                            81 個 bucket(自動產)
+path2_universal/                      通用模型 ISO 查表 (v4.3 + v4)
+star_schema/scripts/                  CI 觸發的 ingest pipeline
+api/                                  Vercel functions
+docs/spec/                            跨模組共用規格
+docs/architecture/                    架構設計文件
+docs/sop/                             純人類操作 SOP
+```
+
+---
+
+## 2. 上游 → 線上 4 階段
+
+```
+Step 1 raw 收集     Step 2 source       Step 3 master         Step 4 view
+   ↓                   ↓                    ↓                     ↓
+data/ingest/       per-source 中介      build_recipes_master   derive_view_*
+uploads/           facts.jsonl                                  (Phase 2)
+聚陽 push                              data/master.jsonl       data/runtime/
+                                       (Phase 2.1+)            recipes_master.json
+                                                               l2_l3_ie/<L1>.json
+                                                               designs_index/<EIDH>.json
+```
+
+---
+
+## 3. 工具 → 中介檔(`data/ingest/`)
+
+### `star_schema/scripts/extract_raw_text.py`
+
+```
+python star_schema/scripts/extract_raw_text.py --scan-dir data/ingest/uploads --output-dir data/ingest
+```
+
+| 輸入 | 輸出 |
+|---|---|
+| `data/ingest/uploads/*.pdf` | `data/ingest/metadata/designs.jsonl`(append) |
+| 同上 PDF | `data/ingest/pdf/callout_images/<DID>_p<N>.png`(216 DPI) |
+| 同上 PDF | `data/ingest/pdf/callout_manifest.jsonl` |
+| `data/ingest/uploads/*.pptx` | `data/ingest/pptx/<slug>.txt` |
+
+### `star_schema/scripts/vlm_pipeline.py --map-iso`
+
+```
+python star_schema/scripts/vlm_pipeline.py --map-iso --out data/ingest/vlm --callout-dir data/ingest/pdf/callout_images --ingest-dir data/ingest
+```
+
+| 輸入 | 輸出 |
+|---|---|
+| `data/ingest/pdf/callout_images/*.png` | `data/ingest/vlm/facts.jsonl`(Claude Vision 抽 ISO/L1/zone) |
+| 同上 | `data/ingest/vlm/vlm_callout_extracts.json` |
+
+### `star_schema/scripts/extract_unified.py`
+
+```
+python star_schema/scripts/extract_unified.py --ingest-dir data/ingest --out data/ingest/unified
+```
+
+| 輸入 | 輸出 |
+|---|---|
+| `data/ingest/pptx/*.txt` + `metadata/designs.jsonl` + `vlm/facts.jsonl` | `data/ingest/unified/{dim,facts}.jsonl`(全量重建) |
+
+---
+
+## 4. 整合工具:`star_schema/scripts/build_recipes_master.py`
+
+```
+python star_schema/scripts/build_recipes_master.py --strict
+```
+
+**讀什麼**(7 來源 cascade):
+
+| Source | 路徑 | 量 |
+|---|---|---|
+| recipe (same_sub) | `recipes/recipe_*.json` | 71-72 |
+| consensus_v1 (same_bucket) | `data/ingest/consensus_v1/entries.jsonl` | 275 |
+| facts_agg (same_bucket) | `data/ingest/*/facts.jsonl` glob | 動態 |
+| **m7_pullon** ⭐ (same_bucket) | `data/ingest/m7_pullon/entries.jsonl` | ~750 entries (4644 EIDH) |
+| v4.3 (same_gt) | `path2_universal/iso_lookup_factory_v4.3.json` | 230 |
+| v4 (general) | `path2_universal/iso_lookup_factory_v4.json` | 282 |
+| bridge (cross_design) | `data/runtime/construction_bridge_v6.json` | 53 |
+
+**驗證**:L1 對 `l1_standard_38`、bucket 對 `bucket_taxonomy.json`(v4 + legacy_buckets)。違規 `--strict` exit 1。
+
+**寫什麼**(Phase 1, 現況):
+- `data/runtime/recipes_master.json`(通用 ISO consensus)
+- `data/runtime/iso_dictionary.json`
+- `data/runtime/l1_standard_38.json`
+
+**Phase 2 規劃**(尚未 implement,見 `docs/architecture/PHASE2_DERIVE_VIEWS_SPEC.md`):
+
+加 `data/master.jsonl` 為 single source of truth → derive 出 3 view:
+- View A: `data/recipes_master.json`(同上)
+- View B: `l2_l3_ie/<L1>.json` 38 檔(Bible schema 升級)
+- View C: `data/runtime/designs_index/<EIDH>.json`(per-EIDH lazy fetch)
+
+---
+
+## 5. Bible 升級:`scripts/core/build_l2_l3_ie.py`
+
+```
+python scripts/core/build_l2_l3_ie.py
+```
+
+| 輸入 | 輸出 |
+|---|---|
+| `data/source/五階層展開項目_YYYYMMDD.xlsx`(維護者本機,**不進 repo**) | `l2_l3_ie/<L1>.json` 38 檔 + `_index.json` |
+| `data/source/L2_代號中文對照表.xlsx` | (registry) |
+
+⚠ xlsx 留維護者本機,build 完 push 38 個 JSON。詳見 `data/source/BIBLE_UPGRADE.md`。
+
+CI workflow `.github/workflows/build_l2_l3_ie.yml` = `workflow_dispatch` only(不再 auto-trigger)。
+
+---
+
+## 6. POM Pipeline(獨立)
+
+```
+python scripts/core/reclassify_and_rebuild.py
+```
+
+| 輸入 | 輸出 |
+|---|---|
+| (POM 規則底稿) | `pom_rules/<bucket>.json` 81 個 |
+| (POM dictionary) | `data/runtime/pom_dictionary.json` |
+
+⛔ POM 跟做工 cascade 完全獨立,不要 cross-import。
+
+---
+
+## 7. 前端讀什麼
+
+| 模式 | Fetch 路徑 |
+|---|---|
+| 通用模型 | `data/runtime/recipes_master.json` + `data/runtime/iso_dictionary.json` + `data/runtime/l1_standard_38.json` |
+| 聚陽模型 | 上面 + `l2_l3_ie/<L1>.json`(lazy by 部位)+ `pom_rules/<bucket>.json` |
+| VLM Pass 1/2 | `api/analyze.js` 啟動 inject `data/runtime/{l2_visual_guide,l2_decision_trees,l1_standard_38}.json` |
+
+---
+
+## 8. CI workflow
+
+| Workflow | Trigger | 跑什麼 |
+|---|---|---|
+| `.github/workflows/rebuild_master.yml` | push `data/ingest/uploads/**` 或 `data/ingest/m7_pullon/**` | extract_raw_text → vlm_pipeline → extract_unified → build_recipes_master --strict |
+| `.github/workflows/build_l2_l3_ie.yml` | `workflow_dispatch` only | build_l2_l3_ie |
+
+---
+
+## 9. 常見錯誤對照
+
+| 症狀 | 原因 | 修法 |
+|---|---|---|
+| `bucket not in taxonomy` 報錯 | 用 v3 schema 讀 v4 file | 確認 `load_bucket_taxonomy()` 已升級含 `legacy_buckets` 合併 |
+| `recipes_master.json` 缺 m7_pullon entries | `data/ingest/m7_pullon/entries.jsonl` 沒 push 上 | 跑 M7 端 `push_m7_pullon_v3.ps1` |
+| `l2_l3_ie/<L1>.json` 沒更新 | xlsx 沒 build | 維護者本機跑 `scripts/core/build_l2_l3_ie.py` 後 push 38 JSON |
+| 前端看到舊 ISO | CI 沒重跑 | 確認 push 有碰 `data/ingest/uploads/**` 或 `m7_pullon/**`;否則手動 `workflow_dispatch` |
+| 五階層字典不對 | 用了 stale `l2_l3_ie_by_client/`(deprecated) | 改用 `l2_l3_ie/`(canonical Bible) |
+
+---
+
+## 10. 不要碰
+
+- ❌ `l2_l3_ie/` 38 檔手改 — CI 自動產(從 xlsx)
+- ❌ `recipes_master.json` 手改 — CI 自動產
+- ❌ `pom_rules/*.json` 手改 — script 自動產
+- ❌ `l2_l3_ie_by_client/` 加新檔 — DEPRECATED, Phase 2.5 砍
+- ❌ `data/legacy/` 加新檔 — 只縮不增
+- ❌ `data/source/五階層展開項目_*.xlsx` 進 repo — 留聚陽端
+
+---
+
+## 11. 流程順序(從零跑)
+
+```bash
+# A. 維護者本機 build Bible(若 xlsx 改了)
+python scripts/core/build_l2_l3_ie.py
+git add l2_l3_ie/ && git commit -m "feat(bible): rebuild" && git push
+
+# B. 聚陽端 push m7_pullon source(若 SSRS / 列管有更新)
+#    在 M7_Pipeline 端跑(見 M7 端 SKILL):
+#    python scripts/build_m7_pullon_source_v3.py
+#    .\scripts\push_m7_pullon_v3.ps1
+
+# C. 使用者上傳 PDF/PPTX 觸發 CI
+#    走 web upload 進 data/ingest/uploads/ → CI auto build_recipes_master
+
+# D. (可選)手動觸發 workflow
+#    GitHub Actions → "Rebuild recipes_master" → Run workflow
+```
+
+---
+
+## 鏡像對應
+
+`M7_Pipeline/skills/data-pipeline-mapping/SKILL.md`(聚陽 Windows 端):
+- M7 SSRS 五階展開 + m7_report fetch
+- TP PDF/PPTX SMB 拉取
+- `extract_raw_text_m7.py` 三 mode(--metadata-only / --pptx-only / --pdf-only)
+- `build_m7_pullon_source_v3.py`(deprecate v1+v2)
+- push 進這個 repo 的 `data/ingest/m7_pullon/`
+
+**邊界**:聚陽端 push 完結束。Platform 端從 `data/ingest/m7_pullon/` 收件開始。
