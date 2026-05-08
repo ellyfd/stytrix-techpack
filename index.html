@@ -4638,8 +4638,8 @@ function App() {
   const [cStage, setCStage] = useState(0);
   const [removed, setRemoved] = useState(new Set());
   const [openId, setOpenId] = useState(null);
-  // v11: 細節欄 displayMode (展開 / 分組 / 格狀);default expand。
-  const [detailDisplayMode, setDetailDisplayMode] = useState("expand");
+  // v11: 細節欄 displayMode (展開 / 分組 / 格狀);default group (依 mockup,點開後再展開)。
+  const [detailDisplayMode, setDetailDisplayMode] = useState("group");
   // v11: openId 變動時(包含 sketch dot 點擊),把中欄對應 PartTableRow 捲入可視範圍。
   // scrollIntoView block:'nearest' 已可視就 no-op,無須區分點擊來源。
   useEffect(() => {
@@ -5655,7 +5655,7 @@ function App() {
         background: "#fff", borderBottom: "1px solid #eee",
       }}>
       <div style={{
-        maxWidth: "1280px", margin: "0 auto",
+        maxWidth: "1480px", margin: "0 auto",
         display: "flex", justifyContent: "space-between", alignItems: "center",
         gap: "16px", flexWrap: "wrap",
       }}>
@@ -5781,7 +5781,7 @@ function App() {
       </div>
       </div>
 
-      <div style={{ maxWidth: "1280px", margin: "0 auto", padding: isMobile ? "14px 14px" : "24px 28px" }}>
+      <div style={{ maxWidth: "1480px", margin: "0 auto", padding: isMobile ? "14px 14px" : "24px 28px" }}>
         {/* ─── Filter (v10: flush underline selects) ─── */}
         {(() => {
           const selectedFilters = [
@@ -5868,7 +5868,8 @@ function App() {
               }}>
               <Sel label="Brand" value={brand} onChange={setBrand}
                 options={BRANDS.map(b => b.code)} badgeMap={brandBadgeMap}
-                locked={!!locks.brand} onToggleLock={() => toggleLock("brand")} />
+                locked={appMode !== "universal" && !!locks.brand}
+                onToggleLock={appMode === "universal" ? undefined : () => toggleLock("brand")} />
               <Sel label="Fabric" value={fabric}
                 onChange={v => { setFabric(v); setIt(""); }}
                 options={["Woven", "Knit"]} badgeMap={fabricBadgeMap}
@@ -6122,85 +6123,7 @@ function App() {
                         </div>
                       </div>
                     </div>}
-                    {cDone && appMode !== "universal" && (() => {
-                      const allSelected = addonSteps.size === ADDON.steps.length;
-                      const toggleAll = (e) => {
-                        e.stopPropagation();
-                        setAddonSteps(allSelected ? new Set() : new Set(ADDON.steps.map((_, i) => i)));
-                      };
-                      const toggleStep = (i) => {
-                        const next = new Set(addonSteps);
-                        if (next.has(i)) next.delete(i); else next.add(i);
-                        setAddonSteps(next);
-                      };
-                      return (
-                        <div style={{ borderTop: "1px solid #f0f0f0" }}>
-                          <div
-                            onClick={() => setShowAddonSteps(v => !v)}
-                            style={{
-                              padding: "10px 16px",
-                              display: "flex", alignItems: "center", gap: "10px",
-                              cursor: "pointer", userSelect: "none",
-                            }}
-                            title={`${brand} 品牌套組 · ${ADDON.steps.length} 工段`}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={allSelected}
-                              ref={el => { if (el) el.indeterminate = addonOn && !allSelected; }}
-                              onClick={(e) => e.stopPropagation()}
-                              onChange={toggleAll}
-                              style={{ width: "15px", height: "15px", accentColor: "#1a1a1a", cursor: "pointer" }}
-                            />
-                            <span style={{ fontSize: "12px", fontWeight: 600, color: addonOn ? "#1a1a1a" : "#888" }}>
-                              {brand} 品牌套組
-                            </span>
-                            <span style={{ fontSize: "10px", color: "#888" }}>
-                              {addonSteps.size}/{ADDON.steps.length} 工段
-                            </span>
-                            <span style={{ fontSize: "10px", color: "#888", marginLeft: "4px" }}>
-                              {showAddonSteps ? "▴" : "▾"}
-                            </span>
-                            <span style={{
-                              marginLeft: "auto",
-                              fontSize: "13px", fontWeight: 700, fontFamily: "'JetBrains Mono',monospace",
-                              color: addonOn ? "#065f46" : "#bbb",
-                            }}>
-                              {addonOn ? "+" : ""}{Math.round(addonSelectedIE)}<span style={{ fontSize: "10px", color: "#888", marginLeft: "3px", fontWeight: 500 }}>秒</span>
-                            </span>
-                          </div>
-                          {showAddonSteps && (
-                            <div style={{
-                              padding: "4px 16px 10px 40px",
-                              display: "flex", flexDirection: "column", gap: "6px",
-                              background: "#fafafa",
-                            }}>
-                              {ADDON.steps.map((step, i) => (
-                                <label key={i} style={{
-                                  display: "flex", alignItems: "center", gap: "8px", cursor: "pointer",
-                                }}>
-                                  <input
-                                    type="checkbox"
-                                    checked={addonSteps.has(i)}
-                                    onChange={() => toggleStep(i)}
-                                    style={{ width: "13px", height: "13px", accentColor: "#1a1a1a", cursor: "pointer" }}
-                                  />
-                                  <span style={{ fontSize: "11px", color: addonSteps.has(i) ? "#1a1a1a" : "#888" }}>
-                                    {step.l3}
-                                  </span>
-                                  <span style={{
-                                    marginLeft: "auto", fontSize: "11px", color: "#888",
-                                    fontFamily: "'JetBrains Mono',monospace",
-                                  }}>
-                                    +{Math.round(step.ie * 60)}秒
-                                  </span>
-                                </label>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })()}
+                    {/* v11: ADDON brand bundle UI 已搬到中欄「系統必備」區塊,sketch 欄不再顯示。 */}
                     {cDone && analyzeUsage && (() => {
                       const MODEL_ZH = {
                         "claude-opus-4-7": "Claude Opus 4.7",
@@ -6654,9 +6577,9 @@ function App() {
                     }
                   })()}
 
-                  {/* v11: 桌機顯示「系統必備」amber section + 合計 footer。
-                      ADDON brand bundle 資料源不變,只在中欄補一個固定列示意,
-                      勾選 / 5 個 sub-step 仍透過 sketch 欄下方原 UI 操作。 */}
+                  {/* v11: 桌機顯示「系統必備」amber section。
+                      ADDON brand bundle 資料源 / state 不動;sketch 欄原 UI 已移除。
+                      F1 列點擊 → inline 展開 5 個 sub-step checkbox。 */}
                   {!isMobile && cDone && appMode !== "universal" && (
                     <div style={{ marginTop: "16px" }}>
                       <div style={{
@@ -6669,30 +6592,83 @@ function App() {
                         系統必備（依 {brand || "客戶"} 客戶規則）
                       </div>
                       {(() => {
-                        // ADDON 為單一 bundle,在 mockup 視覺上拆成 F1/F2,但本輪僅用 1 列示意。
+                        const fixedSteps = addonOn
+                          ? Array.from(addonSteps).map(i => ({ name: ADDON.steps[i]?.l3 || ADDON.steps[i]?.n || "—", ie: (ADDON.steps[i]?.ie || 0) * 60, auto: false }))
+                          : [];
+                        const ieTotal = Array.from(addonSteps).reduce((s, i) => s + (ADDON.steps[i]?.ie || 0) * 60, 0);
                         const fakeFixedCard = {
                           id: 0,
                           l1: ADDON.name,
                           l1_code: "_addon",
                           l2: addonOn ? `${addonSteps.size}/${ADDON.steps.length} 工段` : "未啟用",
                           l2Variants: null, l3Variants: null, methodVariants: null,
-                          l3s: addonOn ? Array.from(addonSteps).map(i => ({ name: ADDON.steps[i]?.n || "—", ie: ADDON.steps[i]?.ie || 0, auto: false })) : [],
-                          ie: Array.from(addonSteps).reduce((s, i) => s + (ADDON.steps[i]?.ie || 0), 0),
+                          l3s: fixedSteps,
+                          ie: ieTotal,
                           source: "struct",
                           presenceTier: "essential",
                           presencePct: 100,
                         };
+                        const allSelected = addonSteps.size === ADDON.steps.length;
+                        const toggleAll = () => {
+                          setAddonSteps(allSelected ? new Set() : new Set(ADDON.steps.map((_, i) => i)));
+                        };
+                        const toggleStep = (i) => {
+                          const next = new Set(addonSteps);
+                          if (next.has(i)) next.delete(i); else next.add(i);
+                          setAddonSteps(next);
+                        };
                         return (
-                          <PartTableRow
-                            card={fakeFixedCard}
-                            isActive={false}
-                            isFixed={true}
-                            fixedLabel="F1"
-                            col="#b45309"
-                            appMode={appMode}
-                            onToggle={() => setShowAddonSteps(v => !v)}
-                            onRemove={() => {}}
-                          />
+                          <>
+                            <PartTableRow
+                              card={fakeFixedCard}
+                              isActive={showAddonSteps}
+                              isFixed={true}
+                              fixedLabel="F1"
+                              col="#b45309"
+                              appMode={appMode}
+                              onToggle={() => setShowAddonSteps(v => !v)}
+                              onRemove={() => {}}
+                            />
+                            {showAddonSteps && (
+                              <div style={{
+                                background: "#fffdf5", borderBottom: "1px solid #f0eeeb",
+                                padding: "10px 14px 12px 50px",
+                              }}>
+                                <label style={{
+                                  display: "flex", alignItems: "center", gap: "8px",
+                                  cursor: "pointer", fontSize: "12px", fontWeight: 600,
+                                  color: "#92400e", marginBottom: "6px",
+                                }}>
+                                  <input type="checkbox"
+                                    checked={allSelected}
+                                    ref={el => { if (el) el.indeterminate = addonOn && !allSelected; }}
+                                    onChange={toggleAll}
+                                    style={{ width: "14px", height: "14px", accentColor: "#b45309", cursor: "pointer" }} />
+                                  全選 / 全清
+                                  <span style={{ marginLeft: "auto", fontSize: "11px", color: "#888", fontWeight: 400 }}>
+                                    {addonSteps.size}/{ADDON.steps.length} 工段
+                                  </span>
+                                </label>
+                                {ADDON.steps.map((step, i) => (
+                                  <label key={i} style={{
+                                    display: "flex", alignItems: "center", gap: "8px",
+                                    cursor: "pointer", fontSize: "12px",
+                                    padding: "4px 0",
+                                  }}>
+                                    <input type="checkbox"
+                                      checked={addonSteps.has(i)}
+                                      onChange={() => toggleStep(i)}
+                                      style={{ width: "13px", height: "13px", accentColor: "#b45309", cursor: "pointer" }} />
+                                    <span style={{ color: addonSteps.has(i) ? "#1a1a1a" : "#555" }}>{step.l3 || step.n}</span>
+                                    <span style={{
+                                      marginLeft: "auto", fontSize: "11px", color: "#888",
+                                      fontFamily: "'JetBrains Mono', monospace",
+                                    }}>+{Math.round((step.ie || 0) * 60)}秒</span>
+                                  </label>
+                                ))}
+                              </div>
+                            )}
+                          </>
                         );
                       })()}
                     </div>
@@ -6718,23 +6694,6 @@ function App() {
                     </div>
                   )}
 
-                  <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "20px" }}>
-                    <button onClick={exportTechpack}
-                      title="下載目前 techpack 狀態為 JSON 檔"
-                      style={{
-                        padding: "10px 20px", background: "#fff", color: "#1a1a1a",
-                        border: "1px solid #e8e5e1", borderRadius: "6px",
-                        fontSize: "12px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
-                        display: "inline-flex", alignItems: "center", gap: "6px",
-                      }}>
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                        <polyline points="7 10 12 15 17 10"/>
-                        <line x1="12" y1="15" x2="12" y2="3"/>
-                      </svg>
-                      匯出 JSON
-                    </button>
-                  </div>
                 </div>}
               </div>
 
