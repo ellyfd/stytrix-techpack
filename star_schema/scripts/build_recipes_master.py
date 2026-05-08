@@ -58,7 +58,8 @@ REPO_ROOT = STAR_SCHEMA.parent
 # 2026-05-07: 資料夾改名 General Model_Path2_Construction Suggestion → path2_universal
 V43_PATH = REPO_ROOT / "path2_universal" / "iso_lookup_factory_v4.3.json"
 V4_PATH  = REPO_ROOT / "path2_universal" / "iso_lookup_factory_v4.json"
-BRIDGE_PATH = REPO_ROOT / "data" / "construction_bridge_v6.json"
+# 2026-05-07: 搬到 data/runtime/ (跟其他 runtime JSON 一起)
+BRIDGE_PATH = REPO_ROOT / "data" / "runtime" / "construction_bridge_v6.json"
 RECIPES_DIR = REPO_ROOT / "recipes"
 
 # Star schema ingest paths
