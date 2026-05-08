@@ -1086,6 +1086,7 @@ function PartTableRow({ card, isActive, onToggle, onRemove, col, appMode, isFixe
         background: isActive ? "#f0fdf4" : "#fff",
         borderBottom: "1px solid #f0eeeb",
         cursor: "pointer", outline: "none",
+        overflow: "hidden",
         transition: "background 0.12s, border-color 0.12s",
       }}
       onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = "#fafaf9"; }}
@@ -1115,20 +1116,21 @@ function PartTableRow({ card, isActive, onToggle, onRemove, col, appMode, isFixe
         </>}
         {!l2Disp && !l3Disp && <span style={{ color: "#bbb" }}>—</span>}
       </div>
-      {/* universal 模式:[IE秒 / 工段 / 可調] 三欄合併成「替代 ISO」chips;聚陽模式維持原 3 欄。 */}
+      {/* universal 模式:[IE秒 / 工段 / 可調] 三欄合併成「替代 ISO」chips;聚陽模式維持原 3 欄。
+          nowrap + overflow hidden,塞不下就自然 cut 掉,row 高度不會被撐開。 */}
       {appMode === "universal" ? (
         <div style={{
           width: "168px", flexShrink: 0,
           display: "flex", alignItems: "center", justifyContent: "flex-end",
-          gap: "4px", flexWrap: "wrap",
-          overflow: "hidden",
+          gap: "4px",
+          overflow: "hidden", whiteSpace: "nowrap",
         }}>
-          {(card.universal?.alternatives || []).slice(0, 3).map((a, i) => (
+          {(card.universal?.alternatives || []).slice(0, 2).map((a, i) => (
             <span key={i} style={{
               fontSize: "10px", padding: "2px 6px",
               background: "#f5f5f4", color: "#555",
               borderRadius: "4px", fontFamily: "'JetBrains Mono', monospace", fontWeight: 600,
-              whiteSpace: "nowrap",
+              whiteSpace: "nowrap", flexShrink: 0,
             }}>
               ISO {a.iso}
               {a.pct != null && <span style={{ marginLeft: "4px", color: "#b45309" }}>{a.pct}%</span>}
