@@ -118,6 +118,45 @@ function readStepRow(row) {
   return { name: null, grade: null, sec: null, primary: null, machine: null, actuals: null };
 }
 
+/* ─── filterBibleByBrand: prune Phase 2 Bible to only paths a given brand
+   used (per actuals.by_brand[brand]), and override each surviving step's
+   sec with that brand's sec_median. Replaces the legacy
+   l2_l3_ie_by_client/<L1>.json fetch path (Phase 2.5b retire).
+
+   Walks knit/woven → L2 → L3 → L4 → step. Returns a new Bible-shaped
+   object. Mutating-style logic that drops empty branches up the tree. ─── */
+function filterBibleByBrand(bible, brand) {
+  if (!bible || !brand) return bible;
+  const filterFabric = (fabricArr) => {
+    return (fabricArr || []).map(l2 => {
+      const shapes = (l2.shapes || []).map(sh => {
+        const methods = (sh.methods || []).map(me => {
+          const steps = [];
+          for (const st of me.steps || []) {
+            // Only Phase 2 dict steps carry actuals; Phase 1 lists pre-upgrade
+            // are pass-through (filter is no-op when Bible is still old format)
+            if (Array.isArray(st)) { steps.push(st); continue; }
+            const brandActual = st && st.actuals && st.actuals.by_brand && st.actuals.by_brand[brand];
+            if (!brandActual) continue;
+            const ie = st.ie_standard || {};
+            const sec = brandActual.sec_median != null ? brandActual.sec_median : ie.sec;
+            steps.push([st.l5, ie.grade, sec, ie.primary, ie.machine]);
+          }
+          return steps.length ? { ...me, steps } : null;
+        }).filter(Boolean);
+        return methods.length ? { ...sh, methods } : null;
+      }).filter(Boolean);
+      return shapes.length ? { ...l2, shapes } : null;
+    }).filter(Boolean);
+  };
+  return {
+    ...bible,
+    knit: filterFabric(bible.knit),
+    woven: filterFabric(bible.woven),
+    _source: `actuals.by_brand/${brand}`,
+  };
+}
+
 /* ─── rebuildCardFromL2: given a card + new L2 index (+ optional L3 index),
    fetches l2_l3_ie for that L1 and rebuilds l3Variants / methodVariants /
    l3s on the card. Used by onSwitchL2 and onSwitchL3. ─── */
@@ -5444,22 +5483,17 @@ function App() {
       const ieByCode = {};
       await Promise.all(detected.map(async d => {
         try {
-          // v6.5: 聚陽模型 + 有選 brand → 優先讀 by_client 版（client-specific 5階）
-          if (appMode !== "universal" && brand) {
-            try {
-              const rc = await fetch(`/l2_l3_ie_by_client/${d.code}.json`);
-              if (rc.ok) {
-                const data = await rc.json();
-                const cd = data.by_client && data.by_client[brand];
-                if (cd && ((cd.knit && cd.knit.length) || (cd.woven && cd.woven.length))) {
-                  ieByCode[d.code] = { l1: data.l1, code: data.code, knit: cd.knit || [], woven: cd.woven || [], _source: `by_client/${brand}` };
-                  return;
-                }
-              }
-            } catch {}
-          }
           const r = await fetch(`/l2_l3_ie/${d.code}.json`);
-          if (r.ok) ieByCode[d.code] = await r.json();
+          if (!r.ok) return;
+          const bible = await r.json();
+          // Phase 2.5b: 聚陽模型 + 有選 brand → 從新 schema 的 actuals.by_brand
+          // 過濾出該 brand 用過的 (L2,L3,L4,L5) 路徑(取代舊 l2_l3_ie_by_client 路徑)
+          if (appMode !== "universal" && brand) {
+            const filtered = filterBibleByBrand(bible, brand);
+            const hasData = (filtered.knit && filtered.knit.length) || (filtered.woven && filtered.woven.length);
+            if (hasData) { ieByCode[d.code] = filtered; return; }
+          }
+          ieByCode[d.code] = bible;
         } catch {}
       }));
 

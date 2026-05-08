@@ -696,8 +696,10 @@ def build_from_m7_pullon(path: Path, bucket_tax: dict, warns: list):
                 "methods": e.get("methods") or [],
                 "client_distribution": e.get("client_distribution") or [],
                 "confidence": e.get("confidence", "medium"),
-                # m7_pullon-specific (preserved for derive_view_by_client.py future use)
-                "_m7_by_client": e.get("by_client"),
+                # m7_pullon-specific (preserved for downstream derive views).
+                # _m7_by_client dropped 2026-05-08 (Phase 2.5b retire l2_l3_ie_by_client/);
+                # frontend now reads brand-specific data from l2_l3_ie/<L1>.json
+                # actuals.by_brand instead.
                 "_m7_design_ids": e.get("design_ids", []),
                 "_m7_ie_total_seconds": e.get("ie_total_seconds"),
             })
