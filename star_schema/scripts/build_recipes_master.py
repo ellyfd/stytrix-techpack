@@ -5,11 +5,11 @@ Merges five construction handbooks into a single unified master file that the
 index.html universal-mode viewer can query with a single fallback cascade.
 
 Sources (all inputs kept read-only):
-  - General Model_Path2_Construction Suggestion/iso_lookup_factory_v4.3.json
+  - path2_universal/iso_lookup_factory_v4.3.json
     (230 entries; Department × Gender × GT × L1 with iso_distribution + n_designs)
-  - General Model_Path2_Construction Suggestion/iso_lookup_factory_v4.json
+  - path2_universal/iso_lookup_factory_v4.json
     (282 entries; Fabric × Department × GT × L1_code with iso_zh / machine)
-  - data/construction_bridge_v6.json
+  - data/runtime/construction_bridge_v6.json
     (bridges[GT][zones][zh_zone] with methods + iso_codes)
   - recipes/*.json (71 files; same-sub-category stats)
   - star_schema/data/ingest/consensus_v1/entries.jsonl + bucket_taxonomy.json
@@ -55,9 +55,11 @@ STAR_SCHEMA = Path(__file__).resolve().parent.parent
 REPO_ROOT = STAR_SCHEMA.parent
 
 # Input sources (all relative to repo root)
-V43_PATH = REPO_ROOT / "General Model_Path2_Construction Suggestion" / "iso_lookup_factory_v4.3.json"
-V4_PATH  = REPO_ROOT / "General Model_Path2_Construction Suggestion" / "iso_lookup_factory_v4.json"
-BRIDGE_PATH = REPO_ROOT / "data" / "construction_bridge_v6.json"
+# 2026-05-07: 資料夾改名 General Model_Path2_Construction Suggestion → path2_universal
+V43_PATH = REPO_ROOT / "path2_universal" / "iso_lookup_factory_v4.3.json"
+V4_PATH  = REPO_ROOT / "path2_universal" / "iso_lookup_factory_v4.json"
+# 2026-05-07: 搬到 data/runtime/ (跟其他 runtime JSON 一起)
+BRIDGE_PATH = REPO_ROOT / "data" / "runtime" / "construction_bridge_v6.json"
 RECIPES_DIR = REPO_ROOT / "recipes"
 
 # Star schema ingest paths
