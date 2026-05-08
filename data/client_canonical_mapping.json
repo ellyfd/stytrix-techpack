@@ -1,1494 +1,4948 @@
 {
-  "version": "v1",
-  "generated_at": "2026-05-08T03:21:01+00:00",
-  "source": "M7列管_20260507.xlsx 總表 18,731 EIDH × PRODUCT_CATEGORY 投票",
+  "version": "v3",
+  "generated_at": "2026-05-08T05:36:22+00:00",
+  "filter_hierarchy": [
+    "client",
+    "fabric",
+    "gender",
+    "dept",
+    "category"
+  ],
   "purity_threshold_pct": 60,
-  "rule": "purity >= 60% 才進 subgroup_to_gender。<{PURITY_THRESHOLD}% 為 mixed 不特列 — 由 PRODUCT_CATEGORY fallback chain 處理。",
+  "rule": "v3 合併版：v2 (4 維 ground truth from M7列管 5/7) + v1 (legacy subgroup_codes for fallback) + 客戶 PDF metadata 欄位對照（B 階段補）。讀取優先序：subgroup_to_meta (v2) > legacy_subgroup_codes (v1) > _GENDER_TOKENS regex > _CLIENT_DEFAULT_*",
   "fallback_chain": [
-    "1. PRODUCT_CATEGORY 直接對應（最精準，每 EIDH 都有）",
-    "2. (client, subgroup) 查此 mapping",
-    "3. _GENDER_TOKENS regex（subgroup 含 MENS/MISSY/BOY/GIRL 字）",
-    "4. _CLIENT_DEFAULT_GENDER（client level default）",
-    "5. UNKNOWN"
+    "1. M7 索引 PRODUCT_CATEGORY 直接對應（最強，每 EIDH 都有）",
+    "2. (client, subgroup) 查 subgroup_to_meta (v2 ground truth)",
+    "3. (client, subgroup) 查 legacy_subgroup_codes (v1 hard mapping)",
+    "4. _GENDER_TOKENS regex (subgroup 含 MENS/MISSY/BOY/GIRL)",
+    "5. _CLIENT_DEFAULT_GENDER / _CLIENT_DEFAULT_DEPT (client level default)",
+    "6. UNKNOWN"
   ],
   "client_canonical_mapping": {
     "A & F": {
-      "aliases": [
-        "A & F",
-        "ANF",
-        "ABERCROMBIE"
-      ],
-      "n_total": 459,
-      "subgroup_to_gender": {
+      "aliases": [],
+      "n_total": 147,
+      "subgroup_to_meta": {
         "ACTIVE": {
-          "gender": "WOMEN",
-          "n": 246,
-          "purity": 94
+          "n_total": 58,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 58,
+            "votes": {
+              "KNIT": 58
+            }
+          },
+          "gender": {
+            "value": "WOMEN",
+            "purity": 98,
+            "n": 58,
+            "votes": {
+              "WOMEN": 57,
+              "GIRL": 1
+            }
+          },
+          "dept": {
+            "value": "ACTIVE",
+            "purity": 100,
+            "n": 58,
+            "votes": {
+              "ACTIVE": 58
+            }
+          },
+          "category": {
+            "value": "LEGGINGS",
+            "purity": 64,
+            "n": 58,
+            "votes": {
+              "LEGGINGS": 37,
+              "PANT": 21
+            }
+          }
         },
         "BOY": {
-          "gender": "BOY",
-          "n": 4,
-          "purity": 100
+          "n_total": 1,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 1,
+            "votes": {
+              "KNIT": 1
+            }
+          },
+          "gender": {
+            "value": "BOY",
+            "purity": 100,
+            "n": 1,
+            "votes": {
+              "BOY": 1
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 1,
+            "votes": {
+              "RTW": 1
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 1,
+            "votes": {
+              "PANT": 1
+            }
+          }
+        },
+        "F.R.": {
+          "n_total": 72,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 69,
+            "n": 72,
+            "votes": {
+              "KNIT": 50,
+              "WOVEN": 22
+            }
+          },
+          "gender": {
+            "value": "MIXED",
+            "purity": 44,
+            "n": 72,
+            "votes": {
+              "BOY": 32,
+              "GIRL": 31,
+              "BABY": 9
+            }
+          },
+          "dept": {
+            "value": "FLEECE",
+            "purity": 100,
+            "n": 72,
+            "votes": {
+              "FLEECE": 72
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 72,
+            "votes": {
+              "PANT": 72
+            }
+          }
         },
         "FLEECE": {
-          "gender": "WOMEN",
-          "n": 9,
-          "purity": 100
+          "n_total": 9,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 9,
+            "votes": {
+              "KNIT": 9
+            }
+          },
+          "gender": {
+            "value": "WOMEN",
+            "purity": 100,
+            "n": 9,
+            "votes": {
+              "WOMEN": 9
+            }
+          },
+          "dept": {
+            "value": "FLEECE",
+            "purity": 100,
+            "n": 9,
+            "votes": {
+              "FLEECE": 9
+            }
+          },
+          "category": {
+            "value": "LEGGINGS",
+            "purity": 78,
+            "n": 9,
+            "votes": {
+              "LEGGINGS": 7,
+              "PANT": 2
+            }
+          }
         },
         "GIRL": {
-          "gender": "GIRL",
-          "n": 3,
-          "purity": 100
-        },
-        "JACKET": {
-          "gender": "BABY",
-          "n": 2,
-          "purity": 100
+          "n_total": 1,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 1,
+            "votes": {
+              "KNIT": 1
+            }
+          },
+          "gender": {
+            "value": "GIRL",
+            "purity": 100,
+            "n": 1,
+            "votes": {
+              "GIRL": 1
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 1,
+            "votes": {
+              "RTW": 1
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 1,
+            "votes": {
+              "PANT": 1
+            }
+          }
         },
         "WOMEN": {
-          "gender": "WOMEN",
-          "n": 23,
-          "purity": 100
-        }
-      },
-      "subgroup_mixed_skipped": [
-        {
-          "subgroup": "F.R.",
-          "n": 172,
-          "purity": 49,
-          "votes": {
-            "BABY": 28,
-            "BOY": 60,
-            "GIRL": 84
+          "n_total": 6,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 6,
+            "votes": {
+              "KNIT": 6
+            }
           },
-          "reason": "mixed_or_unknown"
-        }
-      ]
-    },
-    "AEOM": {
-      "aliases": [
-        "AEOM"
-      ],
-      "n_total": 8,
-      "subgroup_to_gender": {
-        "OTHERS": {
-          "gender": "WOMEN",
-          "n": 8,
-          "purity": 100
+          "gender": {
+            "value": "WOMEN",
+            "purity": 100,
+            "n": 6,
+            "votes": {
+              "WOMEN": 6
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 6,
+            "votes": {
+              "RTW": 6
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 6,
+            "votes": {
+              "PANT": 6
+            }
+          }
         }
       },
-      "subgroup_mixed_skipped": []
+      "subgroup_mixed_skipped": [],
+      "legacy_subgroup_codes": {},
+      "client_pdf_field_mappings": {},
+      "client_pdf_value_maps": {}
     },
     "ASICS-EU": {
       "aliases": [
-        "ASICS-EU",
-        "ASICS"
+        "ASICS EU",
+        "ASICS-EU"
       ],
-      "n_total": 81,
-      "subgroup_to_gender": {},
-      "subgroup_mixed_skipped": [
-        {
-          "subgroup": "KNIT",
-          "n": 81,
-          "purity": 53,
-          "votes": {
-            "WOMEN": 43,
-            "MEN": 38
+      "n_total": 10,
+      "subgroup_to_meta": {
+        "KNIT": {
+          "n_total": 10,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 10,
+            "votes": {
+              "KNIT": 10
+            }
           },
-          "reason": "mixed_or_unknown"
+          "gender": {
+            "value": "WOMEN",
+            "purity": 80,
+            "n": 10,
+            "votes": {
+              "WOMEN": 8,
+              "MEN": 2
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 10,
+            "votes": {
+              "RTW": 10
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 70,
+            "n": 10,
+            "votes": {
+              "PANT": 7,
+              "LEGGINGS": 3
+            }
+          }
         }
-      ]
+      },
+      "subgroup_mixed_skipped": [],
+      "legacy_subgroup_codes": {},
+      "client_pdf_field_mappings": {},
+      "client_pdf_value_maps": {}
     },
     "ATHLETA": {
       "aliases": [
         "ATHLETA",
-        "ATH"
+        "Athleta"
       ],
-      "n_total": 788,
-      "subgroup_to_gender": {
+      "n_total": 185,
+      "subgroup_to_meta": {
         "GIRLS": {
-          "gender": "GIRL",
-          "n": 180,
-          "purity": 100
+          "n_total": 53,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 53,
+            "votes": {
+              "KNIT": 53
+            }
+          },
+          "gender": {
+            "value": "GIRL",
+            "purity": 100,
+            "n": 53,
+            "votes": {
+              "GIRL": 53
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 89,
+            "n": 53,
+            "votes": {
+              "RTW": 47,
+              "FLEECE": 6
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 53,
+            "votes": {
+              "PANT": 53
+            }
+          }
         },
         "WOMENS": {
-          "gender": "WOMEN",
-          "n": 608,
-          "purity": 100
+          "n_total": 132,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 80,
+            "n": 132,
+            "votes": {
+              "KNIT": 105,
+              "WOVEN": 27
+            }
+          },
+          "gender": {
+            "value": "WOMEN",
+            "purity": 100,
+            "n": 132,
+            "votes": {
+              "WOMEN": 132
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 132,
+            "votes": {
+              "RTW": 132
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 85,
+            "n": 132,
+            "votes": {
+              "PANT": 112,
+              "LEGGINGS": 20
+            }
+          }
         }
       },
-      "subgroup_mixed_skipped": []
+      "subgroup_mixed_skipped": [],
+      "legacy_subgroup_codes": {
+        "WOMENS": {
+          "gender": "WOMEN",
+          "dept": "ACTIVE"
+        },
+        "GIRLS": {
+          "gender": "GIRL",
+          "dept": "ACTIVE"
+        }
+      },
+      "client_pdf_field_mappings": {},
+      "client_pdf_value_maps": {}
     },
     "BANANA REPUBLIC": {
       "aliases": [
-        "BANANA REPUBLIC",
-        "BR"
+        "BR",
+        "Banana Republic"
       ],
-      "n_total": 546,
-      "subgroup_to_gender": {
+      "n_total": 30,
+      "subgroup_to_meta": {
         "BR KNIT": {
-          "gender": "MEN",
-          "n": 40,
-          "purity": 95
+          "n_total": 5,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 5,
+            "votes": {
+              "KNIT": 5
+            }
+          },
+          "gender": {
+            "value": "MEN",
+            "purity": 100,
+            "n": 5,
+            "votes": {
+              "MEN": 5
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 5,
+            "votes": {
+              "RTW": 5
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 5,
+            "votes": {
+              "PANT": 5
+            }
+          }
         },
         "BRFS KNIT": {
-          "gender": "WOMEN",
-          "n": 503,
-          "purity": 75
-        },
-        "BRFS TSD": {
-          "gender": "MEN",
-          "n": 3,
-          "purity": 100
+          "n_total": 25,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 25,
+            "votes": {
+              "KNIT": 25
+            }
+          },
+          "gender": {
+            "value": "MIXED",
+            "purity": 56,
+            "n": 25,
+            "votes": {
+              "WOMEN": 14,
+              "MEN": 11
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 25,
+            "votes": {
+              "RTW": 25
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 25,
+            "votes": {
+              "PANT": 25
+            }
+          }
         }
       },
-      "subgroup_mixed_skipped": []
+      "subgroup_mixed_skipped": [],
+      "legacy_subgroup_codes": {
+        "BRFS KNIT": {
+          "gender": "UNKNOWN",
+          "dept": "RTW",
+          "name": "BR Factory Store Knit 待業務確認"
+        }
+      },
+      "client_pdf_field_mappings": {},
+      "client_pdf_value_maps": {}
     },
     "BEYOND YOGA": {
-      "aliases": [
-        "BEYOND YOGA",
-        "BY"
-      ],
-      "n_total": 379,
-      "subgroup_to_gender": {
+      "aliases": [],
+      "n_total": 125,
+      "subgroup_to_meta": {
         "PERFORMANCE": {
-          "gender": "WOMEN",
-          "n": 379,
-          "purity": 100
+          "n_total": 125,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 69,
+            "n": 125,
+            "votes": {
+              "KNIT": 86,
+              "WOVEN": 39
+            }
+          },
+          "gender": {
+            "value": "WOMEN",
+            "purity": 100,
+            "n": 125,
+            "votes": {
+              "WOMEN": 125
+            }
+          },
+          "dept": {
+            "value": "ACTIVE",
+            "purity": 100,
+            "n": 125,
+            "votes": {
+              "ACTIVE": 125
+            }
+          },
+          "category": {
+            "value": "MIXED",
+            "purity": 58,
+            "n": 125,
+            "votes": {
+              "LEGGINGS": 72,
+              "PANT": 53
+            }
+          }
         }
       },
-      "subgroup_mixed_skipped": []
+      "subgroup_mixed_skipped": [],
+      "legacy_subgroup_codes": {},
+      "client_pdf_field_mappings": {},
+      "client_pdf_value_maps": {}
     },
     "CATO": {
-      "aliases": [
-        "CATO"
-      ],
-      "n_total": 38,
-      "subgroup_to_gender": {
-        "RTW KNIT TOP": {
-          "gender": "WOMEN",
-          "n": 25,
-          "purity": 100
-        },
+      "aliases": [],
+      "n_total": 5,
+      "subgroup_to_meta": {
         "RTW MISSY": {
-          "gender": "WOMEN",
-          "n": 1,
-          "purity": 100
+          "n_total": 1,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 1,
+            "votes": {
+              "KNIT": 1
+            }
+          },
+          "gender": {
+            "value": "WOMEN",
+            "purity": 100,
+            "n": 1,
+            "votes": {
+              "WOMEN": 1
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 1,
+            "votes": {
+              "RTW": 1
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 1,
+            "votes": {
+              "PANT": 1
+            }
+          }
         },
         "RTW PONTE": {
-          "gender": "WOMEN",
-          "n": 12,
-          "purity": 100
+          "n_total": 4,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 4,
+            "votes": {
+              "KNIT": 4
+            }
+          },
+          "gender": {
+            "value": "WOMEN",
+            "purity": 100,
+            "n": 4,
+            "votes": {
+              "WOMEN": 4
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 4,
+            "votes": {
+              "RTW": 4
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 4,
+            "votes": {
+              "PANT": 4
+            }
+          }
         }
       },
-      "subgroup_mixed_skipped": []
+      "subgroup_mixed_skipped": [],
+      "legacy_subgroup_codes": {},
+      "client_pdf_field_mappings": {},
+      "client_pdf_value_maps": {}
     },
     "DICKS SPORTING GOODS": {
       "aliases": [
+        "DICK'S",
         "DICKS",
-        "DSG",
-        "DICKS SPORTING GOO"
+        "DICKS SPORTING GOODS",
+        "Dick's Sporting Goods"
       ],
-      "n_total": 2216,
-      "subgroup_to_gender": {
+      "n_total": 602,
+      "subgroup_to_meta": {
+        "ALPINE DESIGN": {
+          "n_total": 2,
+          "fabric": {
+            "value": "WOVEN",
+            "purity": 100,
+            "n": 2,
+            "votes": {
+              "WOVEN": 2
+            }
+          },
+          "gender": {
+            "value": "MEN",
+            "purity": 100,
+            "n": 2,
+            "votes": {
+              "MEN": 2
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 2,
+            "votes": {
+              "RTW": 2
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 2,
+            "votes": {
+              "PANT": 2
+            }
+          }
+        },
         "CALIA": {
-          "gender": "WOMEN",
-          "n": 396,
-          "purity": 100
+          "n_total": 85,
+          "fabric": {
+            "value": "WOVEN",
+            "purity": 65,
+            "n": 85,
+            "votes": {
+              "WOVEN": 55,
+              "KNIT": 30
+            }
+          },
+          "gender": {
+            "value": "WOMEN",
+            "purity": 100,
+            "n": 85,
+            "votes": {
+              "WOMEN": 85
+            }
+          },
+          "dept": {
+            "value": "ACTIVE",
+            "purity": 100,
+            "n": 85,
+            "votes": {
+              "ACTIVE": 85
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 99,
+            "n": 85,
+            "votes": {
+              "PANT": 84,
+              "LEGGINGS": 1
+            }
+          }
         },
         "CALIA (LEGGING)": {
-          "gender": "WOMEN",
-          "n": 1,
-          "purity": 100
+          "n_total": 1,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 1,
+            "votes": {
+              "KNIT": 1
+            }
+          },
+          "gender": {
+            "value": "WOMEN",
+            "purity": 100,
+            "n": 1,
+            "votes": {
+              "WOMEN": 1
+            }
+          },
+          "dept": {
+            "value": "ACTIVE",
+            "purity": 100,
+            "n": 1,
+            "votes": {
+              "ACTIVE": 1
+            }
+          },
+          "category": {
+            "value": "LEGGINGS",
+            "purity": 100,
+            "n": 1,
+            "votes": {
+              "LEGGINGS": 1
+            }
+          }
         },
         "CALIA COMPRESSION": {
-          "gender": "WOMEN",
-          "n": 79,
-          "purity": 100
+          "n_total": 49,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 49,
+            "votes": {
+              "KNIT": 49
+            }
+          },
+          "gender": {
+            "value": "WOMEN",
+            "purity": 100,
+            "n": 49,
+            "votes": {
+              "WOMEN": 49
+            }
+          },
+          "dept": {
+            "value": "ACTIVE",
+            "purity": 100,
+            "n": 49,
+            "votes": {
+              "ACTIVE": 49
+            }
+          },
+          "category": {
+            "value": "LEGGINGS",
+            "purity": 100,
+            "n": 49,
+            "votes": {
+              "LEGGINGS": 49
+            }
+          }
         },
         "CALIA GOLF": {
-          "gender": "WOMEN",
-          "n": 228,
-          "purity": 100
+          "n_total": 2,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 2,
+            "votes": {
+              "KNIT": 2
+            }
+          },
+          "gender": {
+            "value": "WOMEN",
+            "purity": 100,
+            "n": 2,
+            "votes": {
+              "WOMEN": 2
+            }
+          },
+          "dept": {
+            "value": "ACTIVE",
+            "purity": 100,
+            "n": 2,
+            "votes": {
+              "ACTIVE": 2
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 2,
+            "votes": {
+              "PANT": 2
+            }
+          }
+        },
+        "DSG": {
+          "n_total": 326,
+          "fabric": {
+            "value": "WOVEN",
+            "purity": 78,
+            "n": 326,
+            "votes": {
+              "WOVEN": 254,
+              "KNIT": 72
+            }
+          },
+          "gender": {
+            "value": "MIXED",
+            "purity": 39,
+            "n": 326,
+            "votes": {
+              "WOMEN": 127,
+              "MEN": 84,
+              "GIRL": 63,
+              "BOY": 52
+            }
+          },
+          "dept": {
+            "value": "ACTIVE",
+            "purity": 100,
+            "n": 326,
+            "votes": {
+              "ACTIVE": 326
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 326,
+            "votes": {
+              "PANT": 326
+            }
+          }
         },
         "DSG COMPRESSION": {
-          "gender": "WOMEN",
-          "n": 250,
-          "purity": 68
+          "n_total": 118,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 118,
+            "votes": {
+              "KNIT": 118
+            }
+          },
+          "gender": {
+            "value": "WOMEN",
+            "purity": 63,
+            "n": 118,
+            "votes": {
+              "WOMEN": 74,
+              "GIRL": 44
+            }
+          },
+          "dept": {
+            "value": "ACTIVE",
+            "purity": 100,
+            "n": 118,
+            "votes": {
+              "ACTIVE": 118
+            }
+          },
+          "category": {
+            "value": "LEGGINGS",
+            "purity": 75,
+            "n": 118,
+            "votes": {
+              "LEGGINGS": 88,
+              "PANT": 30
+            }
+          }
         },
-        "FOXBURG": {
+        "PERFECT GAME": {
+          "n_total": 2,
+          "fabric": {
+            "value": "WOVEN",
+            "purity": 100,
+            "n": 2,
+            "votes": {
+              "WOVEN": 2
+            }
+          },
+          "gender": {
+            "value": "MIXED",
+            "purity": 50,
+            "n": 2,
+            "votes": {
+              "BOY": 1,
+              "MEN": 1
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 2,
+            "votes": {
+              "RTW": 2
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 2,
+            "votes": {
+              "PANT": 2
+            }
+          }
+        },
+        "VRST": {
+          "n_total": 12,
+          "fabric": {
+            "value": "WOVEN",
+            "purity": 92,
+            "n": 12,
+            "votes": {
+              "WOVEN": 11,
+              "KNIT": 1
+            }
+          },
+          "gender": {
+            "value": "MEN",
+            "purity": 100,
+            "n": 12,
+            "votes": {
+              "MEN": 12
+            }
+          },
+          "dept": {
+            "value": "ACTIVE",
+            "purity": 100,
+            "n": 12,
+            "votes": {
+              "ACTIVE": 12
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 12,
+            "votes": {
+              "PANT": 12
+            }
+          }
+        },
+        "WALTER HAGEN": {
+          "n_total": 5,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 60,
+            "n": 5,
+            "votes": {
+              "KNIT": 3,
+              "WOVEN": 2
+            }
+          },
+          "gender": {
+            "value": "WOMEN",
+            "purity": 100,
+            "n": 5,
+            "votes": {
+              "WOMEN": 5
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 5,
+            "votes": {
+              "RTW": 5
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 5,
+            "votes": {
+              "PANT": 5
+            }
+          }
+        }
+      },
+      "subgroup_mixed_skipped": [],
+      "legacy_subgroup_codes": {
+        "DSG": {
+          "gender": "MIXED",
+          "dept": "ACTIVE",
+          "name": "DSG generic（混 MEN/WOMEN）"
+        },
+        "DSG COMPRESSION": {
+          "gender": "MIXED",
+          "dept": "ACTIVE",
+          "name": "Compression line"
+        },
+        "CALIA": {
+          "gender": "WOMEN",
+          "dept": "ACTIVE",
+          "name": "Calia 女裝品牌"
+        },
+        "WALTER HAGEN": {
           "gender": "MEN",
-          "n": 2,
-          "purity": 100
+          "dept": "RTW",
+          "name": "Walter Hagen 男高爾夫"
         },
         "VRST": {
           "gender": "MEN",
-          "n": 294,
-          "purity": 100
+          "dept": "ACTIVE",
+          "name": "VRST 男裝"
         },
-        "VRST GOLF": {
-          "gender": "MEN",
-          "n": 149,
-          "purity": 95
+        "PERFECT GAME": {
+          "gender": "MIXED",
+          "dept": "RTW",
+          "name": "棒球可能 BOY"
         }
       },
-      "subgroup_mixed_skipped": [
-        {
-          "subgroup": "ALPINE DESIGN",
-          "n": 36,
-          "purity": 56,
-          "votes": {
-            "MEN": 20,
-            "WOMEN": 16
-          },
-          "reason": "mixed_or_unknown"
-        },
-        {
-          "subgroup": "DSG",
-          "n": 584,
-          "purity": 32,
-          "votes": {
-            "GIRL": 126,
-            "MEN": 182,
-            "WOMEN": 189,
-            "BOY": 87
-          },
-          "reason": "mixed_or_unknown"
-        },
-        {
-          "subgroup": "PERFECT GAME",
-          "n": 10,
-          "purity": 50,
-          "votes": {
-            "MEN": 5,
-            "BOY": 5
-          },
-          "reason": "mixed_or_unknown"
-        },
-        {
-          "subgroup": "WALTER HAGEN",
-          "n": 187,
-          "purity": 56,
-          "votes": {
-            "WOMEN": 81,
-            "MEN": 105,
-            "BOY": 1
-          },
-          "reason": "mixed_or_unknown"
-        }
-      ]
+      "client_pdf_field_mappings": {},
+      "client_pdf_value_maps": {}
     },
     "DISTANCE": {
       "aliases": [
         "DISTANCE"
       ],
-      "n_total": 54,
-      "subgroup_to_gender": {
+      "n_total": 18,
+      "subgroup_to_meta": {
         "DISTANCE": {
-          "gender": "MEN",
-          "n": 38,
-          "purity": 68
+          "n_total": 12,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 67,
+            "n": 12,
+            "votes": {
+              "KNIT": 8,
+              "WOVEN": 4
+            }
+          },
+          "gender": {
+            "value": "MEN",
+            "purity": 67,
+            "n": 12,
+            "votes": {
+              "MEN": 8,
+              "WOMEN": 4
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 12,
+            "votes": {
+              "RTW": 12
+            }
+          },
+          "category": {
+            "value": "LEGGINGS",
+            "purity": 67,
+            "n": 12,
+            "votes": {
+              "LEGGINGS": 8,
+              "PANT": 4
+            }
+          }
         },
         "MENS": {
-          "gender": "MEN",
-          "n": 16,
-          "purity": 100
+          "n_total": 6,
+          "fabric": {
+            "value": "WOVEN",
+            "purity": 100,
+            "n": 6,
+            "votes": {
+              "WOVEN": 6
+            }
+          },
+          "gender": {
+            "value": "MEN",
+            "purity": 100,
+            "n": 6,
+            "votes": {
+              "MEN": 6
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 6,
+            "votes": {
+              "RTW": 6
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 6,
+            "votes": {
+              "PANT": 6
+            }
+          }
         }
       },
-      "subgroup_mixed_skipped": []
+      "subgroup_mixed_skipped": [],
+      "legacy_subgroup_codes": {},
+      "client_pdf_field_mappings": {},
+      "client_pdf_value_maps": {}
     },
     "GAP": {
       "aliases": [
-        "GAP"
+        "GAP",
+        "Gap"
       ],
-      "n_total": 1723,
-      "subgroup_to_gender": {
+      "n_total": 227,
+      "subgroup_to_meta": {
         "BAC": {
-          "gender": "BOY",
-          "n": 132,
-          "purity": 80
-        },
-        "FIT ADULT": {
-          "gender": "MEN",
-          "n": 1,
-          "purity": 100
+          "n_total": 27,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 27,
+            "votes": {
+              "KNIT": 27
+            }
+          },
+          "gender": {
+            "value": "BOY",
+            "purity": 93,
+            "n": 27,
+            "votes": {
+              "BOY": 25,
+              "BABY": 2
+            }
+          },
+          "dept": {
+            "value": "ACTIVE",
+            "purity": 100,
+            "n": 27,
+            "votes": {
+              "ACTIVE": 27
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 27,
+            "votes": {
+              "PANT": 27
+            }
+          }
         },
         "GAC": {
-          "gender": "GIRL",
-          "n": 33,
-          "purity": 88
-        },
-        "GS WAC": {
-          "gender": "WOMEN",
-          "n": 2,
-          "purity": 100
-        },
-        "MAC": {
-          "gender": "MEN",
-          "n": 223,
-          "purity": 100
-        },
-        "SWIM": {
-          "gender": "BABY",
-          "n": 2,
-          "purity": 100
-        },
-        "TSD": {
-          "gender": "WOMEN",
-          "n": 623,
-          "purity": 99
-        },
-        "WAC": {
-          "gender": "WOMEN",
-          "n": 309,
-          "purity": 99
-        },
-        "WKN": {
-          "gender": "WOMEN",
-          "n": 11,
-          "purity": 100
-        }
-      },
-      "subgroup_mixed_skipped": [
-        {
-          "subgroup": "GS BAC",
-          "n": 5,
-          "purity": 40,
-          "votes": {
-            "BABY": 2,
-            "MEN": 1,
-            "BOY": 2
+          "n_total": 5,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 5,
+            "votes": {
+              "KNIT": 5
+            }
           },
-          "reason": "mixed_or_unknown"
-        },
-        {
-          "subgroup": "KIDS FR",
-          "n": 337,
-          "purity": 57,
-          "votes": {
-            "BABY": 45,
-            "GIRL": 191,
-            "BOY": 101
+          "gender": {
+            "value": "GIRL",
+            "purity": 80,
+            "n": 5,
+            "votes": {
+              "GIRL": 4,
+              "BABY": 1
+            }
           },
-          "reason": "mixed_or_unknown"
-        },
-        {
-          "subgroup": "KIDS SWIM",
-          "n": 22,
-          "purity": 55,
-          "votes": {
-            "GIRL": 12,
-            "BABY": 10
+          "dept": {
+            "value": "ACTIVE",
+            "purity": 100,
+            "n": 5,
+            "votes": {
+              "ACTIVE": 5
+            }
           },
-          "reason": "mixed_or_unknown"
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 5,
+            "votes": {
+              "PANT": 5
+            }
+          }
         },
-        {
-          "subgroup": "TSD KB",
-          "n": 23,
-          "purity": 57,
-          "votes": {
-            "GIRL": 13,
-            "BABY": 10
+        "GS BAC": {
+          "n_total": 2,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 2,
+            "votes": {
+              "KNIT": 2
+            }
           },
-          "reason": "mixed_or_unknown"
-        }
-      ]
-    },
-    "GAP OUTLET": {
-      "aliases": [
-        "GAP OUTLET",
-        "GAPO"
-      ],
-      "n_total": 747,
-      "subgroup_to_gender": {
-        "BAC": {
-          "gender": "BOY",
-          "n": 75,
-          "purity": 63
-        },
-        "FIT": {
-          "gender": "BOY",
-          "n": 155,
-          "purity": 82
-        },
-        "GAC": {
-          "gender": "GIRL",
-          "n": 17,
-          "purity": 76
+          "gender": {
+            "value": "BABY",
+            "purity": 100,
+            "n": 2,
+            "votes": {
+              "BABY": 2
+            }
+          },
+          "dept": {
+            "value": "ACTIVE",
+            "purity": 100,
+            "n": 2,
+            "votes": {
+              "ACTIVE": 2
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 2,
+            "votes": {
+              "PANT": 2
+            }
+          }
         },
         "KIDS FR": {
-          "gender": "BOY",
-          "n": 16,
-          "purity": 100
+          "n_total": 77,
+          "fabric": {
+            "value": "MIXED",
+            "purity": 55,
+            "n": 77,
+            "votes": {
+              "WOVEN": 42,
+              "KNIT": 35
+            }
+          },
+          "gender": {
+            "value": "MIXED",
+            "purity": 53,
+            "n": 77,
+            "votes": {
+              "BOY": 41,
+              "GIRL": 36
+            }
+          },
+          "dept": {
+            "value": "FLEECE",
+            "purity": 100,
+            "n": 77,
+            "votes": {
+              "FLEECE": 77
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 77,
+            "votes": {
+              "PANT": 77
+            }
+          }
         },
-        "KNIT": {
-          "gender": "MEN",
-          "n": 1,
-          "purity": 100
+        "MAC": {
+          "n_total": 32,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 32,
+            "votes": {
+              "KNIT": 32
+            }
+          },
+          "gender": {
+            "value": "MEN",
+            "purity": 100,
+            "n": 32,
+            "votes": {
+              "MEN": 32
+            }
+          },
+          "dept": {
+            "value": "ACTIVE",
+            "purity": 100,
+            "n": 32,
+            "votes": {
+              "ACTIVE": 32
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 32,
+            "votes": {
+              "PANT": 32
+            }
+          }
+        },
+        "TSD": {
+          "n_total": 5,
+          "fabric": {
+            "value": "WOVEN",
+            "purity": 100,
+            "n": 5,
+            "votes": {
+              "WOVEN": 5
+            }
+          },
+          "gender": {
+            "value": "WOMEN",
+            "purity": 100,
+            "n": 5,
+            "votes": {
+              "WOMEN": 5
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 5,
+            "votes": {
+              "RTW": 5
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 5,
+            "votes": {
+              "PANT": 5
+            }
+          }
+        },
+        "WAC": {
+          "n_total": 79,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 79,
+            "votes": {
+              "KNIT": 79
+            }
+          },
+          "gender": {
+            "value": "WOMEN",
+            "purity": 100,
+            "n": 79,
+            "votes": {
+              "WOMEN": 79
+            }
+          },
+          "dept": {
+            "value": "ACTIVE",
+            "purity": 100,
+            "n": 79,
+            "votes": {
+              "ACTIVE": 79
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 79,
+            "votes": {
+              "PANT": 79
+            }
+          }
+        }
+      },
+      "subgroup_mixed_skipped": [],
+      "legacy_subgroup_codes": {
+        "WAC": {
+          "gender": "WOMEN",
+          "dept": "ACTIVE",
+          "name": "Women Active Center"
         },
         "MAC": {
           "gender": "MEN",
-          "n": 134,
-          "purity": 100
+          "dept": "ACTIVE"
         },
-        "TSD": {
-          "gender": "WOMEN",
-          "n": 178,
-          "purity": 100
+        "BAC": {
+          "gender": "BOY",
+          "dept": "ACTIVE"
         },
-        "TSD KB": {
-          "gender": "BABY",
-          "n": 9,
-          "purity": 67
+        "KIDS FR": {
+          "gender": "KIDS",
+          "dept": "RTW",
+          "name": "Kids Fashion Ready"
+        }
+      },
+      "client_pdf_field_mappings": {},
+      "client_pdf_value_maps": {}
+    },
+    "GAP OUTLET": {
+      "aliases": [],
+      "n_total": 139,
+      "subgroup_to_meta": {
+        "BAC": {
+          "n_total": 25,
+          "fabric": {
+            "value": "MIXED",
+            "purity": 52,
+            "n": 25,
+            "votes": {
+              "WOVEN": 13,
+              "KNIT": 12
+            }
+          },
+          "gender": {
+            "value": "BOY",
+            "purity": 72,
+            "n": 25,
+            "votes": {
+              "BOY": 18,
+              "BABY": 5,
+              "GIRL": 2
+            }
+          },
+          "dept": {
+            "value": "ACTIVE",
+            "purity": 100,
+            "n": 25,
+            "votes": {
+              "ACTIVE": 25
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 25,
+            "votes": {
+              "PANT": 25
+            }
+          }
+        },
+        "FIT": {
+          "n_total": 41,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 88,
+            "n": 41,
+            "votes": {
+              "KNIT": 36,
+              "WOVEN": 5
+            }
+          },
+          "gender": {
+            "value": "BOY",
+            "purity": 83,
+            "n": 41,
+            "votes": {
+              "BOY": 34,
+              "WOMEN": 4,
+              "BABY": 2,
+              "GIRL": 1
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 41,
+            "votes": {
+              "RTW": 41
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 41,
+            "votes": {
+              "PANT": 41
+            }
+          }
+        },
+        "GAC": {
+          "n_total": 8,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 8,
+            "votes": {
+              "KNIT": 8
+            }
+          },
+          "gender": {
+            "value": "MIXED",
+            "purity": 50,
+            "n": 8,
+            "votes": {
+              "GIRL": 4,
+              "BABY": 4
+            }
+          },
+          "dept": {
+            "value": "ACTIVE",
+            "purity": 100,
+            "n": 8,
+            "votes": {
+              "ACTIVE": 8
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 8,
+            "votes": {
+              "PANT": 8
+            }
+          }
+        },
+        "KIDS FR": {
+          "n_total": 2,
+          "fabric": {
+            "value": "WOVEN",
+            "purity": 100,
+            "n": 2,
+            "votes": {
+              "WOVEN": 2
+            }
+          },
+          "gender": {
+            "value": "BOY",
+            "purity": 100,
+            "n": 2,
+            "votes": {
+              "BOY": 2
+            }
+          },
+          "dept": {
+            "value": "MIXED",
+            "purity": 50,
+            "n": 2,
+            "votes": {
+              "FLEECE": 1,
+              "SLEEPWEAR": 1
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 2,
+            "votes": {
+              "PANT": 2
+            }
+          }
+        },
+        "MAC": {
+          "n_total": 28,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 28,
+            "votes": {
+              "KNIT": 28
+            }
+          },
+          "gender": {
+            "value": "MEN",
+            "purity": 100,
+            "n": 28,
+            "votes": {
+              "MEN": 28
+            }
+          },
+          "dept": {
+            "value": "ACTIVE",
+            "purity": 100,
+            "n": 28,
+            "votes": {
+              "ACTIVE": 28
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 28,
+            "votes": {
+              "PANT": 28
+            }
+          }
         },
         "WAC": {
-          "gender": "WOMEN",
-          "n": 103,
-          "purity": 98
-        }
-      },
-      "subgroup_mixed_skipped": [
-        {
-          "subgroup": "KIDS SWIM",
-          "n": 59,
-          "purity": 59,
-          "votes": {
-            "GIRL": 35,
-            "BABY": 20,
-            "BOY": 4
+          "n_total": 35,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 35,
+            "votes": {
+              "KNIT": 35
+            }
           },
-          "reason": "mixed_or_unknown"
-        }
-      ]
-    },
-    "GILDAN": {
-      "aliases": [
-        "GILDAN"
-      ],
-      "n_total": 10,
-      "subgroup_to_gender": {
-        "MENS": {
-          "gender": "MEN",
-          "n": 7,
-          "purity": 86
-        },
-        "WOMENS": {
-          "gender": "WOMEN",
-          "n": 3,
-          "purity": 100
+          "gender": {
+            "value": "WOMEN",
+            "purity": 100,
+            "n": 35,
+            "votes": {
+              "WOMEN": 35
+            }
+          },
+          "dept": {
+            "value": "ACTIVE",
+            "purity": 100,
+            "n": 35,
+            "votes": {
+              "ACTIVE": 35
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 35,
+            "votes": {
+              "PANT": 35
+            }
+          }
         }
       },
-      "subgroup_mixed_skipped": []
+      "subgroup_mixed_skipped": [],
+      "legacy_subgroup_codes": {},
+      "client_pdf_field_mappings": {},
+      "client_pdf_value_maps": {}
     },
     "GU": {
       "aliases": [
         "GU"
       ],
-      "n_total": 1756,
-      "subgroup_to_gender": {
-        "10": {
-          "gender": "WOMEN",
-          "n": 1,
-          "purity": 100
-        },
+      "n_total": 419,
+      "subgroup_to_meta": {
         "12": {
-          "gender": "GIRL",
-          "n": 175,
-          "purity": 80
-        },
-        "13": {
-          "gender": "GIRL",
-          "n": 28,
-          "purity": 100
-        },
-        "14": {
-          "gender": "GIRL",
-          "n": 16,
-          "purity": 100
+          "n_total": 102,
+          "fabric": {
+            "value": "WOVEN",
+            "purity": 64,
+            "n": 102,
+            "votes": {
+              "WOVEN": 65,
+              "KNIT": 37
+            }
+          },
+          "gender": {
+            "value": "GIRL",
+            "purity": 70,
+            "n": 102,
+            "votes": {
+              "GIRL": 71,
+              "BOY": 26,
+              "BABY": 5
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 102,
+            "votes": {
+              "RTW": 102
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 102,
+            "votes": {
+              "PANT": 102
+            }
+          }
         },
         "17": {
-          "gender": "GIRL",
-          "n": 41,
-          "purity": 100
+          "n_total": 5,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 5,
+            "votes": {
+              "KNIT": 5
+            }
+          },
+          "gender": {
+            "value": "GIRL",
+            "purity": 100,
+            "n": 5,
+            "votes": {
+              "GIRL": 5
+            }
+          },
+          "dept": {
+            "value": "SLEEPWEAR",
+            "purity": 100,
+            "n": 5,
+            "votes": {
+              "SLEEPWEAR": 5
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 5,
+            "votes": {
+              "PANT": 5
+            }
+          }
         },
         "22": {
-          "gender": "WOMEN",
-          "n": 724,
-          "purity": 100
-        },
-        "23": {
-          "gender": "WOMEN",
-          "n": 257,
-          "purity": 99
-        },
-        "24": {
-          "gender": "WOMEN",
-          "n": 5,
-          "purity": 100
+          "n_total": 171,
+          "fabric": {
+            "value": "WOVEN",
+            "purity": 84,
+            "n": 171,
+            "votes": {
+              "WOVEN": 143,
+              "KNIT": 28
+            }
+          },
+          "gender": {
+            "value": "WOMEN",
+            "purity": 100,
+            "n": 171,
+            "votes": {
+              "WOMEN": 171
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 171,
+            "votes": {
+              "RTW": 171
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 171,
+            "votes": {
+              "PANT": 171
+            }
+          }
         },
         "27": {
-          "gender": "WOMEN",
-          "n": 76,
-          "purity": 100
-        },
-        "31": {
-          "gender": "MEN",
-          "n": 1,
-          "purity": 100
+          "n_total": 49,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 76,
+            "n": 49,
+            "votes": {
+              "KNIT": 37,
+              "WOVEN": 12
+            }
+          },
+          "gender": {
+            "value": "WOMEN",
+            "purity": 100,
+            "n": 49,
+            "votes": {
+              "WOMEN": 49
+            }
+          },
+          "dept": {
+            "value": "MIXED",
+            "purity": 59,
+            "n": 49,
+            "votes": {
+              "RTW": 29,
+              "SLEEPWEAR": 20
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 49,
+            "votes": {
+              "PANT": 49
+            }
+          }
         },
         "32": {
-          "gender": "MEN",
-          "n": 393,
-          "purity": 99
-        },
-        "33": {
-          "gender": "MEN",
-          "n": 6,
-          "purity": 67
-        },
-        "34": {
-          "gender": "MEN",
-          "n": 14,
-          "purity": 100
+          "n_total": 74,
+          "fabric": {
+            "value": "WOVEN",
+            "purity": 68,
+            "n": 74,
+            "votes": {
+              "WOVEN": 50,
+              "KNIT": 24
+            }
+          },
+          "gender": {
+            "value": "MEN",
+            "purity": 100,
+            "n": 74,
+            "votes": {
+              "MEN": 74
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 74,
+            "votes": {
+              "RTW": 74
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 74,
+            "votes": {
+              "PANT": 74
+            }
+          }
         },
         "37": {
-          "gender": "MEN",
-          "n": 19,
-          "purity": 100
+          "n_total": 18,
+          "fabric": {
+            "value": "MIXED",
+            "purity": 50,
+            "n": 18,
+            "votes": {
+              "KNIT": 9,
+              "WOVEN": 9
+            }
+          },
+          "gender": {
+            "value": "MEN",
+            "purity": 100,
+            "n": 18,
+            "votes": {
+              "MEN": 18
+            }
+          },
+          "dept": {
+            "value": "SLEEPWEAR",
+            "purity": 94,
+            "n": 18,
+            "votes": {
+              "SLEEPWEAR": 17,
+              "RTW": 1
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 18,
+            "votes": {
+              "PANT": 18
+            }
+          }
         }
       },
-      "subgroup_mixed_skipped": []
+      "subgroup_mixed_skipped": [],
+      "legacy_subgroup_codes": {
+        "12": {
+          "gender": "UNKNOWN",
+          "dept": "RTW",
+          "name": "GU 內部碼 待業務"
+        },
+        "22": {
+          "gender": "UNKNOWN",
+          "dept": "RTW"
+        },
+        "32": {
+          "gender": "UNKNOWN",
+          "dept": "RTW"
+        }
+      },
+      "client_pdf_field_mappings": {},
+      "client_pdf_value_maps": {}
     },
     "HALARA": {
-      "aliases": [
-        "HALARA"
-      ],
-      "n_total": 80,
-      "subgroup_to_gender": {
+      "aliases": [],
+      "n_total": 46,
+      "subgroup_to_meta": {
         "WOMENS": {
-          "gender": "WOMEN",
-          "n": 80,
-          "purity": 100
+          "n_total": 46,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 46,
+            "votes": {
+              "KNIT": 46
+            }
+          },
+          "gender": {
+            "value": "WOMEN",
+            "purity": 100,
+            "n": 46,
+            "votes": {
+              "WOMEN": 46
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 46,
+            "votes": {
+              "RTW": 46
+            }
+          },
+          "category": {
+            "value": "LEGGINGS",
+            "purity": 63,
+            "n": 46,
+            "votes": {
+              "LEGGINGS": 29,
+              "PANT": 17
+            }
+          }
         }
       },
-      "subgroup_mixed_skipped": []
+      "subgroup_mixed_skipped": [],
+      "legacy_subgroup_codes": {},
+      "client_pdf_field_mappings": {},
+      "client_pdf_value_maps": {}
     },
     "HIGH LIFE LLC": {
-      "aliases": [
-        "HIGH LIFE LLC",
-        "HLF"
-      ],
-      "n_total": 467,
-      "subgroup_to_gender": {
+      "aliases": [],
+      "n_total": 238,
+      "subgroup_to_meta": {
         "AND1": {
-          "gender": "BOY",
-          "n": 8,
-          "purity": 100
+          "n_total": 5,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 5,
+            "votes": {
+              "KNIT": 5
+            }
+          },
+          "gender": {
+            "value": "BOY",
+            "purity": 100,
+            "n": 5,
+            "votes": {
+              "BOY": 5
+            }
+          },
+          "dept": {
+            "value": "ACTIVE",
+            "purity": 100,
+            "n": 5,
+            "votes": {
+              "ACTIVE": 5
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 5,
+            "votes": {
+              "PANT": 5
+            }
+          }
+        },
+        "CHAMPION": {
+          "n_total": 185,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 86,
+            "n": 185,
+            "votes": {
+              "KNIT": 159,
+              "WOVEN": 26
+            }
+          },
+          "gender": {
+            "value": "MIXED",
+            "purity": 51,
+            "n": 185,
+            "votes": {
+              "MEN": 94,
+              "WOMEN": 91
+            }
+          },
+          "dept": {
+            "value": "ACTIVE",
+            "purity": 100,
+            "n": 185,
+            "votes": {
+              "ACTIVE": 185
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 97,
+            "n": 185,
+            "votes": {
+              "PANT": 179,
+              "LEGGINGS": 6
+            }
+          }
         },
         "GAIAM": {
-          "gender": "MEN",
-          "n": 5,
-          "purity": 100
+          "n_total": 2,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 2,
+            "votes": {
+              "KNIT": 2
+            }
+          },
+          "gender": {
+            "value": "MEN",
+            "purity": 100,
+            "n": 2,
+            "votes": {
+              "MEN": 2
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 2,
+            "votes": {
+              "RTW": 2
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 2,
+            "votes": {
+              "PANT": 2
+            }
+          }
+        },
+        "REEBOK": {
+          "n_total": 46,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 89,
+            "n": 46,
+            "votes": {
+              "KNIT": 41,
+              "WOVEN": 5
+            }
+          },
+          "gender": {
+            "value": "MIXED",
+            "purity": 39,
+            "n": 46,
+            "votes": {
+              "GIRL": 18,
+              "WOMEN": 11,
+              "MEN": 9,
+              "BOY": 8
+            }
+          },
+          "dept": {
+            "value": "ACTIVE",
+            "purity": 67,
+            "n": 46,
+            "votes": {
+              "ACTIVE": 31,
+              "RTW": 15
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 67,
+            "n": 46,
+            "votes": {
+              "PANT": 31,
+              "LEGGINGS": 15
+            }
+          }
         }
       },
-      "subgroup_mixed_skipped": [
-        {
-          "subgroup": "CHAMPION",
-          "n": 368,
-          "purity": 53,
-          "votes": {
-            "WOMEN": 196,
-            "MEN": 172
-          },
-          "reason": "mixed_or_unknown"
-        },
-        {
-          "subgroup": "REEBOK",
-          "n": 86,
-          "purity": 37,
-          "votes": {
-            "WOMEN": 31,
-            "GIRL": 32,
-            "MEN": 11,
-            "BOY": 12
-          },
-          "reason": "mixed_or_unknown"
-        }
-      ]
+      "subgroup_mixed_skipped": [],
+      "legacy_subgroup_codes": {},
+      "client_pdf_field_mappings": {},
+      "client_pdf_value_maps": {}
     },
     "JOE FRESH": {
-      "aliases": [
-        "JOE FRESH"
-      ],
-      "n_total": 98,
-      "subgroup_to_gender": {
-        "MEN": {
-          "gender": "MEN",
-          "n": 7,
-          "purity": 100
-        },
+      "aliases": [],
+      "n_total": 34,
+      "subgroup_to_meta": {
         "WOMEN": {
-          "gender": "WOMEN",
-          "n": 91,
-          "purity": 100
+          "n_total": 34,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 34,
+            "votes": {
+              "KNIT": 34
+            }
+          },
+          "gender": {
+            "value": "WOMEN",
+            "purity": 100,
+            "n": 34,
+            "votes": {
+              "WOMEN": 34
+            }
+          },
+          "dept": {
+            "value": "ACTIVE",
+            "purity": 74,
+            "n": 34,
+            "votes": {
+              "ACTIVE": 25,
+              "RTW": 9
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 71,
+            "n": 34,
+            "votes": {
+              "PANT": 24,
+              "LEGGINGS": 10
+            }
+          }
         }
       },
-      "subgroup_mixed_skipped": []
+      "subgroup_mixed_skipped": [],
+      "legacy_subgroup_codes": {},
+      "client_pdf_field_mappings": {},
+      "client_pdf_value_maps": {}
     },
     "KOHLS": {
       "aliases": [
-        "KOHLS",
         "KOHL'S",
-        "KOH"
+        "KOHLS",
+        "Kohl's"
       ],
-      "n_total": 1756,
-      "subgroup_to_gender": {
+      "n_total": 501,
+      "subgroup_to_meta": {
         "ACT (FLX BOY)": {
-          "gender": "BOY",
-          "n": 59,
-          "purity": 95
+          "n_total": 13,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 77,
+            "n": 13,
+            "votes": {
+              "KNIT": 10,
+              "WOVEN": 3
+            }
+          },
+          "gender": {
+            "value": "BOY",
+            "purity": 92,
+            "n": 13,
+            "votes": {
+              "BOY": 12,
+              "MEN": 1
+            }
+          },
+          "dept": {
+            "value": "ACTIVE",
+            "purity": 100,
+            "n": 13,
+            "votes": {
+              "ACTIVE": 13
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 13,
+            "votes": {
+              "PANT": 13
+            }
+          }
         },
         "ACT (FLX GIRL)": {
-          "gender": "GIRL",
-          "n": 36,
-          "purity": 100
+          "n_total": 10,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 80,
+            "n": 10,
+            "votes": {
+              "KNIT": 8,
+              "WOVEN": 2
+            }
+          },
+          "gender": {
+            "value": "GIRL",
+            "purity": 100,
+            "n": 10,
+            "votes": {
+              "GIRL": 10
+            }
+          },
+          "dept": {
+            "value": "ACTIVE",
+            "purity": 100,
+            "n": 10,
+            "votes": {
+              "ACTIVE": 10
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 10,
+            "votes": {
+              "PANT": 10
+            }
+          }
         },
         "ACT (FLX MEN)": {
+          "n_total": 57,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 88,
+            "n": 57,
+            "votes": {
+              "KNIT": 50,
+              "WOVEN": 7
+            }
+          },
+          "gender": {
+            "value": "MEN",
+            "purity": 96,
+            "n": 57,
+            "votes": {
+              "MEN": 55,
+              "BOY": 2
+            }
+          },
+          "dept": {
+            "value": "ACTIVE",
+            "purity": 100,
+            "n": 57,
+            "votes": {
+              "ACTIVE": 57
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 57,
+            "votes": {
+              "PANT": 57
+            }
+          }
+        },
+        "ACT (FLX WMN)": {
+          "n_total": 86,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 78,
+            "n": 86,
+            "votes": {
+              "KNIT": 67,
+              "WOVEN": 19
+            }
+          },
+          "gender": {
+            "value": "WOMEN",
+            "purity": 94,
+            "n": 86,
+            "votes": {
+              "WOMEN": 81,
+              "GIRL": 5
+            }
+          },
+          "dept": {
+            "value": "ACTIVE",
+            "purity": 100,
+            "n": 86,
+            "votes": {
+              "ACTIVE": 86
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 97,
+            "n": 86,
+            "votes": {
+              "PANT": 83,
+              "LEGGINGS": 3
+            }
+          }
+        },
+        "ACT (TG BOY)": {
+          "n_total": 9,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 9,
+            "votes": {
+              "KNIT": 9
+            }
+          },
+          "gender": {
+            "value": "BOY",
+            "purity": 89,
+            "n": 9,
+            "votes": {
+              "BOY": 8,
+              "MEN": 1
+            }
+          },
+          "dept": {
+            "value": "ACTIVE",
+            "purity": 100,
+            "n": 9,
+            "votes": {
+              "ACTIVE": 9
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 9,
+            "votes": {
+              "PANT": 9
+            }
+          }
+        },
+        "ACT (TG MEN)": {
+          "n_total": 46,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 80,
+            "n": 46,
+            "votes": {
+              "KNIT": 37,
+              "WOVEN": 9
+            }
+          },
+          "gender": {
+            "value": "MEN",
+            "purity": 100,
+            "n": 46,
+            "votes": {
+              "MEN": 46
+            }
+          },
+          "dept": {
+            "value": "ACTIVE",
+            "purity": 100,
+            "n": 46,
+            "votes": {
+              "ACTIVE": 46
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 46,
+            "votes": {
+              "PANT": 46
+            }
+          }
+        },
+        "ACT (TG WMN)": {
+          "n_total": 79,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 78,
+            "n": 79,
+            "votes": {
+              "KNIT": 62,
+              "WOVEN": 17
+            }
+          },
+          "gender": {
+            "value": "WOMEN",
+            "purity": 95,
+            "n": 79,
+            "votes": {
+              "WOMEN": 75,
+              "GIRL": 4
+            }
+          },
+          "dept": {
+            "value": "ACTIVE",
+            "purity": 100,
+            "n": 79,
+            "votes": {
+              "ACTIVE": 79
+            }
+          },
+          "category": {
+            "value": "MIXED",
+            "purity": 54,
+            "n": 79,
+            "votes": {
+              "LEGGINGS": 43,
+              "PANT": 36
+            }
+          }
+        },
+        "RTW (A9 MEN)": {
+          "n_total": 3,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 3,
+            "votes": {
+              "KNIT": 3
+            }
+          },
+          "gender": {
+            "value": "MEN",
+            "purity": 100,
+            "n": 3,
+            "votes": {
+              "MEN": 3
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 3,
+            "votes": {
+              "RTW": 3
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 3,
+            "votes": {
+              "PANT": 3
+            }
+          }
+        },
+        "RTW (CB WMN)": {
+          "n_total": 39,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 92,
+            "n": 39,
+            "votes": {
+              "KNIT": 36,
+              "WOVEN": 3
+            }
+          },
+          "gender": {
+            "value": "WOMEN",
+            "purity": 100,
+            "n": 39,
+            "votes": {
+              "WOMEN": 39
+            }
+          },
+          "dept": {
+            "value": "SLEEPWEAR",
+            "purity": 100,
+            "n": 39,
+            "votes": {
+              "SLEEPWEAR": 39
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 39,
+            "votes": {
+              "PANT": 39
+            }
+          }
+        },
+        "RTW (SO JUNIOR)": {
+          "n_total": 41,
+          "fabric": {
+            "value": "MIXED",
+            "purity": 54,
+            "n": 41,
+            "votes": {
+              "KNIT": 22,
+              "WOVEN": 19
+            }
+          },
+          "gender": {
+            "value": "WOMEN",
+            "purity": 100,
+            "n": 41,
+            "votes": {
+              "WOMEN": 41
+            }
+          },
+          "dept": {
+            "value": "SLEEPWEAR",
+            "purity": 100,
+            "n": 41,
+            "votes": {
+              "SLEEPWEAR": 41
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 76,
+            "n": 41,
+            "votes": {
+              "PANT": 31,
+              "LEGGINGS": 10
+            }
+          }
+        },
+        "SLW (CB WMN)": {
+          "n_total": 8,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 8,
+            "votes": {
+              "KNIT": 8
+            }
+          },
+          "gender": {
+            "value": "WOMEN",
+            "purity": 100,
+            "n": 8,
+            "votes": {
+              "WOMEN": 8
+            }
+          },
+          "dept": {
+            "value": "SLEEPWEAR",
+            "purity": 100,
+            "n": 8,
+            "votes": {
+              "SLEEPWEAR": 8
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 8,
+            "votes": {
+              "PANT": 8
+            }
+          }
+        },
+        "SLW (SONOMA MEN)": {
+          "n_total": 17,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 65,
+            "n": 17,
+            "votes": {
+              "KNIT": 11,
+              "WOVEN": 6
+            }
+          },
+          "gender": {
+            "value": "MEN",
+            "purity": 100,
+            "n": 17,
+            "votes": {
+              "MEN": 17
+            }
+          },
+          "dept": {
+            "value": "SLEEPWEAR",
+            "purity": 100,
+            "n": 17,
+            "votes": {
+              "SLEEPWEAR": 17
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 17,
+            "votes": {
+              "PANT": 17
+            }
+          }
+        },
+        "SLW (SONOMA WMN)": {
+          "n_total": 93,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 61,
+            "n": 93,
+            "votes": {
+              "KNIT": 57,
+              "WOVEN": 36
+            }
+          },
+          "gender": {
+            "value": "WOMEN",
+            "purity": 100,
+            "n": 93,
+            "votes": {
+              "WOMEN": 93
+            }
+          },
+          "dept": {
+            "value": "SLEEPWEAR",
+            "purity": 99,
+            "n": 93,
+            "votes": {
+              "SLEEPWEAR": 92,
+              "ACTIVE": 1
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 93,
+            "votes": {
+              "PANT": 93
+            }
+          }
+        }
+      },
+      "subgroup_mixed_skipped": [],
+      "legacy_subgroup_codes": {
+        "ACT (FLX MEN)": {
           "gender": "MEN",
-          "n": 239,
-          "purity": 97
+          "dept": "ACTIVE",
+          "name": "FLX 男裝 active"
         },
         "ACT (FLX WMN)": {
           "gender": "WOMEN",
-          "n": 227,
-          "purity": 95
-        },
-        "ACT (TG BOY)": {
-          "gender": "BOY",
-          "n": 14,
-          "purity": 93
+          "dept": "ACTIVE"
         },
         "ACT (TG MEN)": {
           "gender": "MEN",
-          "n": 132,
-          "purity": 100
+          "dept": "ACTIVE",
+          "name": "Tek Gear 男裝"
         },
         "ACT (TG WMN)": {
           "gender": "WOMEN",
-          "n": 194,
-          "purity": 97
-        },
-        "RTW (A9 MEN)": {
-          "gender": "MEN",
-          "n": 54,
-          "purity": 100
-        },
-        "RTW (CB MEN)": {
-          "gender": "MEN",
-          "n": 2,
-          "purity": 100
+          "dept": "ACTIVE",
+          "name": "Tek Gear 女裝"
         },
         "RTW (CB WMN)": {
           "gender": "WOMEN",
-          "n": 95,
-          "purity": 100
-        },
-        "RTW (SO JUNIOR)": {
-          "gender": "WOMEN",
-          "n": 78,
-          "purity": 100
-        },
-        "RTW (SONOMA MEN)": {
-          "gender": "MEN",
-          "n": 57,
-          "purity": 100
-        },
-        "RTW (SONOMA WMN)": {
-          "gender": "WOMEN",
-          "n": 12,
-          "purity": 100
-        },
-        "SLEEPWEAR(CROFT & BARROW)": {
-          "gender": "WOMEN",
-          "n": 1,
-          "purity": 100
-        },
-        "SLW (CB WMN)": {
-          "gender": "WOMEN",
-          "n": 285,
-          "purity": 100
-        },
-        "SLW (SONOMA MEN)": {
-          "gender": "MEN",
-          "n": 26,
-          "purity": 100
+          "dept": "RTW",
+          "name": "CB 女裝 RTW"
         },
         "SLW (SONOMA WMN)": {
           "gender": "WOMEN",
-          "n": 237,
-          "purity": 100
+          "dept": "SLEEPWEAR",
+          "name": "Sonoma 女睡衣"
         },
-        "SWIM (FLX WMN)": {
+        "RTW (SO JUNIOR)": {
           "gender": "WOMEN",
-          "n": 7,
-          "purity": 100
-        },
-        "SWIM (TG WMN)": {
-          "gender": "WOMEN",
-          "n": 1,
-          "purity": 100
+          "dept": "RTW",
+          "name": "SO Junior 女裝 RTW"
         }
       },
-      "subgroup_mixed_skipped": []
-    },
-    "LEVIS": {
-      "aliases": [
-        "LEVIS",
-        "LEVI'S"
-      ],
-      "n_total": 50,
-      "subgroup_to_gender": {
-        "KNIT": {
-          "gender": "WOMEN",
-          "n": 45,
-          "purity": 64
-        },
-        "WOVEN": {
-          "gender": "WOMEN",
-          "n": 5,
-          "purity": 60
-        }
-      },
-      "subgroup_mixed_skipped": []
+      "client_pdf_field_mappings": {},
+      "client_pdf_value_maps": {}
     },
     "NET": {
-      "aliases": [
-        "NET"
-      ],
-      "n_total": 154,
-      "subgroup_to_gender": {
+      "aliases": [],
+      "n_total": 35,
+      "subgroup_to_meta": {
         "KNIT": {
-          "gender": "MEN",
-          "n": 68,
-          "purity": 68
+          "n_total": 8,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 8,
+            "votes": {
+              "KNIT": 8
+            }
+          },
+          "gender": {
+            "value": "MIXED",
+            "purity": 50,
+            "n": 8,
+            "votes": {
+              "MEN": 4,
+              "WOMEN": 3,
+              "BOY": 1
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 8,
+            "votes": {
+              "RTW": 8
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 8,
+            "votes": {
+              "PANT": 8
+            }
+          }
         },
         "WOVEN": {
-          "gender": "WOMEN",
-          "n": 86,
-          "purity": 97
+          "n_total": 27,
+          "fabric": {
+            "value": "WOVEN",
+            "purity": 100,
+            "n": 27,
+            "votes": {
+              "WOVEN": 27
+            }
+          },
+          "gender": {
+            "value": "WOMEN",
+            "purity": 100,
+            "n": 27,
+            "votes": {
+              "WOMEN": 27
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 27,
+            "votes": {
+              "RTW": 27
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 27,
+            "votes": {
+              "PANT": 27
+            }
+          }
         }
       },
-      "subgroup_mixed_skipped": []
-    },
-    "OAKLEY": {
-      "aliases": [
-        "OAKLEY"
-      ],
-      "n_total": 16,
-      "subgroup_to_gender": {
-        "GOLF": {
-          "gender": "MEN",
-          "n": 12,
-          "purity": 100
-        },
-        "OTHERS": {
-          "gender": "MEN",
-          "n": 4,
-          "purity": 100
-        }
-      },
-      "subgroup_mixed_skipped": []
+      "subgroup_mixed_skipped": [],
+      "legacy_subgroup_codes": {},
+      "client_pdf_field_mappings": {},
+      "client_pdf_value_maps": {}
     },
     "OLD NAVY": {
       "aliases": [
-        "ONY",
-        "ON",
         "OLD NAVY",
-        "OLDNAVY"
+        "ONY",
+        "Old Navy"
       ],
-      "n_total": 3841,
-      "subgroup_to_gender": {
+      "n_total": 800,
+      "subgroup_to_meta": {
         "BAC": {
-          "gender": "BOY",
-          "n": 65,
-          "purity": 92
+          "n_total": 19,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 19,
+            "votes": {
+              "KNIT": 19
+            }
+          },
+          "gender": {
+            "value": "BOY",
+            "purity": 89,
+            "n": 19,
+            "votes": {
+              "BOY": 17,
+              "BABY": 2
+            }
+          },
+          "dept": {
+            "value": "ACTIVE",
+            "purity": 100,
+            "n": 19,
+            "votes": {
+              "ACTIVE": 19
+            }
+          },
+          "category": {
+            "value": "MIXED",
+            "purity": 58,
+            "n": 19,
+            "votes": {
+              "PANT": 11,
+              "LEGGINGS": 8
+            }
+          }
         },
         "GAC": {
-          "gender": "GIRL",
-          "n": 185,
-          "purity": 100
+          "n_total": 54,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 54,
+            "votes": {
+              "KNIT": 54
+            }
+          },
+          "gender": {
+            "value": "GIRL",
+            "purity": 100,
+            "n": 54,
+            "votes": {
+              "GIRL": 54
+            }
+          },
+          "dept": {
+            "value": "ACTIVE",
+            "purity": 100,
+            "n": 54,
+            "votes": {
+              "ACTIVE": 54
+            }
+          },
+          "category": {
+            "value": "LEGGINGS",
+            "purity": 65,
+            "n": 54,
+            "votes": {
+              "LEGGINGS": 35,
+              "PANT": 19
+            }
+          }
         },
         "INTIMATE(K)": {
-          "gender": "WOMEN",
-          "n": 15,
-          "purity": 100
+          "n_total": 1,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 1,
+            "votes": {
+              "KNIT": 1
+            }
+          },
+          "gender": {
+            "value": "WOMEN",
+            "purity": 100,
+            "n": 1,
+            "votes": {
+              "WOMEN": 1
+            }
+          },
+          "dept": {
+            "value": "SLEEPWEAR",
+            "purity": 100,
+            "n": 1,
+            "votes": {
+              "SLEEPWEAR": 1
+            }
+          },
+          "category": {
+            "value": "LEGGINGS",
+            "purity": 100,
+            "n": 1,
+            "votes": {
+              "LEGGINGS": 1
+            }
+          }
+        },
+        "KIDS FR": {
+          "n_total": 57,
+          "fabric": {
+            "value": "MIXED",
+            "purity": 51,
+            "n": 57,
+            "votes": {
+              "WOVEN": 29,
+              "KNIT": 28
+            }
+          },
+          "gender": {
+            "value": "MIXED",
+            "purity": 49,
+            "n": 57,
+            "votes": {
+              "BOY": 28,
+              "GIRL": 27,
+              "BABY": 2
+            }
+          },
+          "dept": {
+            "value": "FLEECE",
+            "purity": 100,
+            "n": 57,
+            "votes": {
+              "FLEECE": 57
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 57,
+            "votes": {
+              "PANT": 57
+            }
+          }
         },
         "KNIT TOP": {
+          "n_total": 1,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 1,
+            "votes": {
+              "KNIT": 1
+            }
+          },
+          "gender": {
+            "value": "BABY",
+            "purity": 100,
+            "n": 1,
+            "votes": {
+              "BABY": 1
+            }
+          },
+          "dept": {
+            "value": "ACTIVE",
+            "purity": 100,
+            "n": 1,
+            "votes": {
+              "ACTIVE": 1
+            }
+          },
+          "category": {
+            "value": "LEGGINGS",
+            "purity": 100,
+            "n": 1,
+            "votes": {
+              "LEGGINGS": 1
+            }
+          }
+        },
+        "MAC": {
+          "n_total": 62,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 98,
+            "n": 62,
+            "votes": {
+              "KNIT": 61,
+              "WOVEN": 1
+            }
+          },
+          "gender": {
+            "value": "MEN",
+            "purity": 100,
+            "n": 62,
+            "votes": {
+              "MEN": 62
+            }
+          },
+          "dept": {
+            "value": "ACTIVE",
+            "purity": 100,
+            "n": 62,
+            "votes": {
+              "ACTIVE": 62
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 98,
+            "n": 62,
+            "votes": {
+              "PANT": 61,
+              "LEGGINGS": 1
+            }
+          }
+        },
+        "MEN": {
+          "n_total": 1,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 1,
+            "votes": {
+              "KNIT": 1
+            }
+          },
+          "gender": {
+            "value": "MEN",
+            "purity": 100,
+            "n": 1,
+            "votes": {
+              "MEN": 1
+            }
+          },
+          "dept": {
+            "value": "FLEECE",
+            "purity": 100,
+            "n": 1,
+            "votes": {
+              "FLEECE": 1
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 1,
+            "votes": {
+              "PANT": 1
+            }
+          }
+        },
+        "MENS FLEECE": {
+          "n_total": 8,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 8,
+            "votes": {
+              "KNIT": 8
+            }
+          },
+          "gender": {
+            "value": "MEN",
+            "purity": 88,
+            "n": 8,
+            "votes": {
+              "MEN": 7,
+              "WOMEN": 1
+            }
+          },
+          "dept": {
+            "value": "FLEECE",
+            "purity": 100,
+            "n": 8,
+            "votes": {
+              "FLEECE": 8
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 8,
+            "votes": {
+              "PANT": 8
+            }
+          }
+        },
+        "TSD": {
+          "n_total": 8,
+          "fabric": {
+            "value": "WOVEN",
+            "purity": 100,
+            "n": 8,
+            "votes": {
+              "WOVEN": 8
+            }
+          },
+          "gender": {
+            "value": "MIXED",
+            "purity": 50,
+            "n": 8,
+            "votes": {
+              "BOY": 4,
+              "WOMEN": 4
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 8,
+            "votes": {
+              "RTW": 8
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 8,
+            "votes": {
+              "PANT": 8
+            }
+          }
+        },
+        "TSD KB": {
+          "n_total": 1,
+          "fabric": {
+            "value": "WOVEN",
+            "purity": 100,
+            "n": 1,
+            "votes": {
+              "WOVEN": 1
+            }
+          },
+          "gender": {
+            "value": "BABY",
+            "purity": 100,
+            "n": 1,
+            "votes": {
+              "BABY": 1
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 1,
+            "votes": {
+              "RTW": 1
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 1,
+            "votes": {
+              "PANT": 1
+            }
+          }
+        },
+        "WAC": {
+          "n_total": 552,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 552,
+            "votes": {
+              "KNIT": 550,
+              "WOVEN": 2
+            }
+          },
+          "gender": {
+            "value": "WOMEN",
+            "purity": 100,
+            "n": 552,
+            "votes": {
+              "WOMEN": 552
+            }
+          },
+          "dept": {
+            "value": "ACTIVE",
+            "purity": 100,
+            "n": 552,
+            "votes": {
+              "ACTIVE": 552
+            }
+          },
+          "category": {
+            "value": "MIXED",
+            "purity": 54,
+            "n": 552,
+            "votes": {
+              "LEGGINGS": 300,
+              "PANT": 252
+            }
+          }
+        },
+        "WKN": {
+          "n_total": 3,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 3,
+            "votes": {
+              "KNIT": 3
+            }
+          },
+          "gender": {
+            "value": "BABY",
+            "purity": 100,
+            "n": 3,
+            "votes": {
+              "BABY": 3
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 3,
+            "votes": {
+              "RTW": 3
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 3,
+            "votes": {
+              "PANT": 3
+            }
+          }
+        },
+        "WOMEN FLEECE": {
+          "n_total": 33,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 33,
+            "votes": {
+              "KNIT": 33
+            }
+          },
+          "gender": {
+            "value": "WOMEN",
+            "purity": 79,
+            "n": 33,
+            "votes": {
+              "WOMEN": 26,
+              "GIRL": 3,
+              "MEN": 2,
+              "BOY": 2
+            }
+          },
+          "dept": {
+            "value": "FLEECE",
+            "purity": 100,
+            "n": 33,
+            "votes": {
+              "FLEECE": 33
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 33,
+            "votes": {
+              "PANT": 33
+            }
+          }
+        }
+      },
+      "subgroup_mixed_skipped": [],
+      "legacy_subgroup_codes": {
+        "WAC": {
           "gender": "WOMEN",
-          "n": 226,
-          "purity": 80
+          "dept": "ACTIVE",
+          "name": "Women Active Center"
         },
         "MAC": {
           "gender": "MEN",
-          "n": 230,
-          "purity": 100
+          "dept": "ACTIVE",
+          "name": "Men Active Center"
         },
-        "MEN": {
-          "gender": "MEN",
-          "n": 1,
-          "purity": 100
+        "GAC": {
+          "gender": "GIRL",
+          "dept": "ACTIVE",
+          "name": "Girls Active Center"
         },
-        "MENS FLEECE": {
-          "gender": "MEN",
-          "n": 39,
-          "purity": 90
+        "BAC": {
+          "gender": "BOY",
+          "dept": "ACTIVE",
+          "name": "Boys Active Center"
         },
-        "TSD": {
-          "gender": "WOMEN",
-          "n": 604,
-          "purity": 91
-        },
-        "WAC": {
-          "gender": "WOMEN",
-          "n": 1248,
-          "purity": 100
-        },
-        "WKN": {
-          "gender": "WOMEN",
-          "n": 278,
-          "purity": 95
+        "KIDS FR": {
+          "gender": "KIDS",
+          "dept": "RTW"
         },
         "WOMEN FLEECE": {
           "gender": "WOMEN",
-          "n": 112,
-          "purity": 77
-        },
-        "WOMEN SWIM": {
-          "gender": "WOMEN",
-          "n": 128,
-          "purity": 99
+          "dept": "FLEECE"
         }
       },
-      "subgroup_mixed_skipped": [
-        {
-          "subgroup": "GIRLS FLEECE",
-          "n": 15,
-          "purity": 53,
-          "votes": {
-            "BOY": 4,
-            "BABY": 3,
-            "GIRL": 8
-          },
-          "reason": "mixed_or_unknown"
-        },
-        {
-          "subgroup": "KIDS FR",
-          "n": 285,
-          "purity": 44,
-          "votes": {
-            "BOY": 40,
-            "BABY": 121,
-            "GIRL": 124
-          },
-          "reason": "mixed_or_unknown"
-        },
-        {
-          "subgroup": "KIDS SWIM",
-          "n": 189,
-          "purity": 54,
-          "votes": {
-            "GIRL": 79,
-            "BABY": 103,
-            "BOY": 7
-          },
-          "reason": "mixed_or_unknown"
-        },
-        {
-          "subgroup": "TSD KB",
-          "n": 221,
-          "purity": 52,
-          "votes": {
-            "GIRL": 115,
-            "BABY": 94,
-            "BOY": 11,
-            "WOMEN": 1
-          },
-          "reason": "mixed_or_unknown"
-        }
-      ]
+      "client_pdf_field_mappings": {},
+      "client_pdf_value_maps": {}
     },
     "QUINCE": {
       "aliases": [
         "QUINCE"
       ],
-      "n_total": 166,
-      "subgroup_to_gender": {
+      "n_total": 56,
+      "subgroup_to_meta": {
+        "KIDS": {
+          "n_total": 7,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 7,
+            "votes": {
+              "KNIT": 7
+            }
+          },
+          "gender": {
+            "value": "MIXED",
+            "purity": 43,
+            "n": 7,
+            "votes": {
+              "GIRL": 3,
+              "BABY": 2,
+              "BOY": 2
+            }
+          },
+          "dept": {
+            "value": "FLEECE",
+            "purity": 86,
+            "n": 7,
+            "votes": {
+              "FLEECE": 6,
+              "RTW": 1
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 7,
+            "votes": {
+              "PANT": 7
+            }
+          }
+        },
         "MENS": {
-          "gender": "MEN",
-          "n": 70,
-          "purity": 97
+          "n_total": 15,
+          "fabric": {
+            "value": "WOVEN",
+            "purity": 60,
+            "n": 15,
+            "votes": {
+              "WOVEN": 9,
+              "KNIT": 6
+            }
+          },
+          "gender": {
+            "value": "MEN",
+            "purity": 100,
+            "n": 15,
+            "votes": {
+              "MEN": 15
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 67,
+            "n": 15,
+            "votes": {
+              "RTW": 10,
+              "FLEECE": 5
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 15,
+            "votes": {
+              "PANT": 15
+            }
+          }
         },
         "WOMENS": {
-          "gender": "WOMEN",
-          "n": 80,
-          "purity": 100
+          "n_total": 34,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 74,
+            "n": 34,
+            "votes": {
+              "KNIT": 25,
+              "WOVEN": 9
+            }
+          },
+          "gender": {
+            "value": "WOMEN",
+            "purity": 100,
+            "n": 34,
+            "votes": {
+              "WOMEN": 34
+            }
+          },
+          "dept": {
+            "value": "MIXED",
+            "purity": 56,
+            "n": 34,
+            "votes": {
+              "FLEECE": 19,
+              "RTW": 15
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 97,
+            "n": 34,
+            "votes": {
+              "PANT": 33,
+              "LEGGINGS": 1
+            }
+          }
         }
       },
-      "subgroup_mixed_skipped": [
-        {
-          "subgroup": "KIDS",
-          "n": 16,
-          "purity": 50,
-          "votes": {
-            "BABY": 3,
-            "GIRL": 5,
-            "BOY": 8
-          },
-          "reason": "mixed_or_unknown"
-        }
-      ]
+      "subgroup_mixed_skipped": [],
+      "legacy_subgroup_codes": {},
+      "client_pdf_field_mappings": {},
+      "client_pdf_value_maps": {}
     },
     "ROSS": {
-      "aliases": [
-        "ROSS"
-      ],
+      "aliases": [],
       "n_total": 6,
-      "subgroup_to_gender": {
+      "subgroup_to_meta": {
         "ROSS": {
-          "gender": "WOMEN",
-          "n": 6,
-          "purity": 100
+          "n_total": 6,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 6,
+            "votes": {
+              "KNIT": 6
+            }
+          },
+          "gender": {
+            "value": "WOMEN",
+            "purity": 100,
+            "n": 6,
+            "votes": {
+              "WOMEN": 6
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 6,
+            "votes": {
+              "RTW": 6
+            }
+          },
+          "category": {
+            "value": "LEGGINGS",
+            "purity": 100,
+            "n": 6,
+            "votes": {
+              "LEGGINGS": 6
+            }
+          }
         }
       },
-      "subgroup_mixed_skipped": []
+      "subgroup_mixed_skipped": [],
+      "legacy_subgroup_codes": {},
+      "client_pdf_field_mappings": {},
+      "client_pdf_value_maps": {}
     },
     "S1 DEVELOPING": {
-      "aliases": [
-        "S1 DEVELOPING"
-      ],
-      "n_total": 73,
-      "subgroup_to_gender": {},
-      "subgroup_mixed_skipped": [
-        {
-          "subgroup": "DEVELOP",
-          "n": 73,
-          "purity": 53,
-          "votes": {
-            "MEN": 39,
-            "WOMEN": 32,
-            "BABY": 2
+      "aliases": [],
+      "n_total": 9,
+      "subgroup_to_meta": {
+        "DEVELOP": {
+          "n_total": 9,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 89,
+            "n": 9,
+            "votes": {
+              "KNIT": 8,
+              "WOVEN": 1
+            }
           },
-          "reason": "mixed_or_unknown"
+          "gender": {
+            "value": "MEN",
+            "purity": 89,
+            "n": 9,
+            "votes": {
+              "MEN": 8,
+              "WOMEN": 1
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 9,
+            "votes": {
+              "RTW": 9
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 89,
+            "n": 9,
+            "votes": {
+              "PANT": 8,
+              "LEGGINGS": 1
+            }
+          }
         }
-      ]
+      },
+      "subgroup_mixed_skipped": [],
+      "legacy_subgroup_codes": {},
+      "client_pdf_field_mappings": {},
+      "client_pdf_value_maps": {}
     },
     "SANMAR": {
-      "aliases": [
-        "SANMAR"
-      ],
-      "n_total": 414,
-      "subgroup_to_gender": {
-        "MEN (EDDIE BAUER)": {
-          "gender": "MEN",
-          "n": 22,
-          "purity": 95
-        },
-        "MEN(BROOKS BROTHERS)": {
-          "gender": "MEN",
-          "n": 35,
-          "purity": 100
-        },
-        "MEN(CORNERSTONE)": {
-          "gender": "MEN",
-          "n": 4,
-          "purity": 100
-        },
-        "MEN(CUSTOM)": {
-          "gender": "MEN",
-          "n": 2,
-          "purity": 100
-        },
-        "MEN(MERCER METTLE)": {
-          "gender": "MEN",
-          "n": 27,
-          "purity": 89
-        },
-        "MEN(NEW ERA)": {
-          "gender": "MEN",
-          "n": 34,
-          "purity": 91
-        },
-        "MEN(OGIO)": {
-          "gender": "MEN",
-          "n": 38,
-          "purity": 97
-        },
-        "MEN(PORT AUTHORITY)": {
-          "gender": "MEN",
-          "n": 19,
-          "purity": 100
-        },
+      "aliases": [],
+      "n_total": 20,
+      "subgroup_to_meta": {
         "MEN(SPORT TEK)": {
-          "gender": "MEN",
-          "n": 40,
-          "purity": 95
-        },
-        "WOMEN (BROOKS BROTHERS)": {
-          "gender": "WOMEN",
-          "n": 54,
-          "purity": 100
-        },
-        "WOMEN (EDDIE BAUER)": {
-          "gender": "WOMEN",
-          "n": 15,
-          "purity": 100
-        },
-        "WOMEN(MERCER METTLE)": {
-          "gender": "WOMEN",
-          "n": 38,
-          "purity": 100
-        },
-        "WOMEN(NEW ERA)": {
-          "gender": "WOMEN",
-          "n": 15,
-          "purity": 93
-        },
-        "WOMEN(OGIO)": {
-          "gender": "WOMEN",
-          "n": 30,
-          "purity": 100
-        },
-        "WOMEN(PORT AUTHORITY)": {
-          "gender": "WOMEN",
-          "n": 12,
-          "purity": 100
+          "n_total": 11,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 11,
+            "votes": {
+              "KNIT": 11
+            }
+          },
+          "gender": {
+            "value": "MEN",
+            "purity": 91,
+            "n": 11,
+            "votes": {
+              "MEN": 10,
+              "BOY": 1
+            }
+          },
+          "dept": {
+            "value": "ACTIVE",
+            "purity": 100,
+            "n": 11,
+            "votes": {
+              "ACTIVE": 11
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 11,
+            "votes": {
+              "PANT": 11
+            }
+          }
         },
         "WOMEN(SPORT TEK)": {
-          "gender": "WOMEN",
-          "n": 26,
-          "purity": 100
+          "n_total": 8,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 8,
+            "votes": {
+              "KNIT": 8
+            }
+          },
+          "gender": {
+            "value": "WOMEN",
+            "purity": 100,
+            "n": 8,
+            "votes": {
+              "WOMEN": 8
+            }
+          },
+          "dept": {
+            "value": "ACTIVE",
+            "purity": 100,
+            "n": 8,
+            "votes": {
+              "ACTIVE": 8
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 8,
+            "votes": {
+              "PANT": 8
+            }
+          }
         },
         "YOUTH(SPORT TEK)": {
-          "gender": "BOY",
-          "n": 3,
-          "purity": 67
+          "n_total": 1,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 1,
+            "votes": {
+              "KNIT": 1
+            }
+          },
+          "gender": {
+            "value": "MEN",
+            "purity": 100,
+            "n": 1,
+            "votes": {
+              "MEN": 1
+            }
+          },
+          "dept": {
+            "value": "ACTIVE",
+            "purity": 100,
+            "n": 1,
+            "votes": {
+              "ACTIVE": 1
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 1,
+            "votes": {
+              "PANT": 1
+            }
+          }
         }
       },
-      "subgroup_mixed_skipped": []
-    },
-    "SMART CLOTHING": {
-      "aliases": [
-        "SMART CLOTHING"
-      ],
-      "n_total": 16,
-      "subgroup_to_gender": {
-        "MEN": {
-          "gender": "MEN",
-          "n": 4,
-          "purity": 100
-        },
-        "ORDER": {
-          "gender": "MEN",
-          "n": 2,
-          "purity": 100
-        },
-        "WOMEN": {
-          "gender": "WOMEN",
-          "n": 10,
-          "purity": 100
-        }
-      },
-      "subgroup_mixed_skipped": []
+      "subgroup_mixed_skipped": [],
+      "legacy_subgroup_codes": {},
+      "client_pdf_field_mappings": {},
+      "client_pdf_value_maps": {}
     },
     "TARGET": {
       "aliases": [
         "TARGET",
-        "TGT"
+        "Target"
       ],
-      "n_total": 1527,
-      "subgroup_to_gender": {
+      "n_total": 547,
+      "subgroup_to_meta": {
         "D20": {
-          "gender": "WOMEN",
-          "n": 133,
-          "purity": 100
-        },
-        "D20(STARS ABOVE)": {
-          "gender": "WOMEN",
-          "n": 2,
-          "purity": 100
+          "n_total": 43,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 84,
+            "n": 43,
+            "votes": {
+              "KNIT": 36,
+              "WOVEN": 7
+            }
+          },
+          "gender": {
+            "value": "WOMEN",
+            "purity": 100,
+            "n": 43,
+            "votes": {
+              "WOMEN": 43
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 43,
+            "votes": {
+              "RTW": 43
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 43,
+            "votes": {
+              "PANT": 43
+            }
+          }
         },
         "D20(WONDERSHOP)": {
-          "gender": "WOMEN",
-          "n": 23,
-          "purity": 100
+          "n_total": 12,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 12,
+            "votes": {
+              "KNIT": 12
+            }
+          },
+          "gender": {
+            "value": "WOMEN",
+            "purity": 100,
+            "n": 12,
+            "votes": {
+              "WOMEN": 12
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 12,
+            "votes": {
+              "RTW": 12
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 12,
+            "votes": {
+              "PANT": 12
+            }
+          }
         },
         "D214": {
-          "gender": "WOMEN",
-          "n": 430,
-          "purity": 99
-        },
-        "D32": {
-          "gender": "BOY",
-          "n": 3,
-          "purity": 67
+          "n_total": 208,
+          "fabric": {
+            "value": "WOVEN",
+            "purity": 82,
+            "n": 208,
+            "votes": {
+              "WOVEN": 171,
+              "KNIT": 37
+            }
+          },
+          "gender": {
+            "value": "WOMEN",
+            "purity": 100,
+            "n": 208,
+            "votes": {
+              "WOMEN": 207,
+              "GIRL": 1
+            }
+          },
+          "dept": {
+            "value": "ACTIVE",
+            "purity": 89,
+            "n": 208,
+            "votes": {
+              "ACTIVE": 186,
+              "RTW": 22
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 99,
+            "n": 208,
+            "votes": {
+              "PANT": 206,
+              "LEGGINGS": 2
+            }
+          }
         },
         "D327": {
-          "gender": "BABY",
-          "n": 91,
-          "purity": 86
+          "n_total": 3,
+          "fabric": {
+            "value": "WOVEN",
+            "purity": 100,
+            "n": 3,
+            "votes": {
+              "WOVEN": 3
+            }
+          },
+          "gender": {
+            "value": "BOY",
+            "purity": 100,
+            "n": 3,
+            "votes": {
+              "BOY": 3
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 3,
+            "votes": {
+              "RTW": 3
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 3,
+            "votes": {
+              "PANT": 3
+            }
+          }
         },
-        "D327(WONDERSHOP)": {
-          "gender": "BABY",
-          "n": 6,
-          "purity": 100
+        "D39": {
+          "n_total": 231,
+          "fabric": {
+            "value": "WOVEN",
+            "purity": 81,
+            "n": 231,
+            "votes": {
+              "WOVEN": 186,
+              "KNIT": 45
+            }
+          },
+          "gender": {
+            "value": "MIXED",
+            "purity": 58,
+            "n": 231,
+            "votes": {
+              "GIRL": 133,
+              "BOY": 74,
+              "BABY": 23,
+              "WOMEN": 1
+            }
+          },
+          "dept": {
+            "value": "MIXED",
+            "purity": 57,
+            "n": 231,
+            "votes": {
+              "RTW": 132,
+              "ACTIVE": 99
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 231,
+            "votes": {
+              "PANT": 231
+            }
+          }
         },
-        "D40": {
-          "gender": "MEN",
-          "n": 31,
-          "purity": 100
+        "D41": {
+          "n_total": 26,
+          "fabric": {
+            "value": "WOVEN",
+            "purity": 88,
+            "n": 26,
+            "votes": {
+              "WOVEN": 23,
+              "KNIT": 3
+            }
+          },
+          "gender": {
+            "value": "MEN",
+            "purity": 100,
+            "n": 26,
+            "votes": {
+              "MEN": 26
+            }
+          },
+          "dept": {
+            "value": "ACTIVE",
+            "purity": 65,
+            "n": 26,
+            "votes": {
+              "ACTIVE": 17,
+              "RTW": 9
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 26,
+            "votes": {
+              "PANT": 26
+            }
+          }
+        },
+        "D44": {
+          "n_total": 3,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 67,
+            "n": 3,
+            "votes": {
+              "KNIT": 2,
+              "WOVEN": 1
+            }
+          },
+          "gender": {
+            "value": "MEN",
+            "purity": 100,
+            "n": 3,
+            "votes": {
+              "MEN": 3
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 3,
+            "votes": {
+              "RTW": 3
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 3,
+            "votes": {
+              "PANT": 3
+            }
+          }
+        },
+        "D44(WONDERSHOP)": {
+          "n_total": 9,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 9,
+            "votes": {
+              "KNIT": 9
+            }
+          },
+          "gender": {
+            "value": "MEN",
+            "purity": 100,
+            "n": 9,
+            "votes": {
+              "MEN": 9
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 9,
+            "votes": {
+              "RTW": 9
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 9,
+            "votes": {
+              "PANT": 9
+            }
+          }
+        },
+        "D75": {
+          "n_total": 12,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 12,
+            "votes": {
+              "KNIT": 12
+            }
+          },
+          "gender": {
+            "value": "BOY",
+            "purity": 92,
+            "n": 12,
+            "votes": {
+              "BOY": 11,
+              "GIRL": 1
+            }
+          },
+          "dept": {
+            "value": "FLEECE",
+            "purity": 67,
+            "n": 12,
+            "votes": {
+              "FLEECE": 8,
+              "RTW": 4
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 12,
+            "votes": {
+              "PANT": 12
+            }
+          }
+        }
+      },
+      "subgroup_mixed_skipped": [],
+      "legacy_subgroup_codes": {
+        "D39": {
+          "gender": "GIRL",
+          "dept": "ACTIVE",
+          "name": "Kids Performance Girl"
         },
         "D41": {
           "gender": "MEN",
-          "n": 109,
-          "purity": 100
+          "dept": "ACTIVE"
         },
-        "D44": {
+        "D214": {
+          "gender": "WOMEN",
+          "dept": "ACTIVE",
+          "name": "Womens Performance"
+        },
+        "D327": {
+          "gender": "BABY",
+          "dept": "RTW"
+        },
+        "D75": {
+          "gender": "KIDS",
+          "dept": "SLEEPWEAR/RTW",
+          "name": "Kids Sleepwear/Fashion"
+        },
+        "D20": {
+          "gender": "KIDS",
+          "dept": "RTW",
+          "name": "Fashion Kids Core_Regular"
+        },
+        "D23": {
           "gender": "MEN",
-          "n": 3,
-          "purity": 100
+          "dept": "ACTIVE"
         },
-        "D44(WONDERSHOP)": {
-          "gender": "MEN",
-          "n": 17,
-          "purity": 100
-        },
-        "D75(WONDERSHOP)": {
-          "gender": "BOY",
-          "n": 6,
-          "purity": 100
+        "D34": {
+          "gender": "WOMEN",
+          "dept": "ACTIVE"
         }
       },
-      "subgroup_mixed_skipped": [
-        {
-          "subgroup": "D217",
-          "n": 28,
-          "purity": 36,
-          "votes": {
-            "GIRL": 9,
-            "BOY": 9,
-            "BABY": 10
-          },
-          "reason": "mixed_or_unknown"
-        },
-        {
-          "subgroup": "D36",
-          "n": 32,
-          "purity": 53,
-          "votes": {
-            "GIRL": 17,
-            "BOY": 15
-          },
-          "reason": "mixed_or_unknown"
-        },
-        {
-          "subgroup": "D39",
-          "n": 472,
-          "purity": 55,
-          "votes": {
-            "GIRL": 258,
-            "BABY": 51,
-            "BOY": 162,
-            "WOMEN": 1
-          },
-          "reason": "mixed_or_unknown"
-        },
-        {
-          "subgroup": "D75",
-          "n": 141,
-          "purity": 57,
-          "votes": {
-            "BOY": 60,
-            "GIRL": 81
-          },
-          "reason": "mixed_or_unknown"
-        }
-      ]
-    },
-    "TOMS": {
-      "aliases": [
-        "TOMS"
-      ],
-      "n_total": 8,
-      "subgroup_to_gender": {
-        "KNIT": {
-          "gender": "MEN",
-          "n": 2,
-          "purity": 100
-        },
-        "SEASONAL": {
-          "gender": "MEN",
-          "n": 5,
-          "purity": 100
-        },
-        "YEARLY RUN": {
-          "gender": "MEN",
-          "n": 1,
-          "purity": 100
-        }
-      },
-      "subgroup_mixed_skipped": []
+      "client_pdf_field_mappings": {},
+      "client_pdf_value_maps": {}
     },
     "UNDER ARMOUR": {
-      "aliases": [
-        "UNDER ARMOUR",
-        "UA",
-        "UNDERARMOUR"
-      ],
-      "n_total": 431,
-      "subgroup_to_gender": {
+      "aliases": [],
+      "n_total": 209,
+      "subgroup_to_meta": {
         "CHINA": {
-          "gender": "WOMEN",
-          "n": 3,
-          "purity": 67
+          "n_total": 3,
+          "fabric": {
+            "value": "WOVEN",
+            "purity": 100,
+            "n": 3,
+            "votes": {
+              "WOVEN": 3
+            }
+          },
+          "gender": {
+            "value": "WOMEN",
+            "purity": 67,
+            "n": 3,
+            "votes": {
+              "WOMEN": 2,
+              "MEN": 1
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 3,
+            "votes": {
+              "RTW": 3
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 3,
+            "votes": {
+              "PANT": 3
+            }
+          }
         },
         "UA(BOYS)": {
-          "gender": "BOY",
-          "n": 32,
-          "purity": 94
+          "n_total": 20,
+          "fabric": {
+            "value": "WOVEN",
+            "purity": 95,
+            "n": 20,
+            "votes": {
+              "WOVEN": 19,
+              "KNIT": 1
+            }
+          },
+          "gender": {
+            "value": "BOY",
+            "purity": 95,
+            "n": 20,
+            "votes": {
+              "BOY": 19,
+              "WOMEN": 1
+            }
+          },
+          "dept": {
+            "value": "ACTIVE",
+            "purity": 100,
+            "n": 20,
+            "votes": {
+              "ACTIVE": 20
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 20,
+            "votes": {
+              "PANT": 20
+            }
+          }
         },
         "UA(GIRLS)": {
-          "gender": "GIRL",
-          "n": 13,
-          "purity": 92
+          "n_total": 4,
+          "fabric": {
+            "value": "WOVEN",
+            "purity": 100,
+            "n": 4,
+            "votes": {
+              "WOVEN": 4
+            }
+          },
+          "gender": {
+            "value": "GIRL",
+            "purity": 100,
+            "n": 4,
+            "votes": {
+              "GIRL": 4
+            }
+          },
+          "dept": {
+            "value": "ACTIVE",
+            "purity": 100,
+            "n": 4,
+            "votes": {
+              "ACTIVE": 4
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 4,
+            "votes": {
+              "PANT": 4
+            }
+          }
         },
         "UA(MENS)": {
-          "gender": "MEN",
-          "n": 271,
-          "purity": 97
+          "n_total": 124,
+          "fabric": {
+            "value": "WOVEN",
+            "purity": 90,
+            "n": 124,
+            "votes": {
+              "WOVEN": 111,
+              "KNIT": 13
+            }
+          },
+          "gender": {
+            "value": "MEN",
+            "purity": 94,
+            "n": 124,
+            "votes": {
+              "MEN": 117,
+              "BOY": 4,
+              "WOMEN": 3
+            }
+          },
+          "dept": {
+            "value": "ACTIVE",
+            "purity": 100,
+            "n": 124,
+            "votes": {
+              "ACTIVE": 124
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 124,
+            "votes": {
+              "PANT": 124
+            }
+          }
         },
         "UA(MISSY)": {
-          "gender": "WOMEN",
-          "n": 82,
-          "purity": 100
+          "n_total": 45,
+          "fabric": {
+            "value": "WOVEN",
+            "purity": 87,
+            "n": 45,
+            "votes": {
+              "WOVEN": 39,
+              "KNIT": 6
+            }
+          },
+          "gender": {
+            "value": "WOMEN",
+            "purity": 100,
+            "n": 45,
+            "votes": {
+              "WOMEN": 45
+            }
+          },
+          "dept": {
+            "value": "ACTIVE",
+            "purity": 100,
+            "n": 45,
+            "votes": {
+              "ACTIVE": 45
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 45,
+            "votes": {
+              "PANT": 45
+            }
+          }
         },
         "US LINE": {
-          "gender": "MEN",
-          "n": 30,
-          "purity": 60
+          "n_total": 13,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 62,
+            "n": 13,
+            "votes": {
+              "KNIT": 8,
+              "WOVEN": 5
+            }
+          },
+          "gender": {
+            "value": "MIXED",
+            "purity": 46,
+            "n": 13,
+            "votes": {
+              "MEN": 6,
+              "WOMEN": 5,
+              "BOY": 2
+            }
+          },
+          "dept": {
+            "value": "MIXED",
+            "purity": 54,
+            "n": 13,
+            "votes": {
+              "RTW": 7,
+              "ACTIVE": 6
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 13,
+            "votes": {
+              "PANT": 13
+            }
+          }
         }
       },
-      "subgroup_mixed_skipped": []
-    },
-    "V1 DEVELOPING": {
-      "aliases": [
-        "V1 DEVELOPING"
-      ],
-      "n_total": 13,
-      "subgroup_to_gender": {
-        "V1A DEVELOP": {
-          "gender": "WOMEN",
-          "n": 13,
-          "purity": 62
-        }
-      },
-      "subgroup_mixed_skipped": []
+      "subgroup_mixed_skipped": [],
+      "legacy_subgroup_codes": {},
+      "client_pdf_field_mappings": {},
+      "client_pdf_value_maps": {}
     },
     "V2 DEVELOPING": {
-      "aliases": [
-        "V2 DEVELOPING"
-      ],
-      "n_total": 66,
-      "subgroup_to_gender": {
+      "aliases": [],
+      "n_total": 37,
+      "subgroup_to_meta": {
         "V21 DEVELOP": {
-          "gender": "WOMEN",
-          "n": 46,
-          "purity": 100
+          "n_total": 29,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 29,
+            "votes": {
+              "KNIT": 29
+            }
+          },
+          "gender": {
+            "value": "WOMEN",
+            "purity": 100,
+            "n": 29,
+            "votes": {
+              "WOMEN": 29
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 29,
+            "votes": {
+              "RTW": 29
+            }
+          },
+          "category": {
+            "value": "LEGGINGS",
+            "purity": 93,
+            "n": 29,
+            "votes": {
+              "LEGGINGS": 27,
+              "PANT": 2
+            }
+          }
         },
         "V22 DEVELOP": {
-          "gender": "WOMEN",
-          "n": 20,
-          "purity": 90
-        }
-      },
-      "subgroup_mixed_skipped": []
-    },
-    "V3 DEVELOPING": {
-      "aliases": [
-        "V3 DEVELOPING"
-      ],
-      "n_total": 14,
-      "subgroup_to_gender": {
-        "DEVELOP": {
-          "gender": "MEN",
-          "n": 9,
-          "purity": 89
-        },
-        "V3B": {
-          "gender": "MEN",
-          "n": 3,
-          "purity": 100
-        }
-      },
-      "subgroup_mixed_skipped": [
-        {
-          "subgroup": "V3D",
-          "n": 2,
-          "purity": 50,
-          "votes": {
-            "MEN": 1,
-            "WOMEN": 1
+          "n_total": 8,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 8,
+            "votes": {
+              "KNIT": 8
+            }
           },
-          "reason": "mixed_or_unknown"
+          "gender": {
+            "value": "WOMEN",
+            "purity": 100,
+            "n": 8,
+            "votes": {
+              "WOMEN": 8
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 8,
+            "votes": {
+              "RTW": 8
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 75,
+            "n": 8,
+            "votes": {
+              "PANT": 6,
+              "LEGGINGS": 2
+            }
+          }
         }
-      ]
+      },
+      "subgroup_mixed_skipped": [],
+      "legacy_subgroup_codes": {},
+      "client_pdf_field_mappings": {},
+      "client_pdf_value_maps": {}
     },
     "V5 DEVELOPING": {
-      "aliases": [
-        "V5 DEVELOPING"
-      ],
-      "n_total": 100,
-      "subgroup_to_gender": {
+      "aliases": [],
+      "n_total": 13,
+      "subgroup_to_meta": {
         "V5C DEVELOP": {
-          "gender": "WOMEN",
-          "n": 89,
-          "purity": 79
-        }
-      },
-      "subgroup_mixed_skipped": [
-        {
-          "subgroup": "V5A DEVELOP",
-          "n": 11,
-          "purity": 45,
-          "votes": {
-            "MEN": 2,
-            "BOY": 5,
-            "BABY": 4
+          "n_total": 13,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 62,
+            "n": 13,
+            "votes": {
+              "KNIT": 8,
+              "WOVEN": 5
+            }
           },
-          "reason": "mixed_or_unknown"
-        }
-      ]
-    },
-    "V7 DEVELOPING": {
-      "aliases": [
-        "V7 DEVELOPING"
-      ],
-      "n_total": 47,
-      "subgroup_to_gender": {
-        "V7C DEVELOP": {
-          "gender": "WOMEN",
-          "n": 47,
-          "purity": 91
+          "gender": {
+            "value": "MIXED",
+            "purity": 54,
+            "n": 13,
+            "votes": {
+              "WOMEN": 7,
+              "MEN": 3,
+              "GIRL": 1,
+              "BOY": 1,
+              "BABY": 1
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 13,
+            "votes": {
+              "RTW": 13
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 13,
+            "votes": {
+              "PANT": 13
+            }
+          }
         }
       },
-      "subgroup_mixed_skipped": []
+      "subgroup_mixed_skipped": [],
+      "legacy_subgroup_codes": {},
+      "client_pdf_field_mappings": {},
+      "client_pdf_value_maps": {}
     },
     "WAL-MART": {
-      "aliases": [
-        "WAL-MART",
-        "WALMART"
-      ],
-      "n_total": 196,
-      "subgroup_to_gender": {
+      "aliases": [],
+      "n_total": 87,
+      "subgroup_to_meta": {
         "D#23K": {
-          "gender": "MEN",
-          "n": 10,
-          "purity": 80
-        },
-        "D#24": {
-          "gender": "BOY",
-          "n": 2,
-          "purity": 100
+          "n_total": 9,
+          "fabric": {
+            "value": "WOVEN",
+            "purity": 89,
+            "n": 9,
+            "votes": {
+              "WOVEN": 8,
+              "KNIT": 1
+            }
+          },
+          "gender": {
+            "value": "MEN",
+            "purity": 89,
+            "n": 9,
+            "votes": {
+              "MEN": 8,
+              "BOY": 1
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 9,
+            "votes": {
+              "RTW": 9
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 9,
+            "votes": {
+              "PANT": 9
+            }
+          }
         },
         "D#24K": {
-          "gender": "BOY",
-          "n": 66,
-          "purity": 100
+          "n_total": 28,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 93,
+            "n": 28,
+            "votes": {
+              "KNIT": 26,
+              "WOVEN": 2
+            }
+          },
+          "gender": {
+            "value": "BOY",
+            "purity": 100,
+            "n": 28,
+            "votes": {
+              "BOY": 28
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 28,
+            "votes": {
+              "RTW": 28
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 28,
+            "votes": {
+              "PANT": 28
+            }
+          }
         },
         "D#33": {
-          "gender": "GIRL",
-          "n": 21,
-          "purity": 100
+          "n_total": 13,
+          "fabric": {
+            "value": "MIXED",
+            "purity": 54,
+            "n": 13,
+            "votes": {
+              "KNIT": 7,
+              "WOVEN": 6
+            }
+          },
+          "gender": {
+            "value": "GIRL",
+            "purity": 100,
+            "n": 13,
+            "votes": {
+              "GIRL": 13
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 13,
+            "votes": {
+              "RTW": 13
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 13,
+            "votes": {
+              "PANT": 13
+            }
+          }
         },
         "D#33K": {
-          "gender": "GIRL",
-          "n": 92,
-          "purity": 98
+          "n_total": 33,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 33,
+            "votes": {
+              "KNIT": 33
+            }
+          },
+          "gender": {
+            "value": "GIRL",
+            "purity": 100,
+            "n": 33,
+            "votes": {
+              "GIRL": 33
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 33,
+            "votes": {
+              "RTW": 33
+            }
+          },
+          "category": {
+            "value": "MIXED",
+            "purity": 58,
+            "n": 33,
+            "votes": {
+              "LEGGINGS": 19,
+              "PANT": 14
+            }
+          }
         },
         "D#33W": {
-          "gender": "GIRL",
-          "n": 4,
-          "purity": 100
-        },
-        "D#34K": {
-          "gender": "GIRL",
-          "n": 1,
-          "purity": 100
+          "n_total": 4,
+          "fabric": {
+            "value": "WOVEN",
+            "purity": 100,
+            "n": 4,
+            "votes": {
+              "WOVEN": 4
+            }
+          },
+          "gender": {
+            "value": "GIRL",
+            "purity": 100,
+            "n": 4,
+            "votes": {
+              "GIRL": 4
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 4,
+            "votes": {
+              "RTW": 4
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 4,
+            "votes": {
+              "PANT": 4
+            }
+          }
         }
       },
-      "subgroup_mixed_skipped": []
+      "subgroup_mixed_skipped": [],
+      "legacy_subgroup_codes": {},
+      "client_pdf_field_mappings": {},
+      "client_pdf_value_maps": {}
     },
     "WAL-MART-CA": {
-      "aliases": [
-        "WAL-MART-CA",
-        "WALMART-CA"
-      ],
-      "n_total": 228,
-      "subgroup_to_gender": {
+      "aliases": [],
+      "n_total": 73,
+      "subgroup_to_meta": {
         "#D23": {
-          "gender": "MEN",
-          "n": 51,
-          "purity": 94
+          "n_total": 26,
+          "fabric": {
+            "value": "WOVEN",
+            "purity": 62,
+            "n": 26,
+            "votes": {
+              "WOVEN": 16,
+              "KNIT": 10
+            }
+          },
+          "gender": {
+            "value": "MEN",
+            "purity": 92,
+            "n": 26,
+            "votes": {
+              "MEN": 24,
+              "WOMEN": 2
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 26,
+            "votes": {
+              "RTW": 26
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 92,
+            "n": 26,
+            "votes": {
+              "PANT": 24,
+              "LEGGINGS": 2
+            }
+          }
         },
         "#D33": {
-          "gender": "GIRL",
-          "n": 39,
-          "purity": 100
+          "n_total": 14,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 86,
+            "n": 14,
+            "votes": {
+              "KNIT": 12,
+              "WOVEN": 2
+            }
+          },
+          "gender": {
+            "value": "GIRL",
+            "purity": 100,
+            "n": 14,
+            "votes": {
+              "GIRL": 14
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 14,
+            "votes": {
+              "RTW": 14
+            }
+          },
+          "category": {
+            "value": "LEGGINGS",
+            "purity": 86,
+            "n": 14,
+            "votes": {
+              "LEGGINGS": 12,
+              "PANT": 2
+            }
+          }
         },
         "#D34": {
-          "gender": "WOMEN",
-          "n": 78,
-          "purity": 100
+          "n_total": 28,
+          "fabric": {
+            "value": "WOVEN",
+            "purity": 68,
+            "n": 28,
+            "votes": {
+              "WOVEN": 19,
+              "KNIT": 9
+            }
+          },
+          "gender": {
+            "value": "WOMEN",
+            "purity": 100,
+            "n": 28,
+            "votes": {
+              "WOMEN": 28
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 28,
+            "votes": {
+              "RTW": 28
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 96,
+            "n": 28,
+            "votes": {
+              "PANT": 27,
+              "LEGGINGS": 1
+            }
+          }
         },
         "#D34K": {
-          "gender": "WOMEN",
-          "n": 14,
-          "purity": 100
+          "n_total": 3,
+          "fabric": {
+            "value": "WOVEN",
+            "purity": 67,
+            "n": 3,
+            "votes": {
+              "WOVEN": 2,
+              "KNIT": 1
+            }
+          },
+          "gender": {
+            "value": "WOMEN",
+            "purity": 100,
+            "n": 3,
+            "votes": {
+              "WOMEN": 3
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 3,
+            "votes": {
+              "RTW": 3
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 3,
+            "votes": {
+              "PANT": 3
+            }
+          }
         },
         "#D36": {
-          "gender": "WOMEN",
-          "n": 46,
-          "purity": 100
+          "n_total": 2,
+          "fabric": {
+            "value": "KNIT",
+            "purity": 100,
+            "n": 2,
+            "votes": {
+              "KNIT": 2
+            }
+          },
+          "gender": {
+            "value": "WOMEN",
+            "purity": 100,
+            "n": 2,
+            "votes": {
+              "WOMEN": 2
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 2,
+            "votes": {
+              "RTW": 2
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 2,
+            "votes": {
+              "PANT": 2
+            }
+          }
         }
       },
-      "subgroup_mixed_skipped": []
-    },
-    "XBODY HUNGARY KFT": {
-      "aliases": [
-        "XBODY HUNGARY KFT"
-      ],
-      "n_total": 5,
-      "subgroup_to_gender": {
-        "EMS": {
-          "gender": "MEN",
-          "n": 5,
-          "purity": 100
-        }
-      },
-      "subgroup_mixed_skipped": []
+      "subgroup_mixed_skipped": [],
+      "legacy_subgroup_codes": {},
+      "client_pdf_field_mappings": {},
+      "client_pdf_value_maps": {}
     },
     "ZARA": {
       "aliases": [
         "ZARA"
       ],
-      "n_total": 142,
-      "subgroup_to_gender": {
+      "n_total": 15,
+      "subgroup_to_meta": {
         "CIRCULAR": {
-          "gender": "MEN",
-          "n": 142,
-          "purity": 77
+          "n_total": 15,
+          "fabric": {
+            "value": "WOVEN",
+            "purity": 60,
+            "n": 15,
+            "votes": {
+              "WOVEN": 9,
+              "KNIT": 6
+            }
+          },
+          "gender": {
+            "value": "MIXED",
+            "purity": 53,
+            "n": 15,
+            "votes": {
+              "MEN": 8,
+              "BOY": 6,
+              "BABY": 1
+            }
+          },
+          "dept": {
+            "value": "RTW",
+            "purity": 100,
+            "n": 15,
+            "votes": {
+              "RTW": 15
+            }
+          },
+          "category": {
+            "value": "PANT",
+            "purity": 100,
+            "n": 15,
+            "votes": {
+              "PANT": 15
+            }
+          }
         }
       },
-      "subgroup_mixed_skipped": []
+      "subgroup_mixed_skipped": [],
+      "legacy_subgroup_codes": {
+        "CIRCULAR": {
+          "gender": "UNKNOWN",
+          "dept": "RTW",
+          "name": "Circular 永續系列 待業務"
+        }
+      },
+      "client_pdf_field_mappings": {},
+      "client_pdf_value_maps": {}
+    },
+    "A_&_F": {
+      "aliases": [
+        "A&F",
+        "A_&_F",
+        "ABERCROMBIE",
+        "A & F",
+        "A_&_F"
+      ],
+      "n_total": 0,
+      "subgroup_to_meta": {},
+      "subgroup_mixed_skipped": [],
+      "legacy_subgroup_codes": {
+        "F.R.": {
+          "gender": "UNKNOWN",
+          "dept": "UNKNOWN",
+          "name": "Female Recreation? 待業務確認"
+        },
+        "ACTIVE": {
+          "gender": "UNKNOWN",
+          "dept": "ACTIVE"
+        },
+        "WOMEN": {
+          "gender": "WOMEN",
+          "dept": "RTW"
+        }
+      },
+      "client_pdf_field_mappings": {},
+      "client_pdf_value_maps": {},
+      "_legacy_only": true
+    },
+    "GAP_OUTLET": {
+      "aliases": [
+        "GAP_OUTLET"
+      ],
+      "n_total": 0,
+      "subgroup_to_meta": {},
+      "subgroup_mixed_skipped": [],
+      "legacy_subgroup_codes": {
+        "FIT": {
+          "gender": "UNKNOWN",
+          "dept": "RTW",
+          "name": "Fit (Gap Outlet 子線)"
+        }
+      },
+      "client_pdf_field_mappings": {},
+      "client_pdf_value_maps": {},
+      "_legacy_only": true
+    },
+    "UNDER_ARMOUR": {
+      "aliases": [
+        "UA",
+        "UNDER ARMOUR",
+        "Under Armour",
+        "UNDER_ARMOUR"
+      ],
+      "n_total": 0,
+      "subgroup_to_meta": {},
+      "subgroup_mixed_skipped": [],
+      "legacy_subgroup_codes": {
+        "UA(MENS)": {
+          "gender": "MEN",
+          "dept": "ACTIVE"
+        },
+        "UA(MISSY)": {
+          "gender": "WOMEN",
+          "dept": "ACTIVE"
+        },
+        "UA(BOYS)": {
+          "gender": "BOY",
+          "dept": "ACTIVE"
+        },
+        "UA(WMNS)": {
+          "gender": "WOMEN",
+          "dept": "ACTIVE"
+        },
+        "US LINE": {
+          "gender": "UNKNOWN",
+          "dept": "ACTIVE",
+          "name": "US 系列 待業務確認"
+        }
+      },
+      "client_pdf_field_mappings": {},
+      "client_pdf_value_maps": {},
+      "_legacy_only": true
+    },
+    "BEYOND_YOGA": {
+      "aliases": [
+        "BEYOND_YOGA",
+        "BEYOND YOGA",
+        "Beyond Yoga",
+        "BYY",
+        "BEYOND_YOGA"
+      ],
+      "n_total": 0,
+      "subgroup_to_meta": {},
+      "subgroup_mixed_skipped": [],
+      "legacy_subgroup_codes": {
+        "PERFORMANCE": {
+          "gender": "WOMEN",
+          "dept": "ACTIVE"
+        }
+      },
+      "client_pdf_field_mappings": {},
+      "client_pdf_value_maps": {},
+      "_legacy_only": true
+    },
+    "JOE_FRESH": {
+      "aliases": [
+        "JOE_FRESH",
+        "JOE FRESH",
+        "Joe Fresh",
+        "JOE_FRESH"
+      ],
+      "n_total": 0,
+      "subgroup_to_meta": {},
+      "subgroup_mixed_skipped": [],
+      "legacy_subgroup_codes": {},
+      "client_pdf_field_mappings": {},
+      "client_pdf_value_maps": {},
+      "_legacy_only": true
+    },
+    "HIGH_LIFE_LLC": {
+      "aliases": [
+        "HIGH_LIFE_LLC"
+      ],
+      "n_total": 0,
+      "subgroup_to_meta": {},
+      "subgroup_mixed_skipped": [],
+      "legacy_subgroup_codes": {
+        "CHAMPION": {
+          "gender": "UNKNOWN",
+          "dept": "ACTIVE",
+          "name": "Champion 待業務"
+        },
+        "GAIAM": {
+          "gender": "WOMEN",
+          "dept": "ACTIVE",
+          "name": "Gaiam 女瑜珈"
+        }
+      },
+      "client_pdf_field_mappings": {},
+      "client_pdf_value_maps": {},
+      "_legacy_only": true
+    },
+    "GILDAN": {
+      "aliases": [
+        "GILDAN"
+      ],
+      "n_total": 0,
+      "subgroup_to_meta": {},
+      "subgroup_mixed_skipped": [],
+      "legacy_subgroup_codes": {},
+      "client_pdf_field_mappings": {},
+      "client_pdf_value_maps": {},
+      "_legacy_only": true
+    },
+    "S1_DEVELOPING": {
+      "aliases": [
+        "S1_DEVELOPING"
+      ],
+      "n_total": 0,
+      "subgroup_to_meta": {},
+      "subgroup_mixed_skipped": [],
+      "legacy_subgroup_codes": {},
+      "client_pdf_field_mappings": {},
+      "client_pdf_value_maps": {},
+      "_legacy_only": true
+    },
+    "V5_DEVELOPING": {
+      "aliases": [
+        "V5_DEVELOPING"
+      ],
+      "n_total": 0,
+      "subgroup_to_meta": {},
+      "subgroup_mixed_skipped": [],
+      "legacy_subgroup_codes": {},
+      "client_pdf_field_mappings": {},
+      "client_pdf_value_maps": {},
+      "_legacy_only": true
+    },
+    "XBODY_HUNGARY_KFT": {
+      "aliases": [
+        "XBODY_HUNGARY_KFT"
+      ],
+      "n_total": 0,
+      "subgroup_to_meta": {},
+      "subgroup_mixed_skipped": [],
+      "legacy_subgroup_codes": {},
+      "client_pdf_field_mappings": {},
+      "client_pdf_value_maps": {},
+      "_legacy_only": true
+    },
+    "M-STAR": {
+      "aliases": [
+        "M-STAR"
+      ],
+      "n_total": 0,
+      "subgroup_to_meta": {},
+      "subgroup_mixed_skipped": [],
+      "legacy_subgroup_codes": {},
+      "client_pdf_field_mappings": {},
+      "client_pdf_value_maps": {},
+      "_legacy_only": true
     }
   }
 }
