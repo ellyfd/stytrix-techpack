@@ -1230,10 +1230,10 @@ function DetailPanel({ card, col, appMode, displayMode, setDisplayMode,
         flexShrink: 0,
       }} />
       <span style={{
-        flex: 1, minWidth: 0, fontSize: "13px",
+        flex: 1, minWidth: 0, fontSize: "13px", lineHeight: 1.4,
         color: active ? "#1a1a1a" : "#555",
         fontWeight: active ? 600 : 500,
-        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+        wordBreak: "break-word",
       }}>{label}</span>
       {suffix != null && (
         <span style={{
@@ -1397,17 +1397,14 @@ function DetailPanel({ card, col, appMode, displayMode, setDisplayMode,
       {/* L4 */}
       {appMode !== "universal" && l4List && l4List.length > 1 && (
         <Group title="L4 工法選擇">
-          {renderListByMode(l4List, l4Idx, (v, i) => {
-            const trunc = v.l4 ? (v.l4.length > 28 ? v.l4.slice(0, 28) + "…" : v.l4) : `方法 ${i + 1}`;
-            return (
-              <Radio key={`l4-${i}`}
-                active={i === l4Idx}
-                accent="#065f46"
-                label={`第${i + 1}/${l4List.length} — ${trunc}`}
-                suffix={v.totalSec != null ? `${Math.round(v.totalSec)}秒` : null}
-                onClick={() => onSwitchMethod && onSwitchMethod(card.id, i)} />
-            );
-          })}
+          {renderListByMode(l4List, l4Idx, (v, i) => (
+            <Radio key={`l4-${i}`}
+              active={i === l4Idx}
+              accent="#065f46"
+              label={`第${i + 1}/${l4List.length} — ${v.l4 || `方法 ${i + 1}`}`}
+              suffix={v.totalSec != null ? `${Math.round(v.totalSec)}秒` : null}
+              onClick={() => onSwitchMethod && onSwitchMethod(card.id, i)} />
+          ))}
         </Group>
       )}
 
@@ -5655,7 +5652,7 @@ function App() {
         background: "#fff", borderBottom: "1px solid #eee",
       }}>
       <div style={{
-        maxWidth: "1480px", margin: "0 auto",
+        maxWidth: "1680px", margin: "0 auto",
         display: "flex", justifyContent: "space-between", alignItems: "center",
         gap: "16px", flexWrap: "wrap",
       }}>
@@ -5781,7 +5778,7 @@ function App() {
       </div>
       </div>
 
-      <div style={{ maxWidth: "1480px", margin: "0 auto", padding: isMobile ? "14px 14px" : "24px 28px" }}>
+      <div style={{ maxWidth: "1680px", margin: "0 auto", padding: isMobile ? "14px 14px" : "24px 28px" }}>
         {/* ─── Filter (v10: flush underline selects) ─── */}
         {(() => {
           const selectedFilters = [
@@ -6046,7 +6043,7 @@ function App() {
             {/* v11 layout: sketch + part list + detail panel (桌機 3 欄，手機 1 欄堆疊回退到 v10 inline 展開) */}
             <div style={{
               display: "grid",
-              gridTemplateColumns: isMobile ? "1fr" : "minmax(300px, 360px) minmax(0, 1fr) 320px",
+              gridTemplateColumns: isMobile ? "1fr" : "minmax(280px, 320px) minmax(0, 1fr) minmax(380px, 420px)",
               gap: isMobile ? "12px" : "16px"
             }}>
               {/* Sketch upload + preview */}
