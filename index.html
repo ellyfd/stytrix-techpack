@@ -5862,14 +5862,18 @@ function App() {
               </div>
               <div style={{
                 display: "grid",
-                gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(6, 1fr)",
+                gridTemplateColumns: isMobile
+                  ? "repeat(2, 1fr)"
+                  : (appMode === "universal" ? "repeat(5, 1fr)" : "repeat(6, 1fr)"),
                 gap: isMobile ? "12px 14px" : "20px",
                 alignItems: "start",
               }}>
-              <Sel label="Brand" value={brand} onChange={setBrand}
-                options={BRANDS.map(b => b.code)} badgeMap={brandBadgeMap}
-                locked={appMode !== "universal" && !!locks.brand}
-                onToggleLock={appMode === "universal" ? undefined : () => toggleLock("brand")} />
+              {/* 通用模型 brand-agnostic by design,不顯示 brand selector;切回聚陽再出現 */}
+              {appMode !== "universal" && (
+                <Sel label="Brand" value={brand} onChange={setBrand}
+                  options={BRANDS.map(b => b.code)} badgeMap={brandBadgeMap}
+                  locked={!!locks.brand} onToggleLock={() => toggleLock("brand")} />
+              )}
               <Sel label="Fabric" value={fabric}
                 onChange={v => { setFabric(v); setIt(""); }}
                 options={["Woven", "Knit"]} badgeMap={fabricBadgeMap}
