@@ -1276,21 +1276,22 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
             );
           })()}
           {appMode !== "universal" && card.l2Variants && card.l2Variants.length > 1 && (
-            <div style={{ marginTop: "10px", border: "1px solid #eee", borderRadius: "6px", background: "#f8fafc", padding: "8px 10px" }}>
+            <div style={{ marginTop: "10px", border: "1px solid #eee", borderRadius: "8px", background: "#f8fafc", padding: "10px 12px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
-                <div style={{ fontSize: "11px", color: "#555", fontWeight: 600 }}>
-                  L2 零件 · {card.l2Variants[card.l2Idx ?? 0]?.display_name || card.l2Variants[card.l2Idx ?? 0]?.xlsx_name || "—"}
-                  {card.l2Variants[card.l2Idx ?? 0]?.freq_pct != null && (
-                    <span style={{ marginLeft: "6px", fontSize: "10px", color: "#555", background: "#f1f5f9", padding: "1px 6px", borderRadius: "6px", fontWeight: 600 }}>歷史 {card.l2Variants[card.l2Idx ?? 0].freq_pct}%</span>
-                  )}
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0, flex: 1 }}>
+                  <span style={{ fontSize: "10px", color: "#94a3b8", fontWeight: 700, letterSpacing: "0.05em", flexShrink: 0 }}>L2 零件</span>
+                  <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: col, flexShrink: 0 }} aria-hidden="true" />
+                  <span style={{ fontSize: "12px", fontWeight: 700, color: "#1a1a1a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {card.l2Variants[card.l2Idx ?? 0]?.display_name || card.l2Variants[card.l2Idx ?? 0]?.xlsx_name || "—"}
+                  </span>
                 </div>
                 <button onClick={() => setShowL2Alts(v => !v)}
-                  style={{ fontSize: "11px", color: col, background: "#fff", border: `1px solid ${col}40`, padding: "3px 10px", borderRadius: "6px", cursor: "pointer", fontWeight: 600, fontFamily: "inherit" }}>
-                  {showL2Alts ? "收合" : `切換 (${card.l2Variants.length})`} ▾
+                  style={{ fontSize: "11px", color: col, background: "#fff", border: `1px solid ${col}40`, padding: "4px 12px", borderRadius: "6px", cursor: "pointer", fontWeight: 600, fontFamily: "inherit", flexShrink: 0 }}>
+                  {showL2Alts ? "▴ 收合" : `▾ 展開 ${card.l2Variants.length}`}
                 </button>
               </div>
               {showL2Alts && (
-                <div style={{ marginTop: "8px", maxHeight: "280px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "4px" }}>
+                <div style={{ marginTop: "8px", maxHeight: "280px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "6px" }}>
                   {card.l2Variants.map((v, idx) => {
                     const active = idx === (card.l2Idx ?? 0);
                     const isAiPick = card.ai_l2_code && v.code === card.ai_l2_code;
@@ -1318,21 +1319,39 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
                     return (
                       <div key={v.code} onClick={() => onSwitchL2 && onSwitchL2(card.id, idx)}
                         style={{
-                          padding: "6px 10px", borderRadius: "6px", cursor: "pointer",
-                          background: active ? col + "10" : "#fff",
-                          border: active ? `1.5px solid ${col}` : "1px solid #eee"
+                          padding: "8px 12px", borderRadius: "8px", cursor: "pointer",
+                          background: active ? col + "15" : "#fff",
+                          border: active ? `2px solid ${col}` : "1px solid #e5e7eb",
+                          transition: "all 0.15s",
                         }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
-                          <span style={{ fontSize: "12px", color: active ? col : "#1a1a1a", fontWeight: active ? 700 : 600 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                          <span aria-hidden="true" style={{
+                            width: "14px", height: "14px", borderRadius: "50%",
+                            background: active ? col : "#fff",
+                            border: active ? `2px solid ${col}` : "2px solid #d1d5db",
+                            boxShadow: active ? "inset 0 0 0 2px #fff" : "none",
+                            flexShrink: 0,
+                          }} />
+                          <span style={{ flex: 1, fontSize: "12px", color: active ? col : "#1a1a1a", fontWeight: active ? 700 : 600, minWidth: 0 }}>
                             {v.code} · {v.display_name}
                           </span>
+                          {active && (
+                            <span style={{ fontSize: "10px", fontWeight: 700, color: "#fff", background: col, padding: "2px 8px", borderRadius: "10px", flexShrink: 0 }}>
+                              已選
+                            </span>
+                          )}
                           {v.freq_pct != null && (
-                            <span style={{ fontSize: "10px", color: "#555", fontFamily: "'JetBrains Mono',monospace", flexShrink: 0 }}>
+                            <span style={{ fontSize: "10px", color: active ? col : "#94a3b8", fontFamily: "'JetBrains Mono',monospace", flexShrink: 0, fontWeight: active ? 600 : 500 }}>
                               {v.freq_pct}%
                             </span>
                           )}
                         </div>
-                        {v.feature && <div style={{ fontSize: "11px", color: "#555", marginTop: "2px", lineHeight: 1.35 }}>{v.feature}</div>}
+                        {v.feature && <div style={{ fontSize: "11px", color: "#555", marginTop: "4px", lineHeight: 1.4, paddingLeft: "24px" }}>{v.feature}</div>}
+                        {aiCue && (
+                          <div style={{ fontSize: "11px", color: aiCue.color, marginTop: "4px", lineHeight: 1.4, paddingLeft: "24px" }}>
+                            {aiCue.icon} {aiCue.text}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -1341,36 +1360,50 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
             </div>
           )}
           {appMode !== "universal" && card.l3Variants && card.l3Variants.length > 1 && (
-            <div style={{ marginTop: "10px", border: "1px solid #eee", borderRadius: "6px", background: "#fafaf9", padding: "8px 10px" }}>
+            <div style={{ marginTop: "10px", border: "1px solid #eee", borderRadius: "8px", background: "#fafaf9", padding: "10px 12px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
-                <div style={{ fontSize: "11px", color: "#555", fontWeight: 600 }}>
-                  L3 形狀 · {card.l3Variants[card.l3Idx ?? 0]?.l3 || "—"}
-                  {card.l3Variants[card.l3Idx ?? 0]?.freq_pct != null && (
-                    <span style={{ marginLeft: "6px", fontSize: "10px", color: "#555", background: "#f1f5f9", padding: "1px 6px", borderRadius: "6px", fontWeight: 600 }}>歷史 {card.l3Variants[card.l3Idx ?? 0].freq_pct}%</span>
-                  )}
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0, flex: 1 }}>
+                  <span style={{ fontSize: "10px", color: "#94a3b8", fontWeight: 700, letterSpacing: "0.05em", flexShrink: 0 }}>L3 形狀</span>
+                  <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: col, flexShrink: 0 }} aria-hidden="true" />
+                  <span style={{ fontSize: "12px", fontWeight: 700, color: "#1a1a1a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {card.l3Variants[card.l3Idx ?? 0]?.l3 || "—"}
+                  </span>
                 </div>
                 <button onClick={() => setShowL3Alts(v => !v)}
-                  style={{ fontSize: "11px", color: col, background: "#fff", border: `1px solid ${col}40`, padding: "3px 10px", borderRadius: "6px", cursor: "pointer", fontWeight: 600, fontFamily: "inherit" }}>
-                  {showL3Alts ? "收合" : `切換 (${card.l3Variants.length})`} ▾
+                  style={{ fontSize: "11px", color: col, background: "#fff", border: `1px solid ${col}40`, padding: "4px 12px", borderRadius: "6px", cursor: "pointer", fontWeight: 600, fontFamily: "inherit", flexShrink: 0 }}>
+                  {showL3Alts ? "▴ 收合" : `▾ 展開 ${card.l3Variants.length}`}
                 </button>
               </div>
               {showL3Alts && (
-                <div style={{ marginTop: "8px", maxHeight: "280px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "4px" }}>
+                <div style={{ marginTop: "8px", maxHeight: "280px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "6px" }}>
                   {card.l3Variants.map((v, idx) => {
                     const active = idx === (card.l3Idx ?? 0);
                     return (
                       <div key={idx} onClick={() => onSwitchL3 && onSwitchL3(card.id, idx)}
                         style={{
-                          padding: "6px 10px", borderRadius: "6px", cursor: "pointer",
-                          background: active ? col + "10" : "#fff",
-                          border: active ? `1.5px solid ${col}` : "1px solid #eee",
-                          display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px"
+                          padding: "8px 12px", borderRadius: "8px", cursor: "pointer",
+                          background: active ? col + "15" : "#fff",
+                          border: active ? `2px solid ${col}` : "1px solid #e5e7eb",
+                          display: "flex", alignItems: "center", gap: "10px",
+                          transition: "all 0.15s",
                         }}>
-                        <span style={{ fontSize: "12px", color: active ? col : "#1a1a1a", fontWeight: active ? 700 : 600 }}>
+                        <span aria-hidden="true" style={{
+                          width: "14px", height: "14px", borderRadius: "50%",
+                          background: active ? col : "#fff",
+                          border: active ? `2px solid ${col}` : "2px solid #d1d5db",
+                          boxShadow: active ? "inset 0 0 0 2px #fff" : "none",
+                          flexShrink: 0,
+                        }} />
+                        <span style={{ flex: 1, fontSize: "12px", color: active ? col : "#1a1a1a", fontWeight: active ? 700 : 600, minWidth: 0 }}>
                           {v.l3 || "—"}
                         </span>
+                        {active && (
+                          <span style={{ fontSize: "10px", fontWeight: 700, color: "#fff", background: col, padding: "2px 8px", borderRadius: "10px", flexShrink: 0 }}>
+                            已選
+                          </span>
+                        )}
                         {v.freq_pct != null && (
-                          <span style={{ fontSize: "10px", color: "#555", fontFamily: "'JetBrains Mono',monospace", flexShrink: 0 }}>
+                          <span style={{ fontSize: "10px", color: active ? col : "#94a3b8", fontFamily: "'JetBrains Mono',monospace", flexShrink: 0, fontWeight: active ? 600 : 500 }}>
                             {v.freq_pct}%
                           </span>
                         )}
@@ -1382,41 +1415,53 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
             </div>
           )}
           {appMode !== "universal" && card.methodVariants && card.methodVariants.length > 1 && (
-            <div style={{ marginTop: "10px", border: "1px solid #eee", borderRadius: "6px", background: "#fafafa", padding: "8px 10px" }}>
+            <div style={{ marginTop: "10px", border: "1px solid #eee", borderRadius: "8px", background: "#fafafa", padding: "10px 12px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
-                <div style={{ fontSize: "11px", color: "#555", fontWeight: 600 }}>
-                  L4 工法 · 目前第 {(card.methodIdx ?? 0) + 1} / {card.methodVariants.length}
-                  {card.methodVariants[card.methodIdx ?? 0]?.freq_pct != null && (
-                    <span style={{ marginLeft: "6px", fontSize: "10px", color: "#555", background: "#f1f5f9", padding: "1px 6px", borderRadius: "6px", fontWeight: 600 }}>歷史 {card.methodVariants[card.methodIdx ?? 0].freq_pct}%</span>
-                  )}
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0, flex: 1 }}>
+                  <span style={{ fontSize: "10px", color: "#94a3b8", fontWeight: 700, letterSpacing: "0.05em", flexShrink: 0 }}>L4 工法</span>
+                  <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: col, flexShrink: 0 }} aria-hidden="true" />
+                  <span style={{ fontSize: "12px", fontWeight: 700, color: "#1a1a1a", whiteSpace: "nowrap" }}>
+                    第 {(card.methodIdx ?? 0) + 1} / {card.methodVariants.length}
+                  </span>
                 </div>
                 <button onClick={() => setShowMethods(v => !v)}
-                  style={{ fontSize: "11px", color: col, background: "#fff", border: `1px solid ${col}40`, padding: "3px 10px", borderRadius: "6px", cursor: "pointer", fontWeight: 600, fontFamily: "inherit" }}>
-                  {showMethods ? "收合" : "展開切換"} ▾
+                  style={{ fontSize: "11px", color: col, background: "#fff", border: `1px solid ${col}40`, padding: "4px 12px", borderRadius: "6px", cursor: "pointer", fontWeight: 600, fontFamily: "inherit", flexShrink: 0 }}>
+                  {showMethods ? "▴ 收合" : `▾ 展開 ${card.methodVariants.length}`}
                 </button>
               </div>
               {showMethods && (
-                <div style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "4px" }}>
+                <div style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "6px" }}>
                   {card.methodVariants.map((v, idx) => {
                     const active = idx === (card.methodIdx ?? 0);
                     return (
                       <div key={idx} onClick={() => onSwitchMethod && onSwitchMethod(card.id, idx)}
                         style={{
-                          padding: "6px 10px", borderRadius: "6px", cursor: "pointer",
-                          background: active ? col + "10" : "#fff",
-                          border: active ? `1.5px solid ${col}` : "1px solid #eee",
-                          display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px"
+                          padding: "8px 12px", borderRadius: "8px", cursor: "pointer",
+                          background: active ? col + "15" : "#fff",
+                          border: active ? `2px solid ${col}` : "1px solid #e5e7eb",
+                          display: "flex", alignItems: "center", gap: "10px",
+                          transition: "all 0.15s",
                         }}>
-                        <span style={{ fontSize: "11px", color: active ? col : "#444", fontWeight: active ? 700 : 500, flex: 1, lineHeight: 1.4 }}>
+                        <span aria-hidden="true" style={{
+                          width: "14px", height: "14px", borderRadius: "50%",
+                          background: active ? col : "#fff",
+                          border: active ? `2px solid ${col}` : "2px solid #d1d5db",
+                          boxShadow: active ? "inset 0 0 0 2px #fff" : "none",
+                          flexShrink: 0,
+                        }} />
+                        <span style={{ flex: 1, fontSize: "11px", color: active ? col : "#444", fontWeight: active ? 700 : 500, lineHeight: 1.4, minWidth: 0 }}>
                           {v.l4 || "—"}
                         </span>
-                        <span style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
-                          {v.freq_pct != null && (
-                            <span style={{ fontSize: "10px", color: "#555", fontFamily: "'JetBrains Mono',monospace" }}>{v.freq_pct}%</span>
-                          )}
-                          <span style={{ fontSize: "11px", color: "#888", fontFamily: "'JetBrains Mono',monospace" }}>
-                            {v.totalSec}秒
+                        {active && (
+                          <span style={{ fontSize: "10px", fontWeight: 700, color: "#fff", background: col, padding: "2px 8px", borderRadius: "10px", flexShrink: 0 }}>
+                            已選
                           </span>
+                        )}
+                        {v.freq_pct != null && (
+                          <span style={{ fontSize: "10px", color: active ? col : "#94a3b8", fontFamily: "'JetBrains Mono',monospace", flexShrink: 0, fontWeight: active ? 600 : 500 }}>{v.freq_pct}%</span>
+                        )}
+                        <span style={{ fontSize: "11px", color: active ? col : "#888", fontFamily: "'JetBrains Mono',monospace", flexShrink: 0, fontWeight: active ? 700 : 500 }}>
+                          {v.totalSec}秒
                         </span>
                       </div>
                     );
@@ -2398,29 +2443,29 @@ const PACKAGE_FILES = [
   'star_schema/scripts/vlm_pipeline.py',
   'star_schema/scripts/build_recipes_master.py',
   // ── Pipeline B:POM RULES(81 buckets) ──
-  'scripts/_pipeline_base.py',
-  'scripts/run_extract_new.py',
-  'scripts/run_extract_2025_seasonal.py',
-  'scripts/rebuild_profiles.py',
-  'scripts/reclassify_and_rebuild.py',
-  'scripts/enforce_tier1.py',
-  'scripts/rebuild_grading_3d.py',
-  'scripts/rebuild_all_analysis_v2.py',
-  'scripts/fix_sort_order.py',
-  'pom_analysis_v5.5.1/scripts/extract_techpack.py',
+  'scripts/core/_pipeline_base.py',
+  'scripts/core/run_extract_new.py',
+  'scripts/core/run_extract_2025_seasonal.py',
+  'scripts/core/rebuild_profiles.py',
+  'scripts/core/reclassify_and_rebuild.py',
+  'scripts/core/enforce_tier1.py',
+  'scripts/core/rebuild_grading_3d.py',
+  'scripts/core/rebuild_all_analysis_v2.py',
+  'scripts/core/fix_sort_order.py',
+  'scripts/lib/extract_techpack.py',
   // ── 共用 reference data ──
   'requirements-pipeline.txt',
-  'techpack-translation-style-guide.md',
-  'data/construction_bridge_v6.json',
-  'data/bucket_taxonomy.json',
-  'data/l1_standard_38.json',
-  'data/pom_dictionary.json',
+  'docs/spec/techpack-translation-style-guide.md',
+  'data/runtime/construction_bridge_v6.json',
+  'data/runtime/bucket_taxonomy.json',
+  'data/runtime/l1_standard_38.json',
+  'data/runtime/pom_dictionary.json',
   'data/ingest/consensus_v1/entries.jsonl',
-  'General Model_Path2_Construction Suggestion/iso_lookup_factory_v4.3.json',
-  'General Model_Path2_Construction Suggestion/iso_lookup_factory_v4.json',
+  'path2_universal/iso_lookup_factory_v4.3.json',
+  'path2_universal/iso_lookup_factory_v4.json',
   // ── POM RULES 產線文件 ──
-  'pom_rules_pipeline_guide_v2.md',
-  'pom_rules_v55_classification_logic.md',
+  'docs/sop/pom_rules_pipeline_guide_v2.md',
+  'docs/spec/pom_rules_v55_classification_logic.md',
 ];
 
 const PKG_README = (sha, date) => `# StyTrix Techpack Pipeline 外送包
@@ -2429,7 +2474,7 @@ const PKG_README = (sha, date) => `# StyTrix Techpack Pipeline 外送包
 
 本包含兩條 pipeline 的腳本 + 參考資料,協作單位可在自己機器上重建:
 
-- **Pipeline A — recipes_master**:PDF/PPTX → facts → \`data/recipes_master.json\`(做工配方總表)
+- **Pipeline A — recipes_master**:PDF/PPTX → facts → \`data/runtime/recipes_master.json\`(做工配方總表)
 - **Pipeline B — POM RULES**:Centric 8 ONY Techpack PDF → \`pom_rules/*.json\`(81 bucket 尺寸規則庫)
 
 兩條獨立,可單跑也可都跑。
@@ -2487,7 +2532,7 @@ POM RULES 吃的是 **Centric 8 ONY Techpack PDF 樹**,跟 Pipeline A 的 \`data
 
 \`all_years.jsonl\` 每行一個物件,至少含:\`{file, year, meta:{...}}\`。Stytrix 會另外交給你,或從 Centric 匯出。
 
-初次要把 \`data/pom_dictionary.json\` 複製一份到 \`$BASE/pom_dictionary.json\`(POM 中英對照字典,做 reclassify 用)。
+初次要把 \`data/runtime/pom_dictionary.json\` 複製一份到 \`$BASE/pom_dictionary.json\`(POM 中英對照字典,做 reclassify 用)。
 
 ### 跑 Pipeline
 
@@ -2499,7 +2544,7 @@ export POM_PIPELINE_BASE=/你指定的 BASE
 或用 CLI flag(每支腳本都接受 \`--base-dir\`):
 
 \`\`\`bash
-python scripts/reclassify_and_rebuild.py --base-dir /你指定的 BASE
+python scripts/core/reclassify_and_rebuild.py --base-dir /你指定的 BASE
 \`\`\`
 
 ### 產出
@@ -2553,7 +2598,7 @@ python star_schema/scripts/extract_unified.py --ingest-dir data/ingest --out dat
 echo "→ Step 3: build_recipes_master.py"
 python star_schema/scripts/build_recipes_master.py --strict
 
-echo "✓ 完成:data/recipes_master.json + data/ingest/{unified,vlm}/facts.jsonl"
+echo "✓ 完成:data/runtime/recipes_master.json + data/ingest/{unified,vlm}/facts.jsonl"
 `;
 
 const PKG_RUN_POM_RULES_SH = `#!/usr/bin/env bash
@@ -2570,25 +2615,25 @@ echo "BASE = \$POM_PIPELINE_BASE"
 mkdir -p "\$POM_PIPELINE_BASE/_parsed" "\$POM_PIPELINE_BASE/pom_rules"
 
 echo "→ Step 1a: extract 2025 seasonal PDFs"
-python scripts/run_extract_2025_seasonal.py || echo "⚠ 沒 2025 PDF 或已處理完,跳過"
+python scripts/core/run_extract_2025_seasonal.py || echo "⚠ 沒 2025 PDF 或已處理完,跳過"
 
 echo "→ Step 1b: extract 2026 PDFs"
-python scripts/run_extract_new.py || echo "⚠ 沒 2026 PDF 或已處理完,跳過"
+python scripts/core/run_extract_new.py || echo "⚠ 沒 2026 PDF 或已處理完,跳過"
 
 echo "→ Step 2: rebuild_profiles (→ measurement_profiles_union.json)"
-python scripts/rebuild_profiles.py
+python scripts/core/rebuild_profiles.py
 
 echo "→ Step 3: reclassify_and_rebuild (→ pom_rules/*.json)"
-python scripts/reclassify_and_rebuild.py
+python scripts/core/reclassify_and_rebuild.py
 
 echo "→ Step 4: rebuild_all_analysis_v2 (→ 6 analysis files)"
-python scripts/rebuild_all_analysis_v2.py
+python scripts/core/rebuild_all_analysis_v2.py
 
 echo "→ Step 5: rebuild_grading_3d (→ grading_patterns.json)"
-python scripts/rebuild_grading_3d.py
+python scripts/core/rebuild_grading_3d.py
 
 echo "→ Step 6: fix_sort_order (→ 整理各 bucket 的 pom_sort_order)"
-python scripts/fix_sort_order.py
+python scripts/core/fix_sort_order.py
 
 echo "✓ 完成:\$POM_PIPELINE_BASE/pom_rules/*.json(81 bucket)"
 echo "  想推回 Stytrix repo:覆蓋 repo 的 pom_rules/ 目錄,PR 推上去。"
@@ -2738,7 +2783,7 @@ function PackageModal({ open, onClose, token }) {
 }
 
 /* IEAdminModal:聚陽送來新版 五階層展開項目_YYYYMMDD.xlsx 時上傳。
-   push 到 main → rebuild_l2_l3_ie workflow 自動跑 scripts/build_l2_l3_ie.py
+   push 到 main → rebuild_l2_l3_ie workflow 自動跑 scripts/core/build_l2_l3_ie.py
    → 覆蓋 l2_l3_ie/*.json。xlsx 通常 9.5 MB,走 PAT 直連 GitHub PUT(不走 Vercel 4.5 MB 限制)。 */
 function IEAdminModal({ open, onClose, token }) {
   const [pickedFile, setPickedFile] = React.useState(null);
@@ -2783,7 +2828,7 @@ function IEAdminModal({ open, onClose, token }) {
       const b64 = btoa(binary);
 
       const OWNER = 'ellyfd', REPO = 'stytrix-techpack', BRANCH = 'main';
-      const filePath = plannedName;
+      const filePath = 'data/source/' + plannedName;
       // 路徑含中文 → 每一段都要 encodeURIComponent,不要整串 encode
       const encodedPath = filePath.split('/').map(encodeURIComponent).join('/');
       const apiUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${encodedPath}`;
@@ -2880,7 +2925,7 @@ function IEAdminModal({ open, onClose, token }) {
         </div>
 
         <div style={{ marginBottom: '14px', padding: '10px 12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', fontSize: '12px', color: '#78350f', lineHeight: 1.55 }}>
-          聚陽送來新版 xlsx 時,從這裡上傳。push 後 GitHub Actions 會跑 <code style={{ background: '#fef3c7', padding: '0 4px', borderRadius: 3 }}>scripts/build_l2_l3_ie.py</code> 自動重建 <code>l2_l3_ie/*.json</code>(38 份)。xlsx 檔名會統一改成 <code>五階層展開項目_&lt;今日&gt;.xlsx</code>,舊版留在 repo 當歷史。
+          聚陽送來新版 xlsx 時,從這裡上傳。push 後 GitHub Actions 會跑 <code style={{ background: '#fef3c7', padding: '0 4px', borderRadius: 3 }}>scripts/core/build_l2_l3_ie.py</code> 自動重建 <code>l2_l3_ie/*.json</code>(38 份)。xlsx 上傳到 <code>data/source/</code>,檔名會統一改成 <code>五階層展開項目_&lt;今日&gt;.xlsx</code>,舊版留在 repo 當歷史。
         </div>
 
         {!token && (
@@ -3200,7 +3245,7 @@ function ResultsUploadModal({ open, onClose, token }) {
   );
 }
 
-/* AdminModal:POM 翻譯表編輯器(data/pom_dictionary.json) */
+/* AdminModal:POM 翻譯表編輯器(data/runtime/pom_dictionary.json) */
 function AdminModal({ open, onClose, pomNames, onPushDict, token }) {
   const [draft, setDraft] = React.useState({});
   const [search, setSearch] = React.useState('');
@@ -3406,7 +3451,7 @@ function AdminModal({ open, onClose, pomNames, onPushDict, token }) {
     if (diff.added.length)    parts.push(`+${diff.added.length} (${diff.added.slice(0, 4).join(', ')}${diff.added.length > 4 ? '…' : ''})`);
     if (diff.modified.length) parts.push(`~${diff.modified.length} (${diff.modified.slice(0, 4).join(', ')}${diff.modified.length > 4 ? '…' : ''})`);
     if (diff.removed.length)  parts.push(`-${diff.removed.length} (${diff.removed.slice(0, 4).join(', ')}${diff.removed.length > 4 ? '…' : ''})`);
-    if (!parts.length) return `Update data/pom_dictionary.json via admin (${pomCount} entries, no content change)`;
+    if (!parts.length) return `Update data/runtime/pom_dictionary.json via admin (${pomCount} entries, no content change)`;
     return `Update pom_dictionary: ${parts.join(' / ')}`;
   }, [diff, pomCount]);
 
@@ -3703,7 +3748,7 @@ function OnboardingModal({ open, onDismiss }) {
 }
 
 /* ManualsModal:權威靜態手冊登記表(read-only)
-   服裝業術語優先,技術路徑為次要資訊。來源:網站架構圖.md 第 8 節。 */
+   服裝業術語優先,技術路徑為次要資訊。來源:docs/spec/網站架構圖.md 第 8 節。 */
 function ManualsModal({ open, onClose }) {
   const [filter, setFilter] = React.useState('all'); // 'all' | 'ai' | 'rule'
   React.useEffect(() => { if (open) setFilter('all'); }, [open]);
@@ -3722,16 +3767,15 @@ function ManualsModal({ open, onClose }) {
     {
       kind: 'ai',
       title: 'Step 1｜L1 部位定義 · 38 個大部位',
-      file: 'L1_部位定義_Sketch視覺指引.md',
+      file: 'docs/spec/L1_部位定義_Sketch視覺指引.md',
       what: '【先分部位】把一件衣服拆成 38 個大部位(前領、後領、肩、前身、後身、袖襱、袖身、袖口、下襬、側縫、前襠、後襠、腰頭...)。像打版師攤開一張草圖,第一件事是用手指圈出「這塊是肩、這塊是袖」——沒先分部位,後面零件都談不上。',
       who: 'AI 辨識 Pass 1:框出「這個框起來的是什麼部位」',
       impact: '38 個部位是整個辨識流程的地基;部位認錯,後面零件判斷全錯。',
-      note: '同一份在根目錄與 General Model_Path2 兩處各有一份(MD5 相同)。',
     },
     {
       kind: 'ai',
       title: 'Step 2｜L2 零件視覺辨識圖鑑 · 282 個零件「長什麼樣」',
-      file: 'L2_Visual_Differentiation_FullAnalysis_修正版.md',
+      file: 'docs/spec/L2_Visual_Differentiation_FullAnalysis_修正版.md',
       what: '【再認零件外觀】每個 L1 部位下面還有很多種 L2 零件。這份是 282 個零件的「圖解辭典」:SET-IN 袖肩峰有弧線接合、RAGLAN 袖從領口斜切到腋下、公主線從肩中直下到腰...每個零件長什麼樣、輪廓怎麼走、接合線在哪,全部一條一條描述。',
       who: 'AI 辨識 Pass 1/2 的視覺字典',
       impact: 'AI 要先認識每個零件長什麼樣,才有辦法指認 sketch 上看到的是哪個。',
@@ -3739,7 +3783,7 @@ function ManualsModal({ open, onClose }) {
     {
       kind: 'ai',
       title: 'Step 3｜L2 零件判斷樹 + 混淆對照表 · 「怎麼分辨長得像的」',
-      file: 'L2_VLM_Decision_Tree_Prompts_v2.md',
+      file: 'docs/spec/L2_VLM_Decision_Tree_Prompts_v2.md',
       what: '【最後做判斷】光看外觀有時分不清——SET-IN 跟 RAGLAN 從某些角度看會很像、公主線跟剪接片都是直線。這份是打版師教新人的判斷口訣:「先看肩線位置、再看接合角度、最後看有無斷開」。末尾附 49 組最容易看錯的配對,告訴 AI 每一組要抓哪個關鍵差異。',
       who: 'AI 辨識 Pass 2 的判斷流程 + 精度保險',
       impact: '決定 AI 遇到邊緣案例時選得對不對;49 組混淆對照表已合併入本檔末尾(§ 混淆對照表)。',
@@ -3748,7 +3792,7 @@ function ManualsModal({ open, onClose }) {
     {
       kind: 'rule',
       title: 'POM 規則分類邏輯 (v5.5.1)',
-      file: 'pom_rules_v55_classification_logic.md',
+      file: 'docs/spec/pom_rules_v55_classification_logic.md',
       what: '同一件衣服為什麼要依「性別 × 部門 × 品類 × 布料」分成 81 個 bucket?為什麼 Active 跟 Casual 的 POM 要分開、什麼時候 GT 要細分(PANTS / LEGGINGS / SHORTS)、什麼時候可合併。',
       who: '打版室 / IE / 資料管理者理解分類邏輯',
       impact: '改這份會影響整個 pom_rules/ 怎麼被產出來。',
@@ -3756,7 +3800,7 @@ function ManualsModal({ open, onClose }) {
     {
       kind: 'rule',
       title: 'POM 規則庫更新 SOP',
-      file: 'pom_rules_pipeline_guide_v2.md',
+      file: 'docs/sop/pom_rules_pipeline_guide_v2.md',
       what: '新一季的 techpack PDF / PPTX 進來了,要怎麼重建整個 81 bucket POM 規則庫的五階段 SOP:抽料 → 重分類 → 套 tier-1 必備 POM → 修排序 → push 上線。',
       who: '資料管理者跑產線照這份',
       impact: '從原始 PDF 到線上可用的 pom_rules/,每一步都照這份走。',
@@ -3765,7 +3809,7 @@ function ManualsModal({ open, onClose }) {
     {
       kind: 'rule',
       title: 'POM 翻譯統一字典',
-      file: 'techpack-translation-style-guide.md',
+      file: 'docs/spec/techpack-translation-style-guide.md',
       what: '四家客戶(ONY / ATH / BNN / GAP)各有一套翻法,系統採哪家的裁決。例如 Armhole 用「袖襱」不用「袖窿」、Rise 用「襠」不用「檔」、Cuff 用「克夫」不用「袖口羅紋」。基礎共 10,035 筆翻譯。這份現在會被 api/analyze.js 在啟動時讀入 system prompt,所以 AI 回覆的中文都會依這份風格。',
       who: 'api/analyze.js 在 runtime 吃 · 打版室 / POM 建檔人員 / 翻譯者',
       impact: '新增 POM 中文名之前先查這份,避免四家風格混進系統;2026-04-23 起此檔也影響 AI 回覆用字。',
@@ -3773,10 +3817,10 @@ function ManualsModal({ open, onClose }) {
     {
       kind: 'rule',
       title: 'L2–L5 + IE 秒數原始展開表',
-      file: '五階層展開項目_20260402.xlsx',
+      file: 'data/source/五階層展開項目_20260402.xlsx',
       what: '部位(L1) → 零件(L2) → 形狀(L3) → 工法(L4) → 工段(L5) + 每個工段的 IE 秒數 的完整展開表。9.5 MB 的 Excel,是所有 l2_l3_ie/*.json 的原始底稿。',
       who: 'IE / 打版室 / 工段部的參考底稿',
-      impact: '由 scripts/build_l2_l3_ie.py 讀取並拆分成 38 份 l2_l3_ie/*.json;聚陽送新版時用「🛠 IE 底稿管理」上傳新 xlsx 會自動重跑。',
+      impact: '由 scripts/core/build_l2_l3_ie.py 讀取並拆分成 38 份 l2_l3_ie/*.json;聚陽送新版時用「🛠 IE 底稿管理」上傳新 xlsx 會自動重跑。',
     },
   ];
 
@@ -3898,8 +3942,8 @@ function ManualsModal({ open, onClose }) {
         </div>
 
         <div style={{ marginTop: '12px', fontSize: '11px', color: '#888', textAlign: 'center' }}>
-          完整技術依賴圖:<a href={ghLink("網站架構圖.md", "8-權威靜態手冊登記表")} target="_blank" rel="noopener noreferrer"
-            style={{ color: '#525252', textDecoration: 'underline' }}>網站架構圖.md § 8</a>
+          完整技術依賴圖:<a href={ghLink("docs/spec/網站架構圖.md", "8-權威靜態手冊登記表")} target="_blank" rel="noopener noreferrer"
+            style={{ color: '#525252', textDecoration: 'underline' }}>docs/spec/網站架構圖.md § 8</a>
         </div>
       </div>
     </div>
@@ -4026,15 +4070,15 @@ function App() {
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(data => { setPomRules(data); window.POM_RULES = data; })
       .catch(err => console.error('載入 pom_rules/_index.json 失敗:', err));
-    fetch('./data/grading_patterns.json')
+    fetch('./data/runtime/grading_patterns.json')
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(setGradingPatterns)
       .catch(err => console.error('載入 grading_patterns 失敗:', err));
-    fetch('./data/bodytype_variance.json')
+    fetch('./data/runtime/bodytype_variance.json')
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(setBodytypeVariance)
       .catch(err => console.error('載入 bodytype_variance 失敗:', err));
-    fetch('./data/pom_dictionary.json')
+    fetch('./data/runtime/pom_dictionary.json')
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(data => { setPomNames(data); window.POM_NAMES = data; })
       .catch(err => console.error('載入 pom_dictionary 失敗:', err));
@@ -4092,10 +4136,23 @@ function App() {
     return out;
   }, [currentBucket, universalSpec]);
   const bucketKey = (dept && gt && gender) ? `${dept}_${gt}|${gender}` : null;
+  // 聚陽模式吃 brand-stamped 的 pom_rules / bodytype_variance / grading_patterns,
+  // 目前 pipeline 只產 ONY (見 _index._meta.source_brand)。當 brand ≠ source_brand
+  // 時整套 ONY 數據就不該滲到 UI,讓使用者自己看到「這個 brand 還沒接資料」。
+  // 通用模型走 ISO 字典 + recipes_master,跟 brand 無關,brand 一律放行。
+  const dataBrandMatches = useMemo(() => {
+    if (appMode !== "makalot") return true;
+    if (!brand) return true; // 還沒選就先放行,反正 bucketMeta 也會是 null
+    const stamp = pomRules?._meta?.source_brand || "ONY";
+    return brand === stamp;
+  }, [appMode, brand, pomRules]);
+  // appMode === "makalot" 且 brand 跟資料 source_brand 不符 → bucketMeta 直接 null,
+  // 後續 bucket fetch 不發,currentBucket 保持空,POM tier / 基碼 / 全碼整塊不渲染。
   const bucketMeta = useMemo(() => {
     if (!bucketKey || !pomRules) return null;
+    if (appMode === "makalot" && !dataBrandMatches) return null;
     return pomRules.buckets.find(b => b.bucket === bucketKey) || null;
-  }, [bucketKey, pomRules]);
+  }, [bucketKey, pomRules, appMode, dataBrandMatches]);
   useEffect(() => {
     if (!bucketMeta) { setCurrentBucket(null); return; }
     setBucketLoading(true);
@@ -4215,20 +4272,20 @@ function App() {
   const [partPresence, setPartPresence] = useState(null);
   const [visualGuide, setVisualGuide] = useState(null);
   // 通用模型 Path 2 — 單一 master + 獨立 ISO 字典 + 38 碼正名表:
-  //   data/recipes_master.json  — 4 層 aggregation 合併後的 entries(由 scripts/build_recipes_master.py 產出)
+  //   data/runtime/recipes_master.json  — 4 層 aggregation 合併後的 entries(由 star_schema/scripts/build_recipes_master.py 產出)
   //                                same_sub(recipe,71 檔)→ same_gt(v4.3)→ general(v4)→ cross_design(bridge)
-  //   data/iso_dictionary.json  — ISO code → {zh, en, machine} 顯示字典
-  //   data/l1_standard_38.json  — 38 碼 L1 正名表({code: {zh, en}}),取自 v4.3 的 l1_standard_38
+  //   data/runtime/iso_dictionary.json  — ISO code → {zh, en, machine} 顯示字典
+  //   data/runtime/l1_standard_38.json  — 38 碼 L1 正名表({code: {zh, en}}),取自 v4.3 的 l1_standard_38
   // 原始 4 本手冊(v4.3 / v4 / bridge v6 / recipes/*)保留在 repo,master 由 script 重建。
   const [recipesMaster, setRecipesMaster] = useState(null);
   const [isoDictionary, setIsoDictionary] = useState(null);
   const [l1Standard38, setL1Standard38] = useState(null);
-  // v6 grading_patterns(data/grading_patterns.json):
+  // v6 grading_patterns(data/runtime/grading_patterns.json):
   // {category|gender: {POM: {m_median, pairs:{S→M,M→L,...}, inflection, delta_sm, delta_ml}}}
   // 33 combos × 1,016 POM families,20.6% POM 有 inflection(S→M 和 M→L 的 delta 不同)。
   // 拿來取代基碼頁目前用 pom_rules.grading_rules.typical_increment(固定遞增)的線性推導。
   const [gradingPatterns, setGradingPatterns] = useState(null);
-  // bodytype_variance(data/bodytype_variance.json):
+  // bodytype_variance(data/runtime/bodytype_variance.json):
   // {GENDER|GT|BODYTYPE: {m_size_comparison: {POM: {delta, n_pairs}},
   //                        grading_deltas:   {POM: {regular_grading, <bt>_grading, same_pattern}}}}
   // 絕對值 = bucket.median_values[POM].size_medians.M + delta
@@ -4277,37 +4334,37 @@ function App() {
   useEffect(() => {
     if (!sketchSrc) return;
     if (!isoRec) {
-      fetch('./data/l1_iso_recommendations_v1.json')
+      fetch('./data/runtime/l1_iso_recommendations_v1.json')
         .then(r => r.ok ? r.json() : Promise.reject(r.status))
         .then(setIsoRec)
         .catch(err => console.error('載入 l1_iso_recommendations 失敗:', err));
     }
     if (!partPresence) {
-      fetch('./data/l1_part_presence_v1.json')
+      fetch('./data/runtime/l1_part_presence_v1.json')
         .then(r => r.ok ? r.json() : Promise.reject(r.status))
         .then(setPartPresence)
         .catch(err => console.error('載入 l1_part_presence 失敗:', err));
     }
     if (!visualGuide) {
-      fetch('./data/l2_visual_guide.json')
+      fetch('./data/runtime/l2_visual_guide.json')
         .then(r => r.ok ? r.json() : Promise.reject(r.status))
         .then(setVisualGuide)
         .catch(err => console.error('載入 l2_visual_guide 失敗:', err));
     }
     if (!recipesMaster && appMode === "universal") {
-      fetch('./data/recipes_master.json')
+      fetch('./data/runtime/recipes_master.json')
         .then(r => r.ok ? r.json() : Promise.reject(r.status))
         .then(setRecipesMaster)
         .catch(err => console.error('載入 recipes_master 失敗:', err));
     }
     if (!isoDictionary && appMode === "universal") {
-      fetch('./data/iso_dictionary.json')
+      fetch('./data/runtime/iso_dictionary.json')
         .then(r => r.ok ? r.json() : Promise.reject(r.status))
         .then(setIsoDictionary)
         .catch(err => console.error('載入 iso_dictionary 失敗:', err));
     }
     if (!l1Standard38 && appMode === "universal") {
-      fetch('./data/l1_standard_38.json')
+      fetch('./data/runtime/l1_standard_38.json')
         .then(r => r.ok ? r.json() : Promise.reject(r.status))
         .then(setL1Standard38)
         .catch(err => console.error('載入 l1_standard_38 失敗:', err));
@@ -4444,9 +4501,18 @@ function App() {
     setCustomPoms([]);
   }, [appMode]);
 
+  // 從 ONY 切到非 ONY 時把先前生成過的 spec 退回未生成,避免
+  // mDone=true 但 currentBucket 已被 brand gate 清空時,UI 落到
+  // 「mDone && !currentBucket」的 hardcoded MISSY_POMS fallback,
+  // 那塊 fallback 也是 ONY 學出來的數字。
+  useEffect(() => {
+    if (!dataBrandMatches && mStep > 0) setMStep(0);
+  }, [dataBrandMatches]); // eslint-disable-line react-hooks/exhaustive-deps
+
   /* ── Derived ── */
   const canAnalyze = brand && fabric && dept && gender && gt && sketchSrc;
-  const canGenerateSpec = brand && fabric && dept && gender && gt; // 尺寸表不需要 sketch
+  // 尺寸表不需要 sketch;聚陽模式還要 brand 跟資料 source_brand 對得上才能生成
+  const canGenerateSpec = brand && fabric && dept && gender && gt && dataBrandMatches;
   const cDone = cStep >= 2;
   const mDone = mStep >= 2;
 
@@ -4870,8 +4936,8 @@ function App() {
       }
       const detected = Array.from(byCode.values());
 
-      // ── Path 2 通用模型 — VLM(L1) → data/recipes_master.json 單一資料源 ──
-      // master 由 scripts/build_recipes_master.py 合併 recipe / v4.3 / v4 / bridge 產出,
+      // ── Path 2 通用模型 — VLM(L1) → data/runtime/recipes_master.json 單一資料源 ──
+      // master 由 star_schema/scripts/build_recipes_master.py 合併 recipe / v4.3 / v4 / bridge 產出,
       // 4 層 aggregation(same_sub → same_gt → general → cross_design)由 buildUniversalCard
       // 內部 isoOptionsFor 依序 fallback。methods 一律從 cross_design(bridge)拿。
       if (appMode === "universal") {
@@ -6199,7 +6265,9 @@ function App() {
                 <div style={{ fontSize: isMobile ? "12px" : "13px", color: "#888", maxWidth: "360px", lineHeight: 1.6 }}>
                   {canGenerateSpec
                     ? "依據左方 filter 推導 POM 建議、公差與 Base (M)。生成後可以基碼 / 全碼兩種檢視切換。"
-                    : "請先在上方完成 Brand / Fabric / Gender / Department / Garment Type 等 filter 才能生成。"}
+                    : (appMode === "makalot" && brand && !dataBrandMatches)
+                      ? `${brand} 目前在聚陽模式無 POM / 跳碼歷史資料(現有資料皆為 ${pomRules?._meta?.source_brand || "ONY"})。請改選 ${pomRules?._meta?.source_brand || "ONY"},或切到通用模式跑 ISO + recipes_master。`
+                      : "請先在上方完成 Brand / Fabric / Gender / Department / Garment Type 等 filter 才能生成。"}
                 </div>
                 <button onClick={runMeasurement} disabled={!canGenerateSpec}
                   style={{
@@ -6507,7 +6575,7 @@ function App() {
                 return (k3d && gradingPatterns?.[k3d]) || (k2d && gradingPatterns?.[k2d]) || null;
               })();
               const hasInflection = (code) => !!inflectionCombo?.[code]?.inflection;
-              // bodytype_variance lookup(data/bodytype_variance.json):
+              // bodytype_variance lookup(data/runtime/bodytype_variance.json):
               // key = GENDER|GT|<BT>,值為 { m_size_comparison, grading_deltas }。
               // m_size_comparison.<POM> 只含 { delta, n_pairs } — 絕對值用
               // bucket median + delta 算(不同母體,不可直接拿 <bt>_M)。
@@ -7373,8 +7441,10 @@ function App() {
                 }
                 return applyRunOffset(code, v);
               };
-              // 顯示哪些 sizes:預設只 missy;showPlus=true 才 append plus
-              const visibleSizes = showPlus ? [...missySeq, ...plusSeq] : missySeq;
+              // 顯示哪些 sizes:
+              // 全碼頁身型 radio 是單選互斥 — gradingBodytype='plus' 整張表只看 1X–4X(2X 為基),
+              // 其餘(regular/petite/tall)則用 Missy XXS–XXL。基碼頁的 showPlus toggle 不適用此處。
+              const visibleSizes = gradingBodytype === 'plus' ? plusSeq : missySeq;
               // size_run_offsets 是 legacy 結構(bucket 大多沒有此欄),保留以防舊 bucket 還在用。
               // bodytype 切換改走 gradingBodytype + bodytype_variance,不再透過 offset 加總。
               const runOffsets = currentBucket.size_run_offsets || {};

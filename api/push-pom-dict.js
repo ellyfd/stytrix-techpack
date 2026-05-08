@@ -1,6 +1,6 @@
 export const config = { runtime: "nodejs", maxDuration: 30 };
 
-// Admin endpoint to push data/pom_dictionary.json back to GitHub.
+// Admin endpoint to push data/runtime/pom_dictionary.json back to GitHub.
 //
 // Auth: requires `x-admin-token` header to match process.env.ADMIN_TOKEN
 //       (a shared password the team sets in Vercel env vars).
@@ -56,7 +56,7 @@ export default async function handler(req, res) {
 
   const OWNER = "ellyfd";
   const REPO = "stytrix-techpack";
-  const FILE_PATH = "data/pom_dictionary.json";
+  const FILE_PATH = "data/runtime/pom_dictionary.json";
   const BRANCH = "main";
 
   // Fetch current file to get its SHA (required by GitHub contents PUT).
@@ -102,7 +102,7 @@ export default async function handler(req, res) {
   const putUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE_PATH}`;
   const commitMessage = (typeof message === "string" && message.trim())
     ? message.trim()
-    : `Update data/pom_dictionary.json via admin (${Object.keys(sortedDict).length} entries)`;
+    : `Update data/runtime/pom_dictionary.json via admin (${Object.keys(sortedDict).length} entries)`;
   let putResp;
   try {
     putResp = await fetch(putUrl, {

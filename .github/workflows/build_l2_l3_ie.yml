@@ -33,7 +33,7 @@ jobs:
 
       # build_l2_l3_ie.py 是純 stdlib,不用裝依賴
       - name: Rebuild l2_l3_ie/*.json
-        run: python scripts/build_l2_l3_ie.py
+        run: python scripts/core/build_l2_l3_ie.py
 
       - name: Commit regenerated files
         run: |
