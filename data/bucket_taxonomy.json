@@ -1,793 +1,626 @@
 {
-  "version": "v1.0",
-  "buckets": {
-    "boys_fleece_bottoms": {
+  "version": "v4",
+  "generated_at": "2026-05-08T05:36:24+00:00",
+  "source": "Generated from MK Metadata (M7列管_5/7 18,731 EIDH + client_canonical_mapping)",
+  "rule": "從 MK Metadata cartesian product 過濾「實際出現過的 4 維組合」自動產出。key = <gender>_<dept>_<gt>_<it> (4 維)。做工 cascade 用 6 維 (4 維 + fabric + l1)，POM bucket 用 4 維 prefix。",
+  "schema": {
+    "key_format": "<GENDER>_<DEPT>_<GT>_<IT>",
+    "dimensions": {
       "gender": [
-        "BOYS"
+        "WOMEN",
+        "MEN",
+        "GIRL",
+        "BOY",
+        "BABY",
+        "MATERNITY",
+        "UNISEX"
       ],
       "dept": [
-        "FLEECE"
+        "ACTIVE",
+        "RTW",
+        "SLEEPWEAR",
+        "SWIMWEAR",
+        "FLEECE",
+        "DENIM"
       ],
       "gt": [
-        "BOTTOM"
-      ]
-    },
-    "boys_fleece_outer": {
-      "gender": [
-        "BOYS"
-      ],
-      "dept": [
-        "FLEECE"
-      ],
-      "gt": [
-        "OUTERWEAR"
-      ]
-    },
-    "boys_fleece_tops": {
-      "gender": [
-        "BOYS"
-      ],
-      "dept": [
-        "FLEECE"
-      ],
-      "gt": [
-        "TOP"
-      ]
-    },
-    "boys_knit_tops": {
-      "gender": [
-        "BOYS"
-      ],
-      "dept": [
-        "RTW"
-      ],
-      "gt": [
-        "TOP"
-      ]
-    },
-    "boys_perf_bottoms": {
-      "gender": [
-        "BOYS"
-      ],
-      "dept": [
-        "ACTIVE"
-      ],
-      "gt": [
-        "BOTTOM"
-      ]
-    },
-    "boys_perf_outer": {
-      "gender": [
-        "BOYS"
-      ],
-      "dept": [
-        "ACTIVE"
-      ],
-      "gt": [
-        "OUTERWEAR"
-      ]
-    },
-    "boys_perf_tops": {
-      "gender": [
-        "BOYS"
-      ],
-      "dept": [
-        "ACTIVE"
-      ],
-      "gt": [
-        "TOP"
-      ]
-    },
-    "boys_sleep": {
-      "gender": [
-        "BOYS"
-      ],
-      "dept": [
-        "SLEEPWEAR"
-      ],
-      "gt": [
-        "SET"
-      ]
-    },
-    "girls_dress": {
-      "gender": [
-        "GIRLS"
-      ],
-      "dept": [
-        "RTW"
-      ],
-      "gt": [
-        "DRESS"
-      ]
-    },
-    "girls_dress_bottoms": {
-      "gender": [
-        "GIRLS"
-      ],
-      "dept": [
-        "RTW"
-      ],
-      "gt": [
-        "BOTTOM"
-      ]
-    },
-    "girls_dress_tops": {
-      "gender": [
-        "GIRLS"
-      ],
-      "dept": [
-        "RTW"
-      ],
-      "gt": [
-        "TOP"
-      ]
-    },
-    "girls_knit_tops": {
-      "gender": [
-        "GIRLS"
-      ],
-      "dept": [
-        "RTW"
-      ],
-      "gt": [
-        "TOP"
-      ]
-    },
-    "girls_perf_bottoms": {
-      "gender": [
-        "GIRLS"
-      ],
-      "dept": [
-        "ACTIVE"
-      ],
-      "gt": [
-        "BOTTOM"
-      ]
-    },
-    "girls_perf_dress": {
-      "gender": [
-        "GIRLS"
-      ],
-      "dept": [
-        "ACTIVE"
-      ],
-      "gt": [
-        "DRESS"
-      ]
-    },
-    "girls_perf_outer": {
-      "gender": [
-        "GIRLS"
-      ],
-      "dept": [
-        "ACTIVE"
-      ],
-      "gt": [
-        "OUTERWEAR"
-      ]
-    },
-    "girls_perf_tops": {
-      "gender": [
-        "GIRLS"
-      ],
-      "dept": [
-        "ACTIVE"
-      ],
-      "gt": [
-        "TOP"
-      ]
-    },
-    "girls_set": {
-      "gender": [
-        "GIRLS"
-      ],
-      "dept": [
-        "RTW"
-      ],
-      "gt": [
-        "SET"
-      ]
-    },
-    "girls_sleep": {
-      "gender": [
-        "GIRLS"
-      ],
-      "dept": [
-        "SLEEPWEAR"
-      ],
-      "gt": [
-        "SET"
-      ]
-    },
-    "girls_sleep_sleep": {
-      "gender": [
-        "GIRLS"
-      ],
-      "dept": [
-        "SLEEPWEAR"
-      ],
-      "gt": [
-        "SET"
-      ]
-    },
-    "maternity_bottoms": {
-      "gender": [
-        "WOMENS"
-      ],
-      "dept": [
-        "MATERNITY"
-      ],
-      "gt": [
-        "BOTTOM"
-      ]
-    },
-    "maternity_dress": {
-      "gender": [
-        "WOMENS"
-      ],
-      "dept": [
-        "MATERNITY"
-      ],
-      "gt": [
-        "DRESS"
-      ]
-    },
-    "maternity_outer": {
-      "gender": [
-        "WOMENS"
-      ],
-      "dept": [
-        "MATERNITY"
-      ],
-      "gt": [
-        "OUTERWEAR"
-      ]
-    },
-    "maternity_set": {
-      "gender": [
-        "WOMENS"
-      ],
-      "dept": [
-        "MATERNITY"
-      ],
-      "gt": [
-        "SET"
-      ]
-    },
-    "maternity_tops": {
-      "gender": [
-        "WOMENS"
-      ],
-      "dept": [
-        "MATERNITY"
-      ],
-      "gt": [
-        "TOP"
-      ]
-    },
-    "mens_fleece_bottoms": {
-      "gender": [
-        "MENS"
-      ],
-      "dept": [
-        "FLEECE"
-      ],
-      "gt": [
-        "BOTTOM"
-      ]
-    },
-    "mens_fleece_tops": {
-      "gender": [
-        "MENS"
-      ],
-      "dept": [
-        "FLEECE"
-      ],
-      "gt": [
-        "TOP"
-      ]
-    },
-    "mens_knit_sleep": {
-      "gender": [
-        "MENS"
-      ],
-      "dept": [
-        "SLEEPWEAR"
-      ],
-      "gt": [
-        "SET"
-      ]
-    },
-    "mens_knit_tops": {
-      "gender": [
-        "MENS"
-      ],
-      "dept": [
-        "RTW"
-      ],
-      "gt": [
-        "TOP"
-      ]
-    },
-    "mens_perf_bottoms": {
-      "gender": [
-        "MENS"
-      ],
-      "dept": [
-        "ACTIVE"
-      ],
-      "gt": [
-        "BOTTOM"
-      ]
-    },
-    "mens_perf_outer": {
-      "gender": [
-        "MENS"
-      ],
-      "dept": [
-        "ACTIVE"
-      ],
-      "gt": [
-        "OUTERWEAR"
-      ]
-    },
-    "mens_perf_tops": {
-      "gender": [
-        "MENS"
-      ],
-      "dept": [
-        "ACTIVE"
-      ],
-      "gt": [
-        "TOP"
-      ]
-    },
-    "mens_woven_bottoms": {
-      "gender": [
-        "MENS"
-      ],
-      "dept": [
-        "RTW"
-      ],
-      "gt": [
-        "BOTTOM"
-      ]
-    },
-    "mens_woven_tops": {
-      "gender": [
-        "MENS"
-      ],
-      "dept": [
-        "RTW"
-      ],
-      "gt": [
-        "TOP"
-      ]
-    },
-    "newborn_dress": {
-      "gender": [
-        "BABY/TODDLER"
-      ],
-      "dept": [
-        "RTW"
-      ],
-      "gt": [
-        "DRESS"
-      ]
-    },
-    "newborn_misc": {
-      "gender": [
-        "BABY/TODDLER"
-      ],
-      "dept": [
-        "RTW"
-      ],
-      "gt": [
-        "SET"
-      ]
-    },
-    "newborn_set": {
-      "gender": [
-        "BABY/TODDLER"
-      ],
-      "dept": [
-        "RTW"
-      ],
-      "gt": [
-        "SET"
-      ]
-    },
-    "newborn_swim": {
-      "gender": [
-        "BABY/TODDLER"
-      ],
-      "dept": [
-        "SWIMWEAR"
-      ],
-      "gt": [
-        "SET"
-      ]
-    },
-    "other_swim": {
-      "gender": [
-        "WOMENS",
-        "GIRLS",
-        "KIDS"
-      ],
-      "dept": [
-        "SWIMWEAR"
-      ],
-      "gt": [
-        "TOP",
         "BOTTOM",
+        "TOP",
         "DRESS",
-        "SET"
+        "OUTERWEAR",
+        "SET",
+        "ROMPER_JUMPSUIT",
+        "SKIRT",
+        "SHORTS",
+        "SWIMWEAR_PIECE",
+        "UNDERWEAR"
+      ],
+      "it": [
+        "BASIC_TOP",
+        "BLAZER",
+        "BLOUSE_SHIRT",
+        "BOXER",
+        "COAT",
+        "COLLARED_TOP",
+        "DRESS",
+        "GOWN",
+        "JACKET",
+        "JUMPER",
+        "LEGGINGS",
+        "PANT",
+        "PANTIES",
+        "PANT_DRESSY",
+        "PJ_SET",
+        "ROBE",
+        "SHORTS",
+        "SKIRT",
+        "SKORT",
+        "SLEEVELESS_TOP",
+        "SWIM",
+        "VEST"
       ]
     },
-    "toddler_dress_tops": {
-      "gender": [
-        "BABY/TODDLER"
+    "extra_dimensions": {
+      "fabric": [
+        "KNIT",
+        "WOVEN"
       ],
-      "dept": [
-        "RTW"
-      ],
-      "gt": [
-        "TOP"
-      ]
-    },
-    "toddler_knit_bottoms": {
-      "gender": [
-        "BABY/TODDLER"
-      ],
-      "dept": [
-        "RTW"
-      ],
-      "gt": [
-        "BOTTOM"
-      ]
-    },
-    "toddler_knit_outer": {
-      "gender": [
-        "BABY/TODDLER"
-      ],
-      "dept": [
-        "RTW"
-      ],
-      "gt": [
-        "OUTERWEAR"
-      ]
-    },
-    "toddler_knit_tops": {
-      "gender": [
-        "BABY/TODDLER"
-      ],
-      "dept": [
-        "RTW"
-      ],
-      "gt": [
-        "TOP"
-      ]
-    },
-    "toddler_sleep": {
-      "gender": [
-        "BABY/TODDLER"
-      ],
-      "dept": [
-        "SLEEPWEAR"
-      ],
-      "gt": [
-        "SET"
-      ]
-    },
-    "womens_dress": {
-      "gender": [
-        "WOMENS"
-      ],
-      "dept": [
-        "RTW"
-      ],
-      "gt": [
-        "DRESS"
-      ]
-    },
-    "womens_dress_bottoms": {
-      "gender": [
-        "WOMENS"
-      ],
-      "dept": [
-        "RTW"
-      ],
-      "gt": [
-        "BOTTOM"
-      ]
-    },
-    "womens_fleece_bottoms": {
-      "gender": [
-        "WOMENS"
-      ],
-      "dept": [
-        "FLEECE"
-      ],
-      "gt": [
-        "BOTTOM"
-      ]
-    },
-    "womens_fleece_outer": {
-      "gender": [
-        "WOMENS"
-      ],
-      "dept": [
-        "FLEECE"
-      ],
-      "gt": [
-        "OUTERWEAR"
-      ]
-    },
-    "womens_fleece_tops": {
-      "gender": [
-        "WOMENS"
-      ],
-      "dept": [
-        "FLEECE"
-      ],
-      "gt": [
-        "TOP"
-      ]
-    },
-    "womens_knit_set": {
-      "gender": [
-        "WOMENS"
-      ],
-      "dept": [
-        "RTW"
-      ],
-      "gt": [
-        "SET"
-      ]
-    },
-    "womens_knit_tops": {
-      "gender": [
-        "WOMENS"
-      ],
-      "dept": [
-        "RTW"
-      ],
-      "gt": [
-        "TOP"
-      ]
-    },
-    "womens_perf_bottoms": {
-      "gender": [
-        "WOMENS"
-      ],
-      "dept": [
-        "ACTIVE"
-      ],
-      "gt": [
-        "BOTTOM"
-      ]
-    },
-    "womens_perf_dress": {
-      "gender": [
-        "WOMENS"
-      ],
-      "dept": [
-        "ACTIVE"
-      ],
-      "gt": [
-        "DRESS"
-      ]
-    },
-    "womens_perf_outer": {
-      "gender": [
-        "WOMENS"
-      ],
-      "dept": [
-        "ACTIVE"
-      ],
-      "gt": [
-        "OUTERWEAR"
-      ]
-    },
-    "womens_perf_set": {
-      "gender": [
-        "WOMENS"
-      ],
-      "dept": [
-        "ACTIVE"
-      ],
-      "gt": [
-        "SET"
-      ]
-    },
-    "womens_perf_tops": {
-      "gender": [
-        "WOMENS"
-      ],
-      "dept": [
-        "ACTIVE"
-      ],
-      "gt": [
-        "TOP"
-      ]
-    },
-    "womens_sleep": {
-      "gender": [
-        "WOMENS"
-      ],
-      "dept": [
-        "SLEEPWEAR"
-      ],
-      "gt": [
-        "SET"
-      ]
-    },
-    "womens_woven_bottoms": {
-      "gender": [
-        "WOMENS"
-      ],
-      "dept": [
-        "RTW"
-      ],
-      "gt": [
-        "BOTTOM"
-      ]
-    },
-    "womens_woven_sleep": {
-      "gender": [
-        "WOMENS"
-      ],
-      "dept": [
-        "SLEEPWEAR"
-      ],
-      "gt": [
-        "SET"
-      ]
-    },
-    "womens_woven_tops": {
-      "gender": [
-        "WOMENS"
-      ],
-      "dept": [
-        "RTW"
-      ],
-      "gt": [
-        "TOP"
-      ]
+      "l1": "38 部位 (見 zone_glossary.json:L1_STANDARD_38)"
     }
   },
-  "fingerprints": {
-    "BASIC_DRESS": {
-      "it": [
-        "DRESS"
+  "buckets": {
+    "WOMEN_ACTIVE_BOTTOM_PANT": {
+      "gender": "WOMEN",
+      "dept": "ACTIVE",
+      "gt": "BOTTOM",
+      "it": "PANT",
+      "n_designs": 1173,
+      "fabric_split": {
+        "KNIT": 711,
+        "WOVEN": 462
+      },
+      "top_clients": {
+        "OLD NAVY": 252,
+        "DICKS SPORTING GOODS": 243,
+        "TARGET": 205,
+        "KOHLS": 112,
+        "HIGH LIFE LLC": 93
+      },
+      "use_for": [
+        "construction",
+        "pom"
       ]
     },
-    "BASIC_LEGGING": {
-      "it": [
-        "LEGGINGS"
+    "MEN_ACTIVE_BOTTOM_PANT": {
+      "gender": "MEN",
+      "dept": "ACTIVE",
+      "gt": "BOTTOM",
+      "it": "PANT",
+      "n_designs": 577,
+      "fabric_split": {
+        "KNIT": 346,
+        "WOVEN": 231
+      },
+      "top_clients": {
+        "UNDER ARMOUR": 117,
+        "KOHLS": 103,
+        "HIGH LIFE LLC": 103,
+        "DICKS SPORTING GOODS": 96,
+        "OLD NAVY": 61
+      },
+      "use_for": [
+        "construction",
+        "pom"
       ]
     },
-    "BASIC_SHORTS": {
-      "it": [
-        "SHORTS"
+    "WOMEN_ACTIVE_BOTTOM_LEGGINGS": {
+      "gender": "WOMEN",
+      "dept": "ACTIVE",
+      "gt": "BOTTOM",
+      "it": "LEGGINGS",
+      "n_designs": 569,
+      "fabric_split": {
+        "KNIT": 568,
+        "WOVEN": 1
+      },
+      "top_clients": {
+        "OLD NAVY": 300,
+        "DICKS SPORTING GOODS": 95,
+        "BEYOND YOGA": 72,
+        "KOHLS": 44,
+        "A & F": 37
+      },
+      "use_for": [
+        "construction",
+        "pom"
       ]
     },
-    "BASIC_TOP": {
-      "it": [
-        "TEE"
+    "WOMEN_RTW_BOTTOM_PANT": {
+      "gender": "WOMEN",
+      "dept": "RTW",
+      "gt": "BOTTOM",
+      "it": "PANT",
+      "n_designs": 482,
+      "fabric_split": {
+        "WOVEN": 244,
+        "KNIT": 238
+      },
+      "top_clients": {
+        "GU": 171,
+        "ATHLETA": 112,
+        "TARGET": 55,
+        "WAL-MART-CA": 32,
+        "NET": 30
+      },
+      "use_for": [
+        "construction",
+        "pom"
       ]
     },
-    "COLLARED_TOP": {
-      "it": [
-        "POLO",
-        "BUTTON_DOWN"
+    "MEN_RTW_BOTTOM_PANT": {
+      "gender": "MEN",
+      "dept": "RTW",
+      "gt": "BOTTOM",
+      "it": "PANT",
+      "n_designs": 193,
+      "fabric_split": {
+        "WOVEN": 104,
+        "KNIT": 89
+      },
+      "top_clients": {
+        "GU": 74,
+        "WAL-MART-CA": 24,
+        "BANANA REPUBLIC": 16,
+        "QUINCE": 15,
+        "TARGET": 12
+      },
+      "use_for": [
+        "construction",
+        "pom"
       ]
     },
-    "ENCASED_LEGGING": {
-      "it": [
-        "LEGGINGS"
+    "WOMEN_SLEEPWEAR_BOTTOM_PANT": {
+      "gender": "WOMEN",
+      "dept": "SLEEPWEAR",
+      "gt": "BOTTOM",
+      "it": "PANT",
+      "n_designs": 171,
+      "fabric_split": {
+        "KNIT": 113,
+        "WOVEN": 58
+      },
+      "top_clients": {
+        "KOHLS": 171
+      },
+      "use_for": [
+        "construction",
+        "pom"
       ]
     },
-    "ENCASED_PANTS": {
-      "it": [
-        "PANTS"
+    "BOY_ACTIVE_BOTTOM_PANT": {
+      "gender": "BOY",
+      "dept": "ACTIVE",
+      "gt": "BOTTOM",
+      "it": "PANT",
+      "n_designs": 163,
+      "fabric_split": {
+        "KNIT": 98,
+        "WOVEN": 65
+      },
+      "top_clients": {
+        "DICKS SPORTING GOODS": 52,
+        "GAP": 25,
+        "UNDER ARMOUR": 23,
+        "KOHLS": 22,
+        "GAP OUTLET": 18
+      },
+      "use_for": [
+        "construction",
+        "pom"
       ]
     },
-    "FITTED_DRESS": {
-      "it": [
-        "DRESS"
+    "GIRL_RTW_BOTTOM_PANT": {
+      "gender": "GIRL",
+      "dept": "RTW",
+      "gt": "BOTTOM",
+      "it": "PANT",
+      "n_designs": 160,
+      "fabric_split": {
+        "KNIT": 95,
+        "WOVEN": 65
+      },
+      "top_clients": {
+        "GU": 71,
+        "ATHLETA": 53,
+        "WAL-MART": 31,
+        "WAL-MART-CA": 2,
+        "GAP OUTLET": 1
+      },
+      "use_for": [
+        "construction",
+        "pom"
       ]
     },
-    "FLY_FRONT_PANTS": {
-      "it": [
-        "PANTS"
+    "GIRL_ACTIVE_BOTTOM_PANT": {
+      "gender": "GIRL",
+      "dept": "ACTIVE",
+      "gt": "BOTTOM",
+      "it": "PANT",
+      "n_designs": 121,
+      "fabric_split": {
+        "WOVEN": 71,
+        "KNIT": 50
+      },
+      "top_clients": {
+        "DICKS SPORTING GOODS": 63,
+        "OLD NAVY": 19,
+        "KOHLS": 17,
+        "GAP OUTLET": 6,
+        "HIGH LIFE LLC": 6
+      },
+      "use_for": [
+        "construction",
+        "pom"
       ]
     },
-    "HOODIE": {
-      "it": [
-        "HOODIE"
+    "BOY_FLEECE_BOTTOM_PANT": {
+      "gender": "BOY",
+      "dept": "FLEECE",
+      "gt": "BOTTOM",
+      "it": "PANT",
+      "n_designs": 116,
+      "fabric_split": {
+        "KNIT": 60,
+        "WOVEN": 56
+      },
+      "top_clients": {
+        "GAP": 41,
+        "A & F": 32,
+        "OLD NAVY": 30,
+        "TARGET": 11,
+        "QUINCE": 2
+      },
+      "use_for": [
+        "construction",
+        "pom"
       ]
     },
-    "LONG_SLEEVE_TOP": {
-      "it": [
-        "LONG_SLEEVE"
+    "BOY_RTW_BOTTOM_PANT": {
+      "gender": "BOY",
+      "dept": "RTW",
+      "gt": "BOTTOM",
+      "it": "PANT",
+      "n_designs": 106,
+      "fabric_split": {
+        "KNIT": 77,
+        "WOVEN": 29
+      },
+      "top_clients": {
+        "GAP OUTLET": 34,
+        "WAL-MART": 29,
+        "GU": 26,
+        "ZARA": 6,
+        "OLD NAVY": 4
+      },
+      "use_for": [
+        "construction",
+        "pom"
       ]
     },
-    "PJ_SET": {
-      "it": [
-        "PJ_SET"
+    "GIRL_FLEECE_BOTTOM_PANT": {
+      "gender": "GIRL",
+      "dept": "FLEECE",
+      "gt": "BOTTOM",
+      "it": "PANT",
+      "n_designs": 101,
+      "fabric_split": {
+        "KNIT": 70,
+        "WOVEN": 31
+      },
+      "top_clients": {
+        "GAP": 36,
+        "A & F": 31,
+        "OLD NAVY": 30,
+        "QUINCE": 3,
+        "TARGET": 1
+      },
+      "use_for": [
+        "construction",
+        "pom"
       ]
     },
-    "POCKETED_LEGGING": {
-      "it": [
-        "LEGGINGS"
+    "WOMEN_RTW_BOTTOM_LEGGINGS": {
+      "gender": "WOMEN",
+      "dept": "RTW",
+      "gt": "BOTTOM",
+      "it": "LEGGINGS",
+      "n_designs": 95,
+      "fabric_split": {
+        "KNIT": 95
+      },
+      "top_clients": {
+        "V2 DEVELOPING": 29,
+        "HALARA": 29,
+        "ATHLETA": 20,
+        "ROSS": 6,
+        "DISTANCE": 4
+      },
+      "use_for": [
+        "construction",
+        "pom"
       ]
     },
-    "POCKETED_SHORTS": {
-      "it": [
-        "SHORTS"
+    "GIRL_ACTIVE_BOTTOM_LEGGINGS": {
+      "gender": "GIRL",
+      "dept": "ACTIVE",
+      "gt": "BOTTOM",
+      "it": "LEGGINGS",
+      "n_designs": 93,
+      "fabric_split": {
+        "KNIT": 93
+      },
+      "top_clients": {
+        "DICKS SPORTING GOODS": 44,
+        "OLD NAVY": 35,
+        "HIGH LIFE LLC": 12,
+        "KOHLS": 2
+      },
+      "use_for": [
+        "construction",
+        "pom"
       ]
     },
-    "PULL_ON_JOGGER": {
-      "it": [
-        "JOGGERS"
+    "MEN_SLEEPWEAR_BOTTOM_PANT": {
+      "gender": "MEN",
+      "dept": "SLEEPWEAR",
+      "gt": "BOTTOM",
+      "it": "PANT",
+      "n_designs": 35,
+      "fabric_split": {
+        "KNIT": 20,
+        "WOVEN": 15
+      },
+      "top_clients": {
+        "GU": 18,
+        "KOHLS": 17
+      },
+      "use_for": [
+        "construction",
+        "pom"
       ]
     },
-    "RASHGUARD": {
-      "it": [
-        "RASHGUARD"
+    "GIRL_RTW_BOTTOM_LEGGINGS": {
+      "gender": "GIRL",
+      "dept": "RTW",
+      "gt": "BOTTOM",
+      "it": "LEGGINGS",
+      "n_designs": 31,
+      "fabric_split": {
+        "KNIT": 31
+      },
+      "top_clients": {
+        "WAL-MART": 19,
+        "WAL-MART-CA": 12
+      },
+      "use_for": [
+        "construction",
+        "pom"
       ]
     },
-    "ROMPER": {
-      "it": [
-        "ROMPER"
+    "WOMEN_FLEECE_BOTTOM_PANT": {
+      "gender": "WOMEN",
+      "dept": "FLEECE",
+      "gt": "BOTTOM",
+      "it": "PANT",
+      "n_designs": 29,
+      "fabric_split": {
+        "KNIT": 29
+      },
+      "top_clients": {
+        "OLD NAVY": 27,
+        "A & F": 2
+      },
+      "use_for": [
+        "construction",
+        "pom"
       ]
     },
-    "ROMPER_JUMPSUIT": {
-      "it": [
-        "ROMPER",
-        "JUMPSUIT"
+    "BABY_ACTIVE_BOTTOM_PANT": {
+      "gender": "BABY",
+      "dept": "ACTIVE",
+      "gt": "BOTTOM",
+      "it": "PANT",
+      "n_designs": 16,
+      "fabric_split": {
+        "KNIT": 16
+      },
+      "top_clients": {
+        "GAP OUTLET": 9,
+        "GAP": 5,
+        "OLD NAVY": 2
+      },
+      "use_for": [
+        "construction",
+        "pom"
       ]
     },
-    "SET": {
-      "it": [
-        "SET"
+    "BABY_FLEECE_BOTTOM_PANT": {
+      "gender": "BABY",
+      "dept": "FLEECE",
+      "gt": "BOTTOM",
+      "it": "PANT",
+      "n_designs": 13,
+      "fabric_split": {
+        "KNIT": 7,
+        "WOVEN": 6
+      },
+      "top_clients": {
+        "A & F": 9,
+        "QUINCE": 2,
+        "OLD NAVY": 2
+      },
+      "use_for": [
+        "construction",
+        "pom"
       ]
     },
-    "SKIRT_SKORT": {
-      "it": [
-        "SKIRT",
-        "SKORT"
+    "BABY_RTW_BOTTOM_PANT": {
+      "gender": "BABY",
+      "dept": "RTW",
+      "gt": "BOTTOM",
+      "it": "PANT",
+      "n_designs": 13,
+      "fabric_split": {
+        "KNIT": 11,
+        "WOVEN": 2
+      },
+      "top_clients": {
+        "GU": 5,
+        "OLD NAVY": 4,
+        "GAP OUTLET": 2,
+        "ZARA": 1,
+        "V5 DEVELOPING": 1
+      },
+      "use_for": [
+        "construction",
+        "pom"
       ]
     },
-    "SLEEP_BASIC": {
-      "it": [
-        "PJ_SET"
+    "WOMEN_SLEEPWEAR_BOTTOM_LEGGINGS": {
+      "gender": "WOMEN",
+      "dept": "SLEEPWEAR",
+      "gt": "BOTTOM",
+      "it": "LEGGINGS",
+      "n_designs": 11,
+      "fabric_split": {
+        "KNIT": 11
+      },
+      "top_clients": {
+        "KOHLS": 10,
+        "OLD NAVY": 1
+      },
+      "use_for": [
+        "construction",
+        "pom"
       ]
     },
-    "SLEEVELESS_TOP": {
-      "it": [
-        "TANK"
+    "MEN_FLEECE_BOTTOM_PANT": {
+      "gender": "MEN",
+      "dept": "FLEECE",
+      "gt": "BOTTOM",
+      "it": "PANT",
+      "n_designs": 10,
+      "fabric_split": {
+        "KNIT": 10
+      },
+      "top_clients": {
+        "OLD NAVY": 10
+      },
+      "use_for": [
+        "construction",
+        "pom"
       ]
     },
-    "STANDARD_PANTS": {
-      "it": [
-        "PANTS"
+    "BOY_ACTIVE_BOTTOM_LEGGINGS": {
+      "gender": "BOY",
+      "dept": "ACTIVE",
+      "gt": "BOTTOM",
+      "it": "LEGGINGS",
+      "n_designs": 8,
+      "fabric_split": {
+        "KNIT": 8
+      },
+      "top_clients": {
+        "OLD NAVY": 8
+      },
+      "use_for": [
+        "construction",
+        "pom"
       ]
     },
-    "WIDE_LEG_PANTS": {
-      "it": [
-        "PANTS"
+    "WOMEN_FLEECE_BOTTOM_LEGGINGS": {
+      "gender": "WOMEN",
+      "dept": "FLEECE",
+      "gt": "BOTTOM",
+      "it": "LEGGINGS",
+      "n_designs": 7,
+      "fabric_split": {
+        "KNIT": 7
+      },
+      "top_clients": {
+        "A & F": 7
+      },
+      "use_for": [
+        "construction",
+        "pom"
       ]
     },
-    "ZIP_COLLAR_TOP": {
-      "it": [
-        "QUARTER_ZIP"
+    "GIRL_SLEEPWEAR_BOTTOM_PANT": {
+      "gender": "GIRL",
+      "dept": "SLEEPWEAR",
+      "gt": "BOTTOM",
+      "it": "PANT",
+      "n_designs": 5,
+      "fabric_split": {
+        "KNIT": 5
+      },
+      "top_clients": {
+        "GU": 5
+      },
+      "use_for": [
+        "construction",
+        "pom"
       ]
     },
-    "ZIP_HOODIE": {
-      "it": [
-        "ZIP_HOODIE"
+    "MEN_RTW_BOTTOM_LEGGINGS": {
+      "gender": "MEN",
+      "dept": "RTW",
+      "gt": "BOTTOM",
+      "it": "LEGGINGS",
+      "n_designs": 4,
+      "fabric_split": {
+        "KNIT": 4
+      },
+      "top_clients": {
+        "DISTANCE": 4
+      },
+      "use_for": [
+        "construction",
+        "pom"
+      ]
+    },
+    "MEN_ACTIVE_BOTTOM_LEGGINGS": {
+      "gender": "MEN",
+      "dept": "ACTIVE",
+      "gt": "BOTTOM",
+      "it": "LEGGINGS",
+      "n_designs": 1,
+      "fabric_split": {
+        "KNIT": 1
+      },
+      "top_clients": {
+        "OLD NAVY": 1
+      },
+      "use_for": [
+        "construction",
+        "pom"
+      ]
+    },
+    "BABY_ACTIVE_BOTTOM_LEGGINGS": {
+      "gender": "BABY",
+      "dept": "ACTIVE",
+      "gt": "BOTTOM",
+      "it": "LEGGINGS",
+      "n_designs": 1,
+      "fabric_split": {
+        "KNIT": 1
+      },
+      "top_clients": {
+        "OLD NAVY": 1
+      },
+      "use_for": [
+        "construction",
+        "pom"
       ]
     }
   }
