@@ -13,6 +13,89 @@ Techpack Creation + Measurement Spec 合併介面。
 >
 > **2026-05-07 重組**:資料夾大整理(`data/` 拆 runtime/ingest/source/legacy、`scripts/` 拆 core/lib、根目錄 .md 集中到 `docs/`、`General Model_Path2_Construction Suggestion/` → `path2_universal/`、`pom_analysis_v5.5.1/` 退役)。所有 GitHub 連結到舊路徑會 404,請用新路徑。
 
+## 目錄
+
+- [目的](#目的) — 解決什麼問題、給誰用
+- [整體流程一張圖](#整體流程一張圖) — 三個資料來源 → 三條產線 → runtime → 前端
+- [資料 schema 與 canonical 文件](#資料-schema-與-canonical-文件) — MK Metadata / Phase 2 / 架構文件入口
+- [兩種模式](#兩種模式) — 聚陽模型 vs 通用模型
+- [架構](#架構) — 資料夾分工 + ISO 查表版本
+- [兩組獨立的資料 pipeline](#兩組獨立的資料-pipeline) — 線下規則產線 vs 線上 ingest
+- [Admin 通道](#admin-通道) — 5 個入口 + Pipeline 外送包
+- [本機預覽](#本機預覽) / [部署](#部署)
+
+## 目的
+
+StyTrix Techpack 解決成衣打版室一個老問題:**Techpack 製作**(做工、工段)跟 **Measurement Spec**(尺寸表、跳碼)兩件事,過去散在不同工具(Centric 8、Excel、PPTX)、靠人腦合併。本系統把兩者合併成單一 web UI,讓 Admin 上傳 PDF/PPTX 後:
+
+1. **Claude Vision** 自動看圖辨識 L1 部位 + L2 細節零件
+2. **規則庫**(`pom_rules/` 81 bucket、`l2_l3_ie/` 38 L1 部位 × 五階層、`recipes/` 72 配方)算出做工建議
+3. **尺寸引擎** 套 POM tier(必備/建議/選配)+ 跳碼 pattern,輸出全碼或基礎尺寸
+
+對接兩種使用情境:
+
+- **聚陽模型** — 內部完整流程,五階層工段 + IE 秒數 + POM 全碼
+- **通用模型** — 對外簡化版,VLM 只判 L1、雙 ISO 表查做工、5 項基礎尺寸
+
+技術選擇:**純靜態 HTML(React via CDN)+ Vercel Node Functions**,沒有 bundler、沒有 `package.json`,因此 repo 任何修改 push 到 main → Vercel 立刻部署,沒有 build 鏈條延遲。
+
+## 整體流程一張圖
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 三個資料來源                                                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  (a) Bible xlsx (聚陽端,>25 MB 不進 repo)                                    │
+│        └─→ 本機 scripts/core/build_l2_l3_ie.py                               │
+│              └─→ l2_l3_ie/*.json (38 個 L1,Phase 1 5-elem list)             │
+│                                                                              │
+│  (b) Admin 上傳 PDF/PPTX → data/ingest/uploads/  +  m7_pullon push           │
+│        └─→ CI Pipeline A (.github/workflows/rebuild_master.yml)              │
+│              Step 1 extract_raw_text → 2b vlm_pipeline → 2a extract_unified  │
+│              → 3 build_recipes_master --strict                               │
+│                └─→ data/runtime/{recipes_master, iso_dictionary,             │
+│                                   l1_standard_38}.json                       │
+│                                                                              │
+│  (c) BASE PDFs (外部,$POM_PIPELINE_BASE)                                     │
+│        └─→ 本機 Pipeline B (scripts/core/)                                   │
+│              run_extract_new → rebuild_profiles → reclassify_and_rebuild     │
+│              → enforce_tier1 → fix_sort_order                                │
+│                └─→ pom_rules/*.json (81 bucket)                              │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                     │
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ data/runtime/ 成品 JSON(線上 fetch / Vercel includeFiles bundle)            │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                     │
+                ┌────────────────────┴────────────────────┐
+                ▼                                         ▼
+       index.html (前端 fetch)                api/analyze.js (Pass 1+2)
+       useAppMode → 雙模式分流                Claude Vision sonnet-4-6
+                                              mode=universal 只跑 Pass 1
+```
+
+關鍵原則:**(b) (c) 兩條 pipeline 不共用程式碼**,動其中一邊不會自動影響另一邊;`data/runtime/` 是兩條產線的會合點,也是前端唯一讀取入口。
+
+## 資料 schema 與 canonical 文件
+
+每個 source(Bible / m7_pullon / ISO 字典 / client mapping / bucket_taxonomy)的欄位語意、provenance、推導關係,**統一以 `MK_METADATA.md` 為準**(本 README 跟 CLAUDE.md 只記資料夾分工,不重描 schema,避免 diverge)。
+
+| 文件 | 角色 |
+|---|---|
+| [`MK_METADATA.md`](./MK_METADATA.md) | **Canonical schema** — 6 個元素(M7 索引 / 五階定義 / ISO 字典 / 客戶對照 / callout router / 5+1 維 canonical key)。聚陽 M7 是 single point of integration(18,731 EIDH × 42 cols),整個系統以 MK 為主 |
+| [`docs/architecture/STYTRIX_ARCHITECTURE.md`](./docs/architecture/STYTRIX_ARCHITECTURE.md) | 完整架構 v3.0,Step 1/2/3/4 framework |
+| [`docs/architecture/PHASE2_DERIVE_VIEWS_SPEC.md`](./docs/architecture/PHASE2_DERIVE_VIEWS_SPEC.md) | Phase 2 三個 derive view 設計:master.jsonl → recipes_master(view A,輕量化)/ l2_l3_ie 升級 schema(view C,drop brand)/ designs_index per-EIDH(view B,含 brand × knit/woven)。implementation TBD |
+| [`docs/architecture/PLATFORM_SYNC_PLAN.md`](./docs/architecture/PLATFORM_SYNC_PLAN.md) | 聚陽端 → platform sync plan |
+| [`docs/spec/網站架構圖.md`](./docs/spec/網站架構圖.md) | 4 張 Mermaid 圖 + 架構債清單 + 權威手冊登記表 |
+| [`CLAUDE.md`](./CLAUDE.md) | repo 使用守則(Part A 資料夾分工 / Part B 清理 SOP / Part C audit checklist) |
+
+### m7_pullon canonical block(2026-05-08 加)
+
+`data/ingest/m7_pullon/designs.jsonl.gz` 每筆 design 帶 `canonical.<field>.{value, confidence, sources}`,8 canonical 欄位(客戶 / 報價款號 / Program / Subgroup / W/K / Item / Season / PRODUCT_CATEGORY)做 multi-source consensus(M7 列管 priority 3 / PDF priority 2 / 推論 priority 1),M7 兜底所以 `value` 永遠 100% 不掉拍;`confidence` "high"/"medium"/"low" 標 audit 強度,`sources` 留 audit trail。Alias 規則(單複數 / 客戶簡寫 / Season format)放 `data/source/canonical_aliases.json` 手維護。**目前 `build_recipes_master.py` 仍讀 aggregated `entries.jsonl`**,canonical block 屬 data-ready / consumer-未接 狀態,Phase 2 designs_index view 才會直接吃。
+
 ## 兩種模式
 
 Header 右上提供「**聚陽模型** / **通用模型**」切換（選擇會記在 `localStorage.stytrix.appMode`）。
