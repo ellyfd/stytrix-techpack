@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
-"""Build data/recipes_master.json + data/l1_standard_38.json.
+"""Build data/runtime/recipes_master.json + data/runtime/l1_standard_38.json + data/master.jsonl.
 
 Merges five construction handbooks into a single unified master file that the
 index.html universal-mode viewer can query with a single fallback cascade.
+
+Phase 2.1: also emits data/master.jsonl (one entry per line, keeps `_m7_*`
+internal fields). This is the canonical "single source of truth" for derive
+views — see docs/architecture/PHASE2_DERIVE_VIEWS_SPEC.md.
 
 Sources (all inputs kept read-only):
   - path2_universal/iso_lookup_factory_v4.3.json
@@ -15,7 +19,7 @@ Sources (all inputs kept read-only):
   - star_schema/data/ingest/consensus_v1/entries.jsonl + bucket_taxonomy.json
     (275 entries; same_bucket consensus rules with ISO from unified extraction + OCR)
 
-Output schema (data/recipes_master.json):
+Output schema (data/runtime/recipes_master.json — same content also one-line-per-entry in data/master.jsonl):
 {
   "generated_at": "...",
   "source_versions": {...},
@@ -85,8 +89,9 @@ L1_VALID_38 = frozenset(
 L1_SPECIAL = frozenset({"_DEFAULT"})
 L1_ACCEPTED = L1_VALID_38 | L1_SPECIAL
 
-OUT_MASTER = REPO_ROOT / "data" / "recipes_master.json"
-OUT_L1_STD = REPO_ROOT / "data" / "l1_standard_38.json"
+OUT_MASTER = REPO_ROOT / "data" / "runtime" / "recipes_master.json"
+OUT_L1_STD = REPO_ROOT / "data" / "runtime" / "l1_standard_38.json"
+OUT_MASTER_JSONL = REPO_ROOT / "data" / "master.jsonl"
 
 
 # ── Gate Report ────────────────────────────────────────────────────────────
@@ -819,7 +824,7 @@ def aggregate_facts_to_entries(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Build data/recipes_master.json from 5 construction handbooks.",
+        description="Build data/runtime/recipes_master.json + data/master.jsonl from 5 construction handbooks.",
     )
     parser.add_argument(
         "--strict",
@@ -948,6 +953,14 @@ def main():
     }
 
     OUT_MASTER.write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    # Phase 2.1: also emit master.jsonl as the canonical "single source of truth"
+    # for derive views (View A/B/C — see docs/architecture/PHASE2_DERIVE_VIEWS_SPEC.md).
+    # One line per entry, keeps `_m7_*` internal fields that View A strips.
+    with open(OUT_MASTER_JSONL, "w", encoding="utf-8") as f:
+        for entry in all_entries:
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    print(f"[master.jsonl] {len(all_entries)} entries → {OUT_MASTER_JSONL.name}", file=sys.stderr)
 
     print("--- stats ---", file=sys.stderr)
     for k, v in out["stats"].items():

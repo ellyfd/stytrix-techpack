@@ -109,7 +109,7 @@ jobs:
 
       # ── Step 3: rebuild recipes_master ────────────────────────────────────
       # Reads data/ingest/*/facts.jsonl + 4 source handbooks
-      # Writes data/recipes_master.json + data/iso_dictionary.json + data/l1_standard_38.json
+      # Writes data/runtime/recipes_master.json + data/runtime/l1_standard_38.json + data/master.jsonl
       # --strict: exits 1 on any ingest/taxonomy violation → blocks commit
       - name: Step 3 — rebuild recipes_master
         run: python star_schema/scripts/build_recipes_master.py --strict
@@ -124,10 +124,10 @@ jobs:
           find data/ingest/uploads -maxdepth 1 -type f ! -name '.gitkeep' \
             -exec git rm --force {} \; 2>/dev/null || true
 
-          # Stage derived outputs
-          git add data/recipes_master.json
-          git add data/iso_dictionary.json
-          git add data/l1_standard_38.json
+          # Stage derived outputs (paths fixed 2026-05-08: 5/7 restructure 漏改)
+          git add data/runtime/recipes_master.json
+          git add data/runtime/l1_standard_38.json
+          git add data/master.jsonl
           git add data/ingest/metadata/designs.jsonl || true
           git add data/ingest/pptx/ || true
           git add data/ingest/unified/ || true
