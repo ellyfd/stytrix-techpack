@@ -19,12 +19,13 @@
 
 ## Part A — 資料夾分工表
 
-> **2026-05-08 更新**(PR #283 + #285):
+> **2026-05-08 更新**(PR #283 + #285 + #297 + claude/normalizer-and-v43-fix):
 > 1. **Bible 升級 20260507**:`data/source/五階層展開項目_20260507.xlsx` 35.7 MB(2.3x prior),sheet schema 改成「語系資料 + 全部五階層」雙 sheet,新增 `機種 / 尺寸 / 圖片名字 / *_Sort` 欄。**xlsx 不再進 repo**(>25 MB GitHub web 上限,clone 膨脹),改寫 SOP 文件 `data/source/BIBLE_UPGRADE.md`。
 > 2. **m7_pullon source 加進 ingest cascade**:`data/ingest/m7_pullon/{entries,designs.jsonl.gz}` 新 subsystem,從聚陽 M7 PullOn pipeline (4,644 EIDH) 推進來;`build_recipes_master.py` 加 `build_from_m7_pullon()` 為第 7 個 source。
 > 3. **bucket_taxonomy v4 + legacy_buckets**:`data/bucket_taxonomy.json` 改成 v4 4-dim key (`<gender>_<dept>_<gt>_<it>`) 28 個 + `legacy_buckets` 59 個 alias 給舊 facts/consensus 用。
 > 4. **Phase 2 derive view spec**:`docs/architecture/PHASE2_DERIVE_VIEWS_SPEC.md` 已寫,規劃 master.jsonl + 3 view 衍生(View A: recipes_master / View B: l2_l3_ie 升級 schema / View C: designs_index),implementation TBD。
 > 5. **5/7 升級後 `l2_l3_ie/<L1>.json` 38 檔內容** rebuild from 20260507(rows 200K → 453K,2.3x),step tuple 擴 5-elem 含 machine。
+> 6. **m7_pullon designs.jsonl.gz 加 `canonical` block + alias normalizer**(PR #297 merged + claude/normalizer-and-v43-fix open):每筆 design 新增 `canonical.<field>.{value, confidence, sources}`,8 canonical 欄位 (客戶/報價款號/Program/Subgroup/W/K/Item/Season/PRODUCT_CATEGORY) 各做 multi-source consensus(M7 列管 priority 3 / PDF priority 2 / 推論 priority 1)。Filter `canonical.<field>.value` 永遠 100% 不掉拍 (M7 兜底);`confidence` "high"/"medium"/"low" 標 audit 強度;`sources` 留 audit trail。Alias normalize 規則放 **`data/source/canonical_aliases.json`**(手維護),消除單複數/客戶簡寫/Season format 等命名差異。**Consumer 狀態(2026-05-08)**:`build_recipes_master.py` 仍讀 aggregated `entries.jsonl`,**還沒讀 `designs.jsonl.gz` 的 canonical block** — 是 data-ready / consumer-未接 狀態,Phase 2 designs_index 視圖會直接用。同 PR 順便修 `build_recipes_master.py` 兩個 path bug(2026-05-07 重組漏改): `General Model_Path2_Construction Suggestion/` → `path2_universal/` 跟 `data/construction_bridge_v6.json` → `data/runtime/construction_bridge_v6.json`。
 
 > **2026-05-07 結構大調整**:把過去散在 root 的 14 份 .md / 2 份 .xlsx 集中,把 `data/`
 > 拆 runtime/ingest/source/legacy 四層,scripts/ 拆 core/lib,徹底退役 `pom_analysis_v5.5.1/`,
@@ -38,7 +39,7 @@
 | 資料夾 | 放什麼(類比成衣流程) | 舉例 | 不要放什麼 |
 |--------|----------------------|------|------------|
 | `data/runtime/` | **線上系統 runtime 讀的成品 JSON**。前端 `fetch('./data/runtime/...')`、API `analyze.js` 啟動時讀 | `l1_standard_38.json`、`l2_visual_guide.json`、`l2_decision_trees.json`、`recipes_master.json`、`iso_dictionary.json`、`pom_dictionary.json`、`grading_patterns.json` | 原始 xlsx;靜態文件;ingest 中繼檔 |
-| `data/source/` | **手維護 / 上傳的原始底稿**(被 `scripts/core/build_*` 讀來生 runtime JSON) | `L2_代號中文對照表.xlsx`(L1/L2 代號對照,14 KB)、`BIBLE_UPGRADE.md`(SOP)、`M7_PULLON_DATA_SCHEMA.md`(m7_pullon source schema) | runtime 讀的檔;說明文件;**`五階層展開項目_*.xlsx` 不再進 repo**(2026-05-08 起,xlsx 留聚陽端,38 個 derive JSONs 進 repo) |
+| `data/source/` | **手維護 / 上傳的原始底稿**(被 `scripts/core/build_*` 讀來生 runtime JSON) | `L2_代號中文對照表.xlsx`(L1/L2 代號對照,14 KB)、`BIBLE_UPGRADE.md`(SOP)、`M7_PULLON_DATA_SCHEMA.md`(m7_pullon source schema)、**`canonical_aliases.json`**(2026-05-08 加,8 canonical 欄位的 alias normalize 規則,M7_Pipeline `consolidate_canonical.py` 讀;repo 暫存當 source-of-truth 規則表) | runtime 讀的檔;說明文件;**`五階層展開項目_*.xlsx` 不再進 repo**(2026-05-08 起,xlsx 留聚陽端,38 個 derive JSONs 進 repo) |
 | `data/ingest/` | **Pipeline staging**(CI / 外部協作上傳處)。`build_recipes_master.py` 的 `data/ingest/*/facts.jsonl` glob 會掃 | `data/ingest/uploads/`(PDF/PPTX 上傳處)、`data/ingest/{unified,vlm,pdf,metadata}/`、`data/ingest/{consensus_rules,ocr_v1,consensus_v1}/`、**`data/ingest/m7_pullon/`(2026-05-08 加,聚陽端 PullOn pipeline 推進來)** | runtime 讀的成品(放 `data/runtime/`) |
 | `data/legacy/` | **舊 `pom_analysis_v5.5.1/` 退役後留下的 fallback**(只給 `vlm_pipeline.py` / `extract_unified.py` 在 runtime 找不到時用) | `all_designs_gt_it_classification.json`、`pom_dictionary.json` | 任何新檔(此資料夾只縮不增) |
 | `pom_rules/` | **自動產生的 POM 規則庫**。81 個 bucket(性別 × 部門 × GT 品類 × Fabric),像 81 本機器編的規格書 | `pom_rules/*.json`(由 `scripts/core/reclassify_and_rebuild.py` 產出) | 手寫規則;說明文件 |
