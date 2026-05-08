@@ -9,7 +9,7 @@ Sources (all inputs kept read-only):
     (230 entries; Department × Gender × GT × L1 with iso_distribution + n_designs)
   - path2_universal/iso_lookup_factory_v4.json
     (282 entries; Fabric × Department × GT × L1_code with iso_zh / machine)
-  - data/construction_bridge_v6.json
+  - data/runtime/construction_bridge_v6.json
     (bridges[GT][zones][zh_zone] with methods + iso_codes)
   - recipes/*.json (71 files; same-sub-category stats)
   - star_schema/data/ingest/consensus_v1/entries.jsonl + bucket_taxonomy.json
