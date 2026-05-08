@@ -40,7 +40,7 @@
 | **客人 callout glossary** | `ISO_客人縫法對照表_Glossary.xlsx` + `data/zone_glossary.json:KW_TO_L1_TOPS/BOTTOMS/ZH_ZONE_TO_L1` + `techpack-translation-style-guide.md` | 13 客人寫法 → L1 router + 中英術語統一 |
 | **客戶 metadata 標準**（v3 合併版） | `data/client_canonical_mapping.json`（v3 合併 v1 + v2）| 22 客戶 subgroup_codes + 4 維 ground truth (gender/dept/fabric/category) + PDF field mapping |
 | **POM 字典**（POM 用，做工不碰）| `data/pom_dictionary.json` | POM 代號 ↔ 中英對照 |
-| **Bucket 分類**（做工 + POM 共用）| `data/bucket_taxonomy.json` | 59 bucket schema |
+| **Bucket 分類**（做工 + POM 共用）| `data/runtime/bucket_taxonomy.json` | 59 bucket schema |
 
 ---
 
@@ -335,7 +335,7 @@ master = run_cascade(all_entries)  # cascade: same_sub → same_bucket → same_
 - `data/client_canonical_mapping.json` (v3) — 客戶 × subgroup → 4 維 ground truth
 - `data/zone_glossary.json` — L1 部位 + Callout zone router
 - `data/iso_dictionary.json` — ISO ↔ EN/ZH/機種
-- `data/bucket_taxonomy.json` (v4) — **從 MK 推導**（不再 hand-curate），4 維 key 做工 + POM 共用
+- `data/runtime/bucket_taxonomy.json` (v4) — **從 MK 推導**（不再 hand-curate），4 維 key 做工 + POM 共用
 
 **bucket_taxonomy v4 直接重寫**（不慢慢 retire）：
 - 來源：`generate_bucket_taxonomy_from_mk.py` 跑 MK Metadata cartesian product 過濾

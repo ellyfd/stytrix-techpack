@@ -193,9 +193,9 @@ bucket 命名 = MK 4 維（不再用獨立 POM bucket schema）：
 
 | Before | After |
 |---|---|
-| 用 `data/bucket_taxonomy.json` (59 buckets, hand-curate) 做 cascade | 用 `data/client_canonical_mapping.json` + `bucket_taxonomy.json` (v4 from MK) |
+| 用 `data/runtime/bucket_taxonomy.json` (59 buckets, hand-curate) 做 cascade | 用 `data/client_canonical_mapping.json` + `bucket_taxonomy.json` (v4 from MK) |
 | `<gender>_<dept>_<garment>` 3 維 bucket | `<gender>_<dept>_<garment>_<item>` 4 維 bucket |
-| `data/bucket_taxonomy.json` 手動編輯 | 從 MK 推導，每次新 design 進來自動更新 |
+| `data/runtime/bucket_taxonomy.json` 手動編輯 | 從 MK 推導，每次新 design 進來自動更新 |
 
 `build_recipes_master.py` 的 `build_from_consensus()` 等函式 cascade key 從 3 維改 4 維。
 
@@ -217,7 +217,7 @@ bucket 命名 = MK 4 維（不再用獨立 POM bucket schema）：
 | 五階定義 | `data/zone_glossary.json` + `data/l2_visual_guide.json` + `data/l2_decision_trees.json` + `l2_l3_ie/*.json` |
 | ISO 字典 | `data/iso_dictionary.json` |
 | Callout router | `data/zone_glossary.json:KW_TO_L1_*` |
-| Canonical bucket | `data/bucket_taxonomy.json` (v4，從 MK 推) |
+| Canonical bucket | `data/runtime/bucket_taxonomy.json` (v4，從 MK 推) |
 | M7 索引（raw） | `M7列管_YYYYMMDD.xlsx`（聚陽端，每月更新）|
 
 ---
