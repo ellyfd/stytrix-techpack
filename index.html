@@ -1045,6 +1045,81 @@ function L3Line({ l3, editId, setEditId, idx, col }) {
   );
 }
 
+/* ─── PartTableRow (v11) ───
+   緊湊表格列,取代桌機版 Card 在中欄的卡片堆疊。
+   點擊 → 切換右欄細節 + sketch dot 高亮。Card 元件不動,仍用於右欄 fixed detail 與手機版 inline 展開。 */
+function PartTableRow({ card, isActive, onToggle, onRemove, col, appMode }) {
+  const src = SRC[card.source] || SRC.struct;
+  const sec = Math.round(card.ie || 0);
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      data-part-row-id={card.id}
+      onClick={onToggle}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onToggle(); } }}
+      style={{
+        display: "flex", alignItems: "center", gap: "8px",
+        height: "44px", padding: "0 8px 0 10px",
+        borderLeft: isActive ? "3px solid #065f46" : "3px solid transparent",
+        background: isActive ? "#f0fdf4" : "#fff",
+        borderBottom: "1px solid #f0eeeb",
+        cursor: "pointer", outline: "none",
+        transition: "background 0.12s, border-color 0.12s",
+      }}
+      onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = "#fafaf9"; }}
+      onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = "#fff"; }}
+      onFocus={e => { e.currentTarget.style.boxShadow = `inset 0 0 0 2px ${col}40`; }}
+      onBlur={e => { e.currentTarget.style.boxShadow = "none"; }}
+    >
+      <div style={{
+        width: "24px", height: "24px", borderRadius: "5px",
+        background: isActive ? "#065f46" : "#fff",
+        color: isActive ? "#fff" : "#888",
+        border: isActive ? "none" : "1px solid #eee",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: "11px", fontWeight: 800, flexShrink: 0,
+      }}>{card.id}</div>
+      <div style={{
+        width: "92px", fontSize: "13px", fontWeight: 600,
+        color: "#1a1a1a", flexShrink: 0,
+        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+      }}>{card.l1}</div>
+      <span style={{
+        fontSize: "10px", color: src.c, background: src.bg,
+        padding: "2px 6px", borderRadius: "5px", fontWeight: 600,
+        flexShrink: 0, whiteSpace: "nowrap",
+      }}>{src.icon} {src.label}</span>
+      <div style={{
+        flex: 1, minWidth: 0, fontSize: "12px", color: "#555",
+        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+      }}>{card.l2 || "—"}</div>
+      {appMode !== "universal" && (
+        <div style={{
+          width: "56px", textAlign: "right", flexShrink: 0,
+          fontSize: "13px", fontWeight: 700, color: "#065f46",
+          fontFamily: "'JetBrains Mono', monospace", fontVariantNumeric: "tabular-nums",
+        }}>{sec}<span style={{ fontSize: "10px", color: "#888", marginLeft: "2px", fontWeight: 500 }}>秒</span></div>
+      )}
+      <button
+        onClick={(e) => { e.stopPropagation(); onRemove(card.id); }}
+        title="刪除部位"
+        style={{
+          background: "none", border: "none", cursor: "pointer",
+          fontSize: "13px", color: "#dc2626", opacity: 0.55,
+          padding: "4px", flexShrink: 0,
+        }}
+        onMouseEnter={e => e.currentTarget.style.opacity = "1"}
+        onMouseLeave={e => e.currentTarget.style.opacity = "0.55"}
+      >🗑</button>
+      <div style={{
+        width: "14px", textAlign: "center", flexShrink: 0,
+        fontSize: "12px", color: isActive ? "#065f46" : "#bbb", fontWeight: 700,
+      }}>▸</div>
+    </div>
+  );
+}
+
 /* ─── Card ─── */
 function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL2, onSwitchL3, onPickUniversalIso, appMode }) {
   const [editId, setEditId] = useState(null);
@@ -4221,6 +4296,15 @@ function App() {
   const [cStage, setCStage] = useState(0);
   const [removed, setRemoved] = useState(new Set());
   const [openId, setOpenId] = useState(null);
+  // v11: openId 變動時(包含 sketch dot 點擊),把中欄對應 PartTableRow 捲入可視範圍。
+  // scrollIntoView block:'nearest' 已可視就 no-op,無須區分點擊來源。
+  useEffect(() => {
+    if (openId == null) return;
+    const el = document.querySelector(`[data-part-row-id="${openId}"]`);
+    if (el && typeof el.scrollIntoView === "function") {
+      el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+  }, [openId]);
   // 品牌套組（商標 Labels）AI 無法從 sketch 判定是否需要，預設不勾，由使用者自行加上
   // addonSteps = 已勾選的工段 index set；addonOn 由 size > 0 推導
   const [addonSteps, setAddonSteps] = useState(new Set());
@@ -5610,10 +5694,10 @@ function App() {
               )}
             </div>
 
-            {/* 2-col layout: sketch + cards (桌機 2 欄，手機 1 欄) */}
+            {/* v11 layout: sketch + part list + detail panel (桌機 3 欄，手機 1 欄堆疊回退到 v10 inline 展開) */}
             <div style={{
               display: "grid",
-              gridTemplateColumns: isMobile ? "1fr" : "minmax(480px, 540px) 1fr",
+              gridTemplateColumns: isMobile ? "1fr" : "minmax(300px, 360px) minmax(0, 1fr) 320px",
               gap: isMobile ? "12px" : "16px"
             }}>
               {/* Sketch upload + preview */}
@@ -5916,7 +6000,7 @@ function App() {
                       padding: "6px 10px", background: "#faf9f7", borderRadius: "6px",
                       display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px",
                     }}>
-                      <span>展開卡片後點 ⓘ 可改工法</span>
+                      <span>{isMobile ? "展開卡片後點 ⓘ 可改工法" : "點選列 → 右欄查看細節 / 改工法"}</span>
                       <button onClick={() => {
                         setHintDismissed(true);
                         try { localStorage.setItem("stytrix.hint.card.dismissed", "1"); } catch {}
@@ -5949,7 +6033,10 @@ function App() {
                     );
                     const activeTiers = TIER_ORDER.filter(t => groups[t].length > 0);
                     const showHeaders = activeTiers.length > 1;
-                    const renderCard = ({ c, i }) => (
+                    // v11: 桌機版用 PartTableRow(緊湊列),手機保留原 Card 卡片堆疊。
+                    // Card 完整版仍用於桌機右欄細節面板(下方獨立區塊渲染),
+                    // 共用同一組 callback。
+                    const renderCard = ({ c, i }) => isMobile ? (
                       <Card key={c.id} card={c} col={MC[i]} isOpen={openId === c.id}
                         appMode={appMode}
                         onToggle={() => toggle(c.id)}
@@ -5994,6 +6081,11 @@ function App() {
                           if (!rebuilt) return cc;
                           return { ...rebuilt, id: cc.id };
                         }))} />
+                    ) : (
+                      <PartTableRow key={c.id} card={c} col={MC[i]} isActive={openId === c.id}
+                        appMode={appMode}
+                        onToggle={() => toggle(c.id)}
+                        onRemove={id => { setRemoved(p => new Set([...p, id])); if (openId === id) setOpenId(null); }} />
                     );
                     if (!showHeaders) return vis.map((c, i) => renderCard({ c, i }));
                     return activeTiers.map(t => (
@@ -6234,6 +6326,106 @@ function App() {
                   </div>
                 </div>}
               </div>
+
+              {/* ─── v11 Detail panel (右欄,桌機固定) ─── */}
+              {!isMobile && (
+                <div style={{
+                  alignSelf: "start",
+                  position: "sticky", top: "16px",
+                  background: "#fafaf9", border: "1px solid #e8e5e1",
+                  borderRadius: "12px",
+                  padding: "12px",
+                  maxHeight: "calc(100vh - 32px)",
+                  overflowY: "auto",
+                }}>
+                  <div style={{
+                    fontSize: "11px", fontWeight: 700, color: "#888",
+                    letterSpacing: "0.05em", textTransform: "uppercase",
+                    marginBottom: "10px", display: "flex",
+                    alignItems: "center", justifyContent: "space-between",
+                  }}>
+                    <span>細節</span>
+                    {openId != null && (
+                      <button
+                        onClick={() => setOpenId(null)}
+                        title="收合細節"
+                        style={{
+                          background: "none", border: "none", cursor: "pointer",
+                          fontSize: "12px", color: "#888",
+                          padding: "2px 6px", fontFamily: "inherit",
+                        }}>×</button>
+                    )}
+                  </div>
+                  {(() => {
+                    if (!cDone) {
+                      return (
+                        <div style={{
+                          fontSize: "12px", color: "#bbb",
+                          padding: "24px 8px", textAlign: "center", lineHeight: 1.6,
+                        }}>
+                          完成 Analyze 後,點選左側列查看 L2 / L3 / L4 細節
+                        </div>
+                      );
+                    }
+                    const ac = vis.find(c => c.id === openId);
+                    if (!ac) {
+                      return (
+                        <div style={{
+                          fontSize: "12px", color: "#888",
+                          padding: "24px 8px", textAlign: "center", lineHeight: 1.6,
+                        }}>
+                          選擇左側部位以查看 L2 / L3 / L4 細節
+                        </div>
+                      );
+                    }
+                    const acIdx = cards.findIndex(c => c.id === openId);
+                    return (
+                      <Card key={`detail-${ac.id}`} card={ac} col={MC[acIdx]} isOpen={true}
+                        appMode={appMode}
+                        onToggle={() => setOpenId(null)}
+                        onRemove={id => { setRemoved(p => new Set([...p, id])); setOpenId(null); }}
+                        onSwitchMethod={(cardId, newIdx) => setCards(cs => cs.map(cc => {
+                          if (cc.id !== cardId) return cc;
+                          const v = cc.methodVariants?.[newIdx];
+                          if (!v) return cc;
+                          const l4Short = v.l4 ? (v.l4.length > 40 ? v.l4.slice(0, 40) + "…" : v.l4) : null;
+                          return {
+                            ...cc,
+                            methodIdx: newIdx,
+                            l3s: v.steps.length ? v.steps : cc.l3s,
+                            ie: v.totalSec,
+                            l2: cc.l2Base ? `${cc.l2Base}${l4Short ? " · " + l4Short : ""}` : cc.l2
+                          };
+                        }))}
+                        onSwitchL2={(cardId, newL2Idx) => {
+                          const cc = cards.find(x => x.id === cardId);
+                          if (cc) rebuildCardFromL2(cc, newL2Idx, null, fabric, setCards);
+                        }}
+                        onSwitchL3={(cardId, newL3Idx) => {
+                          const cc = cards.find(x => x.id === cardId);
+                          if (cc) rebuildCardFromL2(cc, cc.l2Idx ?? 0, newL3Idx, fabric, setCards);
+                        }}
+                        onPickUniversalIso={(cardId, newIso) => setCards(cs => cs.map(cc => {
+                          if (cc.id !== cardId) return cc;
+                          const u = cc.universal;
+                          if (!u || u.iso === newIso) return cc;
+                          const filters = { fabric, dept, gender, gt, it };
+                          const det = {
+                            code: cc.l1_code,
+                            x: cc.px, y: cc.py,
+                            side: cc.side === "right" ? "back" : "front",
+                            confidence: cc.conf,
+                            _fromPresence: cc.source === "struct",
+                          };
+                          const pres = { [cc.l1_code]: { tier_en: cc.presenceTier, presence_pct: cc.presencePct } };
+                          const rebuilt = buildUniversalCard(det, filters, recipesMaster, isoDictionary, l1Standard38, pres, cc.id - 1, newIso);
+                          if (!rebuilt) return cc;
+                          return { ...rebuilt, id: cc.id };
+                        }))} />
+                    );
+                  })()}
+                </div>
+              )}
             </div>
           </div>
         )}
