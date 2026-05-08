@@ -94,6 +94,30 @@ const SRC = {
 /* ─── 長度相關 POM codes（PETITE / TALL 跟 MISSY 有差的） ─── */
 const LENGTH_POMS = new Set(["K1","K2","O4","N5","N7","L2"]);
 
+/* ─── readStepRow: schema-agnostic reader for a single L5 step row.
+   Bible currently ships Phase 1 list `[name, grade, sec, primary, machine]`;
+   Phase 2 (PHASE2_DERIVE_VIEWS_SPEC.md) upgrades to dict
+   `{l5, ie_standard:{sec,grade,primary,machine}, actuals?}`. This helper
+   reads both shapes so the frontend works during the migration window. ─── */
+function readStepRow(row) {
+  if (Array.isArray(row)) {
+    return {
+      name: row[0], grade: row[1], sec: row[2],
+      primary: row[3], machine: row[4],
+      actuals: null,
+    };
+  }
+  if (row && typeof row === 'object') {
+    const ie = row.ie_standard || {};
+    return {
+      name: row.l5, grade: ie.grade, sec: ie.sec,
+      primary: ie.primary, machine: ie.machine,
+      actuals: row.actuals || null,
+    };
+  }
+  return { name: null, grade: null, sec: null, primary: null, machine: null, actuals: null };
+}
+
 /* ─── rebuildCardFromL2: given a card + new L2 index (+ optional L3 index),
    fetches l2_l3_ie for that L1 and rebuilds l3Variants / methodVariants /
    l3s on the card. Used by onSwitchL2 and onSwitchL3. ─── */
@@ -135,7 +159,7 @@ function rebuildCardFromL2(card, newL2Idx, newL3Idx, fabric, setCards, newMethod
     const tryFilter = (rows, mainOnly) => {
       const seen = new Set(); const list = [];
       for (const row of rows || []) {
-        const [nm, gr, sc, ms] = row;
+        const { name: nm, grade: gr, sec: sc, primary: ms } = readStepRow(row);
         if (mainOnly && ms && ms !== "主") continue;
         const k = `${nm}|${gr}`;
         if (seen.has(k)) continue;
@@ -5529,7 +5553,7 @@ function App() {
             const seen = new Set();
             const list = [];
             for (const row of rows) {
-              const [name, grade, seconds, mainSub] = row;
+              const { name, grade, sec: seconds, primary: mainSub } = readStepRow(row);
               if (mainOnly && mainSub && mainSub !== "主") continue;
               const key = `${name}|${grade}`;
               if (seen.has(key)) continue;
