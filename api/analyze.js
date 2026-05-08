@@ -139,6 +139,22 @@ function clampConfidence(raw) {
   return Math.max(0, Math.min(100, Math.round(scaled)));
 }
 
+// VLM hallucinate fix: 從 sketch 讀字常把形似異體字或簡體誤字輸出
+// (例如「襠底片」誤讀成「褶底片」/「檔底片」)
+// 套用在所有 VLM 自由文字輸出 (reasoning / 說明 / Chinese zone names)
+const ZH_NORMALIZE = {
+  "褶底片": "襠底片",  // VLM hallucinate (襠 ↔ 褶 形似)
+  "檔底片": "襠底片",  // 簡體誤字 (檔 ↔ 襠)
+};
+function normalizeZh(s) {
+  if (typeof s !== "string" || !s) return s;
+  let out = s;
+  for (const [bad, good] of Object.entries(ZH_NORMALIZE)) {
+    if (out.includes(bad)) out = out.split(bad).join(good);
+  }
+  return out;
+}
+
 async function identifyL2(apiKey, mediaType, b64, detectedL1s, guide, trees) {
   if (!detectedL1s.length) return { byCode: {}, usage: null };
   if (!trees || !trees.common || !trees.l1) {
@@ -194,11 +210,11 @@ Rules:
       : [];
     byCode[l1Code] = {
       l2_code: v.l2_code,
-      l2_name: entry?.name || v.l2_code,
+      l2_name: normalizeZh(entry?.name || v.l2_code),
       confidence: clampConfidence(v.confidence),
       explanation: typeof v.reasoning === "string"
-        ? v.reasoning.slice(0, 80)
-        : (typeof v.explanation === "string" ? v.explanation.slice(0, 80) : null),
+        ? normalizeZh(v.reasoning.slice(0, 80))
+        : (typeof v.explanation === "string" ? normalizeZh(v.explanation.slice(0, 80)) : null),
       needs_text: !!v.needs_text,
       merged_candidates: mergedCandidates,
       alternatives: [],
