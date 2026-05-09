@@ -146,8 +146,9 @@ derive view 使用。
     "origin": "SVN",
     "approval_date": "2026/3/15 ...",
     "reviewer": "SELINACHEN",
-    "performance_cost": "...",
-    "total_amount_usd_dz": "USD$1.20/dz"
+    // (註:聚陽端推進來時 order block 還含 performance_cost / normal_cost /
+    //  total_amount_usd_dz 等成本/報價欄位 — **平台端不消費**,做工 / IE 用途
+    //  不做成本計算。下游 build_recipes_master / derive view 都不讀這幾欄。)
   },
 
   "ie_breakdown_summary": {

@@ -1,7 +1,7 @@
 # StyTrix Techpack 完整資料架構 v3.0
 
 > **目標**：建立一條從**所有資料源 → 統一 master → 多個 view** 的可持續架構，支援：
-> - **聚陽內部用**：分客戶五階 IE 報價（看 brand × L1 × L2 × L3 × L4 × L5 + IE 秒值）
+> - **聚陽內部用**：分客戶五階 IE 詳情查詢（看 brand × L1 × L2 × L3 × L4 × L5 + IE 秒值,做工/工法 reference 用,**不做成本/報價計算**）
 > - **外部設計師用**：StyTrix Techpack Creator 做工單（看 5-dim consensus + ISO + methods）
 >
 > **核心原則**：
