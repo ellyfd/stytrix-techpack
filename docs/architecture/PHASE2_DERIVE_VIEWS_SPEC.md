@@ -1,5 +1,7 @@
 # Phase 2 — Derive Views Spec (v3, 命名乾淨)
 
+> **狀態(2026-05-09)**:Phase 2 全景接線完成。三個 derive script 都實裝且接進 CI,38 檔 Bible 已升級為 dict schema,3,900 個 per-EIDH designs_index 已產出。`l2_l3_ie_by_client/` 已退役 git rm。本檔保留為設計理由說明,實作對應的 Step 4a/4b/4c 在 `.github/workflows/rebuild_master.yml`。
+
 `build_recipes_master.py` Step 3 產 master.jsonl 後,從 master + per-EIDH designs 衍生**多個視角**的 view。
 
 ---
@@ -36,13 +38,13 @@ Bible 38 檔本身被增強 — 在每個 L5 step 旁加 `actuals` 欄,由 m7_pu
 
 ---
 
-## View A — `data/recipes_master.json` (現有, 不動)
+## View A — `data/runtime/recipes_master.json` (已實裝)
 
 **用途**:通用模型 ISO consensus 推薦。
 **結構**:扁平 entries by 5-dim key,iso_distribution + methods cascade。
-**Source**:master.jsonl 經 `derive_view_recipes_master.py` 平鋪輸出。
+**Source**:`data/master.jsonl` 經 `star_schema/scripts/derive_view_recipes_master.py` 剝 `_m7_*` 內部欄位後輸出。
 
-⚠ 現況 build_recipes_master 已直接產這個檔(沒分 master + view)。Phase 2.1 把它改成 master → derive。
+實裝順序:`build_recipes_master.py` 先寫完整 master.jsonl + master.meta.json,Step 4a 跑 `derive_view_recipes_master.py` 把每筆 entry 的 `_m7_*` 內部欄位剝掉(那些欄位是給 View B/C 用的,前端不消費)覆寫 `data/runtime/recipes_master.json`,線上 size ~15x 縮減。
 
 ---
 
@@ -266,13 +268,13 @@ source 跟 view 解耦。
 
 ---
 
-## TODO
+## 完成度(2026-05-09)
 
-- [ ] Phase 2.1: restructure build_recipes_master 出 master.jsonl
-- [ ] Phase 2.2: derive_view_recipes_master.py
-- [ ] Phase 2.3: derive_view_l2_l3_ie.py(核心)— 過濾 new_*
-- [ ] Phase 2.4: derive_view_designs_index.py
-- [ ] Phase 2.5: wire CI workflow + git rm `l2_l3_ie_by_client/`
-- [ ] Phase 2.6: frontend integration
+- [x] Phase 2.1: restructure build_recipes_master 出 master.jsonl(L94-95 `OUT_MASTER_JSONL` / `OUT_MASTER_META`)
+- [x] Phase 2.2: `star_schema/scripts/derive_view_recipes_master.py`(Step 4a)
+- [x] Phase 2.3: `star_schema/scripts/derive_view_l2_l3_ie.py`(Step 4b,核心)— 過濾 `new_*` placeholder + 升級 38 檔 dict schema + 掛 m7_pullon `actuals`
+- [x] Phase 2.4: `star_schema/scripts/derive_view_designs_index.py`(Step 4c)— 拆 m7_pullon designs.jsonl.gz 為 per-EIDH 3,900 檔
+- [x] Phase 2.5: wire CI(`.github/workflows/rebuild_master.yml` Step 4a/4b/4c)+ `l2_l3_ie_by_client/` git rm 完成
+- [x] Phase 2.6: frontend integration(`index.html` `readStepRow()` schema-agnostic Bible reader,`filterBibleByBrand()` helper 從 `actuals.by_brand` 過濾)
 
 預計 5 個 PR(2.1+2.2 合一,2.3, 2.4, 2.5, 2.6)。
