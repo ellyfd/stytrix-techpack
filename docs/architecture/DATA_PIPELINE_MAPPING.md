@@ -143,17 +143,16 @@ python star_schema/scripts/build_recipes_master.py --strict
 
 **驗證**:L1 對 `l1_standard_38`、bucket 對 `bucket_taxonomy.json`(v4 + legacy_buckets)。違規 `--strict` exit 1。
 
-**寫什麼**(Phase 1, 現況):
-- `data/runtime/recipes_master.json`(通用 ISO consensus)
+**Step 3 寫什麼**:
+- `data/master.jsonl` + `data/master.meta.json`(internal master,含 `_m7_*` 給 derive 用)
+- `data/runtime/recipes_master.json`(初版,Step 4a 會覆寫剝乾淨版)
 - `data/runtime/iso_dictionary.json`
 - `data/runtime/l1_standard_38.json`
 
-**Phase 2 規劃**(尚未 implement,見 `docs/architecture/PHASE2_DERIVE_VIEWS_SPEC.md`):
-
-加 `data/master.jsonl` 為 single source of truth → derive 出 3 view:
-- View A: `data/recipes_master.json`(同上)
-- View B: `l2_l3_ie/<L1>.json` 38 檔(Bible schema 升級)
-- View C: `data/runtime/designs_index/<EIDH>.json`(per-EIDH lazy fetch)
+**Step 4 derive views**(2026-05-08+ 全部實裝,spec 見 `docs/architecture/PHASE2_DERIVE_VIEWS_SPEC.md`):
+- **Step 4a** `derive_view_recipes_master.py` → View A:覆寫 `data/runtime/recipes_master.json`,剝 `_m7_*` 內部欄位
+- **Step 4b** `derive_view_l2_l3_ie.py --all --in-place` → View B:升級 `l2_l3_ie/<L1>.json` 38 檔為 Phase 2 dict schema + 掛 m7_pullon `actuals`
+- **Step 4c** `derive_view_designs_index.py` → View C:拆 m7_pullon `designs.jsonl.gz` 為 per-EIDH `data/runtime/designs_index/<EIDH>.json` 3,900 個小檔(前端 lazy fetch)
 
 ---
 
