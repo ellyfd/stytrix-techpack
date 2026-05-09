@@ -1,6 +1,6 @@
 ---
 name: place-file
-description: Given a new file (path, name, or description of contents), walk CLAUDE.md Part A's decision tree and recommend the correct folder. Use when the user is about to add a new file and unsure where it goes, or has dropped a file at repo root that may belong elsewhere. Covers data/, pom_rules/, l2_l3_ie/, General Model_Path2_Construction Suggestion/, scripts/, star_schema/scripts/, api/, and root-level .md conventions.
+description: Given a new file (path, name, or description of contents), walk CLAUDE.md Part A's decision tree and recommend the correct folder. Use when the user is about to add a new file and unsure where it goes, or has dropped a file at repo root that may belong elsewhere. Covers data/, pom_rules/, l2_l3_ie/, path2_universal/, scripts/, star_schema/scripts/, api/, and root-level .md conventions.
 ---
 
 # place-file — 新檔資料夾分工決策
@@ -33,7 +33,7 @@ description: Given a new file (path, name, or description of contents), walk CLA
 │             命名：<L1代號>.json（如 AE.json, WB.json）
 │
 ├─ Q4. 是通用模型（Path 2）的 ISO / knit / woven 資料？
-│       Yes → 【General Model_Path2_Construction Suggestion/】
+│       Yes → 【path2_universal/】
 │             例：iso_lookup_factory_v*.json
 │
 ├─ Q5. 是 construction recipe / pattern（做工配方）？
@@ -55,7 +55,7 @@ description: Given a new file (path, name, or description of contents), walk CLA
 │
 ├─ Q8. 是子系統（PATH2 / scripts / star_schema）內部文件？
 │       Yes → 【該子系統資料夾裡】
-│             例：General Model_Path2_.../PATH2_*.md
+│             例:path2_universal/PATH2_*.md
 │
 ├─ Q9. 是線下規則產線 python script？
 │       Yes → 【scripts/】（路徑寫死內部 /sessions/.../mnt/ONY，
