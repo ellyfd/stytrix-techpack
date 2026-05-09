@@ -3036,7 +3036,7 @@ cp .env.example .env
 ./run.sh
 \`\`\`
 
-順序照線上 workflow:Step 1(抽文字+圖) → 2b(VLM callout) → 2a(合併 unified) → 3(重建 recipes_master) → 4a(衍生 View A 輕量化)。**注意**:Step 4b(`derive_view_l2_l3_ie.py`,Bible schema 升級 + 掛 m7_pullon actuals)需聚陽內部 m7_pullon 資料,本外送包不送 — 由 main CI 接手。你跑完直接送 \`data/ingest/{metadata,unified,vlm}/*.jsonl\` 回去即可,main CI 會重新合併你的 facts + 聚陽端資料 → 重跑 Step 3 + 4a + 4b 產生最終 view。
+順序照線上 workflow:Step 1(抽文字+圖) → 2b(VLM callout) → 2a(合併 unified) → 3(重建 recipes_master) → 4a(衍生 View A 輕量化)。**注意**:Step 4b(\`derive_view_l2_l3_ie.py\`,Bible schema 升級 + 掛 m7_pullon actuals)需聚陽內部 m7_pullon 資料,本外送包不送 — 由 main CI 接手。你跑完直接送 \`data/ingest/{metadata,unified,vlm}/*.jsonl\` 回去即可,main CI 會重新合併你的 facts + 聚陽端資料 → 重跑 Step 3 + 4a + 4b 產生最終 view。
 
 **產出 & 回傳**:跑完 \`data/ingest/{metadata/designs.jsonl, unified/facts.jsonl, vlm/facts.jsonl}\` 打成一包 zip,到 Stytrix 前台管理選單 → 📥 上傳 Pipeline 結果 → 拖入 → 合併。
 
