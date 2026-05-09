@@ -2613,6 +2613,37 @@ async function classifyActionsError(res, thrown) {
     hint: '未預期狀態。展開詳情看原始訊息。', detail: msg || '(no body)' };
 }
 
+/* GitHub PAT 取得 — 4 個 admin modal(Upload / Package / IEAdmin /
+   ResultsUpload)共用。throw on 401/不通,callsite 用 try/catch 接。
+   回傳 {pat, headers, rawHeaders};headers 拿 JSON、rawHeaders 拿 raw blob。*/
+async function fetchGithubAuth(adminToken) {
+  if (!adminToken) throw new Error('未設定 Admin Token');
+  const res = await fetch('/api/ingest_token', {
+    method: 'POST',
+    headers: { 'x-admin-token': adminToken },
+  });
+  if (!res.ok) {
+    throw new Error(res.status === 401 ? 'Admin Token 錯誤' : `Token 端點 ${res.status}`);
+  }
+  const { github_pat } = await res.json();
+  return {
+    pat: github_pat,
+    headers:    { Authorization: `token ${github_pat}`, Accept: 'application/vnd.github.v3+json' },
+    rawHeaders: { Authorization: `token ${github_pat}`, Accept: 'application/vnd.github.v3.raw' },
+  };
+}
+
+/* 載 runtime JSON 的共用 fetch + setter + 錯誤紀錄。
+   App mount / sketch 上傳時跑 9 個檔的 boilerplate 太重複,集中起來。
+   onResult 拿到 parse 完的 JSON object,通常就是 React setter,需要時可
+   wrap 做 side-effects(e.g. window.POM_NAMES = data 順便寫 global)。 */
+function loadRuntimeJSON(path, onResult) {
+  fetch(path)
+    .then(r => (r.ok ? r.json() : Promise.reject(r.status)))
+    .then(onResult)
+    .catch(err => console.error(`載入 ${path} 失敗:`, err));
+}
+
 /* 診斷框:三個 modal 的錯誤 UI 共用(接 classifyActionsError 的回傳) */
 function DiagnosticBox({ diagnostic, expanded, onToggleExpand }) {
   if (!diagnostic) return null;
@@ -2784,12 +2815,7 @@ function UploadModal({ open, onClose, token }) {
     if (!token) { setPhase('error'); setStatusMsg('請先至「⚙ 設定」填入 Admin Token'); return; }
     setPhase('uploading'); setStatusMsg('準備上傳...');
     try {
-      const tokResp = await fetch('/api/ingest_token', { method: 'POST', headers: { 'x-admin-token': token } });
-      if (!tokResp.ok) {
-        const t = await tokResp.text();
-        throw new Error(tokResp.status === 401 ? 'Admin Token 錯誤' : `Token 端點錯誤: ${t}`);
-      }
-      const { github_pat } = await tokResp.json();
+      const { pat: github_pat } = await fetchGithubAuth(token);
 
       setStatusMsg('編碼中...');
       const buf = await uploadFile.arrayBuffer();
@@ -3177,10 +3203,7 @@ function PackageModal({ open, onClose, token }) {
     (async () => {
       if (!token) { setPhase('error'); setDiagnostic({ kind: 'scope', title: '未設定 Admin Token', hint: '請先至「⚙ 設定」填入。', detail: '' }); return; }
       try {
-        const tokResp = await fetch('/api/ingest_token', { method: 'POST', headers: { 'x-admin-token': token } });
-        if (!tokResp.ok) throw new Error(tokResp.status === 401 ? 'Admin Token 錯誤' : `Token 端點 ${tokResp.status}`);
-        const { github_pat } = await tokResp.json();
-        const ghH = { Authorization: `token ${github_pat}`, Accept: 'application/vnd.github.v3+json' };
+        const { pat: github_pat, headers: ghH } = await fetchGithubAuth(token);
         const commitResp = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/commits/main`, { headers: ghH });
         if (!commitResp.ok) { setDiagnostic(await classifyActionsError(commitResp)); setPhase('error'); return; }
         const { sha: commitSha } = await commitResp.json();
@@ -3333,11 +3356,7 @@ function IEAdminModal({ open, onClose, token }) {
     if (!token) { setPhase('error'); setStatusMsg('請先至「⚙ 設定」填入 Admin Token'); return; }
     setPhase('uploading'); setStatusMsg('取得 GITHUB_PAT...');
     try {
-      const tokResp = await fetch('/api/ingest_token', { method: 'POST', headers: { 'x-admin-token': token } });
-      if (!tokResp.ok) {
-        throw new Error(tokResp.status === 401 ? 'Admin Token 錯誤' : `Token 端點 ${tokResp.status}`);
-      }
-      const { github_pat } = await tokResp.json();
+      const { pat: github_pat } = await fetchGithubAuth(token);
 
       setStatusMsg('UTF-8 安全編碼中...');
       const buf = await pickedFile.arrayBuffer();
@@ -3606,10 +3625,7 @@ function ResultsUploadModal({ open, onClose, token }) {
     if (!preview || !token) return;
     setPhase('uploading'); setDiagnostic(null); setUploadResults([]);
     try {
-      const tokResp = await fetch('/api/ingest_token', { method: 'POST', headers: { 'x-admin-token': token } });
-      if (!tokResp.ok) throw new Error(tokResp.status === 401 ? 'Admin Token 錯誤' : `Token 端點 ${tokResp.status}`);
-      const { github_pat } = await tokResp.json();
-      const ghH = { Authorization: `token ${github_pat}`, Accept: 'application/vnd.github.v3+json' };
+      const { pat: github_pat, headers: ghH } = await fetchGithubAuth(token);
       const results = [];
 
       for (const item of preview.recognized) {
@@ -4588,22 +4604,10 @@ function App() {
   // 依目前 bucket 解析通用模型的基礎 POM codes(按 candidate 優先序挑第一個在 bucket 有資料的)已移到
   // currentBucket state 宣告之後,避免 TDZ ReferenceError。
   useEffect(() => {
-    fetch('./pom_rules/_index.json')
-      .then(r => r.ok ? r.json() : Promise.reject(r.status))
-      .then(data => { setPomRules(data); window.POM_RULES = data; })
-      .catch(err => console.error('載入 pom_rules/_index.json 失敗:', err));
-    fetch('./data/runtime/grading_patterns.json')
-      .then(r => r.ok ? r.json() : Promise.reject(r.status))
-      .then(setGradingPatterns)
-      .catch(err => console.error('載入 grading_patterns 失敗:', err));
-    fetch('./data/runtime/bodytype_variance.json')
-      .then(r => r.ok ? r.json() : Promise.reject(r.status))
-      .then(setBodytypeVariance)
-      .catch(err => console.error('載入 bodytype_variance 失敗:', err));
-    fetch('./data/runtime/pom_dictionary.json')
-      .then(r => r.ok ? r.json() : Promise.reject(r.status))
-      .then(data => { setPomNames(data); window.POM_NAMES = data; })
-      .catch(err => console.error('載入 pom_dictionary 失敗:', err));
+    loadRuntimeJSON('./pom_rules/_index.json',           d => { setPomRules(d); window.POM_RULES = d; });
+    loadRuntimeJSON('./data/runtime/grading_patterns.json',  setGradingPatterns);
+    loadRuntimeJSON('./data/runtime/bodytype_variance.json', setBodytypeVariance);
+    loadRuntimeJSON('./data/runtime/pom_dictionary.json',    d => { setPomNames(d); window.POM_NAMES = d; });
   }, []);
 
   const [pomNames, setPomNames] = useState({});
@@ -4864,41 +4868,13 @@ function App() {
   // 純用尺寸表的流程完全不下載這三個檔。
   useEffect(() => {
     if (!sketchSrc) return;
-    if (!isoRec) {
-      fetch('./data/runtime/l1_iso_recommendations_v1.json')
-        .then(r => r.ok ? r.json() : Promise.reject(r.status))
-        .then(setIsoRec)
-        .catch(err => console.error('載入 l1_iso_recommendations 失敗:', err));
-    }
-    if (!partPresence) {
-      fetch('./data/runtime/l1_part_presence_v1.json')
-        .then(r => r.ok ? r.json() : Promise.reject(r.status))
-        .then(setPartPresence)
-        .catch(err => console.error('載入 l1_part_presence 失敗:', err));
-    }
-    if (!visualGuide) {
-      fetch('./data/runtime/l2_visual_guide.json')
-        .then(r => r.ok ? r.json() : Promise.reject(r.status))
-        .then(setVisualGuide)
-        .catch(err => console.error('載入 l2_visual_guide 失敗:', err));
-    }
-    if (!recipesMaster && appMode === "universal") {
-      fetch('./data/runtime/recipes_master.json')
-        .then(r => r.ok ? r.json() : Promise.reject(r.status))
-        .then(setRecipesMaster)
-        .catch(err => console.error('載入 recipes_master 失敗:', err));
-    }
-    if (!isoDictionary && appMode === "universal") {
-      fetch('./data/runtime/iso_dictionary.json')
-        .then(r => r.ok ? r.json() : Promise.reject(r.status))
-        .then(setIsoDictionary)
-        .catch(err => console.error('載入 iso_dictionary 失敗:', err));
-    }
-    if (!l1Standard38 && appMode === "universal") {
-      fetch('./data/runtime/l1_standard_38.json')
-        .then(r => r.ok ? r.json() : Promise.reject(r.status))
-        .then(setL1Standard38)
-        .catch(err => console.error('載入 l1_standard_38 失敗:', err));
+    if (!isoRec)        loadRuntimeJSON('./data/runtime/l1_iso_recommendations_v1.json', setIsoRec);
+    if (!partPresence)  loadRuntimeJSON('./data/runtime/l1_part_presence_v1.json',       setPartPresence);
+    if (!visualGuide)   loadRuntimeJSON('./data/runtime/l2_visual_guide.json',           setVisualGuide);
+    if (appMode === "universal") {
+      if (!recipesMaster) loadRuntimeJSON('./data/runtime/recipes_master.json', setRecipesMaster);
+      if (!isoDictionary) loadRuntimeJSON('./data/runtime/iso_dictionary.json', setIsoDictionary);
+      if (!l1Standard38)  loadRuntimeJSON('./data/runtime/l1_standard_38.json', setL1Standard38);
     }
   }, [sketchSrc, appMode]);
 
