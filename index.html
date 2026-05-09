@@ -198,12 +198,12 @@ function rebuildCardFromL2(card, newL2Idx, newL3Idx, fabric, setCards, newMethod
     const tryFilter = (rows, mainOnly) => {
       const seen = new Set(); const list = [];
       for (const row of rows || []) {
-        const { name: nm, grade: gr, sec: sc, primary: ms } = readStepRow(row);
+        const { name: nm, grade: gr, sec: sc, primary: ms, actuals } = readStepRow(row);
         if (mainOnly && ms && ms !== "主") continue;
         const k = `${nm}|${gr}`;
         if (seen.has(k)) continue;
         seen.add(k);
-        list.push({ name: nm, ie: Number(sc) || 0, auto: false, pick: 0, opts: [{n:"無資料", p:100}] });
+        list.push({ name: nm, ie: Number(sc) || 0, auto: false, pick: 0, opts: [{n:"無資料", p:100}], actuals });
       }
       return list;
     };
@@ -1506,7 +1506,13 @@ function DetailPanel({ card, col, appMode,
           </button>
           {showSteps && (
             <div style={{ marginTop: "6px", padding: "6px 10px", background: "#fafaf9", borderRadius: "6px", maxHeight: "260px", overflowY: "auto" }}>
-              {(card.l3s || []).map((s, i) => (
+              {(card.l3s || []).map((s, i) => {
+                // Phase 2.6+: 工標跟 m7_pullon 實際 sec 不一樣時亮 drift indicator
+                // (s.actuals 由 buildSteps 從 step.actuals 帶過來,有 brand filter 走 5-elem
+                //  list 時 actuals=null,只有不選 brand 的 dict schema 路徑才有)
+                const a = s.actuals;
+                const drift = a && a.sec_median != null && Math.abs(a.sec_median - s.ie) > 0.5;
+                return (
                 <div key={i} style={{
                   display: "flex", justifyContent: "space-between", gap: "8px",
                   padding: "4px 0", borderBottom: i < card.l3s.length - 1 ? "1px solid #f0eeeb" : "none",
@@ -1516,9 +1522,16 @@ function DetailPanel({ card, col, appMode,
                   <span style={{ flexShrink: 0, fontFamily: "'JetBrains Mono',monospace", color: "#555", fontWeight: 600 }}>
                     {Math.round(s.ie)}<span style={{ fontSize: "10px", color: "#888", marginLeft: "2px" }}>秒</span>
                   </span>
+                  {drift && (
+                    <span title={`m7_pullon 實際中位數 ${a.sec_median} 秒,${a.n_designs} 件設計`}
+                      style={{ flexShrink: 0, fontSize: "9px", color: "#92400e", background: "#fef3c7", padding: "1px 5px", borderRadius: "4px", fontWeight: 600, fontFamily: "'JetBrains Mono',monospace" }}>
+                      實 {a.sec_median}秒 ×{a.n_designs}
+                    </span>
+                  )}
                   {s.auto && <span style={{ flexShrink: 0, fontSize: "9px", color: "#065f46", background: "#ecfdf5", padding: "1px 5px", borderRadius: "4px", fontWeight: 600 }}>auto</span>}
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -5599,13 +5612,13 @@ function App() {
             const seen = new Set();
             const list = [];
             for (const row of rows) {
-              const { name, grade, sec: seconds, primary: mainSub } = readStepRow(row);
+              const { name, grade, sec: seconds, primary: mainSub, actuals } = readStepRow(row);
               if (mainOnly && mainSub && mainSub !== "主") continue;
               const key = `${name}|${grade}`;
               if (seen.has(key)) continue;
               seen.add(key);
               const sec = Number(seconds) || 0;
-              list.push({ name, ie: sec, auto: rec?.action === "auto_recommend", pick: 0, opts });
+              list.push({ name, ie: sec, auto: rec?.action === "auto_recommend", pick: 0, opts, actuals });
             }
             return list;
           };
