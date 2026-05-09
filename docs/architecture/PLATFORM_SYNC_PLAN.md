@@ -1,10 +1,14 @@
 # Platform Sync Plan — Single Master + Multi-View 落地清單
 
-> **狀態(2026-05-09)**:Phase 2 三 view 全景落地完成。本檔案為**歷史規劃紀錄**,實作後的權威 spec
+> **狀態(2026-05-09)**:Phase 2 View A + B 落地完成。本檔案為**歷史規劃紀錄**,實作後的權威 spec
 > 改看 [`PHASE2_DERIVE_VIEWS_SPEC.md`](./PHASE2_DERIVE_VIEWS_SPEC.md) 與
 > [`DATA_PIPELINE_MAPPING.md`](./DATA_PIPELINE_MAPPING.md)。
 >
-> **plan vs build 差異**:文中規劃的 `derive_view_by_client.py` / `l2_l3_ie_by_client/` 26 檔在 Phase 2.5b 退役 — brand 維度改走升級後 Bible 的 `actuals.by_brand` 欄位 + frontend `filterBibleByBrand()` helper。實際實作的 3 個 view 是 A=`recipes_master.json` / B=`l2_l3_ie/<L1>.json`(升級 dict schema 含 actuals)/ C=`data/runtime/designs_index/<EIDH>.json` 3,900 檔(per-EIDH lazy fetch)— **不要照本檔計畫再做新檔**。
+> **plan vs build 差異**:
+> - 文中規劃的 `derive_view_by_client.py` / `l2_l3_ie_by_client/` 26 檔在 Phase 2.5b 退役 — brand 維度改走升級後 Bible 的 `actuals.by_brand` 欄位 + frontend `filterBibleByBrand()` helper
+> - 實際接線 CI 的是 2 個 view:A=`recipes_master.json` / B=`l2_l3_ie/<L1>.json`(升級 dict schema 含 actuals)
+> - 短暫存在過的 View C `data/runtime/designs_index/<EIDH>.json` 3,900 檔(per-EIDH lazy fetch)在 **2026-05-09 retired** — 前端無 UI 消費,刪 derive script + workflow + dead 產物
+> - **不要照本檔計畫再做新檔**
 
 > **背景**:v2 架構升級後,需要**同步更新 platform stytrix-techpack repo 多個檔案**。
 > 此 doc 列出每個改動的 file / 動作 / 驗證點,依優先序排。

@@ -698,9 +698,8 @@ def build_from_m7_pullon(path: Path, bucket_tax: dict, warns: list):
                 "confidence": e.get("confidence", "medium"),
                 # All `_m7_*` internal-only fields dropped 2026-05-08 (post-Phase 2):
                 # _m7_by_client was for retired l2_l3_ie_by_client/ derive (Phase 2.5b);
-                # _m7_design_ids + _m7_ie_total_seconds were earmarked for an unbuilt
-                # designs_index derive — actual View C (Phase 2.4) reads m7_pullon
-                # designs.jsonl.gz directly, not from master.jsonl.
+                # _m7_design_ids + _m7_ie_total_seconds were earmarked for designs_index
+                # derive (View C, retired 2026-05-09 — front-end never built EIDH detail UI).
             })
             n_loaded += 1
 

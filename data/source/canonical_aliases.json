@@ -1,7 +1,7 @@
 {
   "_description": "聚陽 M7 列管 ↔ 客戶 PDF 命名 alias 對照表。M7_Pipeline/scripts/lib/consolidate_canonical.py 載入這份規則,把多 source consensus 的 medium 衝突(命名差異造成的假衝突)降為 high。8 canonical 欄位:客戶/報價款號/Program/Subgroup/W/K/Item/Season/PRODUCT_CATEGORY",
   "_updated": "2026-05-08",
-  "_consumer": "M7_Pipeline/scripts/lib/consolidate_canonical.py (上游 pipeline,本 repo 目前只當 source-of-truth 規則表存,Phase 2 designs_index 視圖會直接用)",
+  "_consumer": "M7_Pipeline/scripts/lib/consolidate_canonical.py (上游 pipeline,本 repo 只當 source-of-truth 規則表存)",
   "_authority": "Elly 業務知識 + canonical_consensus_report.txt 衝突清單反推",
 
   "客戶": {
