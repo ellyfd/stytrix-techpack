@@ -6,9 +6,9 @@
 > **2026-05-09 sync 提醒** — 本文件描述的 2026-04 上傳流程跟現況有以下差異,讀本文時請對照 [`README.md`](../README.md) + [`docs/architecture/PHASE2_DERIVE_VIEWS_SPEC.md`](../docs/architecture/PHASE2_DERIVE_VIEWS_SPEC.md) 為準:
 >
 > 1. **Patch Upload Modal(🩹)已退役**(2026-04-23 移除,由 📥 上傳 Pipeline 結果 `ResultsUploadModal` 取代;新通道吃 raw `data/ingest/{metadata,unified,vlm}/*.jsonl` 而非合成的 `recipes_master.json` patch,更符合外部協作實際流程)。**本文件第一章 / 第五章 描述的 Patch Modal 都應視為退役紀錄**。
-> 2. **CI workflow 步驟順序更新**:現為 `Step 1 → 2b → 2a → Pre-3(validate buckets)→ 3 → 4a → 4b → 4c`(2b 排在 2a 前讓 unified 合併能吃本 run VLM facts;Step 4 是 Phase 2 derive views)。文中所有「Step 1 → 2a → 2b → 3」順序圖都是 2026-04-23 舊版。
+> 2. **CI workflow 步驟順序更新**:現為 `Step 1 → 2b → 2a → Pre-3(validate buckets)→ 3 → 4a → 4b`(2b 排在 2a 前讓 unified 合併能吃本 run VLM facts;Step 4 是 Phase 2 derive views)。文中所有「Step 1 → 2a → 2b → 3」順序圖都是 2026-04-23 舊版。
 > 3. **`recipes_master.json` 路徑** 從 `data/recipes_master.json` → `data/runtime/recipes_master.json`(2026-05-07 重組)。
-> 4. **新增 Step 4** Phase 2 derive views(2026-05-08+):4a 剝 `_m7_*` / 4b 升級 `l2_l3_ie/<L1>.json` schema 並掛 m7_pullon `actuals` / 4c 拆 `data/runtime/designs_index/<EIDH>.json` 3,900 檔。
+> 4. **新增 Step 4** Phase 2 derive views(2026-05-08+):4a 剝 `_m7_*` / 4b 升級 `l2_l3_ie/<L1>.json` schema 並掛 m7_pullon `actuals`。原規劃的 Step 4c(designs_index per-EIDH 3,900 檔)在 2026-05-09 retired(前端無 UI 消費)。
 
 本文件紀錄 2026-04-23 當時實際跑的上傳流程,前端 admin 面板**過去**提供兩條獨立路徑:
 

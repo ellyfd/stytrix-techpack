@@ -124,15 +124,12 @@ jobs:
       # ── Step 4: derive views (Phase 2 of PHASE2_DERIVE_VIEWS_SPEC.md) ──────
       # Step 4a: View A — strip _m7_* internal fields, rewrite recipes_master.json
       # Step 4b: View B — upgrade l2_l3_ie/<L1>.json schema + attach m7 actuals
-      # Step 4c: View C — split m7_pullon designs.jsonl.gz into per-EIDH files
+      # (View C designs_index 在 2026-05-09 retired — 前端無消費,移除避免 dead 產物)
       - name: Step 4a — derive View A (recipes_master.json strip _m7_*)
         run: python star_schema/scripts/derive_view_recipes_master.py
 
       - name: Step 4b — derive View B (l2_l3_ie schema upgrade + actuals)
         run: python star_schema/scripts/derive_view_l2_l3_ie.py --all --in-place
-
-      - name: Step 4c — derive View C (designs_index per-EIDH lazy-fetch files)
-        run: python star_schema/scripts/derive_view_designs_index.py
 
       # ── Commit derived outputs ─────────────────────────────────────────────
       - name: Commit updated data
@@ -150,7 +147,6 @@ jobs:
           git add data/runtime/recipes_master.json
           git add data/runtime/l1_standard_38.json
           git add l2_l3_ie/                                  # Phase 2.5a: Bible schema升級
-          git add data/runtime/designs_index/                # Phase 2.4: per-EIDH View C
           git add data/ingest/metadata/designs.jsonl || true
           git add data/ingest/pptx/ || true
           git add data/ingest/unified/ || true

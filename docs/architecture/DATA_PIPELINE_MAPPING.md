@@ -80,7 +80,7 @@ uploads/           facts.jsonl                                  (Phase 2)
 聚陽 push                              data/master.jsonl       data/runtime/
                                        (Phase 2.1+)            recipes_master.json
                                                                l2_l3_ie/<L1>.json
-                                                               designs_index/<EIDH>.json
+                                                               (原 designs_index/ 2026-05-09 retired)
 ```
 
 ---
@@ -149,10 +149,10 @@ python star_schema/scripts/build_recipes_master.py --strict
 - `data/runtime/iso_dictionary.json`
 - `data/runtime/l1_standard_38.json`
 
-**Step 4 derive views**(2026-05-08+ 全部實裝,spec 見 `docs/architecture/PHASE2_DERIVE_VIEWS_SPEC.md`):
+**Step 4 derive views**(2026-05-08+ View A + B 實裝,spec 見 `docs/architecture/PHASE2_DERIVE_VIEWS_SPEC.md`):
 - **Step 4a** `derive_view_recipes_master.py` → View A:覆寫 `data/runtime/recipes_master.json`,剝 `_m7_*` 內部欄位
 - **Step 4b** `derive_view_l2_l3_ie.py --all --in-place` → View B:升級 `l2_l3_ie/<L1>.json` 38 檔為 Phase 2 dict schema + 掛 m7_pullon `actuals`
-- **Step 4c** `derive_view_designs_index.py` → View C:拆 m7_pullon `designs.jsonl.gz` 為 per-EIDH `data/runtime/designs_index/<EIDH>.json` 3,900 個小檔(前端 lazy fetch)
+- ~~**Step 4c** `derive_view_designs_index.py` → View C:拆 m7_pullon `designs.jsonl.gz` 為 per-EIDH `data/runtime/designs_index/<EIDH>.json` 3,900 個小檔(前端 lazy fetch)~~ — **2026-05-09 retired**(前端無 UI 消費,移除避免 dead 產物)
 
 ---
 
@@ -223,7 +223,6 @@ python scripts/core/reclassify_and_rebuild.py
 
 - ❌ `l2_l3_ie/` 38 檔手改 — CI 自動產(`derive_view_l2_l3_ie.py --in-place`,從 xlsx + m7_pullon)
 - ❌ `recipes_master.json` 手改 — CI 自動產(`derive_view_recipes_master.py`)
-- ❌ `data/runtime/designs_index/<EIDH>.json` 手改 — CI 自動產(`derive_view_designs_index.py`)
 - ❌ `pom_rules/*.json` 手改 — script 自動產
 - ❌ `l2_l3_ie_by_client/` 加新檔 — RETIRED 2026-05-08 (Phase 2.5b),已 git rm
 - ❌ `data/legacy/` 加新檔 — 只縮不增
