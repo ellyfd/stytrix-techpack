@@ -111,7 +111,7 @@ def load_m7_step_aggregations() -> tuple[dict, dict]:
     return dict(agg), stats
 
 
-def compute_actuals(rows: list[dict]) -> dict | None:
+def compute_actuals(rows) -> dict | None:
     """Aggregate m7 step rows into the actuals dict per spec.
 
     Trim rules (option B, 2026-05-08):
@@ -119,6 +119,10 @@ def compute_actuals(rows: list[dict]) -> dict | None:
       - machine_distribution dropped when single key, replaced by machine_top
       - size_distribution dropped entirely (size is per-design, not per-step)
     """
+    if not rows:
+        return None
+    # 2026-05-11: force list (Python 3.14 對某些 iter pattern throw 'tuple not iterator')
+    rows = list(rows)
     if not rows:
         return None
     secs = [r["sec"] for r in rows if isinstance(r["sec"], (int, float))]
@@ -140,11 +144,13 @@ def compute_actuals(rows: list[dict]) -> dict | None:
 
     by_brand = collections.defaultdict(list)
     by_brand_designs = collections.defaultdict(set)
-    for r in rows:
-        if r["brand"]:
-            if isinstance(r["sec"], (int, float)):
+    # 2026-05-11 explicit index loop (Python 3.14 對 'for r in rows' 在某 corner case throw)
+    for _idx in range(len(rows)):
+        r = rows[_idx]
+        if r.get("brand"):
+            if isinstance(r.get("sec"), (int, float)):
                 by_brand[r["brand"]].append(r["sec"])
-            if r["eidh"]:
+            if r.get("eidh"):
                 by_brand_designs[r["brand"]].add(r["eidh"])
     if by_brand:
         actuals["by_brand"] = {
@@ -210,17 +216,24 @@ def derive_one_l1(l1_code: str, agg: dict, out_dir: Path,
                     l4 = method.get("l4")
                     new_steps = []
                     for step in method.get("steps", []) or []:
+                        # 2026-05-11 fix: dict 也走 recompute (不再 pass-through)
+                        # 之前 dict pass-through 讓 actuals 第一次升級後 freeze, 後續 derive
+                        # 重跑 0 diff. 現在 list 跟 dict 兩種 step 都走相同 lookup → recompute.
                         if isinstance(step, dict):
-                            new_steps.append(step)
-                            n_l5_total += 1
-                            if step.get("actuals"):
-                                n_l5_with_actuals += 1
-                            continue
-                        l5 = step[0] if len(step) > 0 else None
+                            l5 = step.get("l5")
+                            ie = step.get("ie_standard") or {}
+                            # 把 dict step 還原成 list 餵 upgrade_step 一致處理
+                            step_as_list = [
+                                l5, ie.get("grade"), ie.get("sec"),
+                                ie.get("primary"), ie.get("machine"),
+                            ]
+                        else:
+                            l5 = step[0] if len(step) > 0 else None
+                            step_as_list = step
                         key = (bible_l1, l2, l3, l4, l5)
                         rows = agg.get(key)
                         actuals = compute_actuals(rows) if rows else None
-                        new_steps.append(upgrade_step(step, actuals))
+                        new_steps.append(upgrade_step(step_as_list, actuals))
                         n_l5_total += 1
                         if actuals:
                             n_l5_with_actuals += 1
