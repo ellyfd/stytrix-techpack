@@ -1,6 +1,12 @@
 # Phase 2 — Derive Views Spec (v3, 命名乾淨)
 
-> **狀態(2026-05-09)**:Phase 2 View A + B 接線完成,38 檔 Bible 已升級為 dict schema,`l2_l3_ie_by_client/` 已退役 git rm。**View C designs_index per-EIDH 在 2026-05-09 retired** — 雖然 derive script 寫好且 3,900 個 per-EIDH 檔產出過,但 audit 發現前端無 UI 消費,刪除避免 dead 產物 + 縮 repo size。本檔仍保留 View C 設計章節作為**未來重啟參考**(若前端要做 EIDH 詳情頁可重接)。實作對應 Step 4a/4b 在 `.github/workflows/rebuild_master.yml`。
+> **狀態(2026-05-11)**:Phase 2 View A + B 接線完成,38 檔 Bible 已升級為 dict schema,`l2_l3_ie_by_client/` 已退役 git rm。**View C designs_index per-EIDH 在 2026-05-09 retired** — 雖然 derive script 寫好且 3,900 個 per-EIDH 檔產出過,但 audit 發現前端無 UI 消費,刪除避免 dead 產物 + 縮 repo size。本檔仍保留 View C 設計章節作為**未來重啟參考**(若前端要做 EIDH 詳情頁可重接)。實作對應 Step 4a/4b 在 `.github/workflows/rebuild_master.yml`。
+>
+> **2026-05-11 兩個重要修正**:
+>
+> 1. **`derive_bible_actuals.py` idempotency 修**:Phase 2.3 原版對已是 dict schema 的 step 直接 pass-through(只把 list-form 的 step 重算),導致 Bible 第一次升級 bake 了當時的 brand 後就 freeze,後續 m7_pullon source 新增 brand 不會反映到 `actuals.by_brand`(`--all --in-place` 重跑 0 diff)。修法:dict step 也走完整 lookup → recompute → 寫入(actuals empty 時清掉,避免殘留)。Bible 從 10 brand → 21 brand,大小 73.7 → 79.1 MB(+7%)。
+>
+> 2. **新增 Step 4c `scripts/core/build_brands.py`**:從 `data/ingest/m7_pullon/entries.jsonl` 聚合產 `data/runtime/brands.json`(~1.8 KB)。前端 `index.html` 把硬寫 10 entry 的 `const BRANDS = [...]` 換成 boot 時 fetch 這個檔,新 brand 進 m7_pullon → CI 重產 brands.json → 用戶 reload 看到。這個 derive 不算 Phase 2 view(沒從 master.jsonl 衍生),但 workflow 排在 4b 之後,共用一次 m7_pullon 讀取。
 
 `build_recipes_master.py` Step 3 產 master.jsonl 後,從 master + per-EIDH designs 衍生**多個視角**的 view。
 
