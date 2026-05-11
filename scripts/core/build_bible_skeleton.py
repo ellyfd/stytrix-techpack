@@ -33,9 +33,9 @@ value doesn't resolve to a known code are reported and skipped.
 
 Usage::
 
-  python3 scripts/build_l2_l3_ie.py                               # use repo defaults
-  python3 scripts/build_l2_l3_ie.py --source path/to/五階層展開項目.xlsx
-  python3 scripts/build_l2_l3_ie.py --dry-run                     # print stats, don't write
+  python3 scripts/build_bible_skeleton.py                               # use repo defaults
+  python3 scripts/build_bible_skeleton.py --source path/to/五階層展開項目.xlsx
+  python3 scripts/build_bible_skeleton.py --dry-run                     # print stats, don't write
 """
 from __future__ import annotations
 

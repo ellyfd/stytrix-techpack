@@ -37,13 +37,13 @@ that don't match any Bible path are reported as "unmatched" (observability).
 
 Usage:
   # Dry-run on one L1, write to staging dir
-  python3 star_schema/scripts/derive_view_l2_l3_ie.py --l1 WB
+  python3 star_schema/scripts/derive_bible_actuals.py --l1 WB
 
   # Run all 38 L1, write to staging dir
-  python3 star_schema/scripts/derive_view_l2_l3_ie.py --all
+  python3 star_schema/scripts/derive_bible_actuals.py --all
 
   # Production: overwrite l2_l3_ie/<L1>.json (Phase 2.5 wires this in CI)
-  python3 star_schema/scripts/derive_view_l2_l3_ie.py --all --in-place
+  python3 star_schema/scripts/derive_bible_actuals.py --all --in-place
 """
 from __future__ import annotations
 

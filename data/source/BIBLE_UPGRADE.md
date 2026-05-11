@@ -11,7 +11,7 @@ L2(零件) → L3(形狀設計) → L4(工法描述) → L5(細工段)+ machine 
 |---|---|---|
 | **Working source**(IE 部門編輯用) | `五階層展開項目_YYYYMMDD.xlsx`(本機 Drive,~36 MB+) | ❌ 不進 repo |
 | **Deliverable**(Bible JSON,前端讀的) | `l2_l3_ie/*.json` 38 檔 + `_index.json` | ✅ 進 repo,~9 MB |
-| **Build script** | `scripts/core/build_l2_l3_ie.py` | ✅ 進 repo |
+| **Build script** | `scripts/core/build_bible_skeleton.py` | ✅ 進 repo |
 | **L1 name→code 對照表** | `data/source/L2_代號中文對照表.xlsx` | ✅ 進 repo,14 KB,輕量 |
 
 ## 為什麼 xlsx 不進 repo
@@ -32,10 +32,10 @@ L2(零件) → L3(形狀設計) → L4(工法描述) → L5(細工段)+ machine 
 
 ```bash
 # 預設找最新 dated xlsx
-python scripts/core/build_l2_l3_ie.py --source path/to/五階層展開項目_YYYYMMDD.xlsx
+python scripts/core/build_bible_skeleton.py --source path/to/五階層展開項目_YYYYMMDD.xlsx
 
 # 或先 dry-run 看 stats
-python scripts/core/build_l2_l3_ie.py --source path/to/xlsx --dry-run
+python scripts/core/build_bible_skeleton.py --source path/to/xlsx --dry-run
 ```
 
 腳本會:
@@ -67,7 +67,7 @@ git push origin HEAD
 
 ## CI workflow
 
-`.github/workflows/build_l2_l3_ie.yml` 是 `workflow_dispatch` 觸發(手動跑),不再 auto-trigger,
+`.github/workflows/build_bible_skeleton.yml` 是 `workflow_dispatch` 觸發(手動跑),不再 auto-trigger,
 因為 xlsx 不在 repo 裡,沒有 push 事件可以鈎。
 
 如果以後想要更乾淨的 CI 路徑(例如 push xlsx 上 GitHub LFS / Release Asset 由 CI 抓),
@@ -80,7 +80,7 @@ git push origin HEAD
 | 20260402 | 單 sheet | 部位/零件/形狀設計/工法描述/細工段/主副/等級/Woven_Knit/Second + 圖片相關 | ~200K |
 | 20260507 | 雙 sheet(`語系資料` + `全部五階層`)| 同上 + **尺寸/機種**(machine)+ 圖片名字 + 4 個 *_Sort | 453,870 |
 
-`build_l2_l3_ie.py` 對兩種 schema 都 tolerant — header-based column lookup,新 column 自動帶入,
+`build_bible_skeleton.py` 對兩種 schema 都 tolerant — header-based column lookup,新 column 自動帶入,
 舊 column 缺也不報錯。
 
 ## Step tuple 格式

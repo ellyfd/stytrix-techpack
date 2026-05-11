@@ -246,7 +246,7 @@ master = run_cascade(all_entries)  # cascade: same_sub → same_bucket → same_
 
 衍生 script(`star_schema/scripts/`,接進 `rebuild_master.yml` Step 4a/4b):
 - `derive_view_recipes_master.py`(master.jsonl → view A,剝 `_m7_*`)
-- `derive_view_l2_l3_ie.py --all --in-place`(xlsx-derived raw + m7_pullon → view B,原地升級 schema + 掛 actuals)
+- `derive_bible_actuals.py --all --in-place`(xlsx-derived raw + m7_pullon → view B,原地升級 schema + 掛 actuals)
 
 **v3.0 → v3.2 改動**:
 - 原 v3.0 計畫的 View B = `l2_l3_ie_by_client/<L1>.json` 26 檔(分 brand)在 Phase 2.5b 退役 — brand 維度直接走升級後 Bible 的 `actuals.by_brand` + frontend `filterBibleByBrand()` helper,不另開資料夾。原 View C(通用五階)併進 View B(同檔多源)。

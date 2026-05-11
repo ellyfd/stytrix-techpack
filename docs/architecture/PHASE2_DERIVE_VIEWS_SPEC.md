@@ -181,7 +181,7 @@ build_recipes_master.py (existing, 修出 master.jsonl)
          ↓
    ┌─────┴────────────────────────────────────────────┐
    ↓                                                  ↓
-derive_view_recipes_master.py    derive_view_l2_l3_ie.py (NEW)
+derive_view_recipes_master.py    derive_bible_actuals.py (NEW)
    ↓                                                  ↓
 data/recipes_master.json         l2_l3_ie/<L1>.json (38 檔, 增強版)
 
@@ -209,9 +209,9 @@ data/runtime/designs_index/<EIDH>.json (3,900 檔)
 - Strip `_m7_*` 內部欄位
 - Output `data/recipes_master.json`(跟現況 schema 一致)
 
-### Phase 2.3 — Write derive_view_l2_l3_ie.py(★ 核心)
+### Phase 2.3 — Write derive_bible_actuals.py(★ 核心)
 
-新檔 `star_schema/scripts/derive_view_l2_l3_ie.py`:
+新檔 `star_schema/scripts/derive_bible_actuals.py`:
 - Read `l2_l3_ie/<L1>.json` 現有版(從 xlsx 衍生的純 canonical)
 - Read `data/ingest/m7_pullon/entries.jsonl`(m7_pullon source)
 - For each L1: walk Bible 樹,attach `actuals` per L5 step (median sec / by_brand / machine 分布 / size 分布)
@@ -264,7 +264,7 @@ data/runtime/designs_index/<EIDH>.json (3,900 檔)
 未來新 source(例:techpack VLM callouts)整合:
 - 不改 Bible structure
 - 不改 m7_pullon source schema
-- 只改 `derive_view_l2_l3_ie.py` 加 `callouts` key 在每個 L5 dict 同層
+- 只改 `derive_bible_actuals.py` 加 `callouts` key 在每個 L5 dict 同層
 
 source 跟 view 解耦。
 
@@ -274,7 +274,7 @@ source 跟 view 解耦。
 
 - [x] Phase 2.1: restructure build_recipes_master 出 master.jsonl(L94-95 `OUT_MASTER_JSONL` / `OUT_MASTER_META`)
 - [x] Phase 2.2: `star_schema/scripts/derive_view_recipes_master.py`(Step 4a)
-- [x] Phase 2.3: `star_schema/scripts/derive_view_l2_l3_ie.py`(Step 4b,核心)— 過濾 `new_*` placeholder + 升級 38 檔 dict schema + 掛 m7_pullon `actuals`
+- [x] Phase 2.3: `star_schema/scripts/derive_bible_actuals.py`(Step 4b,核心)— 過濾 `new_*` placeholder + 升級 38 檔 dict schema + 掛 m7_pullon `actuals`
 - [⊘] Phase 2.4: `star_schema/scripts/derive_view_designs_index.py`(Step 4c)— 曾實裝產 per-EIDH 3,900 檔,**2026-05-09 retired**(前端無 UI 消費,移除避免 dead 產物)
 - [x] Phase 2.5: wire CI(`.github/workflows/rebuild_master.yml` Step 4a/4b/4c)+ `l2_l3_ie_by_client/` git rm 完成
 - [x] Phase 2.6: frontend integration(`index.html` `readStepRow()` schema-agnostic Bible reader,`filterBibleByBrand()` helper 從 `actuals.by_brand` 過濾)

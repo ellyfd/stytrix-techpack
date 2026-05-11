@@ -4,7 +4,16 @@ Techpack Creation + Measurement Spec 合併介面。
 線上版：https://stytrix-techpack.vercel.app
 
 > 想直接看全貌 Mermaid 圖(4 張:高階流程 / 前端模式分流 / 資料依賴 / Ingest Pipeline)+ 資料夾對照表 + 架構債清單 + 權威手冊登記表:[`docs/spec/網站架構圖.md`](./docs/spec/網站架構圖.md)
-> 
+>
+> **更新 2026-05-09**:
+> - **Phase 2 derive views**:View A(recipes_master 輕量化)+ View B(`l2_l3_ie/*.json` 38 檔升級為 Phase 2 dict schema `{l5, ie_standard, actuals?}` + 掛 m7_pullon 觀察值)兩個 view 接線 CI(Step 4a/4b)。原規劃的 View C(`data/runtime/designs_index/<EIDH>.json` per-EIDH lazy fetch)**2026-05-09 retired** — 確認前端無對應 UI 消費,移除 derive script + workflow step + 3,900 個 dead 產物。spec 見 [`docs/architecture/PHASE2_DERIVE_VIEWS_SPEC.md`](./docs/architecture/PHASE2_DERIVE_VIEWS_SPEC.md)。
+> - **CI workflow step**:`1 → 2b → 2a → Pre-3(validate buckets)→ 3 → 4a → 4b → commit`。Pre-3 跑 `scripts/core/validate_buckets.py --strict` 早期 schema gate(<1s,catch drift)。
+> - **bucket_taxonomy 統一到 `data/runtime/`**:過去兩份(root + runtime)並存,PR #312 合併並刪 root;現一份含 **28 v4 4-dim**(`<GENDER>_<DEPT>_<GT>_<IT>` UPPERCASE,scalar 值)+ **59 legacy 3-dim**(兜底 pre-v4 facts/consensus)。schema 細節見 [`MK_METADATA.md`](./MK_METADATA.md)。
+> - **Bible xlsx 不進 repo**(>25 MB),維護者本機跑 `scripts/core/build_bible_skeleton.py` build raw,CI Step 4b 升級為 Phase 2 dict 並掛 m7_pullon `actuals`。`new_*` placeholder 在 derive 層全 drop。
+> - **m7_pullon 為第 7 個 source**(聚陽 PullOn pipeline 推進來,3,900 件 EIDH 含 5-level 工段)。`entries.jsonl` 餵 `build_recipes_master.py`,`designs.jsonl.gz` 餵 View B/C derive。
+>
+> **2026-05-07 重組**:資料夾大整理(`data/` 拆 runtime/ingest/source/legacy、`scripts/` 拆 core/lib、根目錄 .md 集中到 `docs/`、`General Model_Path2_Construction Suggestion/` → `path2_universal/`、`pom_analysis_v5.5.1/` 退役)。GitHub 連結到舊路徑會 404,請用新路徑。
+
 ## 目錄
 
 - [目的](#目的) — 解決什麼問題、給誰用
@@ -39,7 +48,7 @@ StyTrix Techpack 解決成衣打版室一個老問題:**Techpack 製作**(做工
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
 │  (a) Bible xlsx (聚陽端,>25 MB 不進 repo)                                    │
-│        └─→ 本機 scripts/core/build_l2_l3_ie.py                               │
+│        └─→ 本機 scripts/core/build_bible_skeleton.py                               │
 │              └─→ l2_l3_ie/*.json (38 個 L1,Phase 1 5-elem list)             │
 │                                                                              │
 │  (b) Admin 上傳 PDF/PPTX → data/ingest/uploads/  +  m7_pullon push           │
@@ -93,7 +102,7 @@ StyTrix Techpack 解決成衣打版室一個老問題:**Techpack 製作**(做工
 
 ### m7_pullon canonical block(2026-05-08 加)
 
-`data/ingest/m7_pullon/designs.jsonl.gz` 每筆 design 帶 `canonical.<field>.{value, confidence, sources}`,8 canonical 欄位(客戶 / 報價款號 / Program / Subgroup / W/K / Item / Season / PRODUCT_CATEGORY)做 multi-source consensus(M7 列管 priority 3 / PDF priority 2 / 推論 priority 1),M7 兜底所以 `value` 永遠 100% 不掉拍;`confidence` "high"/"medium"/"low" 標 audit 強度,`sources` 留 audit trail。Alias 規則(單複數 / 客戶簡寫 / Season format)放 `data/source/canonical_aliases.json` 手維護。**Consumer**:`build_recipes_master.py` 讀 aggregated `entries.jsonl`(餵 cascade);Phase 2 View B (`derive_view_l2_l3_ie.py`) 直接吃 `designs.jsonl.gz` 含 canonical block,把每筆 design 的客戶 metadata + 5-level 工段聚合進 `l2_l3_ie/<L1>.json` 的 `actuals.by_brand`。
+`data/ingest/m7_pullon/designs.jsonl.gz` 每筆 design 帶 `canonical.<field>.{value, confidence, sources}`,8 canonical 欄位(客戶 / 報價款號 / Program / Subgroup / W/K / Item / Season / PRODUCT_CATEGORY)做 multi-source consensus(M7 列管 priority 3 / PDF priority 2 / 推論 priority 1),M7 兜底所以 `value` 永遠 100% 不掉拍;`confidence` "high"/"medium"/"low" 標 audit 強度,`sources` 留 audit trail。Alias 規則(單複數 / 客戶簡寫 / Season format)放 `data/source/canonical_aliases.json` 手維護。**Consumer**:`build_recipes_master.py` 讀 aggregated `entries.jsonl`(餵 cascade);Phase 2 View B (`derive_bible_actuals.py`) 直接吃 `designs.jsonl.gz` 含 canonical block,把每筆 design 的客戶 metadata + 5-level 工段聚合進 `l2_l3_ie/<L1>.json` 的 `actuals.by_brand`。
 
 ## 兩種模式
 
@@ -203,7 +212,7 @@ api/
   └─ ingest_token.js                          ← Admin：發 GITHUB_PAT 讓瀏覽器直連 GitHub（繞 4.5MB body 上限）
 .github/workflows/
   ├─ rebuild_master.yml                       ← push 到 main 或手動 workflow_dispatch 觸發；自動重建 recipes_master 並 push 回 main
-  └─ build_l2_l3_ie.yml                       ← workflow_dispatch only(2026-05-08+;xlsx >25 MB 不進 repo,維護者本機 build push JSON,workflow 多半不再用)
+  └─ build_bible_skeleton.yml                       ← workflow_dispatch only(2026-05-08+;xlsx >25 MB 不進 repo,維護者本機 build push JSON,workflow 多半不再用)
 vercel.json                                   ← functions config：includeFiles 把 data/** + docs/spec/techpack-translation-style-guide.md 編進 analyze.js bundle
 docs/
   ├─ spec/                                    ← 跨模組共用規格(被 code / LLM prompt 引用)
@@ -314,7 +323,7 @@ v4.3 GT 已經對齊 UI，不再需要 `BOTTOM` 粗桶，alias 縮到只剩 `BOD
 | `fix_sort_order.py` | 修 bucket 內 `pom_sort_order` 欄位排序 | 覆蓋 `pom_rules/*.json` |
 | `run_extract_2025_seasonal.py` / `run_extract_new.py` | 從 2025 / 2026 PDF 抽 MC+POM | `mc_pom_*.jsonl` |
 | `build_l2_visual_guide.py` / `build_l2_decision_trees.py` | 從 xlsx + md 產生 Pass 2 guide / decision tree | `data/runtime/l2_visual_guide.json` / `data/runtime/l2_decision_trees.json` |
-| `build_l2_l3_ie.py` | 從 `data/source/五階層展開項目_YYYYMMDD.xlsx` 拆分成 38 個 L1 JSON(純 stdlib,自動抓最新日期的 xlsx) | `l2_l3_ie/*.json`(+ `_index.json`) |
+| `build_bible_skeleton.py` | 從 `data/source/五階層展開項目_YYYYMMDD.xlsx` 拆分成 38 個 L1 JSON(純 stdlib,自動抓最新日期的 xlsx) | `l2_l3_ie/*.json`(+ `_index.json`) |
 | `rebuild_all_analysis_v2.py` / `rebuild_grading_3d.py` | 全量分析 / 3D grading 重建 | `$BASE/*.json`(吃 `$POM_PIPELINE_BASE`,輸出在外部 BASE 樹) |
 | `validate_buckets.py` | 驗證 `data/runtime/bucket_taxonomy.json` + `pom_rules/*.json` 一致性 | exit 0 / 1 |
 
@@ -391,7 +400,7 @@ Admin 在前端「📤 上傳 Techpack」丟一份 PDF/PPTX：
      - L1 必須在 38 標準內、bucket 必須在 taxonomy 內,違規 exit 1 擋 commit
      - 輸出:`data/master.jsonl` + `data/master.meta.json`(內部 master,含 `_m7_*` 欄位給後續 derive 用)+ `data/runtime/{recipes_master,iso_dictionary,l1_standard_38}.json`
    - **Step 4a** `derive_view_recipes_master.py` — Phase 2 View A:讀 `data/master.jsonl`,把每筆 entry 的 `_m7_*` 內部欄位剝掉(那些欄位是 derive 用的,前端不消費,留著會讓 `recipes_master.json` 多 ~15x),覆寫 `data/runtime/recipes_master.json`。
-   - **Step 4b** `derive_view_l2_l3_ie.py --all --in-place` — Phase 2 View B:讀 `l2_l3_ie/<L1>.json`(IE-xlsx 來的 Phase 1 5-elem list)+ `data/ingest/m7_pullon/designs.jsonl.gz`(3,900 件實做工段),原地升級成 dict schema `{l5, ie_standard:{sec,grade,primary,machine}, actuals?:{n_steps,n_designs,sec_median,sec_p25,sec_p75}}`,把 m7_pullon 實際工段數據掛在對應 step 的 `actuals` 欄。
+   - **Step 4b** `derive_bible_actuals.py --all --in-place` — Phase 2 View B:讀 `l2_l3_ie/<L1>.json`(IE-xlsx 來的 Phase 1 5-elem list)+ `data/ingest/m7_pullon/designs.jsonl.gz`(3,900 件實做工段),原地升級成 dict schema `{l5, ie_standard:{sec,grade,primary,machine}, actuals?:{n_steps,n_designs,sec_median,sec_p25,sec_p75}}`,把 m7_pullon 實際工段數據掛在對應 step 的 `actuals` 欄。
 3. **Commit 回 `main`**:`git rm data/ingest/uploads/*` + `git add` 重建結果(含升級後的 `l2_l3_ie/*.json`)+ `git add data/ingest/vlm/`(讓 VLM 分析結果持久化);訊息 `chore(data): auto-rebuild recipes_master [skip ci]` 避免無限循環;Vercel 偵測 push → 自動重新部署。
 
 前端在「📤 上傳 Techpack」Modal 內 poll `GET /repos/.../actions/runs?head_sha=<sha>`,依 workflow 實際順序顯示步驟。Actions API 回 403/404(私人 repo / token 缺 `actions:read` scope)會降級成不帶 token 重試,仍失敗時直接顯示 GitHub Actions 連結不再 poll。
@@ -406,7 +415,7 @@ Admin 在前端「📤 上傳 Techpack」丟一份 PDF/PPTX：
 | 📥 上傳 Pipeline 結果（ResultsUploadModal） | 吃外部送回的 zip / jsonl,merge 到 `data/ingest/{unified,vlm}/facts.jsonl` + `metadata/designs.jsonl`(append 或 append-dedup by design_id) | JSZip 瀏覽器解壓 → 比對 path → GET 現有 → merge → 直連 `PUT contents` | 無實質上限 |
 | 📤 上傳 Techpack（UploadModal） | 丟 PDF/PPTX 進 `data/ingest/uploads/`,觸發 Actions 重建 recipes_master | `POST /api/ingest_token` → 瀏覽器直連 GitHub `PUT` | 無實質上限 |
 | 📝 POM 翻譯表編輯（AdminModal） | 編 `data/runtime/pom_dictionary.json`,自動 diff + commit msg | `POST /api/push-pom-dict`(Vercel endpoint) | 小 |
-| 🛠 IE 底稿管理（IEAdminModal） | **2026-05-08+ 改流程**:xlsx (>25 MB) 不再進 repo,聚陽送新版 xlsx 時維護者**本機**跑 `python3 scripts/core/build_l2_l3_ie.py` build 出 38 個 JSON,push `l2_l3_ie/*.json`(SOP 見 `data/source/BIBLE_UPGRADE.md`)。原 `build_l2_l3_ie.yml` workflow 改 workflow_dispatch only。 | 無線上上傳路徑(只送 JSON 不送 xlsx) | — |
+| 🛠 IE 底稿管理（IEAdminModal） | **2026-05-08+ 改流程**:xlsx (>25 MB) 不再進 repo,聚陽送新版 xlsx 時維護者**本機**跑 `python3 scripts/core/build_bible_skeleton.py` build 出 38 個 JSON,push `l2_l3_ie/*.json`(SOP 見 `data/source/BIBLE_UPGRADE.md`)。原 `build_bible_skeleton.yml` workflow 改 workflow_dispatch only。 | 無線上上傳路徑(只送 JSON 不送 xlsx) | — |
 | 📚 權威手冊登記表（ManualsModal） | Read-only,顯示 7 份權威手冊的角色 / 引用鏈 | 無後端呼叫 | — |
 
 > ~~🩹 上傳 Patch (JSON)（PatchUploadModal）~~ — 2026-04-23 移除,由 📥 上傳 Pipeline 結果取代(新通道吃 raw facts.jsonl 而非 recipes_master.json patch,更符合外部協作實際流程)。
@@ -416,7 +425,7 @@ Admin 在前端「📤 上傳 Techpack」丟一份 PDF/PPTX：
 ### Pipeline 外送包
 
 📦 下載後交給協作單位,內含:
-- **Pipeline A 腳本**:`star_schema/scripts/*.py`(6 檔總共,外送包 bundle 5 檔 — Step 1-3 + Step 4a `derive_view_recipes_master.py`;**Step 4b `derive_view_l2_l3_ie.py` 不送外部** — 需要 `data/ingest/m7_pullon/designs.jsonl.gz`(聚陽 PullOn 內部工段資料,IP 敏感)+ `l2_l3_ie/*.json` 38 檔(74 MB),由 main CI 接手。外部跑完 Step 1-4a 後送回 raw `data/ingest/{metadata,unified,vlm}/*.jsonl`,main CI 合併 + 重跑 Step 3 + 4a + 4b 產最終 view)
+- **Pipeline A 腳本**:`star_schema/scripts/*.py`(6 檔總共,外送包 bundle 5 檔 — Step 1-3 + Step 4a `derive_view_recipes_master.py`;**Step 4b `derive_bible_actuals.py` 不送外部** — 需要 `data/ingest/m7_pullon/designs.jsonl.gz`(聚陽 PullOn 內部工段資料,IP 敏感)+ `l2_l3_ie/*.json` 38 檔(74 MB),由 main CI 接手。外部跑完 Step 1-4a 後送回 raw `data/ingest/{metadata,unified,vlm}/*.jsonl`,main CI 合併 + 重跑 Step 3 + 4a + 4b 產最終 view)
 - **Pipeline B 腳本**:`scripts/core/*.py`(8 檔包含 `_pipeline_base.py` + 7 支改用 `--base-dir` / `$POM_PIPELINE_BASE` 的產線腳本)+ `scripts/lib/extract_techpack.py`
 - `requirements-pipeline.txt`、`docs/spec/techpack-translation-style-guide.md`
 - 所有 reference JSON(construction_bridge / bucket_taxonomy / l1_standard_38 / pom_dictionary / consensus / iso_lookup × 2 / recipes × 72)
