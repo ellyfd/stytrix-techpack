@@ -4,16 +4,7 @@ Techpack Creation + Measurement Spec 合併介面。
 線上版：https://stytrix-techpack.vercel.app
 
 > 想直接看全貌 Mermaid 圖(4 張:高階流程 / 前端模式分流 / 資料依賴 / Ingest Pipeline)+ 資料夾對照表 + 架構債清單 + 權威手冊登記表:[`docs/spec/網站架構圖.md`](./docs/spec/網站架構圖.md)
->
-> **更新 2026-05-09**:
-> - **Phase 2 derive views**:View A(recipes_master 輕量化)+ View B(`l2_l3_ie/*.json` 38 檔升級為 Phase 2 dict schema `{l5, ie_standard, actuals?}` + 掛 m7_pullon 觀察值)兩個 view 接線 CI(Step 4a/4b)。原規劃的 View C(`data/runtime/designs_index/<EIDH>.json` per-EIDH lazy fetch)**2026-05-09 retired** — 確認前端無對應 UI 消費,移除 derive script + workflow step + 3,900 個 dead 產物。spec 見 [`docs/architecture/PHASE2_DERIVE_VIEWS_SPEC.md`](./docs/architecture/PHASE2_DERIVE_VIEWS_SPEC.md)。
-> - **CI workflow step**:`1 → 2b → 2a → Pre-3(validate buckets)→ 3 → 4a → 4b → commit`。Pre-3 跑 `scripts/core/validate_buckets.py --strict` 早期 schema gate(<1s,catch drift)。
-> - **bucket_taxonomy 統一到 `data/runtime/`**:過去兩份(root + runtime)並存,PR #312 合併並刪 root;現一份含 **28 v4 4-dim**(`<GENDER>_<DEPT>_<GT>_<IT>` UPPERCASE,scalar 值)+ **59 legacy 3-dim**(兜底 pre-v4 facts/consensus)。schema 細節見 [`MK_METADATA.md`](./MK_METADATA.md)。
-> - **Bible xlsx 不進 repo**(>25 MB),維護者本機跑 `scripts/core/build_l2_l3_ie.py` build raw,CI Step 4b 升級為 Phase 2 dict 並掛 m7_pullon `actuals`。`new_*` placeholder 在 derive 層全 drop。
-> - **m7_pullon 為第 7 個 source**(聚陽 PullOn pipeline 推進來,3,900 件 EIDH 含 5-level 工段)。`entries.jsonl` 餵 `build_recipes_master.py`,`designs.jsonl.gz` 餵 View B/C derive。
->
-> **2026-05-07 重組**:資料夾大整理(`data/` 拆 runtime/ingest/source/legacy、`scripts/` 拆 core/lib、根目錄 .md 集中到 `docs/`、`General Model_Path2_Construction Suggestion/` → `path2_universal/`、`pom_analysis_v5.5.1/` 退役)。GitHub 連結到舊路徑會 404,請用新路徑。
-
+> 
 ## 目錄
 
 - [目的](#目的) — 解決什麼問題、給誰用
