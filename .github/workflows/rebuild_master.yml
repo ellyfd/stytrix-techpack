@@ -129,7 +129,7 @@ jobs:
         run: python star_schema/scripts/derive_view_recipes_master.py
 
       - name: Step 4b — derive View B (l2_l3_ie schema upgrade + actuals)
-        run: python star_schema/scripts/derive_view_l2_l3_ie.py --all --in-place
+        run: python star_schema/scripts/derive_bible_actuals.py --all --in-place
 
       - name: Step 4c — derive brands.json (frontend Brand 下拉 source)
         run: python scripts/core/build_brands.py
