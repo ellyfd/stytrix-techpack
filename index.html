@@ -59,7 +59,7 @@ async function loadBrandsFromRecipesMaster() {
     const d = await res.json();
     const brandCounter = new Map();
     for (const e of (d.entries || [])) {
-      if (e.source !== 'm7_pullon') continue;  // 只看 m7_pullon 出來的 entries
+      if (e.source !== 'm7') continue;  // 只看 m7 出來的 entries (2026-05-11 改名 m7_pullon → m7)
       for (const c of (e.client_distribution || [])) {
         if (c && c.client) {
           brandCounter.set(c.client, (brandCounter.get(c.client) || 0) + (c.n || 1));
@@ -193,7 +193,7 @@ let _designsCachePromise = null;
 function loadDesignsCached() {
   if (_designsCachePromise) return _designsCachePromise;
   _designsCachePromise = (async () => {
-    const r = await fetch('./data/ingest/m7_pullon/designs.jsonl.gz');
+    const r = await fetch('./data/ingest/m7/designs.jsonl.gz');  // 2026-05-11 改名 m7_pullon → m7
     if (!r.ok) throw new Error(`designs.jsonl.gz fetch ${r.status}`);
     const stream = r.body.pipeThrough(new DecompressionStream('gzip'));
     const text = await new Response(stream).text();
