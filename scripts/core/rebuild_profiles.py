@@ -34,9 +34,32 @@ def extract_gender(brand_division, department=''):
     return 'UNKNOWN'
 
 profiles = []
-with open(f'{BASE}/_parsed/mc_pom_combined.jsonl') as f:
-    for line in f:
-        rec = json.loads(line)
+# 2026-05-11: 自動讀三個分檔, 不再依賴 mc_pom_combined.jsonl
+# (它不存在,且 PowerShell concat 會壞 UTF-8)
+import glob
+src_files = sorted(glob.glob(f'{BASE}/_parsed/mc_pom_*.jsonl'))
+src_files = [s for s in src_files if 'combined' not in s.lower()]
+if not src_files:
+    print(f'[!] {BASE}/_parsed/ 內找不到 mc_pom_*.jsonl', file=sys.stderr)
+    sys.exit(1)
+print(f'[rebuild_profiles] reading {len(src_files)} files:')
+for s in src_files: print(f'  {s}')
+
+bad_lines = 0
+all_lines_iter = []
+for src in src_files:
+    with open(src, 'r', encoding='utf-8') as f:
+        all_lines_iter.extend(f.readlines())
+
+for line in all_lines_iter:
+        line = line.rstrip('\r\n')
+        if not line:
+            continue
+        try:
+            rec = json.loads(line)
+        except Exception:
+            bad_lines += 1
+            continue
         mcs = rec.get('mcs', [])
         has_mc_pom = len(mcs) > 0
         
@@ -74,14 +97,20 @@ with open(f'{BASE}/_parsed/mc_pom_combined.jsonl') as f:
         })
 
 output = {
-    'source': 'mc_pom_combined.jsonl',
+    'source': 'mc_pom_{2024,2025,2026}.jsonl',
     'total': len(profiles),
     'with_mc_pom': sum(1 for p in profiles if p['has_mc_pom']),
     'profiles': profiles
 }
 
 out_path = f'{BASE}/measurement_profiles_union.json'
-with open(out_path, 'w') as f:
+with open(out_path, 'w', encoding='utf-8') as f:
     json.dump(output, f, ensure_ascii=False)
-print(f"Built {len(profiles)} profiles ({output['with_mc_pom']} with mc_pom)")
-print(f"Saved to {out_path}")
+print(f"\nBuilt {len(profiles):,} profiles ({output['with_mc_pom']:,} with mc_pom, {bad_lines} bad JSON skipped)")
+# by brand_division 摘要
+from collections import Counter
+brand_count = Counter(p['brand_division'] for p in profiles if p['has_mc_pom'])
+print(f"\nby brand_division (有 mc_pom, top 10):")
+for b, n in brand_count.most_common(10):
+    print(f"  {b or '(empty)':<40} {n:>6}")
+print(f"\nSaved to {out_path}")

@@ -57,7 +57,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 BIBLE_DIR = REPO_ROOT / "l2_l3_ie"
-M7_DESIGNS = REPO_ROOT / "data" / "ingest" / "m7_pullon" / "designs.jsonl.gz"
+M7_DESIGNS = REPO_ROOT / "data" / "ingest" / "m7" / "designs.jsonl.gz"  # 2026-05-11 改名 (m7_pullon → m7)
 DEFAULT_OUT_DIR = REPO_ROOT / "data" / "runtime" / ".phase23_dryrun"
 
 

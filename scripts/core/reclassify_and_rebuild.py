@@ -24,15 +24,16 @@ from _pipeline_base import get_base_dir  # noqa: E402
 
 # ─── Load ───
 BASE = str(get_base_dir(description=__doc__))
-with open(os.path.join(BASE, 'measurement_profiles_union.json')) as f:
+with open(os.path.join(BASE, 'measurement_profiles_union.json'), encoding='utf-8') as f:
     pdata = json.load(f)
-# Filter: has MC data + exclude ATHLETA brand (Old Navy only)
+# Filter: has MC data only (2026-05-11: 拿掉 ATHLETA filter, 開放 ONY 集團全 brand)
+# 之前 Old Navy only 是 v5.5 政策, 現在要擴 21 brand 第一步: 把同集團 Centric 8 5 家
+# (ONY / GAP / GAP_OUTLET / ATHLETA / BANANA_REPUBLIC) 全進 pom_rules.
 profiles = [p for p in pdata['profiles']
-            if p.get('has_mc_pom')
-            and 'ATHLETA' not in (p.get('brand_division') or '').upper()]
-print("Profiles loaded: {} (excluded ATHLETA)".format(len(profiles)))
+            if p.get('has_mc_pom')]
+print("Profiles loaded: {} (all Centric 8 brands)".format(len(profiles)))
 
-with open(os.path.join(BASE, 'pom_dictionary.json')) as f:
+with open(os.path.join(BASE, 'pom_dictionary.json'), encoding='utf-8') as f:
     pom_dict = json.load(f)
 
 # ─── Load raw tolerance from mc_pom files ───
@@ -82,7 +83,7 @@ for year in ['2024', '2025', '2026']:
     fpath = os.path.join(BASE, '_parsed/mc_pom_{}.jsonl'.format(year))
     if not os.path.exists(fpath):
         continue
-    with open(fpath) as f:
+    with open(fpath, encoding='utf-8') as f:
         for line in f:
             rec = json.loads(line)
             dn = rec.get('design_number', '')
@@ -378,7 +379,8 @@ for p in profiles:
             'pom_data': pom_data,
             'pom_set': set(pom_data.keys()),
             'sizes': p.get('sizes', []),
-            'body_types': p.get('body_types', [])
+            'body_types': p.get('body_types', []),
+            'brand_division': p.get('brand_division', ''),
         })
 
     classification_log.append({
@@ -449,8 +451,14 @@ for bucket, designs in sorted(bucket_profiles.items(), key=lambda x: -len(x[1]))
 # ═══════════════════════════════════════════════
 import statistics
 
-OUT_DIR = os.path.join(BASE, 'pom_rules')
+# 2026-05-11: OUT_DIR 改寫到本 repo (stytrix-techpack/pom_rules/),不再寫 BASE (聚陽 ONY 端)
+# 統一最終位置 — 前端 fetch + git 版控都在 stytrix-techpack/pom_rules/
+# 舊 BASE/pom_rules/ 可以清掉 (build 中介,不需保留)
+_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+_REPO_ROOT = os.path.dirname(os.path.dirname(_SCRIPT_DIR))  # stytrix-techpack/
+OUT_DIR = os.path.join(_REPO_ROOT, 'pom_rules')
 os.makedirs(OUT_DIR, exist_ok=True)
+print(f"[reclassify] OUT_DIR = {OUT_DIR}")
 
 # Clear old files
 for f in os.listdir(OUT_DIR):
@@ -607,13 +615,26 @@ for bucket, designs in sorted(bucket_profiles.items(), key=lambda x: -len(x[1]))
                 'n': len(tol_vals)
             }
 
+    # 2026-05-11: source_brand 動態化 — ATHLETA filter 拿掉後 bucket 可能含 ONY/GAP/ATH/BRFS 混合
+    # 取最頻繁的 brand 當主要,並列出全部分布 (frontend 可選顯示 single vs multi-source)
+    brand_counts = Counter()
+    for d in designs:
+        bd = (d.get('brand_division') or '').strip().upper()
+        # 把 brand_division (如 "OLD NAVY - WOMENS") 縮成 short brand
+        if 'OLD NAVY' in bd: brand_counts['ONY'] += 1
+        elif 'GAP' in bd: brand_counts['GAP'] += 1
+        elif 'ATHLETA' in bd: brand_counts['ATHLETA'] += 1
+        elif 'BRFS' in bd or 'BANANA REPUBLIC' in bd: brand_counts['BRFS'] += 1
+        elif bd: brand_counts[bd[:10]] += 1
+        else: brand_counts['UNKNOWN'] += 1
+    primary_brand = brand_counts.most_common(1)[0][0] if brand_counts else 'UNKNOWN'
+
     bucket_data = {
         'bucket': bucket,
-        # Brand whose techpack history these numbers were learned from. The
-        # ATHLETA filter above keeps the input strictly Old Navy ("ONY"), so
-        # every bucket emitted here is single-source. Front-end uses this to
-        # tell the user when the selected brand is borrowing ONY-derived data.
-        'source_brand': 'ONY',
+        # Brand 分布 (2026-05-11 改成 dict): primary 是樣本最多的 brand,
+        # distribution 是完整分布。前端用這個告訴 user 該 bucket 樣本來自哪些 brand。
+        'source_brand': primary_brand,
+        'source_brand_distribution': dict(brand_counts.most_common()),
         'department': dept,
         'garment_type': gt,
         'gender': gender,
@@ -637,7 +658,7 @@ for bucket, designs in sorted(bucket_profiles.items(), key=lambda x: -len(x[1]))
 
     fname = bucket_to_filename(bucket) + '.json'
     fpath = os.path.join(OUT_DIR, fname)
-    with open(fpath, 'w') as f:
+    with open(fpath, 'w', encoding='utf-8') as f:
         json.dump(bucket_data, f, indent=2, ensure_ascii=False)
 
     size_kb = round(os.path.getsize(fpath) / 1024, 1)
@@ -657,9 +678,9 @@ for bucket, designs in sorted(bucket_profiles.items(), key=lambda x: -len(x[1]))
 index_data = {
     '_meta': {
         'version': '5.5.1',
-        'source_brand': 'ONY',
-        'source': '{} designs x mc_pom_2024/2025/2026 (Old Navy only, ATHLETA excluded)'.format(total),
-        'date': '2026-04-20',
+        'source_brand': 'Centric 8 (ONY/GAP/ATHLETA/BRFS)',  # 2026-05-11: 拿掉 ATHLETA filter
+        'source': '{} designs x mc_pom_2024/2025/2026 (all Centric 8 brands)'.format(total),
+        'date': '2026-05-11',
         'departments': sorted(set(e['department'] for e in index_entries)),
         'filter_chain': 'Brand -> Fabric -> Department -> Gender -> GT -> Item Type',
         'classifiers': 'real_dept_v4 + real_gt_v2 + infer_fabric',
@@ -674,15 +695,15 @@ index_data = {
     'buckets': sorted(index_entries, key=lambda x: -x['n'])
 }
 
-with open(os.path.join(OUT_DIR, '_index.json'), 'w') as f:
+with open(os.path.join(OUT_DIR, '_index.json'), 'w', encoding='utf-8') as f:
     json.dump(index_data, f, indent=2, ensure_ascii=False)
 
 # Save pom_names.json
-with open(os.path.join(OUT_DIR, 'pom_names.json'), 'w') as f:
+with open(os.path.join(OUT_DIR, 'pom_names.json'), 'w', encoding='utf-8') as f:
     json.dump(pom_dict, f, indent=2, ensure_ascii=False)
 
 # Save classification log
-with open(os.path.join(BASE, 'design_classification_v5.json'), 'w') as f:
+with open(os.path.join(BASE, 'design_classification_v5.json'), 'w', encoding='utf-8') as f:
     json.dump({
         'version': '5.5.1',
         'classifiers': 'real_dept_v4 + real_gt_v2 + infer_fabric',
