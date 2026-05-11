@@ -130,14 +130,14 @@
 |---|---|---|
 | ✏️ 改 | `star_schema/scripts/build_recipes_master.py` | (1) 加 `build_from_m7_pullon()` 函式，仿 `build_from_consensus()`；(2) 把 m7_pullon 加進 cascade（建議 same_bucket 層）；(3) 輸出多加一個 `data/master.jsonl`（重量版含 by_client）+ 保留 recipes_master.json（輕量版） |
 | 🆕 新增 | `star_schema/scripts/derive_view_by_client.py` | 從 master.jsonl 抽 by_client 細節，重組成 26 個 `l2_l3_ie_by_client/<L1>.json` |
-| 🆕 新增 | `star_schema/scripts/derive_view_l2_l3_ie.py` | 從 master.jsonl 抽通用 L2-L5（不分 brand），重建 38 個 `l2_l3_ie/<L1>.json`（取代現有從 xlsx 抽的版本）|
+| 🆕 新增 | `star_schema/scripts/derive_bible_actuals.py` | 從 master.jsonl 抽通用 L2-L5（不分 brand），重建 38 個 `l2_l3_ie/<L1>.json`（取代現有從 xlsx 抽的版本）|
 
 ### C. 改 GitHub workflow — `.github/workflows/`
 
 | 動作 | File | 改什麼 |
 |---|---|---|
 | ✏️ 改 | `.github/workflows/rebuild_master.yml` | (1) trigger 加 `data/ingest/m7_pullon/`；(2) Step 3 改成 3 步（build master / derive recipes_master / derive by_client）；(3) commit 多新增 `data/master.jsonl` |
-| ✏️ 改（可能可保留）| `.github/workflows/build_l2_l3_ie.yml` | 評估：是否改用 derive_view_l2_l3_ie 取代從 xlsx 直接 build |
+| ✏️ 改（可能可保留）| `.github/workflows/build_bible_skeleton.yml` | 評估：是否改用 derive_bible_actuals 取代從 xlsx 直接 build |
 
 ### D. 文件同步 — top-level + docs
 

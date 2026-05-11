@@ -151,15 +151,15 @@ python star_schema/scripts/build_recipes_master.py --strict
 
 **Step 4 derive views**(2026-05-08+ View A + B 實裝,spec 見 `docs/architecture/PHASE2_DERIVE_VIEWS_SPEC.md`):
 - **Step 4a** `derive_view_recipes_master.py` → View A:覆寫 `data/runtime/recipes_master.json`,剝 `_m7_*` 內部欄位
-- **Step 4b** `derive_view_l2_l3_ie.py --all --in-place` → View B:升級 `l2_l3_ie/<L1>.json` 38 檔為 Phase 2 dict schema + 掛 m7_pullon `actuals`
+- **Step 4b** `derive_bible_actuals.py --all --in-place` → View B:升級 `l2_l3_ie/<L1>.json` 38 檔為 Phase 2 dict schema + 掛 m7_pullon `actuals`
 - ~~**Step 4c** `derive_view_designs_index.py` → View C:拆 m7_pullon `designs.jsonl.gz` 為 per-EIDH `data/runtime/designs_index/<EIDH>.json` 3,900 個小檔(前端 lazy fetch)~~ — **2026-05-09 retired**(前端無 UI 消費,移除避免 dead 產物)
 
 ---
 
-## 5. Bible 升級:`scripts/core/build_l2_l3_ie.py`
+## 5. Bible 升級:`scripts/core/build_bible_skeleton.py`
 
 ```
-python scripts/core/build_l2_l3_ie.py
+python scripts/core/build_bible_skeleton.py
 ```
 
 | 輸入 | 輸出 |
@@ -169,7 +169,7 @@ python scripts/core/build_l2_l3_ie.py
 
 ⚠ xlsx 留維護者本機,build 完 push 38 個 JSON。詳見 `data/source/BIBLE_UPGRADE.md`。
 
-CI workflow `.github/workflows/build_l2_l3_ie.yml` = `workflow_dispatch` only(不再 auto-trigger)。
+CI workflow `.github/workflows/build_bible_skeleton.yml` = `workflow_dispatch` only(不再 auto-trigger)。
 
 ---
 
@@ -203,7 +203,7 @@ python scripts/core/reclassify_and_rebuild.py
 | Workflow | Trigger | 跑什麼 |
 |---|---|---|
 | `.github/workflows/rebuild_master.yml` | push `data/ingest/uploads/**` 或 `data/ingest/m7_pullon/**` | extract_raw_text → vlm_pipeline → extract_unified → build_recipes_master --strict |
-| `.github/workflows/build_l2_l3_ie.yml` | `workflow_dispatch` only | build_l2_l3_ie |
+| `.github/workflows/build_bible_skeleton.yml` | `workflow_dispatch` only | build_bible_skeleton |
 
 ---
 
@@ -213,7 +213,7 @@ python scripts/core/reclassify_and_rebuild.py
 |---|---|---|
 | `bucket not in taxonomy` 報錯 | 用 v3 schema 讀 v4 file | 確認 `load_bucket_taxonomy()` 已升級含 `legacy_buckets` 合併 |
 | `recipes_master.json` 缺 m7_pullon entries | `data/ingest/m7_pullon/entries.jsonl` 沒 push 上 | 跑 M7 端 `push_m7_pullon_v3.ps1` |
-| `l2_l3_ie/<L1>.json` 沒更新 | xlsx 沒 build | 維護者本機跑 `scripts/core/build_l2_l3_ie.py` 後 push 38 JSON |
+| `l2_l3_ie/<L1>.json` 沒更新 | xlsx 沒 build | 維護者本機跑 `scripts/core/build_bible_skeleton.py` 後 push 38 JSON |
 | 前端看到舊 ISO | CI 沒重跑 | 確認 push 有碰 `data/ingest/uploads/**` 或 `m7_pullon/**`;否則手動 `workflow_dispatch` |
 | brand-specific 五階層拿不到 | 還在試 fetch `/l2_l3_ie_by_client/`(已退役) | 改用 `l2_l3_ie/<L1>.json` + frontend `filterBibleByBrand()` (從 actuals.by_brand 過濾) |
 
@@ -221,7 +221,7 @@ python scripts/core/reclassify_and_rebuild.py
 
 ## 10. 不要碰
 
-- ❌ `l2_l3_ie/` 38 檔手改 — CI 自動產(`derive_view_l2_l3_ie.py --in-place`,從 xlsx + m7_pullon)
+- ❌ `l2_l3_ie/` 38 檔手改 — CI 自動產(`derive_bible_actuals.py --in-place`,從 xlsx + m7_pullon)
 - ❌ `recipes_master.json` 手改 — CI 自動產(`derive_view_recipes_master.py`)
 - ❌ `pom_rules/*.json` 手改 — script 自動產
 - ❌ `l2_l3_ie_by_client/` 加新檔 — RETIRED 2026-05-08 (Phase 2.5b),已 git rm
@@ -234,7 +234,7 @@ python scripts/core/reclassify_and_rebuild.py
 
 ```bash
 # A. 維護者本機 build Bible(若 xlsx 改了)
-python scripts/core/build_l2_l3_ie.py
+python scripts/core/build_bible_skeleton.py
 git add l2_l3_ie/ && git commit -m "feat(bible): rebuild" && git push
 
 # B. 聚陽端 push m7_pullon source(若 SSRS / 列管有更新)

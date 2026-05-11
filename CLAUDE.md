@@ -21,9 +21,9 @@
 
 > **2026-05-09 快照**(consolidated 從 2026-05-07 重組 + 2026-05-08 ~ 09 各 PR):
 >
-> 1. **Phase 2 derive views(View A + B 接線)** — View A (`derive_view_recipes_master.py`,Step 4a 剝 `_m7_*` 內部欄)/ View B (`derive_view_l2_l3_ie.py --all --in-place`,Step 4b 升級 `l2_l3_ie/<L1>.json` 38 檔為 dict schema + 掛 m7_pullon `actuals`)。**View C designs_index per-EIDH 在 2026-05-09 retired** — 確認前端無 UI 消費,刪 derive script + workflow Step 4c + 3,900 個 dead 產物。spec 見 `docs/architecture/PHASE2_DERIVE_VIEWS_SPEC.md`。
+> 1. **Phase 2 derive views(View A + B 接線)** — View A (`derive_view_recipes_master.py`,Step 4a 剝 `_m7_*` 內部欄)/ View B (`derive_bible_actuals.py --all --in-place`,Step 4b 升級 `l2_l3_ie/<L1>.json` 38 檔為 dict schema + 掛 m7_pullon `actuals`)。**View C designs_index per-EIDH 在 2026-05-09 retired** — 確認前端無 UI 消費,刪 derive script + workflow Step 4c + 3,900 個 dead 產物。spec 見 `docs/architecture/PHASE2_DERIVE_VIEWS_SPEC.md`。
 >
-> 2. **Bible 升級 20260507**:`data/source/五階層展開項目_20260507.xlsx` 35.7 MB(2.3x prior),sheet schema 改成「語系資料 + 全部五階層」雙 sheet,新增 `機種 / 尺寸 / 圖片名字 / *_Sort` 欄。**xlsx 不再進 repo**(>25 MB GitHub web 上限),改寫 SOP `data/source/BIBLE_UPGRADE.md`。維護者本機跑 `scripts/core/build_l2_l3_ie.py` build raw,Step 4b 升 dict + 掛 actuals。
+> 2. **Bible 升級 20260507**:`data/source/五階層展開項目_20260507.xlsx` 35.7 MB(2.3x prior),sheet schema 改成「語系資料 + 全部五階層」雙 sheet,新增 `機種 / 尺寸 / 圖片名字 / *_Sort` 欄。**xlsx 不再進 repo**(>25 MB GitHub web 上限),改寫 SOP `data/source/BIBLE_UPGRADE.md`。維護者本機跑 `scripts/core/build_bible_skeleton.py` build raw,Step 4b 升 dict + 掛 actuals。
 >
 > 3. **m7_pullon 第 7 個 source**:`data/ingest/m7_pullon/{entries.jsonl(746 行,聚合,餵 cascade), designs.jsonl.gz(3,900 件 EIDH 含 5-level 工段 + canonical block,餵 View B/C derive)}`。`build_recipes_master.py` 加 `build_from_m7_pullon()`。
 >
@@ -49,13 +49,13 @@
 | `data/ingest/` | **Pipeline staging**(CI / 外部協作上傳處)。`build_recipes_master.py` 的 `data/ingest/*/facts.jsonl` glob 會掃 | `data/ingest/uploads/`(PDF/PPTX 上傳處)、`data/ingest/{unified,vlm,pdf,metadata}/`、`data/ingest/{consensus_rules,ocr_v1,consensus_v1}/`、**`data/ingest/m7_pullon/`(2026-05-08 加,聚陽端 PullOn pipeline 推進來)** | runtime 讀的成品(放 `data/runtime/`) |
 | `data/legacy/` | **舊 `pom_analysis_v5.5.1/` 退役後留下的 fallback**(只給 `vlm_pipeline.py` / `extract_unified.py` 在 runtime 找不到時用) | `all_designs_gt_it_classification.json`、`pom_dictionary.json` | 任何新檔(此資料夾只縮不增) |
 | `pom_rules/` | **自動產生的 POM 規則庫**。81 個 bucket(性別 × 部門 × GT 品類 × Fabric),像 81 本機器編的規格書 | `pom_rules/*.json`(由 `scripts/core/reclassify_and_rebuild.py` 產出) | 手寫規則;說明文件 |
-| `l2_l3_ie/` | **Bible 五階層展開** — 38 個 L1 部位,每部位 L1→L2→L3→L4→L5 工段樹。**Phase 2 dict schema(2026-05-08 commit f9faa8b 升級完成)**:每個 L5 step 是 dict `{l5, ie_standard:{sec,grade,primary,machine}, actuals?}`,`actuals` 含 m7_pullon 觀察值(`n_designs / sec_median / by_brand / machine_top`,option B trim 後)。`_metadata.schema = "phase2"` 標記。Bible **結構** 由 IE xlsx 決定(brand-agnostic),**L1-L5 樹不被 per-design 改**;Bible 38 檔現是 CI 自動產 — `derive_view_l2_l3_ie.py --all --in-place` 在 `rebuild_master.yml` Step 4b 跑,讀 xlsx-derived raw + `data/ingest/m7_pullon/designs.jsonl.gz` 後寫回。**`new_part_*` / `new_shape_design_*` / `new_method_describe_*` / `(NEW)*` placeholder 在 derive 層全 drop 不進 Bible**(IE 治理任務,聚陽端 SSRS 處理) | 按 L1 代號分檔的 JSON,38 檔 + `_index.json` | 其他層級的規則;**手改(CI 會蓋掉)**;brand 欄位嵌進樹結構(brand 走 actuals.by_brand);`new_*` placeholder |
+| `l2_l3_ie/` | **Bible 五階層展開** — 38 個 L1 部位,每部位 L1→L2→L3→L4→L5 工段樹。**Phase 2 dict schema(2026-05-08 commit f9faa8b 升級完成)**:每個 L5 step 是 dict `{l5, ie_standard:{sec,grade,primary,machine}, actuals?}`,`actuals` 含 m7_pullon 觀察值(`n_designs / sec_median / by_brand / machine_top`,option B trim 後)。`_metadata.schema = "phase2"` 標記。Bible **結構** 由 IE xlsx 決定(brand-agnostic),**L1-L5 樹不被 per-design 改**;Bible 38 檔現是 CI 自動產 — `derive_bible_actuals.py --all --in-place` 在 `rebuild_master.yml` Step 4b 跑,讀 xlsx-derived raw + `data/ingest/m7_pullon/designs.jsonl.gz` 後寫回。**`new_part_*` / `new_shape_design_*` / `new_method_describe_*` / `(NEW)*` placeholder 在 derive 層全 drop 不進 Bible**(IE 治理任務,聚陽端 SSRS 處理) | 按 L1 代號分檔的 JSON,38 檔 + `_index.json` | 其他層級的規則;**手改(CI 會蓋掉)**;brand 欄位嵌進樹結構(brand 走 actuals.by_brand);`new_*` placeholder |
 | `l2_l3_ie_by_client/` | ~~RETIRED 2026-05-08(Phase 2.5b)~~ — git rm 完成,功能由 `l2_l3_ie/<L1>.json` 升級後 schema 的 `actuals.by_brand` + frontend 的 `filterBibleByBrand()` helper 取代 | — | — |
 | `recipes/` | **PATH2 做工配方**(根目錄 72 檔)。是 `star_schema/scripts/build_recipes_master.py` 活檔的輸入,不是遺留 | `recipe_<GENDER>_<DEPT>_<GT>_<IT>.json`(72 檔)+ `_index.json` | 一次性實驗檔(放 Notion / Drive) |
 | `path2_universal/` | **通用模型(不分客戶/品牌)的做工推薦資料源**。ISO 工藝代號查表、knit/woven 做工紀錄、PATH2 pipeline 文件。前身為 `General Model_Path2_Construction Suggestion/`(2026-05-07 改名) | `iso_lookup_factory_v4.3.json`、`iso_lookup_factory_v4.json`、`PATH2_通用模型_做工推薦Pipeline.md` | 前端 runtime fetch 的檔(那該放 `data/runtime/`) |
-| `scripts/core/` | **資料產線腳本**(repo 內部執行的 build / rebuild / extract / search) | `build_l2_visual_guide.py`、`build_l2_l3_ie.py`、`run_extract_new.py`、`reclassify_and_rebuild.py`、`enforce_tier1.py` | 共用函式庫(放 `scripts/lib/`);一次性 ad-hoc 腳本 |
+| `scripts/core/` | **資料產線腳本**(repo 內部執行的 build / rebuild / extract / search) | `build_l2_visual_guide.py`、`build_bible_skeleton.py`、`run_extract_new.py`、`reclassify_and_rebuild.py`、`enforce_tier1.py` | 共用函式庫(放 `scripts/lib/`);一次性 ad-hoc 腳本 |
 | `scripts/lib/` | **共用函式庫**(被 `scripts/core/` 的腳本 import,不是 entry point) | `extract_techpack.py`(PDF parser,被 `run_extract_new.py` / `run_extract_2025_seasonal.py` import) | 直接執行的腳本 |
-| `star_schema/scripts/` | **CI 觸發的 ingest pipeline**(GitHub Actions `rebuild_master.yml` 直接呼叫,**6 支**) | Step 1 `extract_raw_text.py`、Step 2b `vlm_pipeline.py`、Step 2a `extract_unified.py`、Step 3 `build_recipes_master.py`、Step 4a `derive_view_recipes_master.py`、Step 4b `derive_view_l2_l3_ie.py`(原 Step 4c `derive_view_designs_index.py` 在 2026-05-09 retired)| 內部產線腳本(放 `scripts/core/`) |
+| `star_schema/scripts/` | **CI 觸發的 ingest pipeline**(GitHub Actions `rebuild_master.yml` 直接呼叫,**6 支**) | Step 1 `extract_raw_text.py`、Step 2b `vlm_pipeline.py`、Step 2a `extract_unified.py`、Step 3 `build_recipes_master.py`、Step 4a `derive_view_recipes_master.py`、Step 4b `derive_bible_actuals.py`(原 Step 4c `derive_view_designs_index.py` 在 2026-05-09 retired)| 內部產線腳本(放 `scripts/core/`) |
 | `api/` | **線上系統後端 endpoint**(Vercel functions) | `analyze.js`(Claude Vision)、`push-pom-dict.js`、`ingest_token.js` | 靜態資料 |
 | `docs/spec/` | **跨模組共用規格文件**(被 code 或 LLM prompt 引用) | `L1_部位定義_Sketch視覺指引.md`、`L2_VLM_Decision_Tree_Prompts_v2.md`、`L2_Visual_Differentiation_FullAnalysis_修正版.md`、`techpack-translation-style-guide.md`(api/analyze.js 啟動時 inject)、`pom_rules_v55_classification_logic.md`、`網站架構圖.md` | 純人類操作 SOP(放 `docs/sop/`);子系統內部文件 |
 | `docs/sop/` | **純人類操作流程**(沒有 code 引用) | `pom_rules_pipeline_guide_v2.md` | 規格文件(放 `docs/spec/`) |
@@ -293,7 +293,7 @@ grep -rnE "['\"\`]data/(l1_standard_38|l2_visual_guide|l2_decision_trees|recipes
 # 也跑這 4 個冒煙 build,看 git diff 是否只剩 timestamp:
 python3 scripts/core/build_l2_visual_guide.py
 python3 scripts/core/build_l2_decision_trees.py
-python3 scripts/core/build_l2_l3_ie.py --dry-run
+python3 scripts/core/build_bible_skeleton.py --dry-run
 python3 star_schema/scripts/build_recipes_master.py
 ```
 
