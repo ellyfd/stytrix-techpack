@@ -4762,6 +4762,23 @@ function App() {
     loadRuntimeJSON('./data/runtime/brands.json',            d => setBrands(d?.brands || []));
   }, []);
 
+  // 選了 brand 後 lazy 載 m7 designs 並過濾出該 brand 的 design rows,
+  // 給下游 cascade(fabric/gender/dept/gt)的 badge map 真實 design count。
+  // brand 空時為 null,badge map 走原本的 pomRules-based 全域邏輯。
+  const [brandDesigns, setBrandDesigns] = useState(null);
+  useEffect(() => {
+    if (!brand) { setBrandDesigns(null); return; }
+    let cancelled = false;
+    loadDesignsCached().then(all => {
+      if (cancelled) return;
+      setBrandDesigns(all.filter(d => d.client?.code === brand));
+    }).catch(e => {
+      console.warn('[brand-cascade] designs load failed', e);
+      if (!cancelled) setBrandDesigns([]);
+    });
+    return () => { cancelled = true; };
+  }, [brand]);
+
   const [pomNames, setPomNames] = useState({});
   // 使用者對 pomNames 中文欄位的手動編輯(雙擊儲存格修改),存 localStorage
   const [pomZhEdits, setPomZhEdits] = useState(() => {
@@ -5222,7 +5239,39 @@ function App() {
   // brand list 改成 data/runtime/brands.json 動態抓,新 brand 自動跟上。
   const brandBadgeMap = useMemo(() => ({}), []);
 
+  // m7_pullon classification → UI dropdown 值的對照表(brand-aware cascade 用)
+  // m7_pullon 的 classification.gt 在 pull-on 資料一律是 BOTTOM,UI 的 GT 對應
+  // 到 m7 的 IT(PANT/LEGGINGS/SHORTS/CAPRI/JOGGERS)再 normalize 過來。
+  const brandDesignsUi = useMemo(() => {
+    if (!brandDesigns) return null;
+    const GMAP = { BOY: "BOYS", GIRL: "GIRLS", WOMEN: "WOMENS", MEN: "MENS",
+                   MATERNITY: "MATERNITY", BABY: "BABY/TODDLER" };
+    const DMAP = { RTW: "RTW", ACTIVE: "Active", SWIMWEAR: "Swimwear",
+                   SLEEPWEAR: "Sleepwear", FLEECE: "Fleece" };
+    const GTMAP = { PANT: "PANTS", LEGGINGS: "LEGGINGS", SHORTS: "SHORTS",
+                    CAPRI: "LEGGINGS", JOGGERS: "PANTS" };
+    return brandDesigns.map(d => {
+      const fab = String(d.fabric?.value || "").toUpperCase();
+      const c = d.classification || {};
+      return {
+        fabric: fab === "WOVEN" ? "Woven" : (fab === "KNIT" ? "Knit" : null),
+        gender: GMAP[String(c.gender?.value || "").toUpperCase()] || null,
+        dept:   DMAP[String(c.dept?.value || "").toUpperCase()] || null,
+        gt:     GTMAP[String(c.it?.value || "").toUpperCase()] || null,
+      };
+    });
+  }, [brandDesigns]);
+
   const fabricBadgeMap = useMemo(() => {
+    // 有選 brand:用該 brand 的 m7 designs 算各 fabric 實際 design 數
+    if (brandDesignsUi) {
+      const m = {};
+      for (const r of brandDesignsUi) {
+        if (r.fabric) m[r.fabric] = (m[r.fabric] || 0) + 1;
+      }
+      return m;
+    }
+    // 沒選 brand:走 pomRules 全域(下游 option 數,維持舊行為)
     if (!pomRules) return {};
     const genders = new Set();
     pomRules.buckets.forEach(b => {
@@ -5230,9 +5279,17 @@ function App() {
     });
     const n = genders.size;
     return { "Woven": n, "Knit": n };
-  }, [pomRules]);
+  }, [pomRules, brandDesignsUi]);
 
   const genderBadgeMap = useMemo(() => {
+    if (brandDesignsUi) {
+      const m = {};
+      for (const r of brandDesignsUi) {
+        if (fabric && r.fabric !== fabric) continue;
+        if (r.gender) m[r.gender] = (m[r.gender] || 0) + 1;
+      }
+      return m;
+    }
     if (!pomRules) return {};
     const map = {};
     const acc = {};
@@ -5243,9 +5300,18 @@ function App() {
     });
     Object.keys(acc).forEach(k => { map[k] = acc[k].size; });
     return map;
-  }, [pomRules]);
+  }, [pomRules, brandDesignsUi, fabric]);
 
   const deptBadgeMap = useMemo(() => {
+    if (brandDesignsUi) {
+      const m = {};
+      for (const r of brandDesignsUi) {
+        if (fabric && r.fabric !== fabric) continue;
+        if (gender && r.gender !== gender) continue;
+        if (r.dept) m[r.dept] = (m[r.dept] || 0) + 1;
+      }
+      return m;
+    }
     if (!pomRules) return {};
     const map = {};
     const acc = {};
@@ -5257,9 +5323,19 @@ function App() {
     });
     Object.keys(acc).forEach(k => { map[k] = acc[k].size; });
     return map;
-  }, [pomRules, gender]);
+  }, [pomRules, brandDesignsUi, fabric, gender]);
 
   const gtBadgeMap = useMemo(() => {
+    if (brandDesignsUi) {
+      const m = {};
+      for (const r of brandDesignsUi) {
+        if (fabric && r.fabric !== fabric) continue;
+        if (gender && r.gender !== gender) continue;
+        if (dept && r.dept !== dept) continue;
+        if (r.gt) m[r.gt] = (m[r.gt] || 0) + 1;
+      }
+      return m;
+    }
     if (!pomRules) return {};
     const map = {};
     pomRules.buckets.forEach(b => {
@@ -5269,7 +5345,7 @@ function App() {
       if (!map[b.garment_type]) map[b.garment_type] = (IT_OPTIONS[b.garment_type] || []).length;
     });
     return map;
-  }, [pomRules, gender, dept]);
+  }, [pomRules, brandDesignsUi, fabric, gender, dept]);
 
   const curItOptions = useMemo(() => {
     if (!gt) return [];
