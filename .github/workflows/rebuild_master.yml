@@ -158,9 +158,7 @@ jobs:
           else
             MSG="chore(data): auto-rebuild recipes_master [skip ci]"
             if [ "$VLM_FAILED" = "true" ]; then
-              MSG="$MSG
-
-⚠ VLM (Step 2b) failed — facts from callout images not contributed this run. See Actions log."
+              MSG="$MSG"$'\n\n'"⚠ VLM (Step 2b) failed — facts from callout images not contributed this run. See Actions log."
             fi
             git commit -m "$MSG"
             git push origin HEAD
