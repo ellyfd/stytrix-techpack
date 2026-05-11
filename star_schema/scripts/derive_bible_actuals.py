@@ -125,8 +125,22 @@ def compute_actuals(rows) -> dict | None:
     rows = list(rows)
     if not rows:
         return None
-    secs = [r["sec"] for r in rows if isinstance(r["sec"], (int, float))]
-    designs = {r["eidh"] for r in rows if r["eidh"]}
+    # 2026-05-11 while loop (Python 3.14 generator/comp + dict subscript bug)
+    secs = []
+    designs = set()
+    _n0 = len(rows)
+    _i0 = 0
+    while _i0 < _n0:
+        _r = rows[_i0]
+        _i0 += 1
+        if not isinstance(_r, dict):
+            continue
+        _s = _r.get("sec")
+        if isinstance(_s, (int, float)):
+            secs.append(_s)
+        _e = _r.get("eidh")
+        if _e:
+            designs.add(_e)
     actuals = {
         "n_steps": len(rows),
         "n_designs": len(designs),
@@ -144,14 +158,22 @@ def compute_actuals(rows) -> dict | None:
 
     by_brand = collections.defaultdict(list)
     by_brand_designs = collections.defaultdict(set)
-    # 2026-05-11 explicit index loop (Python 3.14 對 'for r in rows' 在某 corner case throw)
-    for _idx in range(len(rows)):
+    # 2026-05-11 while loop (Python 3.14 對 'for ... in range(len(rows))' corner case throw 'tuple not iter')
+    _n_rows = len(rows)
+    _idx = 0
+    while _idx < _n_rows:
         r = rows[_idx]
-        if r.get("brand"):
-            if isinstance(r.get("sec"), (int, float)):
-                by_brand[r["brand"]].append(r["sec"])
-            if r.get("eidh"):
-                by_brand_designs[r["brand"]].add(r["eidh"])
+        _idx += 1
+        if not isinstance(r, dict):
+            continue
+        _brand = r.get("brand")
+        if _brand:
+            _sec = r.get("sec")
+            if isinstance(_sec, (int, float)):
+                by_brand[_brand].append(_sec)
+            _eidh = r.get("eidh")
+            if _eidh:
+                by_brand_designs[_brand].add(_eidh)
     if by_brand:
         actuals["by_brand"] = {
             b: {
@@ -161,7 +183,17 @@ def compute_actuals(rows) -> dict | None:
             for b in sorted(by_brand)
         }
 
-    machines = collections.Counter(r["machine"] for r in rows if r["machine"])
+    # 2026-05-11 while loop (Python 3.14 corner case)
+    machines = collections.Counter()
+    _n2 = len(rows)
+    _i2 = 0
+    while _i2 < _n2:
+        r = rows[_i2]
+        _i2 += 1
+        if isinstance(r, dict):
+            m = r.get("machine")
+            if m:
+                machines[m] += 1
     if len(machines) == 1:
         actuals["machine_top"] = next(iter(machines))
     elif len(machines) > 1:
