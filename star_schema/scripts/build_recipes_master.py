@@ -71,8 +71,9 @@ CONSENSUS_PATH = REPO_ROOT / "data" / "ingest" / "consensus_v1" / "entries.jsonl
 INGEST_DIR = REPO_ROOT / "data" / "ingest"
 BUCKET_TAX_PATH = REPO_ROOT / "data" / "runtime" / "bucket_taxonomy.json"
 
-# M7 PullOn source (聚陽 Windows pipeline → push 進 ingest/m7_pullon/)
-M7_PULLON_PATH = REPO_ROOT / "data" / "ingest" / "m7_pullon" / "entries.jsonl"
+# M7 source (聚陽 Windows pipeline → push 進 ingest/m7/) — 2026-05-11 改名 m7_pullon → m7
+# (歷史上叫 m7_pullon 因為 pilot 只有 Pull-On Pants/Leggings;全展開後不再只是 PullOn)
+M7_PATH = REPO_ROOT / "data" / "ingest" / "m7" / "entries.jsonl"
 
 # L1 standard 38 codes — facts with l1_code outside this set are skipped
 L1_VALID_38 = frozenset(
@@ -690,7 +691,7 @@ def build_from_m7_pullon(path: Path, bucket_tax: dict, warns: list):
                 "key": platform_key,
                 "fabric": norm(k.get("fabric")),  # top-level (parallel to v4 source)
                 "aggregation_level": "same_bucket",
-                "source": "m7_pullon",
+                "source": "m7",
                 "n_total": int(e.get("n_total") or 0),
                 "iso_distribution": e.get("iso_distribution") or [],
                 "methods": e.get("methods") or [],
@@ -905,7 +906,7 @@ def main():
     bridge_entries, bridge_stats = build_from_bridge(bridge, zh_to_l1, warns)
 
     # M7 PullOn source (聚陽 5-dim ground truth, graceful when absent)
-    m7_entries, m7_stats = build_from_m7_pullon(M7_PULLON_PATH, bucket_tax, warns)
+    m7_entries, m7_stats = build_from_m7_pullon(M7_PATH, bucket_tax, warns)
     if m7_stats["loaded"]:
         print(f"[m7_pullon] {m7_stats['loaded']} entries loaded "
               f"({m7_stats['skipped']} skipped)", file=sys.stderr)
@@ -929,13 +930,13 @@ def main():
             "consensus": str(CONSENSUS_PATH) if CONSENSUS_PATH.exists() else None,
             "facts": sorted(str(p) for p in INGEST_DIR.glob("*/facts.jsonl")) if INGEST_DIR.exists() else [],
             "bucket_taxonomy": str(BUCKET_TAX_PATH) if BUCKET_TAX_PATH.exists() else None,
-            "m7_pullon": str(M7_PULLON_PATH) if M7_PULLON_PATH.exists() else None,
+            "m7": str(M7_PATH) if M7_PATH.exists() else None,
         },
         "stats": {
             "same_sub": len(recipe_entries),
             "same_bucket_consensus": len(consensus_entries),
             "same_bucket_facts_agg": len(facts_entries),
-            "same_bucket_m7_pullon": len(m7_entries),
+            "same_bucket_m7": len(m7_entries),
             "same_bucket_total": len(consensus_entries) + len(facts_entries) + len(m7_entries),
             "same_gt": len(v43_entries),
             "general": len(v4_entries),
