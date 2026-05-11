@@ -283,6 +283,6 @@ source 跟 view 解耦。
 - [x] Phase 2.3: `star_schema/scripts/derive_bible_actuals.py`(Step 4b,核心)— 過濾 `new_*` placeholder + 升級 38 檔 dict schema + 掛 m7_pullon `actuals`
 - [⊘] Phase 2.4: `star_schema/scripts/derive_view_designs_index.py`(Step 4c)— 曾實裝產 per-EIDH 3,900 檔,**2026-05-09 retired**(前端無 UI 消費,移除避免 dead 產物)
 - [x] Phase 2.5: wire CI(`.github/workflows/rebuild_master.yml` Step 4a/4b/4c)+ `l2_l3_ie_by_client/` git rm 完成
-- [x] Phase 2.6: frontend integration(`index.html` `readStepRow()` schema-agnostic Bible reader,`filterBibleByBrand()` helper 從 `actuals.by_brand` 過濾)
+- [x] Phase 2.6: frontend integration(`index.html` `readStepRow()` schema-agnostic Bible reader,`filterBibleByBrand()` helper 從 `actuals.by_brand` 過濾,2026-05-11 commit `83727c0` 加 `filterBibleByCategory(bible, {brand,fabric,gender,dept,gt,it})` 6 維 runtime filter — lazy fetch `designs.jsonl.gz` + native gzip 解壓 + module-scope cache,按 `(L2|L3|L4|L5)` 重算 sec_median + design count,失敗 fallback `filterBibleByBrand`)
 
 預計 5 個 PR(2.1+2.2 合一,2.3, 2.4, 2.5, 2.6)。

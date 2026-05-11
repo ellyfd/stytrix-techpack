@@ -216,7 +216,7 @@ python scripts/core/reclassify_and_rebuild.py
 | `recipes_master.json` 缺 m7_pullon entries | `data/ingest/m7_pullon/entries.jsonl` 沒 push 上 | 跑 M7 端 `push_m7_pullon_v3.ps1` |
 | `l2_l3_ie/<L1>.json` 沒更新 | xlsx 沒 build | 維護者本機跑 `scripts/core/build_bible_skeleton.py` 後 push 38 JSON |
 | 前端看到舊 ISO | CI 沒重跑 | 確認 push 有碰 `data/ingest/uploads/**` 或 `m7_pullon/**`;否則手動 `workflow_dispatch` |
-| brand-specific 五階層拿不到 | 還在試 fetch `/l2_l3_ie_by_client/`(已退役) | 改用 `l2_l3_ie/<L1>.json` + frontend `filterBibleByBrand()` (從 actuals.by_brand 過濾) |
+| brand-specific 五階層拿不到 | 還在試 fetch `/l2_l3_ie_by_client/`(已退役) | 改用 `l2_l3_ie/<L1>.json` + frontend `filterBibleByBrand()` (從 actuals.by_brand 過濾)。需要更細的 client × 品類組合用 `filterBibleByCategory(bible, {brand,fabric,gender,dept,gt,it})` 6 維 runtime filter,反查 `designs.jsonl.gz` 重算 sec_median(2026-05-11+) |
 
 ---
 

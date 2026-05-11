@@ -95,7 +95,18 @@ StyTrix Techpack 解決成衣打版室一個老問題:**Techpack 製作**(做工
 
 ### m7_pullon canonical block(2026-05-08 加)
 
-`data/ingest/m7_pullon/designs.jsonl.gz` 每筆 design 帶 `canonical.<field>.{value, confidence, sources}`,8 canonical 欄位(客戶 / 報價款號 / Program / Subgroup / W/K / Item / Season / PRODUCT_CATEGORY)做 multi-source consensus(M7 列管 priority 3 / PDF priority 2 / 推論 priority 1),M7 兜底所以 `value` 永遠 100% 不掉拍;`confidence` "high"/"medium"/"low" 標 audit 強度,`sources` 留 audit trail。Alias 規則(單複數 / 客戶簡寫 / Season format)放 `data/source/canonical_aliases.json` 手維護。**Consumer**:`build_recipes_master.py` 讀 aggregated `entries.jsonl`(餵 cascade);Phase 2 View B (`derive_bible_actuals.py`) 直接吃 `designs.jsonl.gz` 含 canonical block,把每筆 design 的客戶 metadata + 5-level 工段聚合進 `l2_l3_ie/<L1>.json` 的 `actuals.by_brand`。
+`data/ingest/m7_pullon/designs.jsonl.gz` 每筆 design 帶 `canonical.<field>.{value, confidence, sources}`,8 canonical 欄位(客戶 / 報價款號 / Program / Subgroup / W/K / Item / Season / PRODUCT_CATEGORY)做 multi-source consensus(M7 列管 priority 3 / PDF priority 2 / 推論 priority 1),M7 兜底所以 `value` 永遠 100% 不掉拍;`confidence` "high"/"medium"/"low" 標 audit 強度,`sources` 留 audit trail。Alias 規則(單複數 / 客戶簡寫 / Season format)放 `data/source/canonical_aliases.json` 手維護(2026-05-11 擴張到 23 brand 代碼 / 28 alias entries,涵蓋 m7_pullon 21 brand + 平台預備擴張)。**Consumer**:`build_recipes_master.py` 讀 aggregated `entries.jsonl`(餵 cascade);Phase 2 View B (`derive_bible_actuals.py`) 直接吃 `designs.jsonl.gz` 含 canonical block,把每筆 design 的客戶 metadata + 5-level 工段聚合進 `l2_l3_ie/<L1>.json` 的 `actuals.by_brand`。
+
+### 前端 Bible filter helpers(`index.html`)
+
+前端拿 `l2_l3_ie/<L1>.json`(Phase 2 dict schema 含 `actuals.by_brand`)時,可疊兩層 filter 把 Bible 收斂到「目標客戶 / 品類組合下實際觀察到的工段」:
+
+| Helper | 維度 | 來源 | 用途 |
+|---|---|---|---|
+| `filterBibleByBrand(bible, brand)` | 1 維(brand) | `actuals.by_brand[brand]` 直接讀 step 的 `sec_median` | 快速:不需 fetch designs.jsonl.gz,從 Bible 自帶 actuals 拿值 |
+| `filterBibleByCategory(bible, {brand,fabric,gender,dept,gt,it})` | 6 維 | runtime 反查 `data/ingest/m7_pullon/designs.jsonl.gz`(lazy fetch,native `DecompressionStream('gzip')` 解壓,parse 後 cache 4,562 designs in module scope),按 `(L2|L3|L4|L5)` key 重算 sec_median + design count | 精細:需要某個 client × 性別 × 品類 × 紗線下的工段中位數 |
+
+任何 filter 維度可省略;全空 fallback 整體 Bible。`filterBibleByCategory` 失敗(designs.jsonl.gz fetch 失敗)時 graceful degrade 成 `filterBibleByBrand`。兩支都回傳跟原 Bible 同 shape 的物件(`knit`/`woven` 陣列),可直接餵 `rebuildCardFromL2` 等下游消費端。實作見 `index.html:156` / `index.html:216`。
 
 ## 兩種模式
 
