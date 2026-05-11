@@ -151,8 +151,9 @@ python star_schema/scripts/build_recipes_master.py --strict
 
 **Step 4 derive views**(2026-05-08+ View A + B 實裝,spec 見 `docs/architecture/PHASE2_DERIVE_VIEWS_SPEC.md`):
 - **Step 4a** `derive_view_recipes_master.py` → View A:覆寫 `data/runtime/recipes_master.json`,剝 `_m7_*` 內部欄位
-- **Step 4b** `derive_bible_actuals.py --all --in-place` → View B:升級 `l2_l3_ie/<L1>.json` 38 檔為 Phase 2 dict schema + 掛 m7_pullon `actuals`
-- ~~**Step 4c** `derive_view_designs_index.py` → View C:拆 m7_pullon `designs.jsonl.gz` 為 per-EIDH `data/runtime/designs_index/<EIDH>.json` 3,900 個小檔(前端 lazy fetch)~~ — **2026-05-09 retired**(前端無 UI 消費,移除避免 dead 產物)
+- **Step 4b** `derive_bible_actuals.py --all --in-place` → View B:升級 `l2_l3_ie/<L1>.json` 38 檔為 Phase 2 dict schema + 掛 m7_pullon `actuals`(**2026-05-11 修 dict pass-through bug,永遠重算 actuals,新 brand 才會跟著 m7_pullon push 自動進 by_brand**)
+- **Step 4c** `scripts/core/build_brands.py` → `data/runtime/brands.json`:從 m7_pullon `entries.jsonl` 聚合各 brand 的 n_entries / n_designs(2026-05-11 加,前端 Brand 下拉動態 source,取代硬寫 BRANDS 常數)
+- ~~舊 Step 4c `derive_view_designs_index.py` → View C(per-EIDH designs_index)~~ — **2026-05-09 retired**(前端無 UI 消費,移除避免 dead 產物)。新 Step 4c 重用編號是因為 retired 後位置空出
 
 ---
 

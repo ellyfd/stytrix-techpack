@@ -19,6 +19,22 @@
 
 ## Part A — 資料夾分工表
 
+> **2026-05-11 快照**(在 2026-05-09 之上加 m7_pullon 21-brand + Bible idempotency 修):
+>
+> 1. **m7_pullon 跨 21 brand**(原 10 → +11 新 brand:HLF / WMT / QCE / HLA / NET / JF / BR / SAN / DST / ZAR / ASICS)。source 端聚陽 push 進 4,562 件 EIDH;Bible(`l2_l3_ie/*.json`) actuals.by_brand 跟著刷到 21 brand,大小 73.7 → 79.1 MB(+7%)。
+>
+> 2. **`derive_bible_actuals.py` idempotency 修**(原 `derive_view_l2_l3_ie.py`,2026-05-11 改名;見 #5):2026-05-08 第一次升 Phase 2 dict schema 後,script 對已是 dict 的 step 直接 pass-through,不重算 actuals → 新 brand 進 m7_pullon 後 Bible 不會跟著刷,即使 `--all --in-place` 也 0 diff。修法:dict step 也走完整 lookup → recompute → 寫入(actuals empty 時清掉,避免殘留)。
+>
+> 3. **`data/runtime/brands.json` 新檔 + Step 4c**:`scripts/core/build_brands.py` 從 `entries.jsonl` client_distribution 聚合各 brand 的 n_entries / n_designs,排序 n_designs DESC 寫進 `data/runtime/brands.json`(~1.8 KB)。CI `rebuild_master.yml` Step 4c 在 Step 4b 之後跑,brands.json 跟著 m7_pullon push 自動更新。
+>
+> 4. **前端 Brand 下拉改動態**(`index.html`):拔掉硬寫 10 entry 的 `const BRANDS = [...]`,改 boot 時 eager fetch `./data/runtime/brands.json`。新 brand 進 m7_pullon → CI 重產 brands.json → 用戶 reload 就看到,不用手 patch 前端常數。
+>
+> 5. **Bible 兩支腳本 + workflow 改名**(避免跟 `l2_l3_ie/` 目錄撞名):
+>    - `scripts/core/build_l2_l3_ie.py` → `scripts/core/build_bible_skeleton.py`(從 xlsx 建骨架,brand-agnostic,本機 SOP)
+>    - `star_schema/scripts/derive_view_l2_l3_ie.py` → `star_schema/scripts/derive_bible_actuals.py`(掛 m7_pullon 觀察值,CI Step 4b)
+>    - `.github/workflows/build_l2_l3_ie.yml` → `.github/workflows/build_bible_skeleton.yml`
+>    - 目錄 `l2_l3_ie/` 保留(L2/L3/IE 三層工時名有資訊量,改成 bible/ 是內部黑話)
+
 > **2026-05-09 快照**(consolidated 從 2026-05-07 重組 + 2026-05-08 ~ 09 各 PR):
 >
 > 1. **Phase 2 derive views(View A + B 接線)** — View A (`derive_view_recipes_master.py`,Step 4a 剝 `_m7_*` 內部欄)/ View B (`derive_bible_actuals.py --all --in-place`,Step 4b 升級 `l2_l3_ie/<L1>.json` 38 檔為 dict schema + 掛 m7_pullon `actuals`)。**View C designs_index per-EIDH 在 2026-05-09 retired** — 確認前端無 UI 消費,刪 derive script + workflow Step 4c + 3,900 個 dead 產物。spec 見 `docs/architecture/PHASE2_DERIVE_VIEWS_SPEC.md`。
@@ -44,7 +60,7 @@
 
 | 資料夾 | 放什麼(類比成衣流程) | 舉例 | 不要放什麼 |
 |--------|----------------------|------|------------|
-| `data/runtime/` | **線上系統 runtime 讀的成品 JSON**(16 個 .json)。前端 `fetch('./data/runtime/...')`、API `analyze.js` 啟動時讀 | `l1_standard_38.json`、`l2_visual_guide.json`、`l2_decision_trees.json`、`recipes_master.json`、`iso_dictionary.json`、`pom_dictionary.json`、`grading_patterns.json`、`bucket_taxonomy.json`(28 v4 + 59 legacy)、`construction_bridge_v6.json` | 原始 xlsx;靜態文件;ingest 中繼檔;**`designs_index/`** 已退役(2026-05-09) |
+| `data/runtime/` | **線上系統 runtime 讀的成品 JSON**(17 個 .json)。前端 `fetch('./data/runtime/...')`、API `analyze.js` 啟動時讀 | `l1_standard_38.json`、`l2_visual_guide.json`、`l2_decision_trees.json`、`recipes_master.json`、`iso_dictionary.json`、`pom_dictionary.json`、`grading_patterns.json`、`bucket_taxonomy.json`(28 v4 + 59 legacy)、`construction_bridge_v6.json`、`brands.json`(2026-05-11 加,前端 Brand 下拉動態 source) | 原始 xlsx;靜態文件;ingest 中繼檔;**`designs_index/`** 已退役(2026-05-09) |
 | `data/source/` | **手維護 / 上傳的原始底稿**(被 `scripts/core/build_*` 讀來生 runtime JSON) | `L2_代號中文對照表.xlsx`(L1/L2 代號對照,14 KB)、`BIBLE_UPGRADE.md`(SOP)、`M7_PULLON_DATA_SCHEMA.md`(m7_pullon source schema)、**`canonical_aliases.json`**(2026-05-08 加,8 canonical 欄位的 alias normalize 規則,M7_Pipeline `consolidate_canonical.py` 讀;repo 暫存當 source-of-truth 規則表) | runtime 讀的檔;說明文件;**`五階層展開項目_*.xlsx` 不再進 repo**(2026-05-08 起,xlsx 留聚陽端,38 個 derive JSONs 進 repo) |
 | `data/ingest/` | **Pipeline staging**(CI / 外部協作上傳處)。`build_recipes_master.py` 的 `data/ingest/*/facts.jsonl` glob 會掃 | `data/ingest/uploads/`(PDF/PPTX 上傳處)、`data/ingest/{unified,vlm,pdf,metadata}/`、`data/ingest/{consensus_rules,ocr_v1,consensus_v1}/`、**`data/ingest/m7_pullon/`(2026-05-08 加,聚陽端 PullOn pipeline 推進來)** | runtime 讀的成品(放 `data/runtime/`) |
 | `data/legacy/` | **舊 `pom_analysis_v5.5.1/` 退役後留下的 fallback**(只給 `vlm_pipeline.py` / `extract_unified.py` 在 runtime 找不到時用) | `all_designs_gt_it_classification.json`、`pom_dictionary.json` | 任何新檔(此資料夾只縮不增) |
@@ -53,9 +69,9 @@
 | `l2_l3_ie_by_client/` | ~~RETIRED 2026-05-08(Phase 2.5b)~~ — git rm 完成,功能由 `l2_l3_ie/<L1>.json` 升級後 schema 的 `actuals.by_brand` + frontend 的 `filterBibleByBrand()` helper 取代 | — | — |
 | `recipes/` | **PATH2 做工配方**(根目錄 72 檔)。是 `star_schema/scripts/build_recipes_master.py` 活檔的輸入,不是遺留 | `recipe_<GENDER>_<DEPT>_<GT>_<IT>.json`(72 檔)+ `_index.json` | 一次性實驗檔(放 Notion / Drive) |
 | `path2_universal/` | **通用模型(不分客戶/品牌)的做工推薦資料源**。ISO 工藝代號查表、knit/woven 做工紀錄、PATH2 pipeline 文件。前身為 `General Model_Path2_Construction Suggestion/`(2026-05-07 改名) | `iso_lookup_factory_v4.3.json`、`iso_lookup_factory_v4.json`、`PATH2_通用模型_做工推薦Pipeline.md` | 前端 runtime fetch 的檔(那該放 `data/runtime/`) |
-| `scripts/core/` | **資料產線腳本**(repo 內部執行的 build / rebuild / extract / search) | `build_l2_visual_guide.py`、`build_bible_skeleton.py`、`run_extract_new.py`、`reclassify_and_rebuild.py`、`enforce_tier1.py` | 共用函式庫(放 `scripts/lib/`);一次性 ad-hoc 腳本 |
+| `scripts/core/` | **資料產線腳本**(repo 內部執行的 build / rebuild / extract / search) | `build_l2_visual_guide.py`、`build_bible_skeleton.py`、`build_brands.py`(2026-05-11 加,從 m7_pullon entries.jsonl 聚合產 runtime/brands.json)、`run_extract_new.py`、`reclassify_and_rebuild.py`、`enforce_tier1.py` | 共用函式庫(放 `scripts/lib/`);一次性 ad-hoc 腳本 |
 | `scripts/lib/` | **共用函式庫**(被 `scripts/core/` 的腳本 import,不是 entry point) | `extract_techpack.py`(PDF parser,被 `run_extract_new.py` / `run_extract_2025_seasonal.py` import) | 直接執行的腳本 |
-| `star_schema/scripts/` | **CI 觸發的 ingest pipeline**(GitHub Actions `rebuild_master.yml` 直接呼叫,**6 支**) | Step 1 `extract_raw_text.py`、Step 2b `vlm_pipeline.py`、Step 2a `extract_unified.py`、Step 3 `build_recipes_master.py`、Step 4a `derive_view_recipes_master.py`、Step 4b `derive_bible_actuals.py`(原 Step 4c `derive_view_designs_index.py` 在 2026-05-09 retired)| 內部產線腳本(放 `scripts/core/`) |
+| `star_schema/scripts/` | **CI 觸發的 ingest pipeline**(GitHub Actions `rebuild_master.yml` 直接呼叫,**6 支** + 1 支 derive 在 `scripts/core/`) | Step 1 `extract_raw_text.py`、Step 2b `vlm_pipeline.py`、Step 2a `extract_unified.py`、Step 3 `build_recipes_master.py`、Step 4a `derive_view_recipes_master.py`、Step 4b `derive_bible_actuals.py`、Step 4c `scripts/core/build_brands.py`(2026-05-11 加;原 designs_index per-EIDH derive 在 2026-05-09 retired)| 內部產線腳本(放 `scripts/core/`) |
 | `api/` | **線上系統後端 endpoint**(Vercel functions) | `analyze.js`(Claude Vision)、`push-pom-dict.js`、`ingest_token.js` | 靜態資料 |
 | `docs/spec/` | **跨模組共用規格文件**(被 code 或 LLM prompt 引用) | `L1_部位定義_Sketch視覺指引.md`、`L2_VLM_Decision_Tree_Prompts_v2.md`、`L2_Visual_Differentiation_FullAnalysis_修正版.md`、`techpack-translation-style-guide.md`(api/analyze.js 啟動時 inject)、`pom_rules_v55_classification_logic.md`、`網站架構圖.md` | 純人類操作 SOP(放 `docs/sop/`);子系統內部文件 |
 | `docs/sop/` | **純人類操作流程**(沒有 code 引用) | `pom_rules_pipeline_guide_v2.md` | 規格文件(放 `docs/spec/`) |
