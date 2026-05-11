@@ -210,10 +210,22 @@ def derive_one_l1(l1_code: str, agg: dict, out_dir: Path,
                     l4 = method.get("l4")
                     new_steps = []
                     for step in method.get("steps", []) or []:
+                        # 不論 step 是舊版 list 或已升級 dict,都重算 actuals,
+                        # 不然 m7_pullon source 新增 brand 後 Bible 不會跟著刷新
+                        # (見 2026-05-11 fix:HLF/WMT 等 11 個新 brand 卡在 dict
+                        # pass-through 沒進 by_brand)。
                         if isinstance(step, dict):
+                            l5 = step.get("l5")
+                            key = (bible_l1, l2, l3, l4, l5)
+                            rows = agg.get(key)
+                            actuals = compute_actuals(rows) if rows else None
+                            if actuals:
+                                step["actuals"] = actuals
+                            elif "actuals" in step:
+                                del step["actuals"]
                             new_steps.append(step)
                             n_l5_total += 1
-                            if step.get("actuals"):
+                            if actuals:
                                 n_l5_with_actuals += 1
                             continue
                         l5 = step[0] if len(step) > 0 else None
