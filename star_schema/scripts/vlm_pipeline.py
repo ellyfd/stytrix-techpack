@@ -1,16 +1,16 @@
 """
-VLM-based Construction Callout Extraction Pipeline
+VLM-based Construction Extraction Pipeline
 ===================================================
-Replaces pdfplumber text-based extraction for Centric 8 Construction Callout pages.
+Replaces pdfplumber text-based extraction for Centric 8 construction pages.
 
-Key insight: Callout annotations are in the PDF GRAPHIC layer, not text layer.
-pdfplumber/fitz extract 0 zone keywords from callout pages.
+Key insight: Construction annotations are in the PDF GRAPHIC layer, not text layer.
+pdfplumber/fitz extract 0 zone keywords from construction pages.
 VLM (vision language model) reads the rendered image directly.
 
-Pipeline: PDF → detect callout pages → render images → VLM extract → Glossary → ISO
+Pipeline: PDF → detect construction pages → render images → VLM extract → Glossary → ISO
 
 Usage (PoC mode - Claude reads images manually):
-    python vlm_pipeline.py --detect-only   # Step 1: find callout pages, render images
+    python vlm_pipeline.py --detect-only   # Step 1: find construction pages, render images
     # Then Claude reads images and fills vlm_raw_extracts.json
     python vlm_pipeline.py --map-iso       # Step 2: apply Glossary mapping
 
@@ -50,7 +50,7 @@ BASE = str(_STAR_SCHEMA.parent)
 
 # Defaults — overridable via CLI
 OUT_DIR = os.path.join(_INGEST, "vlm")                              # vlm outputs
-CALLOUT_IMG_DIR = os.path.join(_INGEST, "pdf", "callout_images")     # read PNGs from Step 1
+CONSTRUCTION_IMG_DIR = os.path.join(_INGEST, "pdf", "construction_images")     # read PNGs from Step 1
 
 # GT classification file — used by --pilot / --detect-only for design selection.
 # Prefer the main repo's data/runtime/ (production copy, 1292 designs, kept in
@@ -343,12 +343,12 @@ ZONE_TO_L1 = {
 # PART 1b: DESIGN METADATA + BUCKET + CLAUDE VISION API
 # ============================================================
 
-# System prompt for Claude Vision analysis of callout pages
-CLAUDE_VLM_SYSTEM_PROMPT = """You are a garment manufacturing expert analyzing construction callout pages from Centric 8 technical specification PDFs.
+# System prompt for Claude Vision analysis of construction pages
+CLAUDE_VLM_SYSTEM_PROMPT = """You are a garment manufacturing expert analyzing construction construction pages from Centric 8 technical specification PDFs.
 
-Each image shows a garment diagram with callout annotations pointing to construction zones (NECK, HEM, SHOULDER, ARMHOLE, SIDE SEAM, WAISTBAND, CUFF, INSEAM, FRONT RISE, LEG OPENING, POCKET, etc.).
+Each image shows a garment diagram with construction annotations pointing to construction zones (NECK, HEM, SHOULDER, ARMHOLE, SIDE SEAM, WAISTBAND, CUFF, INSEAM, FRONT RISE, LEG OPENING, POCKET, etc.).
 
-For each callout annotation extract:
+For each construction annotation extract:
 - zone: garment part name exactly as written (e.g. "NECK", "HEM", "SIDE SEAM", "WAISTBAND", "CUFF", "ARMHOLE")
 - construction: the full construction method text (e.g. "1/4\" 2N COVERSTITCH", "514 4T OVERLOCK", "SINGLE TURNBACK W/ 406")
 - iso: ISO stitch code if explicitly stated as a number (e.g. "406", "514", "301"), otherwise null
@@ -356,7 +356,7 @@ For each callout annotation extract:
 Return ONLY a JSON array with no markdown fences, no prose:
 [{"zone":"NECK","construction":"1/8\\\" 2N 406 COVERSTITCH","iso":"406"},...]
 
-If the image has no readable callout annotations, return: []"""
+If the image has no readable construction annotations, return: []"""
 
 
 # Bucket computation (mirrors _build_bucket_from_metadata in extract_unified.py)
@@ -437,11 +437,11 @@ def load_design_metadata(designs_jsonl_path: str) -> dict:
     return meta
 
 
-def analyze_callout_images_with_claude(callout_dir: str, api_key: str, metadata: dict) -> dict:
+def analyze_construction_images_with_claude(construction_dir: str, api_key: str, metadata: dict) -> dict:
     """
-    Call Claude Vision API on each PNG in callout_dir.
+    Call Claude Vision API on each PNG in construction_dir.
     Groups images by design_id (extracted from filename {DID}_p{N}.png).
-    Returns vlm_raw_extracts dict: {design_id: {fabric, callouts: [{zone, construction, iso}]}}
+    Returns vlm_raw_extracts dict: {design_id: {fabric, constructions: [{zone, construction, iso}]}}
     """
     try:
         import anthropic as _anthropic
@@ -453,18 +453,18 @@ def analyze_callout_images_with_claude(callout_dir: str, api_key: str, metadata:
 
     # Group PNGs by design_id (filename pattern: {DID}_p{page}.png)
     design_images: dict[str, list[str]] = defaultdict(list)
-    for fname in sorted(os.listdir(callout_dir)):
+    for fname in sorted(os.listdir(construction_dir)):
         if not fname.lower().endswith('.png'):
             continue
         m = re.match(r'^(D\d+)_p\d+\.png$', fname, re.IGNORECASE)
         if m:
             did = m.group(1).upper()
-            design_images[did].append(os.path.join(callout_dir, fname))
+            design_images[did].append(os.path.join(construction_dir, fname))
         else:
             print(f"[VLM] Skipping unrecognized filename: {fname}")
 
     if not design_images:
-        print(f"[VLM] No callout PNGs found in {callout_dir}")
+        print(f"[VLM] No construction PNGs found in {construction_dir}")
         return {}
 
     print(f"[VLM] Analyzing {len(design_images)} designs ({sum(len(v) for v in design_images.values())} images) with Claude...")
@@ -474,7 +474,7 @@ def analyze_callout_images_with_claude(callout_dir: str, api_key: str, metadata:
     for did, img_paths in sorted(design_images.items()):
         dm = metadata.get(did, {})
         fabric = dm.get('fabric', '')
-        all_callouts = []
+        all_constructions = []
 
         for img_path in img_paths[:4]:  # max 4 pages per design
             try:
@@ -491,7 +491,7 @@ def analyze_callout_images_with_claude(callout_dir: str, api_key: str, metadata:
                             {"type": "image", "source": {
                                 "type": "base64", "media_type": "image/png", "data": img_b64
                             }},
-                            {"type": "text", "text": "Extract all construction callout annotations. Return JSON array only."}
+                            {"type": "text", "text": "Extract all construction construction annotations. Return JSON array only."}
                         ]
                     }]
                 )
@@ -500,10 +500,10 @@ def analyze_callout_images_with_claude(callout_dir: str, api_key: str, metadata:
                 # Strip markdown fences if present
                 raw_text = re.sub(r'^```[a-z]*\s*', '', raw_text)
                 raw_text = re.sub(r'\s*```$', '', raw_text)
-                page_callouts = json.loads(raw_text)
-                if isinstance(page_callouts, list):
-                    all_callouts.extend(page_callouts)
-                    print(f"  {did} {os.path.basename(img_path)}: {len(page_callouts)} callouts")
+                page_constructions = json.loads(raw_text)
+                if isinstance(page_constructions, list):
+                    all_constructions.extend(page_constructions)
+                    print(f"  {did} {os.path.basename(img_path)}: {len(page_constructions)} constructions")
             except json.JSONDecodeError:
                 print(f"  [WARN] {did} {os.path.basename(img_path)}: non-JSON response", file=sys.stderr)
                 errors += 1
@@ -511,26 +511,27 @@ def analyze_callout_images_with_claude(callout_dir: str, api_key: str, metadata:
                 print(f"  [WARN] {did} {os.path.basename(img_path)}: {e}", file=sys.stderr)
                 errors += 1
 
-        if all_callouts:
-            results[did] = {'fabric': fabric, 'callouts': all_callouts}
+        if all_constructions:
+            results[did] = {'fabric': fabric, 'constructions': all_constructions}
 
     print(f"[VLM] Claude analysis done: {len(results)} designs extracted, {errors} errors")
     return results
 
 
 # ============================================================
-# PART 2: CALLOUT PAGE DETECTOR
+# PART 2: CONSTRUCTION PAGE DETECTOR
 # ============================================================
 
-def detect_callout_pages(pdf_path):
+def detect_construction_pages(pdf_path):
     """
-    Find Construction Callout pages in a Centric 8 PDF.
+    Find construction pages in a Centric 8 PDF.
 
     Strategy:
-    1. Find pages with "BOM Review/Callouts" or "CALLOUT" in text layer
-    2. Among those, identify IMAGE-BASED callout pages (word count < 40)
+    1. Find pages with "BOM Review/Callouts" or "CONSTRUCTION" in text layer
+       (注意: "Callouts" 是 Centric 8 PDF 內的 literal text section 名稱, 必須保留)
+    2. Among those, identify IMAGE-BASED construction pages (word count < 40)
        vs TEXT-BASED pages (word count > 40, has actual content)
-    3. Return page indices of image-based callout pages (need VLM)
+    3. Return page indices of image-based construction pages (need VLM)
 
     Returns: list of (page_index, page_type) where page_type is 'image' or 'text'
     """
@@ -543,8 +544,8 @@ def detect_callout_pages(pdf_path):
         text = page.get_text()
         text_upper = text.upper()
 
-        # Must be a callout/BOM review page
-        if not any(kw in text_upper for kw in ['CALLOUT', 'BOM REVIEW', 'DESIGN BOM']):
+        # Must be a construction/BOM review page
+        if not any(kw in text_upper for kw in ['CONSTRUCTION', 'BOM REVIEW', 'DESIGN BOM']):
             continue
 
         # Skip pure metadata pages (long text = property tables)
@@ -559,7 +560,7 @@ def detect_callout_pages(pdf_path):
             has_construction = any(kw in text_upper for kw in [
                 'STITCH', 'SEAM', 'OVERLOCK', 'EDGESTITCH', 'TOPSTITCH',
                 'BINDING', 'FLATLOCK', 'COVERSTITCH', 'HEM', 'BARTACK',
-                'CONSTRUCTION CALLOUT', 'ADDITIONAL DETAIL'
+                'CONSTRUCTION CONSTRUCTION', 'ADDITIONAL DETAIL'
             ])
             if has_construction:
                 results.append((i, 'text'))
@@ -570,8 +571,8 @@ def detect_callout_pages(pdf_path):
     return results
 
 
-def render_callout_pages(pdf_path, page_indices, output_dir, design_id):
-    """Render callout pages as PNG images for VLM processing."""
+def render_construction_pages(pdf_path, page_indices, output_dir, design_id):
+    """Render construction pages as PNG images for VLM processing."""
     import fitz
     os.makedirs(output_dir, exist_ok=True)
     doc = fitz.open(pdf_path)
@@ -600,7 +601,7 @@ def render_callout_pages(pdf_path, page_indices, output_dir, design_id):
 # PART 3: VLM PROMPT TEMPLATE
 # ============================================================
 
-VLM_PROMPT = """You are analyzing a Construction Callout page from a Centric 8 Techpack PDF for a garment.
+VLM_PROMPT = """You are analyzing a construction page from a Centric 8 Techpack PDF for a garment.
 
 Extract ALL zone-level construction annotations visible on this page.
 
@@ -672,7 +673,7 @@ def map_terminology_to_iso(construction_text, fabric=None):
 
 
 def map_zone_to_l1(zone_name):
-    """Map zone name from callout to L1 38-code."""
+    """Map zone name from construction to L1 38-code."""
     zone_upper = zone_name.upper().strip()
 
     # Direct lookup
@@ -789,7 +790,7 @@ def find_pdfs_for_designs(design_ids, search_dirs=None):
 
 def detect_and_render_batch(design_ids, output_dir):
     """
-    Step 1: For each design, find PDF → detect callout pages → render images.
+    Step 1: For each design, find PDF → detect construction pages → render images.
     Returns manifest of all rendered images for VLM processing.
     """
     os.makedirs(output_dir, exist_ok=True)
@@ -818,23 +819,23 @@ def detect_and_render_batch(design_ids, output_dir):
                 best_pdf = p
                 break
 
-        # Detect callout pages
+        # Detect construction pages
         try:
-            pages = detect_callout_pages(best_pdf)
+            pages = detect_construction_pages(best_pdf)
         except Exception as e:
             print(f"  {did}: error detecting pages: {e}")
             continue
 
         if not pages:
-            print(f"  {did}: no callout pages found")
+            print(f"  {did}: no construction pages found")
             continue
 
         # Render
-        rendered = render_callout_pages(best_pdf, pages, img_dir, did)
+        rendered = render_construction_pages(best_pdf, pages, img_dir, did)
         manifest.extend(rendered)
 
         img_types = [r['page_type'] for r in rendered]
-        print(f"  {did}: {len(rendered)} callout pages ({', '.join(img_types)})")
+        print(f"  {did}: {len(rendered)} construction pages ({', '.join(img_types)})")
 
     # Save manifest
     manifest_path = os.path.join(output_dir, 'manifest.json')
@@ -891,11 +892,11 @@ def select_pilot_batch(cls_map, n=20):
 
 def main():
     import argparse
-    p = argparse.ArgumentParser(description='VLM Construction Callout Pipeline (STEP 2b)')
+    p = argparse.ArgumentParser(description='VLM Construction Extraction Pipeline (STEP 2b)')
 
     # Modes
     p.add_argument('--detect-only', action='store_true',
-                   help='Step 1: detect callout pages and render images')
+                   help='Step 1: detect construction pages and render images')
     p.add_argument('--map-iso', action='store_true',
                    help='Step 2: apply Glossary mapping to VLM extracts')
 
@@ -906,10 +907,10 @@ def main():
 
     # Paths (CI-overridable)
     p.add_argument('--out', default=None,
-                   help=f'Output dir for vlm_raw_extracts + vlm_callout_extracts '
+                   help=f'Output dir for vlm_raw_extracts + vlm_construction_extracts '
                         f'(default: {OUT_DIR})')
-    p.add_argument('--callout-dir', default=None,
-                   help=f'Callout PNG directory from Step 1 (default: {CALLOUT_IMG_DIR})')
+    p.add_argument('--construction-dir', default=None,
+                   help=f'Construction PNG directory from Step 1 (default: {CONSTRUCTION_IMG_DIR})')
     p.add_argument('--classification-file', default=None,
                    help=f'GT classification JSON for pilot selection (default: {CLASS_FILE})')
     p.add_argument('--scan-dir', action='append', default=None,
@@ -917,14 +918,14 @@ def main():
     p.add_argument('--api-key', default=None,
                    help='Anthropic API key (or set ANTHROPIC_API_KEY env)')
     p.add_argument('--ingest-dir', default=None,
-                   help='Ingest root dir (contains metadata/designs.jsonl). Default: callout-dir/../..')
+                   help='Ingest root dir (contains metadata/designs.jsonl). Default: construction-dir/../..')
     p.add_argument('--allow-empty', action='store_true',
-                   help='Exit 0 if callout-dir missing/empty (CI first-run)')
+                   help='Exit 0 if construction-dir missing/empty (CI first-run)')
 
     args = p.parse_args()
 
     out_dir = args.out or OUT_DIR
-    callout_dir = args.callout_dir or CALLOUT_IMG_DIR
+    construction_dir = args.construction_dir or CONSTRUCTION_IMG_DIR
     class_file = args.classification_file or CLASS_FILE
 
     if args.detect_only or args.pilot:
@@ -952,31 +953,31 @@ def main():
         if args.ingest_dir:
             designs_jsonl = os.path.join(args.ingest_dir, 'metadata', 'designs.jsonl')
         else:
-            # Fallback: callout_dir is data/ingest/pdf/callout_images → go up 3 levels
+            # Fallback: construction_dir is data/ingest/pdf/construction_images → go up 3 levels
             designs_jsonl = os.path.join(
-                os.path.dirname(os.path.dirname(os.path.dirname(callout_dir))),
+                os.path.dirname(os.path.dirname(os.path.dirname(construction_dir))),
                 'metadata', 'designs.jsonl'
             )
 
-        # ── Auto-generate vlm_raw_extracts.json if callout images exist + API key set ──
+        # ── Auto-generate vlm_raw_extracts.json if construction images exist + API key set ──
         if not os.path.exists(raw_path):
             has_images = (
-                os.path.isdir(callout_dir) and
-                any(f.lower().endswith('.png') for f in os.listdir(callout_dir))
+                os.path.isdir(construction_dir) and
+                any(f.lower().endswith('.png') for f in os.listdir(construction_dir))
             )
             if has_images and api_key:
                 metadata = load_design_metadata(designs_jsonl)
-                raw = analyze_callout_images_with_claude(callout_dir, api_key, metadata)
+                raw = analyze_construction_images_with_claude(construction_dir, api_key, metadata)
                 if raw:
                     os.makedirs(out_dir, exist_ok=True)
                     with open(raw_path, 'w', encoding='utf-8') as f:
                         json.dump(raw, f, indent=2, ensure_ascii=False)
                     print(f"[VLM] Auto-extracted {len(raw)} designs → {raw_path}")
                 elif args.allow_empty:
-                    print("[VLM] No callouts extracted — exiting cleanly (--allow-empty).")
+                    print("[VLM] No constructions extracted — exiting cleanly (--allow-empty).")
                     return 0
             elif args.allow_empty:
-                reason = "no callout images" if not has_images else "no ANTHROPIC_API_KEY"
+                reason = "no construction images" if not has_images else "no ANTHROPIC_API_KEY"
                 print(f"[WARN] {raw_path} not found ({reason}) — exiting cleanly (--allow-empty).")
                 return 0
             else:
@@ -998,11 +999,11 @@ def main():
         results = {}
         for did, vlm_data in raw.items():
             fabric = vlm_data.get('fabric')
-            mapped = process_vlm_output(vlm_data.get('callouts', []), did, fabric=fabric)
+            mapped = process_vlm_output(vlm_data.get('constructions', []), did, fabric=fabric)
             results[did] = mapped
 
         os.makedirs(out_dir, exist_ok=True)
-        out_path = os.path.join(out_dir, 'vlm_callout_extracts.json')
+        out_path = os.path.join(out_dir, 'vlm_construction_extracts.json')
         with open(out_path, 'w') as f:
             json.dump(results, f, indent=2, ensure_ascii=False)
         print(f"Mapped results: {out_path}")
@@ -1036,9 +1037,3 @@ def main():
     else:
         print("Specify a mode: --detect-only | --map-iso", file=sys.stderr)
         return 1
-
-    return 0
-
-
-if __name__ == '__main__':
-    sys.exit(main() or 0)

@@ -26,8 +26,8 @@ Flags:
 Output (寫到 --output-dir，預設 <repo_root>/data/ingest/):
   metadata/designs.jsonl             每 design 一行，PDF 提取的 metadata
   pptx/{slug}.txt                    每個 PPTX 的原始文字
-  pdf/callout_images/{DID}_p{N}.png  construction page 渲染圖 (216 DPI)
-  pdf/callout_manifest.jsonl         PNG 清單（append）
+  pdf/construction_images/{DID}_p{N}.png  construction page 渲染圖 (216 DPI)
+  pdf/construction_manifest.jsonl         PNG 清單（append）
 """
 from __future__ import annotations
 
@@ -279,17 +279,17 @@ def make_pptx_output_name(pptx_path: str, scan_dir: str) -> str:
 # ════════════════════════════════════════════════════════════
 
 def detect_construction_pages(pdf_path: str) -> list[dict]:
-    """Detect construction callout pages in a Centric 8 PDF.
+    """Detect construction pages in a Centric 8 PDF.
 
     Scoring system from construction-page-rules.md:
 
     Positive:
       +3  ISO code (301/401/406/514/602/605/607)
-      +3  title "CONSTRUCTION CALLOUTS" / "INTERNAL/CONSTRUCTION"
+      +3  title "CONSTRUCTION CALLOUTS" / "INTERNAL/CALLOUTS" (literal Centric 8 text)
       +3  "Type" + "Construction Callout" (Centric 8 metadata page)
       +2  sewing keyword
       +2  margin spec (1/4", 3/8" etc.)
-      +2  in callout section ("CALLOUT" / "BOM REVIEW")
+      +2  in construction section ("CALLOUT" / "BOM REVIEW")
       +1  needle count (2N, 3N5TH etc.)
 
     Negative (hard exclude):
@@ -301,8 +301,8 @@ def detect_construction_pages(pdf_path: str) -> list[dict]:
       -3  ADDITIONAL COMMENTS (factory suggestion)
       -2  BOM material table (FABRIC + TRIM + SUPPLIER ≥3)
 
-    Pass 2: adjacent low-word-count pages near confirmed callout pages
-    (Centric 8 pattern: metadata page → actual callout image page)
+    Pass 2: adjacent low-word-count pages near confirmed construction pages
+    (Centric 8 pattern: metadata page → actual construction image page)
 
     Returns: [{"page": 1-indexed, "type": "image"|"text", "score": N, "word_count": N}]
     """
@@ -350,7 +350,7 @@ def detect_construction_pages(pdf_path: str) -> list[dict]:
         score = 0
         if ISO_RE.search(text):                                          score += 3
         if "CONSTRUCTION CALLOUT" in text_upper or \
-           "INTERNAL/CONSTRUCTION" in text_upper:                        score += 3
+           "INTERNAL/CALLOUTS" in text_upper:                        score += 3
         if any(kw in text_upper for kw in
                ["CALLOUT", "BOM REVIEW", "DESIGN BOM"]):                score += 2
         if any(kw in text_upper for kw in SEWING_KW):                   score += 2
@@ -372,7 +372,7 @@ def detect_construction_pages(pdf_path: str) -> list[dict]:
             "word_count": word_count,
         })
 
-    # Pass 2: adjacent pages near confirmed callouts (Centric 8 pattern)
+    # Pass 2: adjacent pages near confirmed constructions (Centric 8 pattern)
     confirmed = {r["page"] for r in results}
     if confirmed:
         for i in range(doc.page_count):
@@ -558,7 +558,7 @@ def run_pdf_batch(scan_dir: str, output_dir: str, force: bool, dry_run: bool):
     print(f"[PDF→PNG] {len(by_design)} unique designs ({no_id} without D-number)")
 
     if not force:
-        existing = load_existing(output_dir, "pdf/callout_images", ".png")
+        existing = load_existing(output_dir, "pdf/construction_images", ".png")
         todo = {d: fs for d, fs in by_design.items() if d not in existing}
         print(f"[PDF→PNG] Already rendered: {len(existing)}, Todo: {len(todo)}")
     else:
@@ -568,13 +568,13 @@ def run_pdf_batch(scan_dir: str, output_dir: str, force: bool, dry_run: bool):
         print(f"[PDF→PNG] Dry run — would process {len(todo)} designs")
         return
 
-    img_dir = os.path.join(output_dir, "pdf", "callout_images")
-    manifest_path = os.path.join(output_dir, "pdf", "callout_manifest.jsonl")
+    img_dir = os.path.join(output_dir, "pdf", "construction_images")
+    manifest_path = os.path.join(output_dir, "pdf", "construction_manifest.jsonl")
     os.makedirs(img_dir, exist_ok=True)
 
     total_designs = 0
     total_pages = 0
-    no_callout = 0
+    no_construction = 0
     errors = 0
 
     with open(manifest_path, "a", encoding="utf-8") as manifest_f:
@@ -583,7 +583,7 @@ def run_pdf_batch(scan_dir: str, output_dir: str, force: bool, dry_run: bool):
             try:
                 pages = detect_construction_pages(best)
                 if not pages:
-                    no_callout += 1
+                    no_construction += 1
                     continue
                 rendered = render_pdf_pages(best, pages, img_dir, did)
                 total_designs += 1
@@ -595,7 +595,7 @@ def run_pdf_batch(scan_dir: str, output_dir: str, force: bool, dry_run: bool):
                 errors += 1
 
     print(f"[PDF→PNG] Done: {total_designs} designs / {total_pages} pages, "
-          f"{no_callout} no callouts, {errors} errors")
+          f"{no_construction} no constructions, {errors} errors")
 
 
 # ════════════════════════════════════════════════════════════

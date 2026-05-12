@@ -131,7 +131,7 @@ Bible 38 檔本身被增強 — 在每個 L5 step 旁加 `actuals` 欄,由 m7_pu
 - 每個 L5 step 是 dict(不是 list)
 - `ie_standard` 必有(從 xlsx)
 - `actuals` 可有可無(只有 m7_pullon 跑過該 path 才有)
-- 未來新 source(callouts 等)再加同層 key,**不破壞 existing schema**
+- 未來新 source(constructions 等)再加同層 key,**不破壞 existing schema**
 
 ### `new_*` placeholder 過濾規則
 
@@ -254,7 +254,7 @@ data/runtime/designs_index/<EIDH>.json (3,900 檔)
 
 | 維度 | l2_l3_ie/(增強後) | 規則 |
 |---|---|---|
-| Schema | L1-L5 樹 + 每 L5 dict 含 ie_standard / actuals / 未來 callouts | 樹結構不變,加 key 不破壞 |
+| Schema | L1-L5 樹 + 每 L5 dict 含 ie_standard / actuals / 未來 constructions | 樹結構不變,加 key 不破壞 |
 | 樹結構決定權 | IE xlsx | 唯一 |
 | canonical 詞彙 | xlsx | 唯一 |
 | `new_*` placeholder | **drop** | 不進 Bible 任何地方 |
@@ -267,10 +267,10 @@ data/runtime/designs_index/<EIDH>.json (3,900 檔)
 
 ## 變動規劃彈性
 
-未來新 source(例:techpack VLM callouts)整合:
+未來新 source(例:techpack VLM constructions)整合:
 - 不改 Bible structure
 - 不改 m7_pullon source schema
-- 只改 `derive_bible_actuals.py` 加 `callouts` key 在每個 L5 dict 同層
+- 只改 `derive_bible_actuals.py` 加 `constructions` key 在每個 L5 dict 同層
 
 source 跟 view 解耦。
 

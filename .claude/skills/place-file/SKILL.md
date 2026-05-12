@@ -45,7 +45,7 @@ description: Given a new file (path, name, or description of contents), walk CLA
 │       Yes → 【data/ingest/】下面依型態：
 │             - PDF/PPTX 原始上傳 → uploads/
 │             - 去重 metadata → metadata/
-│             - callout 圖 → pdf/callout_images/
+│             - construction 圖 → pdf/construction_images/
 │             - 合併 fact → unified/ 或 consensus_v1/ / ocr_v1/
 │
 ├─ Q7. 是跨模組都要讀的規格文件（.md）？

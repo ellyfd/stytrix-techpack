@@ -220,7 +220,7 @@ git commit -m "chore: 移除孤兒 $CANDIDATE (已通過 grep gate 驗證)"
 - ~~`pom_analysis_v5.5.1/`~~ — 2026-05-07 已徹底退役:`extract_techpack.py` 抽到 `scripts/lib/`,其餘 5 個 MD5 相同 JSON、6 支 fork 後沒人 import 的舊版 .py、`run_extract.py` 孤兒、舊版 pipeline guide MD 全清
 - `data/ingest/consensus_rules/facts.jsonl`(275 筆)、`data/ingest/ocr_v1/facts.jsonl`(1202 筆) — **一度被誤判為孤兒**,但 `build_recipes_master.py:629` 的 `data/ingest/*/facts.jsonl` glob 會吃它們,2026-04-24 實測刪除會讓 recipes_master 掉 249 entries(1414 → 1165)。**不可刪**
 - ~~`l2_l3_ie_by_client/` 27 檔~~ — **2026-05-08 已退役(Phase 2.5b)**:同日早上 gate 攔下後,Phase 2.1-2.5 一連串 PR 把退役三前提都完成:① `l2_l3_ie/` 38 檔升級成 Phase 2 dict schema(commit f9faa8b);② frontend `filterBibleByBrand()` helper 直接從 actuals.by_brand 過濾(取代 derive_view_by_client.py 的計畫);③ `index.html:5426` 的 fetch 已拔掉。`build_recipes_master.py` 的 `_m7_by_client` 欄位也順便清掉
-- `data/ingest/pdf/callout_manifest.jsonl`(0 bytes 空檔) — **2026-05-08 gate 攔下**:`star_schema/scripts/extract_raw_text.py:572` 是 append 寫入目標,workflow `rebuild_master.yml:54` 也引用,是 active output target 只是還沒資料。**不可刪**
+- `data/ingest/pdf/construction_manifest.jsonl`(0 bytes 空檔) — **2026-05-08 gate 攔下**:`star_schema/scripts/extract_raw_text.py:572` 是 append 寫入目標,workflow `rebuild_master.yml:54` 也引用,是 active output target 只是還沒資料。**不可刪**
 - `scripts/core/{search_recipes,build_recipe_embeddings,eval_recipe_retrieval}.py` 三隻 — **2026-05-08 gate 攔下**:雖然不在 CI / workflow 內被呼叫,但 `data/ingest/recipe_index/index.json` 是 623 KB 真實 build 產物,代表是有人 build 過的離線評估工具。屬於手動 CLI(類似 eval 性質),**不是 dead code**
 
 ### 2026-05-07 重組:外部 BASE 與 repo 內部命名解耦
@@ -250,7 +250,7 @@ git commit -m "chore: 移除孤兒 $CANDIDATE (已通過 grep gate 驗證)"
 第二輪 codebase audit(掃 dup / dead code / stale doc)時,gate 又攔下三個誤判,記下來避免下次重蹈:
 
 - **「DEPRECATED 標籤 ≠ 可刪」**:`l2_l3_ie_by_client/` 在 Part A 表上標 DEPRECATED,但 `index.html:5426` 仍 fetch、`build_recipes_master.py:693` 仍寫 `_m7_by_client`。退役只是「不要新增」,要 git rm 必須先把所有讀寫端切走。檢查 candidate 標 DEPRECATED 時務必 grep 線上前端 + 所有 producer 端,不可只看 Part A 文字。
-- **「空檔 ≠ 死檔」**:`data/ingest/pdf/callout_manifest.jsonl` 是 0 bytes,看似 placeholder,實際是 `extract_raw_text.py:572` 的 append target。空檔可能是「pipeline 還沒跑出資料」,不是「沒人要寫」。檢查空檔要 grep producer 端,不只看消費端。
+- **「空檔 ≠ 死檔」**:`data/ingest/pdf/construction_manifest.jsonl` 是 0 bytes,看似 placeholder,實際是 `extract_raw_text.py:572` 的 append target。空檔可能是「pipeline 還沒跑出資料」,不是「沒人要寫」。檢查空檔要 grep producer 端,不只看消費端。
 - **「不在 CI 內 ≠ dead code」**:`scripts/core/search_recipes.py` / `build_recipe_embeddings.py` / `eval_recipe_retrieval.py` 三隻沒在 workflow 內被呼叫,但 `data/ingest/recipe_index/index.json`(623 KB)是它們 build 出來的真實產物,代表有人手動跑過。離線評估 / 研究工具不會進 CI,但仍是活工具。
 - **「文件宣稱 ≠ 實況」**:CLAUDE.md L43 寫 Phase 2 schema 升級已完成,實測 `l2_l3_ie/AE.json` 仍是 5-elem list 的 Phase 1 格式。**文件描述要跟著事實改,不能寫成「目標狀態」當「現況」**(已修正,Part A 改回「Phase 1 list,Phase 2 規劃中」)。
 

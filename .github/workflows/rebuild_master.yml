@@ -46,13 +46,13 @@ jobs:
       - name: Install pipeline dependencies
         run: pip install -r requirements-pipeline.txt
 
-      # ── Step 1: extract raw text + callout images ──────────────────────────
+      # ── Step 1: extract raw text + construction images ──────────────────────────
       # Reads data/ingest/uploads/, writes:
       #   data/ingest/metadata/designs.jsonl   (append)
       #   data/ingest/pptx/*.txt               (new files only)
-      #   data/ingest/pdf/callout_images/*.png  (new files only)
-      #   data/ingest/pdf/callout_manifest.jsonl (append)
-      - name: Step 1 — extract raw text & callout images
+      #   data/ingest/pdf/construction_images/*.png  (new files only)
+      #   data/ingest/pdf/construction_manifest.jsonl (append)
+      - name: Step 1 — extract raw text & construction images
         run: |
           python star_schema/scripts/extract_raw_text.py \
             --scan-dir data/ingest/uploads \
@@ -63,11 +63,11 @@ jobs:
           echo "Step 1 summary:"
           cat /tmp/step1_summary.json
 
-      # ── Step 2b: VLM callout extraction (runs BEFORE 2a so unified can merge fresh VLM facts)
-      # Auto-analyzes data/ingest/pdf/callout_images/*.png with Claude Vision API.
+      # ── Step 2b: VLM construction extraction (runs BEFORE 2a so unified can merge fresh VLM facts)
+      # Auto-analyzes data/ingest/pdf/construction_images/*.png with Claude Vision API.
       # Falls back to vlm_raw_extracts.json if it exists (PoC/manual mode).
       # --allow-empty: exits 0 if no images and no pre-built extracts (first run or PPTX-only upload).
-      - name: Step 2b — VLM callout extraction
+      - name: Step 2b — VLM construction extraction
         id: vlm
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -75,7 +75,7 @@ jobs:
           python star_schema/scripts/vlm_pipeline.py \
             --map-iso \
             --out data/ingest/vlm \
-            --callout-dir data/ingest/pdf/callout_images \
+            --construction-dir data/ingest/pdf/construction_images \
             --ingest-dir data/ingest \
             --allow-empty
         continue-on-error: true
@@ -85,14 +85,14 @@ jobs:
         if: steps.vlm.outcome == 'failure'
         run: |
           {
-            echo "## ⚠️ Step 2b (VLM callout extraction) 失敗"
+            echo "## ⚠️ Step 2b (VLM construction extraction) 失敗"
             echo ""
             echo "Pipeline 後續步驟已放行(\`continue-on-error: true\`),但 VLM 沒產出 facts。"
             echo "常見原因:"
             echo "- \`ANTHROPIC_API_KEY\` secret 未設定 / 額度不足 / 網路問題"
-            echo "- callout PNG 解析失敗或 schema 不符"
+            echo "- construction PNG 解析失敗或 schema 不符"
             echo ""
-            echo "Step 3 會忽略 VLM facts 繼續重建,但 recipes_master 不會有這批新設計的 callout 貢獻。"
+            echo "Step 3 會忽略 VLM facts 繼續重建,但 recipes_master 不會有這批新設計的 construction 貢獻。"
             echo "請查看 Step 2b 的 log 取得實際錯誤訊息。"
           } >> "$GITHUB_STEP_SUMMARY"
           echo "VLM_FAILED=true" >> "$GITHUB_ENV"
@@ -162,7 +162,7 @@ jobs:
           else
             MSG="chore(data): auto-rebuild recipes_master [skip ci]"
             if [ "$VLM_FAILED" = "true" ]; then
-              MSG="$MSG"$'\n\n'"⚠ VLM (Step 2b) failed — facts from callout images not contributed this run. See Actions log."
+              MSG="$MSG"$'\n\n'"⚠ VLM (Step 2b) failed — facts from construction images not contributed this run. See Actions log."
             fi
             git commit -m "$MSG"
             git push origin HEAD
