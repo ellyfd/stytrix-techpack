@@ -1,7 +1,7 @@
 name: Rebuild recipes_master
 
 # 觸發:任何 push 到 main 都會評估,但 job-level if 會過濾掉沒碰相關目錄的 commit
-# 觸發目錄:data/ingest/uploads/ (PDF/PPTX 上傳) 或 data/ingest/m7_pullon/ (聚陽 push)
+# 觸發目錄:data/ingest/uploads/ (PDF/PPTX 上傳) 或 data/ingest/m7/ (聚陽 push,2026-05-11 改名 m7_pullon → m7)
 # (避免 paths filter 在某些 GitHub 通知情境顯示成 "No jobs were run: failed")
 on:
   push:
@@ -23,8 +23,8 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       contains(toJSON(github.event.commits.*.modified), 'data/ingest/uploads/') ||
       contains(toJSON(github.event.commits.*.added), 'data/ingest/uploads/') ||
-      contains(toJSON(github.event.commits.*.modified), 'data/ingest/m7_pullon/') ||
-      contains(toJSON(github.event.commits.*.added), 'data/ingest/m7_pullon/')
+      contains(toJSON(github.event.commits.*.modified), 'data/ingest/m7/') ||
+      contains(toJSON(github.event.commits.*.added), 'data/ingest/m7/')
     permissions:
       contents: write
 
