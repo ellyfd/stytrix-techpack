@@ -1,14 +1,17 @@
 """
-Derive data/runtime/brands.json from data/ingest/m7_pullon/entries.jsonl.
+Derive data/runtime/brands.json from data/ingest/m7/entries.jsonl.
 
-前端 index.html Brand 下拉以前硬寫 10 個 code,新 brand 進 m7_pullon 後
+前端 index.html Brand 下拉以前硬寫 10 個 code,新 brand 進 m7 後
 要手 sync。改成 CI 從 entries.jsonl 的 client_distribution 自動聚合,
 brand 跟著 source 變動,不用手 patch frontend。
 
+2026-05-12 改:source 從 m7_pullon/ 改成 m7/(2026-05-11 rename 沒完成,
+本檔仍指 m7_pullon/ 導致 brands.json 永遠用 May 11 舊版)。
+
 Output shape:
   {
-    "generated_at": "2026-05-11T...",
-    "source": "data/ingest/m7_pullon/entries.jsonl",
+    "generated_at": "2026-05-12T...",
+    "source": "data/ingest/m7/entries.jsonl",
     "brands": [
       {"code": "ONY", "n_entries": 152, "n_designs": 800},
       ...
@@ -25,7 +28,7 @@ from collections import defaultdict
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-SRC = REPO_ROOT / "data" / "ingest" / "m7_pullon" / "entries.jsonl"
+SRC = REPO_ROOT / "data" / "ingest" / "m7" / "entries.jsonl"
 OUT = REPO_ROOT / "data" / "runtime" / "brands.json"
 
 
@@ -57,7 +60,7 @@ def main() -> None:
 
     out = {
         "generated_at": datetime.datetime.utcnow().isoformat(timespec="seconds") + "Z",
-        "source": "data/ingest/m7_pullon/entries.jsonl",
+        "source": "data/ingest/m7/entries.jsonl",
         "brands": brands,
     }
 
