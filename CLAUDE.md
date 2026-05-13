@@ -17,6 +17,85 @@
 
 ---
 
+## M7 Extract Pipeline v11（2026-05-13 5 brand POM gap 救援 + honest audit）
+
+**核心成果**:
+- 5 大 brand POM% (honest 算法, audit_v6.py): **ONY 96% / GAP 96% / DKS 96% / KOH 99% / UA 92%**
+- 全 brand POM% honest = **92.9%** (10,519 real / 9,769 with POM / 750 A 桶 parser-fail 可救)
+- Total POMs **365K → 591K** (+62% 增量)
+
+**新增 4 個 layout parsers** (見 `PDF_PIPELINE.md` 第十節):
+1. Centric 8 Production(7.4) Measurement Chart Review (textmode fallback, ONY/GAP 用)
+2. Centric 8 Production(7.9.2) slash NUMBER/NUMBER (`0000/22 | 0/25` 等)
+3. DSG slash ALPHA/NUMBER (`XXS/4-5 | M/10-12`, DKS DAG/DAB 主線)
+4. UA Code/Description layout (`Code | Tol(-) | Tol(+) | XS | SM | MD | LG`)
+
+**新增 Unrecoverable POM 排除機制**(跟 dev_sample 同位階):
+- `outputs/extract/<brand>_pom_unrecoverable.jsonl` — 每 brand 一份, 含 `_pom_unrecoverable=True` + `_unrecoverable_reason`
+- 5 reasons: `no_co_marker_no_source` / `no_pptx_text` / `co_unresolvable_archived` / `<brand>_parser_failed_*` / `<brand>_sample_room`
+- ONY Carry Over cross-resolver (`co_resolver_v3.py`): PPTX 「尺寸表參考 D-code」反查前季 PDF POM → 46 件補回 3,750 POMs
+- audit 端 `audit_3source_coverage.py` / `audit_v5.py` / `audit_v6.py` 讀此 list 排除分母
+
+**DEV_RE 擴張** (audit_3source_coverage.py 加 confirmed prefix):
+- KOH: `SU26C/SP26C/SP26S/SU26S/FA26C` 季別+CB / `KOH26` / `RDWT6/RDMX6/RDEX6/RDMT6` / `MX5-6 [A-Z]*/WX5-6 [A-Z]*` / `ZS5-6 F*` / `SOMENSLW/MK26AW/MSFA2`
+- UA: `VELOC/UASS2/UAMGF/FW27U` (UATSM 排除 — Elly 確認 1357139 有 POM, parser 救回)
+- DKS: `MAX/DAM/DAB27` (DAG/DAB 主線 是真 PLM, 不放)
+
+**Honest 3-bucket audit** (`audit_v6.py`):
+- A: parser-fail → 留在分母 (應修, ceiling 100%)
+- B: dev_sample / sample-room → 排除分母
+- C: true-no-source → 排除分母 (跟 dev_sample 同性質)
+- POM%(honest) = with_pom / (total - B - C), A 仍在分母懲罰
+
+**Sample Room ⚠ 重要規則**: KOH/DKS/UA 的 Sample Room prefix 升 dev_sample 後不需要再特別寫 unrec list — 它們會自動被 DEV_RE 攔下進 B 桶。`<brand>_pom_unrecoverable.jsonl` 主要保留 C 桶 (CO unresolvable / no_pptx_text 等真實無資料).
+
+詳細 v11 改版見 `Source-Data/M7_Pipeline/PDF_PIPELINE.md` 第十節。
+
+---
+
+## M7 Extract Pipeline v10（2026-05-12 三 source 全收齊）
+
+**核心輸出**(`Source-Data/M7_Pipeline/outputs/extract/`):
+
+| Source | Entries | 主要產出 | 文件 |
+|--------|---------|----------|------|
+| `pdf_facets.jsonl` | **17,845** / 178 MB | **365,888 POMs / 100% POM 4 維 complete / 0 timeout** | `PDF_PIPELINE.md` |
+| `pptx_facets.jsonl` | **18,731** / 135 MB | **708K constructions / 82% L1 / 19% iso** | `PPTX_PIPELINE.md` |
+| `xlsx_facets.jsonl` | 18,731 entries (944 MCs) | **161,505 POMs + 207 construction_iso_map** | (in extract_xlsx_all.py) |
+
+**11 brand parsers**: centric8 (ONY/ATH/GAP/BR) / dicks / kohls / target / gerber (HLF/ANF/UA) / underarmour / beyondyoga / gu / _generic fallback
+
+**6 fix + 1 audit (大躍進)**:
+- ⭐ Centric8 BOM-cover 混合頁誤判 → GAP design_type/fit_camp/description 73% → 100%
+- ⭐ ANF A&F PROD 新版 PLM cover detection → ANF metadata **20% → 93%**
+- KOH 3 layouts (Tech Spec + Sample Room V/H, CBRTW/BTS) → 49% → **73%**
+- TGT 5 layouts (Centric 8 PID + AIM/MSTAR/C&J + AIM-dash + Quotation) → 23% → **38% ceiling**
+- KOH parser 容錯接 BR 誤分類 PDF (EIDH 316362)
+- chunked pool + per-task 90s watchdog → **0 timeout**(Python 3.14 + Windows multiprocessing 完全征服)
+- `audit_manifest_vs_pdf.py`: 18,731 EIDH 全掃 → 只 1 件 inconsistency (**0.005% error rate**)
+
+**命名統一 (2026-05-12 Big-bang rename)**:
+- `callouts` → `constructions` / `construction_pages`
+- `iso_callouts` → `construction_iso_map`
+- `mcs` → `measurement_charts`
+- `parse_callout` → `parse_construction_page` / `parse_mc` → `parse_measurement_chart`
+- ptype `"callout"` → `"construction"`
+- folder `pdf_callout_images/` → `pdf_construction_images/`
+- 詳見 `PIPELINE_GLOSSARY.md`
+
+**14 ISO 官方碼**(對齊 `data/runtime/iso_dictionary.json`): 301/304/401/406/407/504/512/514/514+401/514+605/516/602/605/607
+**38 L1 official codes**(對齊 `data/runtime/l1_standard_38.json`)
+
+**Per-brand metadata% 等級**(top 12):
+- ⭐ **95%+**: DKS 95 / ATH 95 / BR 96 / HLF 98 / UA 98 / ANF 93
+- ✅ **70-85%**: GAP 85 / GU 77 / KOH 73 / BY 72 / ONY 71
+- ⚠ **plateau**: TGT 38 (Quotation = M7 manifest 重複跳)
+- XLSX 主源(PDF 預期 0%): WMT 8,625 POMs / SAN 147,801 POMs / QCE 3,484 POMs / NET 209 POMs
+
+詳細數字 + per-brand parser routing + 6 fix 改版歷程見 `Source-Data/M7_Pipeline/PDF_PIPELINE.md` / `PPTX_PIPELINE.md`。
+
+---
+
 ## Part A — 資料夾分工表
 
 > **2026-05-11 快照**(在 2026-05-09 之上加 m7_pullon 21-brand + Bible idempotency 修):
