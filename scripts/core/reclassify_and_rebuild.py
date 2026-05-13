@@ -675,10 +675,28 @@ for bucket, designs in sorted(bucket_profiles.items(), key=lambda x: -len(x[1]))
     })
 
 # Save _index.json
+# 聚合所有 bucket 的 source_brand_distribution → 全域 brand codes,frontend
+# 用這個 array 來判斷 user 選的 brand 是否有 POM 資料(取代 2026-05-11 之前用
+# 單一字串 source_brand 等值比對 — 那條路徑在多 brand 合併後沒辦法跟 brands.json
+# dropdown code 對齊,所有 brand 都會被擋下)。
+_global_brand_counts = Counter()
+for _ie in index_entries:
+    _bfile = os.path.join(OUT_DIR, _ie['file'])
+    try:
+        with open(_bfile, 'r', encoding='utf-8') as _fp:
+            _bd = json.load(_fp)
+    except (OSError, json.JSONDecodeError):
+        continue
+    for _code, _cnt in (_bd.get('source_brand_distribution') or {}).items():
+        _global_brand_counts[_code] += _cnt
+# 排序 by count DESC,drop UNKNOWN(無 brand 標的 design 雜訊,不該出現在 dropdown 對照)
+_source_brand_codes = [c for c, _ in _global_brand_counts.most_common() if c != 'UNKNOWN']
+
 index_data = {
     '_meta': {
         'version': '5.5.1',
-        'source_brand': 'Centric 8 (ONY/GAP/ATHLETA/BRFS)',  # 2026-05-11: 拿掉 ATHLETA filter
+        'source_brand': 'Centric 8 (ONY/GAP/ATHLETA/BRFS)',  # 2026-05-11: 拿掉 ATHLETA filter;human-readable 顯示用
+        'source_brand_codes': _source_brand_codes,  # 2026-05-12: frontend brand-match gate 用 — 對齊 brands.json dropdown code
         'source': '{} designs x mc_pom_2024/2025/2026 (all Centric 8 brands)'.format(total),
         'date': '2026-05-11',
         'departments': sorted(set(e['department'] for e in index_entries)),
