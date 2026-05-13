@@ -4832,12 +4832,17 @@ function App() {
   }, [currentBucket, universalSpec]);
   const bucketKey = (dept && gt && gender) ? `${dept}_${gt}|${gender}` : null;
   // 聚陽模式吃 brand-stamped 的 pom_rules / bodytype_variance / grading_patterns,
-  // 目前 pipeline 只產 ONY (見 _index._meta.source_brand)。當 brand ≠ source_brand
-  // 時整套 ONY 數據就不該滲到 UI,讓使用者自己看到「這個 brand 還沒接資料」。
+  // POM rules 是 Centric 8 source (ONY/GAP/ATHLETA/BRFS) 混 build,_meta.source_brand_codes
+  // 列出實際有資料的 brand code 集(對齊 brands.json dropdown code)。
+  // 2026-05-12 改:之前單一字串 source_brand "Centric 8 (...)" 永遠不會等於 dropdown code,
+  // 所有 brand 都被擋下;改成 codes array contains 檢查。舊 schema fallback 保留兼容。
   // 通用模型走 ISO 字典 + recipes_master,跟 brand 無關,brand 一律放行。
   const dataBrandMatches = useMemo(() => {
     if (appMode !== "makalot") return true;
     if (!brand) return true; // 還沒選就先放行,反正 bucketMeta 也會是 null
+    const codes = pomRules?._meta?.source_brand_codes;
+    if (Array.isArray(codes) && codes.length) return codes.includes(brand);
+    // fallback: 舊 schema 用單一字串等值比對
     const stamp = pomRules?._meta?.source_brand || "ONY";
     return brand === stamp;
   }, [appMode, brand, pomRules]);
@@ -7152,7 +7157,13 @@ function App() {
                   {canGenerateSpec
                     ? "依據左方 filter 推導 POM 建議、公差與 Base (M)。生成後可以基碼 / 全碼兩種檢視切換。"
                     : (appMode === "makalot" && brand && !dataBrandMatches)
-                      ? `${brand} 目前在聚陽模式無 POM / 跳碼歷史資料(現有資料皆為 ${pomRules?._meta?.source_brand || "ONY"})。請改選 ${pomRules?._meta?.source_brand || "ONY"},或切到通用模式跑 ISO + recipes_master。`
+                      ? (() => {
+                          const codes = pomRules?._meta?.source_brand_codes;
+                          const list = (Array.isArray(codes) && codes.length)
+                            ? codes.join(" / ")
+                            : (pomRules?._meta?.source_brand || "ONY");
+                          return `${brand} 目前在聚陽模式無 POM / 跳碼歷史資料(現有資料涵蓋 ${list})。請改選 ${list} 其中一個,或切到通用模式跑 ISO + recipes_master。`;
+                        })()
                       : "請先在上方完成 Brand / Fabric / Gender / Department / Garment Type 等 filter 才能生成。"}
                 </div>
                 <button onClick={runMeasurement} disabled={!canGenerateSpec}
