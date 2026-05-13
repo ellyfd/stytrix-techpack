@@ -146,7 +146,10 @@ def check_pom_rules_index(errors: list[str], warns: list[str]) -> None:
     """Index must list exactly the bucket files present on disk."""
     idx = load_json(POM_INDEX)
     idx_files = {b["file"] for b in idx["buckets"]}
-    disk_files = {p.name for p in POM_RULES_DIR.glob("*.json") if p.name != "_index.json"}
+    # Skip non-bucket files: _index.json (manifest itself) + pom_names.json
+    # (POM code→中英翻譯字典, lives in pom_rules/ for legacy but not a bucket rule)
+    NON_BUCKET_FILES = {"_index.json", "pom_names.json"}
+    disk_files = {p.name for p in POM_RULES_DIR.glob("*.json") if p.name not in NON_BUCKET_FILES}
     missing = idx_files - disk_files
     orphan = disk_files - idx_files
     if missing:
@@ -161,8 +164,9 @@ def check_pom_rules_index(errors: list[str], warns: list[str]) -> None:
 
 def check_pom_rules_self_consistency(errors: list[str], warns: list[str]) -> None:
     """Each bucket file's bucket string should match its gender/dept/gt fields."""
+    NON_BUCKET_FILES = {"_index.json", "pom_names.json"}
     for p in sorted(POM_RULES_DIR.glob("*.json")):
-        if p.name == "_index.json":
+        if p.name in NON_BUCKET_FILES:
             continue
         d = load_json(p)
         bucket = d.get("bucket", "")
