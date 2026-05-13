@@ -1,0 +1,95 @@
+{
+  "_description": "聚陽 M7 列管 ↔ 客戶 PDF 命名 alias 對照表。consolidate_canonical.py 後續 normalize 步驟用,把 medium confidence 的衝突降為 high。",
+  "_updated": "2026-05-08",
+  "_source": "Elly 業務知識 + canonical_consensus_report.txt 衝突清單反推",
+
+  "客戶": {
+    "_rule": "客戶全名 → 縮寫(M7 列管慣例 vs PDF 簡寫)",
+    "DICKS SPORTING GOODS": "DKS",
+    "DICKS": "DKS",
+    "GAP OUTLET": "GAP",
+    "OLD NAVY": "ONY",
+    "BANANA REPUBLIC": "BR",
+    "BRFS": "BR",
+    "ABERCROMBIE & FITCH": "ANF",
+    "A & F": "ANF",
+    "A_&_F": "ANF",
+    "ATHLETA": "ATH",
+    "TARGET": "TGT",
+    "KOHLS": "KOH",
+    "UNDER ARMOUR": "UA",
+    "BEYOND YOGA": "BY",
+    "HIGH LIFE LLC": "HLF",
+    "WAL-MART": "WMT",
+    "WAL-MART-CA": "WMT",
+    "QUINCE": "QCE",
+    "HALARA": "HLA",
+    "JOE FRESH": "JF",
+    "SANMAR": "SAN",
+    "DISTANCE": "DST",
+    "ZARA": "ZAR",
+    "ASICS-EU": "ASICS",
+    "NET": "NET",
+    "LEVIS": "LEV",
+    "CATO": "CATO",
+    "SMART CLOTHING": "SMC"
+  },
+
+  "PRODUCT_CATEGORY": {
+    "_rule": "M7 列管用單數,PDF / Centric 8 用複數,canonical 統一複數",
+    "WOMEN": "WOMENS",
+    "MEN": "MENS",
+    "GIRL": "GIRLS",
+    "BOY": "BOYS",
+    "KID": "KIDS",
+    "Women's": "WOMENS",
+    "Men's": "MENS",
+    "Ladies": "WOMENS"
+  },
+
+  "Subgroup": {
+    "_rule": "KOHLS sub-brand 縮寫 ↔ 全名;通用 Wmn/Mns/Act 縮寫展開",
+    "TG": "TEKGEAR",
+    "TEKGEAR": "TEKGEAR",
+    "Tek Gear": "TEKGEAR",
+    "WMN": "WOMEN",
+    "Wmn": "WOMEN",
+    "MEN": "MEN",
+    "MNS": "MEN",
+    "ACT": "ACTIVE",
+    "Act": "ACTIVE",
+    "ACTIVE": "ACTIVE",
+    "RTW": "RTW",
+    "SLW": "SLEEPWEAR",
+    "FLX": "FLX"
+  },
+
+  "Item": {
+    "_rule": "M7 用 Pull On Pants / Leggings 等聚陽內部分類,PDF 用客戶簡寫;統一聚陽 canonical",
+    "Pants": "PULL ON PANTS",
+    "Pull On Pants": "PULL ON PANTS",
+    "Pants ( パンツ )": "PULL ON PANTS",
+    "Leggings": "LEGGINGS",
+    "Tights": "LEGGINGS",
+    "Bottoms": "BOTTOMS",
+    "BOTTOMS": "BOTTOMS"
+  },
+
+  "Season": {
+    "_rule": "M7 用 V-FA YYYY / B-FA YYYY 內部碼,PDF 用 Fall YYYY / 2025FW 等;統一 SS/FA/HO/SP + YY 兩位",
+    "_normalize_pattern": [
+      {"match": "^Fall\\s+(\\d{4})$", "to": "FA${1:2}"},
+      {"match": "^Holiday\\s+(\\d{4})$", "to": "HO${1:2}"},
+      {"match": "^Summer\\s+(\\d{4})$", "to": "SU${1:2}"},
+      {"match": "^Spring\\s+(\\d{4})$", "to": "SP${1:2}"},
+      {"match": "^[A-Z]-(FA|SP|SU|HO|WI)\\s+(\\d{4})$", "to": "${1}${2:2}"},
+      {"match": "^(\\d{4})(SS|FW|FA|SP)$", "to": "${2}${1:2}"}
+    ]
+  },
+
+  "報價款號": {
+    "_rule": "GU PDF 是 M7 列管 substring (M7 多 6-prefix + A/B suffix);ONY/GAP M7 是 客戶 design ID,PDF 是 D-style BOM 號 — 兩個本來不同欄,不應該 normalize 對齊",
+    "_action": "GU 報價款號 normalize 規則:trim 6-prefix 跟尾碼字母",
+    "_no_action": "ONY/GAP/ATH/GAP_OUTLET/BR 的 M7 design_id vs PDF D-style 不該對齊,保留兩個欄位"
+  }
+}

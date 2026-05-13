@@ -1,0 +1,320 @@
+{
+  "version": "v1.0",
+  "updated": "2026-05-05",
+  "description": "Per-client metadata 對照表。每客戶 PDF cover / nt-net2 customer name / design_id format / subgroup / dept / season 命名規則不同，這份是 canonical mapping。",
+  "_source": "從 designs.jsonl + pdf_metadata.jsonl 分析 1180 PullOn 設計實際命名規則整理",
+
+  "clients": {
+    "ONY": {
+      "client_name_full": "Old Navy",
+      "client_name_aliases": ["OLD NAVY", "Old Navy", "ONY"],
+      "mk_customer_field": "OLD NAVY",
+      "design_id_formats": [
+        "{6digit_eidh-like}_{SEASON}",
+        "D{5digit}",
+        "D{5digit}_{description}"
+      ],
+      "design_id_examples": ["802019_FA25", "826369_SU26", "D97929", "D97929_FA26"],
+      "subgroup_codes": {
+        "WAC": {"gender": "WOMEN", "dept": "ACTIVE", "name": "Women Active Center"},
+        "MAC": {"gender": "MEN", "dept": "ACTIVE", "name": "Men Active Center"},
+        "GAC": {"gender": "GIRL", "dept": "ACTIVE", "name": "Girls Active Center"},
+        "BAC": {"gender": "BOY", "dept": "ACTIVE", "name": "Boys Active Center"},
+        "KIDS FR": {"gender": "KIDS", "dept": "RTW"},
+        "WOMEN FLEECE": {"gender": "WOMEN", "dept": "FLEECE"}
+      },
+      "brand_division_examples": ["OLD NAVY - WOMENS", "OLD NAVY - MATERNITY", "OLD NAVY - MENS"],
+      "department_examples": ["WOMENS PERFORMANCE", "MATERNITY BOTTOMS", "MENS ACTIVE/FLEECE/SWIM"],
+      "season_format": "{Season Name} {YYYY}",
+      "season_examples": ["Fall 2026", "Holiday 2026", "Summer 2026"],
+      "category_examples": ["PERFORMANCE BOTTOMS", "Tech Pack BOM Legacy"]
+    },
+
+    "TARGET": {
+      "client_name_full": "Target",
+      "client_name_aliases": ["TARGET", "Target"],
+      "mk_customer_field": "TARGET",
+      "design_id_formats": [
+        "{2alphanum}{4alphanum}",
+        "{2alphanum}{4alphanum}_{C-Season}"
+      ],
+      "design_id_examples": ["0L3M95_C326", "0LEGG3", "0LEM91", "1K7YEY", "2M76G1", "AIM27C2WV02"],
+      "subgroup_codes": {
+        "D39": {"gender": "GIRL", "dept": "ACTIVE", "name": "Kids Performance Girl"},
+        "D41": {"gender": "MEN", "dept": "ACTIVE"},
+        "D214": {"gender": "WOMEN", "dept": "ACTIVE", "name": "Womens Performance"},
+        "D327": {"gender": "BABY", "dept": "RTW"},
+        "D75": {"gender": "KIDS", "dept": "SLEEPWEAR/RTW", "name": "Kids Sleepwear/Fashion"},
+        "D20": {"gender": "KIDS", "dept": "RTW", "name": "Fashion Kids Core_Regular"},
+        "D23": {"gender": "MEN", "dept": "ACTIVE"},
+        "D34": {"gender": "WOMEN", "dept": "ACTIVE"}
+      },
+      "brand_division_field": "(無，PDF 沒寫)",
+      "department_format": "{D-code}:{GENDER} {dept_name}",
+      "department_examples": ["39:KIDS PERFORMANCE", "214:WOMENS PERFORMANCE", "75:KIDS SLPWR/FASHION"],
+      "season_format": "{C}{quarter}{YY}",
+      "season_examples": ["C326", "C426", "C127", "C226"],
+      "season_pdf_status": "PDF 通常沒抽到，要從 design_id 後綴 (_C326) 推"
+    },
+
+    "DICKS": {
+      "client_name_full": "Dick's Sporting Goods",
+      "client_name_aliases": ["DICKS", "DICK'S", "Dick's Sporting Goods", "DICKS SPORTING GOODS"],
+      "mk_customer_field": "DICKS SPORTING GOODS",
+      "design_id_formats": [
+        "D{2-3 letters}{3-5 digits}_{Q{quarter}{YY}}",
+        "{prefix}{numeric}{_suffix}"
+      ],
+      "design_id_examples": ["DAG14127PRT_Q426", "DAM100", "DAW17313_Q127", "WAX355", "MAX90_Q226", "PGM04PRT"],
+      "subgroup_codes": {
+        "DSG": {"gender": "MIXED", "dept": "ACTIVE", "name": "DSG generic（混 MEN/WOMEN）"},
+        "DSG COMPRESSION": {"gender": "MIXED", "dept": "ACTIVE", "name": "Compression line"},
+        "CALIA": {"gender": "WOMEN", "dept": "ACTIVE", "name": "Calia 女裝品牌"},
+        "WALTER HAGEN": {"gender": "MEN", "dept": "RTW", "name": "Walter Hagen 男高爾夫"},
+        "VRST": {"gender": "MEN", "dept": "ACTIVE", "name": "VRST 男裝"},
+        "PERFECT GAME": {"gender": "MIXED", "dept": "RTW", "name": "棒球可能 BOY"}
+      },
+      "brand_division_field": "(無)",
+      "department_field": "(PDF dept 寫 \"---\" 不抽)",
+      "season_format": "Softlines - {department} - {season} - {YYYY}",
+      "season_examples": ["Softlines - Athletic Women's - Spring - 2026"],
+      "category_examples": []
+    },
+
+    "A_&_F": {
+      "client_name_full": "Abercrombie & Fitch",
+      "client_name_aliases": ["A&F", "A_&_F", "ABERCROMBIE", "A & F"],
+      "mk_customer_field": "A & F",
+      "design_id_formats": ["{6-9 digit numeric}"],
+      "design_id_examples": ["1190065", "119260068", "147260022", "213260013", "246260017"],
+      "subgroup_codes": {
+        "F.R.": {"gender": "UNKNOWN", "dept": "UNKNOWN", "name": "Female Recreation? 待業務確認"},
+        "ACTIVE": {"gender": "UNKNOWN", "dept": "ACTIVE"},
+        "WOMEN": {"gender": "WOMEN", "dept": "RTW"}
+      },
+      "department_format": "{D-code} - kids {GENDER} {item_type}",
+      "department_examples": ["213 - kids BOYS SLEEP", "246 - kids GIRLS SLEEP", "274 - kids BOYS TODDLER"],
+      "season_format": "{Season Name}",
+      "season_examples": ["Holiday", "Fall"],
+      "category_examples": ["Knits", "Woven", "Fit Pattern Name"]
+    },
+
+    "GAP": {
+      "client_name_full": "Gap",
+      "client_name_aliases": ["GAP", "Gap"],
+      "mk_customer_field": "GAP",
+      "design_id_formats": [
+        "D{5-6 digit}_{SEASON}",
+        "{6 digit}_{SEASON}"
+      ],
+      "design_id_examples": ["D18477_HO26", "915186_FA26", "D85603_SU26", "D97807_HO26"],
+      "subgroup_codes": {
+        "WAC": {"gender": "WOMEN", "dept": "ACTIVE", "name": "Women Active Center"},
+        "MAC": {"gender": "MEN", "dept": "ACTIVE"},
+        "BAC": {"gender": "BOY", "dept": "ACTIVE"},
+        "KIDS FR": {"gender": "KIDS", "dept": "RTW", "name": "Kids Fashion Ready"}
+      },
+      "brand_division_examples": ["GAP - WOMENS", "GAP - MENS", "GAP - KIDS ACCESSORIES"],
+      "department_examples": ["WOMENS KNITS", "BOYS SLEEP/UNDERWEAR", "GIRLS SLEEP/UNDERWEAR"],
+      "season_format": "{Season Name} {YYYY}",
+      "season_examples": ["Holiday 2026", "Fall 2026", "Summer 2026"]
+    },
+
+    "GAP_OUTLET": {
+      "client_name_full": "Gap Outlet",
+      "_inherits": "GAP",
+      "subgroup_codes": {"FIT": {"gender": "UNKNOWN", "dept": "RTW", "name": "Fit (Gap Outlet 子線)"}},
+      "department_examples": ["WOMENS BOTTOMS", "GIRLS SLEEP/UNDERWEAR", "WOMENS KNITS"]
+    },
+
+    "KOHLS": {
+      "client_name_full": "Kohl's",
+      "client_name_aliases": ["KOHLS", "KOHL'S", "Kohl's"],
+      "mk_customer_field": "KOHLS",
+      "design_id_formats": [
+        "{prefix}{4-5 alphanum}_{description}",
+        "{2 letters}{2 digits}{1-2 letter}{3 digits}"
+      ],
+      "design_id_examples": ["A9SU26_BOTTOM", "MT6FA458", "WX23A512", "CBFA26_RD020", "26FS02306(PANTS)"],
+      "subgroup_codes": {
+        "ACT (FLX MEN)": {"gender": "MEN", "dept": "ACTIVE", "name": "FLX 男裝 active"},
+        "ACT (FLX WMN)": {"gender": "WOMEN", "dept": "ACTIVE"},
+        "ACT (TG MEN)": {"gender": "MEN", "dept": "ACTIVE", "name": "Tek Gear 男裝"},
+        "ACT (TG WMN)": {"gender": "WOMEN", "dept": "ACTIVE", "name": "Tek Gear 女裝"},
+        "RTW (CB WMN)": {"gender": "WOMEN", "dept": "RTW", "name": "CB 女裝 RTW"},
+        "SLW (SONOMA WMN)": {"gender": "WOMEN", "dept": "SLEEPWEAR", "name": "Sonoma 女睡衣"},
+        "RTW (SO JUNIOR)": {"gender": "WOMEN", "dept": "RTW", "name": "SO Junior 女裝 RTW"}
+      },
+      "category_examples": ["Women"]
+    },
+
+    "UNDER_ARMOUR": {
+      "client_name_full": "Under Armour",
+      "client_name_aliases": ["UA", "UNDER ARMOUR", "Under Armour"],
+      "mk_customer_field": "UNDER ARMOUR",
+      "design_id_formats": ["{7 digit numeric}"],
+      "design_id_examples": ["1383333", "1383342", "6005543", "6013803"],
+      "subgroup_codes": {
+        "UA(MENS)": {"gender": "MEN", "dept": "ACTIVE"},
+        "UA(MISSY)": {"gender": "WOMEN", "dept": "ACTIVE"},
+        "UA(BOYS)": {"gender": "BOY", "dept": "ACTIVE"},
+        "UA(WMNS)": {"gender": "WOMEN", "dept": "ACTIVE"},
+        "US LINE": {"gender": "UNKNOWN", "dept": "ACTIVE", "name": "US 系列 待業務確認"}
+      },
+      "category_examples": ["Run", "Sportstyle", "Train"],
+      "season_format": "{S/F}{S/W}{YY}",
+      "season_examples": ["SS27", "FW26", "Toolbox"]
+    },
+
+    "ATHLETA": {
+      "client_name_full": "Athleta",
+      "client_name_aliases": ["ATHLETA", "Athleta"],
+      "mk_customer_field": "ATHLETA",
+      "design_id_formats": ["D{6 digit}", "{6 digit}_{SEASON}_{3 letter}"],
+      "design_id_examples": ["D100016", "844602", "851038_SP26_NVN"],
+      "subgroup_codes": {
+        "WOMENS": {"gender": "WOMEN", "dept": "ACTIVE"},
+        "GIRLS": {"gender": "GIRL", "dept": "ACTIVE"}
+      },
+      "brand_division_examples": ["ATHLETA - WOMENS", "ATHLETA - GIRLS"],
+      "department_examples": ["APPAREL", "GIRLS BOTTOMS"],
+      "season_examples": ["Summer 2026", "Spring 2026", "Holiday 2026"],
+      "category_examples": ["WOVEN BOTTOMS", "KNIT BOTTOMS"],
+      "client_default_gender": "WOMEN"
+    },
+
+    "BEYOND_YOGA": {
+      "client_name_full": "Beyond Yoga",
+      "client_name_aliases": ["BEYOND_YOGA", "BEYOND YOGA", "Beyond Yoga", "BYY"],
+      "mk_customer_field": "BEYOND YOGA",
+      "design_id_formats": ["00{2 letter}{1 digit}_{H/S/F}{YY}", "{free text}"],
+      "design_id_examples": ["00AV9_H26", "00AY2_S27", "NW1301_S26", "PG1357", "RU5208_S27"],
+      "subgroup_codes": {
+        "PERFORMANCE": {"gender": "WOMEN", "dept": "ACTIVE"}
+      },
+      "category_examples": ["Bottoms"],
+      "season_examples": ["Beyond Yoga S1", "Beyond Yoga S4"],
+      "client_default_gender": "WOMEN"
+    },
+
+    "BR": {
+      "client_name_full": "Banana Republic",
+      "client_name_aliases": ["BR", "Banana Republic"],
+      "mk_customer_field": "BANANA REPUBLIC",
+      "design_id_examples": ["1178133", "D91019"],
+      "subgroup_codes": {
+        "BRFS KNIT": {"gender": "UNKNOWN", "dept": "RTW", "name": "BR Factory Store Knit 待業務確認"}
+      }
+    },
+
+    "JOE_FRESH": {
+      "client_name_full": "Joe Fresh",
+      "client_name_aliases": ["JOE_FRESH", "JOE FRESH", "Joe Fresh"],
+      "mk_customer_field": "JOE FRESH",
+      "design_id_formats": ["{F/S}{YYWR}{6 alphanum}"],
+      "design_id_examples": ["F6WR070039", "S7WR075301", "S7WR077472"]
+    },
+
+    "HIGH_LIFE_LLC": {
+      "client_name_full": "High Life LLC",
+      "design_id_formats": ["{3 letter}{6 alphanum}{_xxx}"],
+      "design_id_examples": ["CPM253PA76_26Q1", "CPM262SH11", "GAM263PA03C"],
+      "subgroup_codes": {
+        "CHAMPION": {"gender": "UNKNOWN", "dept": "ACTIVE", "name": "Champion 待業務"},
+        "GAIAM": {"gender": "WOMEN", "dept": "ACTIVE", "name": "Gaiam 女瑜珈"}
+      },
+      "category_examples": ["Pants", "Shorts"]
+    },
+
+    "GU": {
+      "client_name_full": "GU (Uniqlo sister brand)",
+      "design_id_formats": ["60{4 digit}{N/F/S}{3-4 alphanum}"],
+      "design_id_examples": ["60127N052A", "60226F065A", "60226N020B"],
+      "subgroup_codes": {
+        "12": {"gender": "UNKNOWN", "dept": "RTW", "name": "GU 內部碼 待業務"},
+        "22": {"gender": "UNKNOWN", "dept": "RTW"},
+        "32": {"gender": "UNKNOWN", "dept": "RTW"}
+      },
+      "season_examples": ["2026FW"]
+    },
+
+    "DISTANCE": {
+      "client_name_full": "Distance",
+      "design_id_examples": ["DST_M07", "SHORTS_001"]
+    },
+
+    "GILDAN": {
+      "client_name_full": "Gildan"
+    },
+
+    "QUINCE": {
+      "client_name_full": "Quince"
+    },
+
+    "S1_DEVELOPING": {
+      "client_name_full": "S1 Developing (聚陽自製研發)",
+      "_note": "聚陽內部研發案，非客戶單"
+    },
+
+    "V5_DEVELOPING": {
+      "client_name_full": "V5 Developing (聚陽自製研發)",
+      "_note": "聚陽內部研發案"
+    },
+
+    "XBODY_HUNGARY_KFT": {
+      "client_name_full": "Xbody Hungary KFT",
+      "design_id_examples": ["XBODY_EMSM002"]
+    },
+
+    "ASICS-EU": {
+      "client_name_full": "ASICS Europe",
+      "client_name_aliases": ["ASICS-EU", "ASICS EU"],
+      "design_id_examples": ["2041A448"]
+    },
+
+    "ZARA": {
+      "client_name_full": "Zara",
+      "subgroup_codes": {
+        "CIRCULAR": {"gender": "UNKNOWN", "dept": "RTW", "name": "Circular 永續系列 待業務"}
+      },
+      "design_id_examples": ["1608_790", "5644_523", "6786_690"]
+    },
+
+    "M-STAR": {
+      "client_name_full": "M-Star",
+      "_note": "Sample design only"
+    }
+  },
+
+  "_global_normalization_rules": {
+    "client_name_normalize": {
+      "_description": "客戶 raw name → 標準縮寫",
+      "Old Navy": "ONY",
+      "OLD NAVY": "ONY",
+      "Target": "TARGET",
+      "DICKS": "DICKS",
+      "DICK'S": "DICKS",
+      "Dick's Sporting Goods": "DICKS",
+      "DICKS SPORTING GOODS": "DICKS",
+      "A & F": "A_&_F",
+      "A&F": "A_&_F",
+      "Abercrombie": "A_&_F",
+      "ABERCROMBIE & FITCH": "A_&_F",
+      "Gap": "GAP",
+      "GAP": "GAP",
+      "Gap Outlet": "GAP_OUTLET",
+      "Kohl's": "KOHLS",
+      "KOHLS": "KOHLS",
+      "Under Armour": "UNDER_ARMOUR",
+      "UNDER ARMOUR": "UNDER_ARMOUR",
+      "Athleta": "ATHLETA",
+      "Beyond Yoga": "BEYOND_YOGA",
+      "BEYOND YOGA": "BEYOND_YOGA",
+      "Banana Republic": "BR",
+      "Joe Fresh": "JOE_FRESH",
+      "Quince": "QUINCE",
+      "Zara": "ZARA",
+      "ASICS Europe": "ASICS-EU"
+    }
+  }
+}
