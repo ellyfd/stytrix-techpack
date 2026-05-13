@@ -2681,6 +2681,380 @@ function SettingsModal({ open, onClose, token, onSaveToken }) {
   );
 }
 
+/* CodeBrowserModal: GitHub-style 檔案瀏覽器,讓使用者在 SPA 內直接看 repo 的
+   data/runtime / docs/spec / pom_rules / l2_l3_ie / recipes / scripts 等檔案,
+   不用切去 GitHub。檔案清單來自 data/runtime/code_manifest.json
+   (由 scripts/core/build_code_manifest.py 產生)。語法高亮走 Prism.js (CDN, lazy load)。*/
+const CODE_GH_REPO = "ellyfd/stytrix-techpack";
+const CODE_LANG_MAP = {
+  json: "json", md: "markdown", py: "python", js: "javascript",
+  yml: "yaml", yaml: "yaml", html: "markup", css: "css", txt: "none",
+  gitignore: "none",
+};
+const CODE_LARGE_HARD_LIMIT = 5_000_000; // 5 MB — refuse to fetch beyond this in-browser
+
+function formatCodeBytes(n) {
+  if (n < 1024) return n + " B";
+  if (n < 1024 * 1024) return (n / 1024).toFixed(1) + " KB";
+  return (n / 1024 / 1024).toFixed(2) + " MB";
+}
+
+function buildCodeTree(files) {
+  const root = { name: "", dirs: {}, files: [] };
+  for (const f of files) {
+    const parts = f.path.split("/");
+    let node = root;
+    for (let i = 0; i < parts.length - 1; i++) {
+      const name = parts[i];
+      if (!node.dirs[name]) node.dirs[name] = { name, dirs: {}, files: [] };
+      node = node.dirs[name];
+    }
+    node.files.push(f);
+  }
+  return root;
+}
+
+function CodeTreeNode({ node, depth, pathPrefix, expanded, setExpanded, selected, onSelect }) {
+  const dirNames = Object.keys(node.dirs).sort();
+  return (
+    <>
+      {dirNames.map(name => {
+        const childPath = pathPrefix ? pathPrefix + "/" + name : name;
+        const isOpen = !!expanded[childPath];
+        const child = node.dirs[name];
+        return (
+          <div key={"d:" + childPath}>
+            <button
+              onClick={() => setExpanded(prev => ({ ...prev, [childPath]: !prev[childPath] }))}
+              style={{
+                display: "flex", alignItems: "center", gap: "4px",
+                width: "100%", padding: "3px 6px",
+                paddingLeft: (6 + depth * 12) + "px",
+                fontSize: "12px", fontFamily: "inherit",
+                background: "none", border: "none", cursor: "pointer",
+                color: "#374151", textAlign: "left",
+              }}>
+              <span aria-hidden="true" style={{ width: "10px", display: "inline-block", color: "#9ca3af" }}>{isOpen ? "▾" : "▸"}</span>
+              <span style={{ color: "#0369a1" }}>📁</span>
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</span>
+            </button>
+            {isOpen && (
+              <CodeTreeNode node={child} depth={depth + 1} pathPrefix={childPath}
+                expanded={expanded} setExpanded={setExpanded}
+                selected={selected} onSelect={onSelect} />
+            )}
+          </div>
+        );
+      })}
+      {node.files.slice().sort((a, b) => a.path.localeCompare(b.path)).map(f => {
+        const isSel = selected === f.path;
+        const name = f.path.split("/").pop();
+        return (
+          <button key={"f:" + f.path}
+            onClick={() => onSelect(f.path)}
+            title={f.path + " · " + formatCodeBytes(f.size)}
+            style={{
+              display: "flex", alignItems: "center", gap: "4px",
+              width: "100%", padding: "3px 6px",
+              paddingLeft: (6 + depth * 12 + 14) + "px",
+              fontSize: "12px", fontFamily: "inherit",
+              background: isSel ? "#ecfdf5" : "none", border: "none", cursor: "pointer",
+              color: isSel ? "#065f46" : "#374151",
+              fontWeight: isSel ? 600 : 400,
+              textAlign: "left",
+            }}>
+            <span aria-hidden="true" style={{ color: "#9ca3af" }}>📄</span>
+            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{name}</span>
+            {f.large && <span aria-hidden="true" title="大檔" style={{ color: "#b45309", fontSize: "10px" }}>⚠</span>}
+          </button>
+        );
+      })}
+    </>
+  );
+}
+
+function CodeBrowserModal({ open, onClose }) {
+  const [manifest, setManifest] = React.useState(null);
+  const [manifestError, setManifestError] = React.useState(null);
+  const [selected, setSelected] = React.useState(null);
+  const [content, setContent] = React.useState("");
+  const [contentLoading, setContentLoading] = React.useState(false);
+  const [contentError, setContentError] = React.useState(null);
+  const [filter, setFilter] = React.useState("");
+  const [expanded, setExpanded] = React.useState({});
+  const [prismReady, setPrismReady] = React.useState(false);
+  const [copied, setCopied] = React.useState(false);
+  const codeRef = React.useRef(null);
+
+  // Lazy-load Prism.js on first open. Autoloader pulls per-language grammars from CDN as needed.
+  React.useEffect(() => {
+    if (!open) return;
+    if (typeof window === "undefined") return;
+    if (window.Prism) { setPrismReady(true); return; }
+    if (document.getElementById("prism-core-js")) return;
+
+    const css = document.createElement("link");
+    css.rel = "stylesheet";
+    css.href = "https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css";
+    document.head.appendChild(css);
+
+    const core = document.createElement("script");
+    core.id = "prism-core-js";
+    core.src = "https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js";
+    core.onload = () => {
+      const auto = document.createElement("script");
+      auto.src = "https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js";
+      auto.onload = () => {
+        if (window.Prism && window.Prism.plugins && window.Prism.plugins.autoloader) {
+          window.Prism.plugins.autoloader.languages_path =
+            "https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/";
+        }
+        setPrismReady(true);
+      };
+      document.head.appendChild(auto);
+    };
+    document.head.appendChild(core);
+  }, [open]);
+
+  // Load manifest on first open.
+  React.useEffect(() => {
+    if (!open || manifest || manifestError) return;
+    fetch("./data/runtime/code_manifest.json")
+      .then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(setManifest)
+      .catch(e => setManifestError(String(e && e.message || e)));
+  }, [open, manifest, manifestError]);
+
+  // Load file content when selection changes.
+  React.useEffect(() => {
+    if (!selected) return;
+    const file = manifest && manifest.files.find(f => f.path === selected);
+    if (file && file.size > CODE_LARGE_HARD_LIMIT) {
+      setContent("");
+      setContentError("檔案超過 " + formatCodeBytes(CODE_LARGE_HARD_LIMIT) + " 上限,請在 GitHub 上查看。");
+      return;
+    }
+    let cancelled = false;
+    setContent("");
+    setContentLoading(true);
+    setContentError(null);
+    fetch("./" + selected)
+      .then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.text(); })
+      .then(text => { if (!cancelled) { setContent(text); setContentLoading(false); } })
+      .catch(e => { if (!cancelled) { setContentError(String(e && e.message || e)); setContentLoading(false); } });
+    return () => { cancelled = true; };
+  }, [selected, manifest]);
+
+  // Highlight after content + prism ready.
+  React.useEffect(() => {
+    if (!prismReady || !content || !codeRef.current || !window.Prism) return;
+    try { window.Prism.highlightElement(codeRef.current); }
+    catch (e) { /* highlight failure shouldn't break the view */ }
+  }, [content, prismReady]);
+
+  // ESC closes modal.
+  React.useEffect(() => {
+    if (!open) return;
+    const onKey = e => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
+  const tree = React.useMemo(
+    () => manifest ? buildCodeTree(manifest.files) : null,
+    [manifest]
+  );
+  const lowerFilter = filter.trim().toLowerCase();
+  const filteredFiles = manifest && lowerFilter
+    ? manifest.files.filter(f => f.path.toLowerCase().includes(lowerFilter))
+    : null;
+
+  if (!open) return null;
+
+  const selFile = manifest && selected ? manifest.files.find(f => f.path === selected) : null;
+  const lang = selFile ? (CODE_LANG_MAP[selFile.ext] || "none") : "none";
+
+  return (
+    <div onClick={onClose} style={{
+      position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      zIndex: 200, padding: "20px",
+    }}>
+      <div onClick={e => e.stopPropagation()} role="dialog" aria-label="Code 瀏覽" style={{
+        background: "#fff", borderRadius: "12px",
+        width: "100%", maxWidth: "1280px", height: "85vh",
+        display: "flex", flexDirection: "column",
+        boxShadow: "0 8px 32px rgba(0,0,0,0.18)", overflow: "hidden",
+      }}>
+        <div style={{
+          padding: "14px 20px", borderBottom: "1px solid #e8e5e1",
+          display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px",
+        }}>
+          <div style={{ minWidth: 0 }}>
+            <h2 style={{ margin: 0, fontSize: "16px", fontWeight: 700 }}>📂 Code 瀏覽</h2>
+            <div style={{ fontSize: "11px", color: "#6b7280", marginTop: "2px" }}>
+              {manifest ? `${manifest.files.length} 個檔案` : (manifestError ? "manifest 載入失敗" : "載入中…")}
+              {manifest && manifest.generated_at && ` · 產出 ${manifest.generated_at}`}
+            </div>
+          </div>
+          <button onClick={onClose} aria-label="關閉" style={{
+            background: "none", border: "none", cursor: "pointer",
+            fontSize: "22px", color: "#999", lineHeight: 1, padding: "0 4px", fontFamily: "inherit",
+          }}>×</button>
+        </div>
+
+        <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
+          <div style={{
+            width: "320px", borderRight: "1px solid #e8e5e1",
+            display: "flex", flexDirection: "column", minWidth: 0,
+          }}>
+            <div style={{ padding: "10px", borderBottom: "1px solid #f0ede9" }}>
+              <input
+                type="search"
+                value={filter}
+                onChange={e => setFilter(e.target.value)}
+                placeholder="搜尋路徑…"
+                aria-label="搜尋檔案路徑"
+                style={{
+                  width: "100%", padding: "6px 10px",
+                  fontSize: "12px", fontFamily: "'JetBrains Mono', monospace",
+                  border: "1px solid #d1d5db", borderRadius: "6px",
+                  boxSizing: "border-box",
+                }} />
+            </div>
+            <div style={{ flex: 1, overflowY: "auto", padding: "6px 0" }}>
+              {manifestError && (
+                <div style={{ padding: "12px", color: "#b91c1c", fontSize: "12px" }}>
+                  manifest 載入失敗:{manifestError}
+                  <div style={{ marginTop: "8px", color: "#6b7280" }}>
+                    執行 <code>python3 scripts/core/build_code_manifest.py</code> 重產。
+                  </div>
+                </div>
+              )}
+              {!manifest && !manifestError && (
+                <div style={{ padding: "12px", color: "#6b7280", fontSize: "12px" }}>載入 manifest…</div>
+              )}
+              {filteredFiles && (
+                filteredFiles.length === 0 ? (
+                  <div style={{ padding: "12px", color: "#6b7280", fontSize: "12px" }}>無相符檔案</div>
+                ) : filteredFiles.map(f => {
+                  const isSel = selected === f.path;
+                  return (
+                    <button key={f.path}
+                      onClick={() => setSelected(f.path)}
+                      title={f.path + " · " + formatCodeBytes(f.size)}
+                      style={{
+                        display: "flex", alignItems: "center", gap: "4px",
+                        width: "100%", padding: "4px 10px",
+                        fontSize: "12px", fontFamily: "'JetBrains Mono', monospace",
+                        background: isSel ? "#ecfdf5" : "none",
+                        border: "none", cursor: "pointer",
+                        color: isSel ? "#065f46" : "#374151",
+                        fontWeight: isSel ? 600 : 400,
+                        textAlign: "left",
+                      }}>
+                      <span aria-hidden="true" style={{ color: "#9ca3af" }}>📄</span>
+                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{f.path}</span>
+                      {f.large && <span aria-hidden="true" title="大檔" style={{ color: "#b45309", fontSize: "10px" }}>⚠</span>}
+                    </button>
+                  );
+                })
+              )}
+              {tree && !filteredFiles && (
+                <CodeTreeNode node={tree} depth={0} pathPrefix=""
+                  expanded={expanded} setExpanded={setExpanded}
+                  selected={selected} onSelect={setSelected} />
+              )}
+            </div>
+          </div>
+
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+            {selected ? (
+              <>
+                <div style={{
+                  padding: "10px 14px", borderBottom: "1px solid #e8e5e1",
+                  display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px",
+                  fontSize: "12px", fontFamily: "'JetBrains Mono', monospace",
+                }}>
+                  <div style={{ fontWeight: 600, color: "#1a1a1a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {selected}
+                  </div>
+                  <div style={{ display: "flex", gap: "6px", alignItems: "center", flexShrink: 0 }}>
+                    {selFile && <span style={{ color: "#6b7280" }}>{formatCodeBytes(selFile.size)}</span>}
+                    {selFile && selFile.large && <span style={{ color: "#b45309", fontWeight: 600 }}>⚠ 大檔</span>}
+                    <button
+                      onClick={() => {
+                        if (!content || !navigator.clipboard) return;
+                        navigator.clipboard.writeText(content).then(
+                          () => { setCopied(true); setTimeout(() => setCopied(false), 1200); },
+                          () => {}
+                        );
+                      }}
+                      disabled={!content}
+                      style={{
+                        padding: "4px 10px", fontSize: "11px",
+                        border: "1px solid #d1d5db",
+                        background: copied ? "#ecfdf5" : "#f9fafb",
+                        color: copied ? "#065f46" : "#1a1a1a",
+                        borderRadius: "6px",
+                        cursor: content ? "pointer" : "not-allowed",
+                        fontFamily: "inherit",
+                      }}>
+                      {copied ? "已複製" : "複製"}
+                    </button>
+                    <a href={`https://github.com/${CODE_GH_REPO}/blob/main/${selected}`}
+                      target="_blank" rel="noopener noreferrer"
+                      style={{
+                        padding: "4px 10px", fontSize: "11px",
+                        border: "1px solid #d1d5db", background: "#f9fafb",
+                        borderRadius: "6px", textDecoration: "none", color: "#1a1a1a",
+                        fontFamily: "inherit",
+                      }}>GitHub ↗</a>
+                  </div>
+                </div>
+                <div style={{ flex: 1, overflow: "auto", background: "#fafafa" }}>
+                  {contentLoading && (
+                    <div style={{ padding: "20px", color: "#6b7280", fontSize: "13px" }}>載入檔案…</div>
+                  )}
+                  {contentError && (
+                    <div style={{ padding: "20px", color: "#b91c1c", fontSize: "13px" }}>
+                      載入失敗:{contentError}
+                    </div>
+                  )}
+                  {!contentLoading && !contentError && (
+                    <pre style={{
+                      margin: 0, padding: "14px 16px",
+                      fontSize: "12px", fontFamily: "'JetBrains Mono', monospace",
+                      lineHeight: 1.5, background: "transparent",
+                      whiteSpace: "pre",
+                    }}>
+                      <code ref={codeRef} className={"language-" + lang}
+                        style={{ background: "transparent", fontFamily: "inherit" }}>
+                        {content}
+                      </code>
+                    </pre>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div style={{
+                flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
+                color: "#9ca3af", fontSize: "13px", flexDirection: "column", gap: "8px", padding: "20px",
+              }}>
+                <div style={{ fontSize: "32px" }}>📂</div>
+                <div>左側選一個檔案查看</div>
+                <div style={{ fontSize: "11px", color: "#bbb" }}>
+                  data/runtime · docs/spec · pom_rules · l2_l3_ie · recipes · scripts
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* UploadModal:上傳 Techpack PDF / PPTX → GitHub → 追蹤 CI pipeline 每步驟狀態 */
 const CI_STEP_LABELS = {
   'Step 1 — extract raw text & callout images':                  '1｜拆解文字 & callout 圖片',
@@ -4706,6 +5080,7 @@ function App() {
   const [resultsOpen, setResultsOpen] = useState(false);
   const [ieOpen, setIeOpen] = useState(false);
   const [manualsOpen, setManualsOpen] = useState(false);
+  const [codeBrowserOpen, setCodeBrowserOpen] = useState(false);
   const [mgmtMenuOpen, setMgmtMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [adminToken, setAdminToken] = useState(() => {
@@ -6071,6 +6446,8 @@ function App() {
                   { key: 'dict',    label: 'POM 翻譯表編輯',     hint: '中英對照',        dot: '#0891b2', onClick: () => setAdminOpen(true) },
                   { key: 'ie',      label: 'IE 底稿管理',        hint: '聚陽 xlsx',       dot: '#b45309', onClick: () => setIeOpen(true) },
                   { key: 'manuals', label: '權威手冊登記表',     hint: '7 份規格手冊',    dot: '#7e22ce', onClick: () => setManualsOpen(true) },
+                  { key: '_divider2', divider: true },
+                  { key: 'code',    label: 'Code 瀏覽',          hint: 'repo 檔案瀏覽器', dot: '#475569', onClick: () => setCodeBrowserOpen(true) },
                 ].map(item => item.divider ? (
                   <div key={item.key} style={{
                     height: '1px', background: '#e8e5e1', margin: '4px 8px',
@@ -8571,6 +8948,7 @@ function App() {
         token={adminToken}
       />
       <ManualsModal open={manualsOpen} onClose={() => setManualsOpen(false)} />
+      <CodeBrowserModal open={codeBrowserOpen} onClose={() => setCodeBrowserOpen(false)} />
       <OnboardingModal open={onboardingOpen} onDismiss={dismissOnboarding} />
 
       {undoToast && (
