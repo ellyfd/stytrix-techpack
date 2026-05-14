@@ -10,17 +10,27 @@
   "gender": "BOYS",
   "n": 5,
   "size_range": [
-    "5/6",
-    "7/8",
-    "3/4",
-    "15/16",
     "17/18",
     "9/10",
+    "3/4",
+    "15/16",
+    "5/6",
+    "7/8",
     "13/14",
     "11/12"
   ],
   "measurement_rules": {
     "must": {
+      "T002": {
+        "rate": 1.0,
+        "count": 5,
+        "tolerance": {
+          "standard": 0.5,
+          "display": "1/2",
+          "dominance_pct": 100.0,
+          "n": 5
+        }
+      },
       "W001": {
         "rate": 1.0,
         "count": 5,
@@ -37,16 +47,6 @@
         "tolerance": {
           "standard": 0.25,
           "display": "1/4",
-          "dominance_pct": 100.0,
-          "n": 5
-        }
-      },
-      "T002": {
-        "rate": 1.0,
-        "count": 5,
-        "tolerance": {
-          "standard": 0.5,
-          "display": "1/2",
           "dominance_pct": 100.0,
           "n": 5
         }
@@ -167,18 +167,6 @@
         "17/18": 0.375
       }
     },
-    "X063": {
-      "size_medians": {
-        "3/4": 0.5,
-        "5/6": 0.5,
-        "7/8": 0.5,
-        "9/10": 0.5,
-        "11/12": 0.5,
-        "13/14": 0.5,
-        "15/16": 0.5,
-        "17/18": 0.5
-      }
-    },
     "X001": {
       "size_medians": {
         "3/4": 1.0,
@@ -189,6 +177,18 @@
         "13/14": 0.125,
         "15/16": 1.0,
         "17/18": 0.125
+      }
+    },
+    "X063": {
+      "size_medians": {
+        "3/4": 0.5,
+        "5/6": 0.5,
+        "7/8": 0.5,
+        "9/10": 0.5,
+        "11/12": 0.5,
+        "13/14": 0.5,
+        "15/16": 0.5,
+        "17/18": 0.5
       }
     },
     "X040": {
@@ -204,21 +204,21 @@
     }
   },
   "grading_rules": {
+    "T002": {
+      "typical_increment": 0.0,
+      "n_pairs": 25
+    },
     "W001": {
       "typical_increment": 0.0,
       "n_pairs": 30
-    },
-    "X063": {
-      "typical_increment": 0.0,
-      "n_pairs": 14
     },
     "X001": {
       "typical_increment": -0.875,
       "n_pairs": 32
     },
-    "T002": {
+    "X063": {
       "typical_increment": 0.0,
-      "n_pairs": 25
+      "n_pairs": 14
     },
     "X040": {
       "typical_increment": 0.0,
@@ -226,9 +226,21 @@
     }
   },
   "tolerance_standards": {
+    "T002": {
+      "standard": 0.5,
+      "display": "1/2",
+      "dominance_pct": 100.0,
+      "n": 5
+    },
     "W001": {
       "standard": 0.125,
       "display": "1/8",
+      "dominance_pct": 100.0,
+      "n": 5
+    },
+    "X001": {
+      "standard": 0.25,
+      "display": "1/4",
       "dominance_pct": 100.0,
       "n": 5
     },
@@ -237,18 +249,6 @@
       "display": "1/8",
       "dominance_pct": 100.0,
       "n": 2
-    },
-    "X001": {
-      "standard": 0.25,
-      "display": "1/4",
-      "dominance_pct": 100.0,
-      "n": 5
-    },
-    "T002": {
-      "standard": 0.5,
-      "display": "1/2",
-      "dominance_pct": 100.0,
-      "n": 5
     },
     "X040": {
       "standard": 0.125,

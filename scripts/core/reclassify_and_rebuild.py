@@ -148,6 +148,12 @@ def real_dept_v4(p):
         return 'Active'
     if 'ACTIVE' in dept:
         return 'Active'
+    # 2026-05-14: Athletic / 單獨 PERFORMANCE 也是 Active
+    # (修 ~1,089 筆原本掉進 RTW 預設: Athletic 722 / WOMENS PERFORMANCE 289 / KIDS PERFORMANCE 78)
+    if 'ATHLETIC' in dept:
+        return 'Active'
+    if 'PERFORMANCE' in dept:
+        return 'Active'
     if 'FLEECE' in dept:
         return 'Fleece'
     if 'SLEEP' in dept:
@@ -176,7 +182,11 @@ def real_dept_v4(p):
 
 
 def infer_fabric(p):
-    """Infer fabric type from category / sub_category / department."""
+    """Infer fabric type. 2026-05-14: 優先吃 M7列管 W/K (mk_fabric, 聚陽 canonical),
+    對不到才走 category / sub_category / department 關鍵字."""
+    mf = (p.get('mk_fabric') or '').strip()
+    if mf in ('Knit', 'Woven', 'Denim'):
+        return mf
     cat = (p.get('category') or '').upper()
     if cat.startswith('IPSS'):
         return 'Knit'

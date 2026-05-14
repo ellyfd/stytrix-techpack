@@ -83,10 +83,15 @@ for line in all_lines_iter:
         
         profiles.append({
             'design_id': rec.get('design_number', ''),
-            'gender': extract_gender(rec.get('brand_division', ''), rec.get('department', '')),
+            # 2026-05-14: gender 優先吃 M7列管 PRODUCT_CATEGORY (adapter 注入的 mk_gender),
+            # 對不到才 fallback 關鍵字 extract_gender(). 聚陽 canonical, 100% 覆蓋.
+            'gender': (rec.get('mk_gender') or '').strip()
+                      or extract_gender(rec.get('brand_division', ''), rec.get('department', '')),
             'item_type': rec.get('item_type', ''),
-            # 2026-05-14: 聚陽 canonical 款式 (EIDH 反查 M7 manifest). real_gt_v2 優先吃這欄.
+            # 2026-05-14: 聚陽 canonical — manifest_item=Item(garment_type), mk_fabric=W/K(Knit/Woven).
+            # reclassify_and_rebuild.py 的 real_gt_v2 / infer_fabric 優先吃這兩欄.
             'manifest_item': rec.get('manifest_item', ''),
+            'mk_fabric': rec.get('mk_fabric', ''),
             'category': rec.get('category', ''),
             'department_raw': rec.get('department', ''),
             'brand_division': rec.get('brand_division', ''),

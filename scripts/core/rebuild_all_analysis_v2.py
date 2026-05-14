@@ -641,3 +641,15 @@ else:
     print(f"  WARNING: {zone_file} not found, skipping bridge rebuild")
 
 print("\n=== ALL DONE ===")
+
+# ─── 2026-05-14: Pipeline B 斷鏈修復 — sync derived runtime outputs to repo ───
+# Step 4 原本只寫 $BASE/_parsed/, 但線上 index.html 讀 data/runtime/.
+import shutil as _shutil_s4
+_SCRIPT_DIR_S4 = os.path.dirname(os.path.abspath(__file__))
+_REPO_ROOT_S4 = os.path.dirname(os.path.dirname(_SCRIPT_DIR_S4))
+_RUNTIME_S4 = os.path.join(_REPO_ROOT_S4, 'data', 'runtime')
+for _fname in ('bodytype_variance.json', 'construction_bridge_v6.json'):
+    _src = os.path.join(PARSED, _fname)
+    if os.path.exists(_src):
+        _shutil_s4.copy2(_src, os.path.join(_RUNTIME_S4, _fname))
+        print(f"  [repo sync] {_fname} -> data/runtime/")

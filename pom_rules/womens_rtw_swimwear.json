@@ -68,7 +68,7 @@
       }
     },
     "recommend": {
-      "A460": {
+      "A450": {
         "rate": 0.5,
         "count": 3,
         "tolerance": {
@@ -78,7 +78,7 @@
           "n": 3
         }
       },
-      "A450": {
+      "A460": {
         "rate": 0.5,
         "count": 3,
         "tolerance": {
@@ -123,6 +123,15 @@
     }
   },
   "median_values": {
+    "A450": {
+      "size_medians": {
+        "2": 13.25,
+        "6": 13.75,
+        "10": 14.25,
+        "14": 15.0,
+        "18": 15.75
+      }
+    },
     "A000": {
       "size_medians": {
         "2": 3.0,
@@ -139,15 +148,6 @@
         "10": 12.625,
         "14": 13.375,
         "18": 14.125
-      }
-    },
-    "A450": {
-      "size_medians": {
-        "2": 13.25,
-        "6": 13.75,
-        "10": 14.25,
-        "14": 15.0,
-        "18": 15.75
       }
     },
     "A166": {
@@ -167,15 +167,15 @@
     }
   },
   "grading_rules": {
+    "A450": {
+      "typical_increment": 0.625,
+      "n_pairs": 12
+    },
     "A000": {
       "typical_increment": 0.0,
       "n_pairs": 21
     },
     "A460": {
-      "typical_increment": 0.625,
-      "n_pairs": 12
-    },
-    "A450": {
       "typical_increment": 0.625,
       "n_pairs": 12
     },
@@ -191,6 +191,10 @@
       "typical_increment": 0.0,
       "n_pairs": 6
     },
+    "A120": {
+      "typical_increment": 0.062,
+      "n_pairs": 4
+    },
     "A100": {
       "typical_increment": 0.25,
       "n_pairs": 4
@@ -198,13 +202,15 @@
     "A164": {
       "typical_increment": 0.0,
       "n_pairs": 4
-    },
-    "A120": {
-      "typical_increment": 0.062,
-      "n_pairs": 4
     }
   },
   "tolerance_standards": {
+    "A450": {
+      "standard": 0.25,
+      "display": "1/4",
+      "dominance_pct": 100.0,
+      "n": 3
+    },
     "A000": {
       "standard": 0.125,
       "display": "1/8",
@@ -212,12 +218,6 @@
       "n": 4
     },
     "A460": {
-      "standard": 0.25,
-      "display": "1/4",
-      "dominance_pct": 100.0,
-      "n": 3
-    },
-    "A450": {
       "standard": 0.25,
       "display": "1/4",
       "dominance_pct": 100.0,
@@ -241,6 +241,12 @@
       "dominance_pct": 100.0,
       "n": 2
     },
+    "A120": {
+      "standard": 0.125,
+      "display": "1/8",
+      "dominance_pct": 100.0,
+      "n": 1
+    },
     "A100": {
       "standard": 0.25,
       "display": "1/4",
@@ -248,12 +254,6 @@
       "n": 1
     },
     "A164": {
-      "standard": 0.125,
-      "display": "1/8",
-      "dominance_pct": 100.0,
-      "n": 1
-    },
-    "A120": {
       "standard": 0.125,
       "display": "1/8",
       "dominance_pct": 100.0,

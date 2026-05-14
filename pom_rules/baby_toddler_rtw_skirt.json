@@ -15,14 +15,24 @@
     "3T",
     "4T",
     "5T",
-    "18- 24 MONTHS MEASUREMENT CHART REVIEW",
     "6- 12 MONTHS",
-    "6T",
     "18- 24 MONTHS",
-    "12-1 8 MONTHS"
+    "12-1 8 MONTHS",
+    "6T",
+    "18- 24 MONTHS MEASUREMENT CHART REVIEW"
   ],
   "measurement_rules": {
     "must": {
+      "O1": {
+        "rate": 1.0,
+        "count": 4,
+        "tolerance": {
+          "standard": 0.25,
+          "display": "1/4",
+          "dominance_pct": 75.0,
+          "n": 4
+        }
+      },
       "H1": {
         "rate": 1.0,
         "count": 4,
@@ -34,14 +44,14 @@
         },
         "tier1_enforced": true
       },
-      "O1": {
-        "rate": 1.0,
-        "count": 4,
+      "H4": {
+        "rate": 0.75,
+        "count": 3,
         "tolerance": {
-          "standard": 0.25,
-          "display": "1/4",
-          "dominance_pct": 75.0,
-          "n": 4
+          "standard": 0.375,
+          "display": "3/8",
+          "dominance_pct": 100.0,
+          "n": 3
         }
       },
       "H3": {
@@ -55,16 +65,6 @@
         }
       },
       "I6": {
-        "rate": 0.75,
-        "count": 3,
-        "tolerance": {
-          "standard": 0.375,
-          "display": "3/8",
-          "dominance_pct": 100.0,
-          "n": 3
-        }
-      },
-      "H4": {
         "rate": 0.75,
         "count": 3,
         "tolerance": {
@@ -113,6 +113,16 @@
     },
     "recommend": {},
     "optional": {
+      "T2": {
+        "rate": 0.25,
+        "count": 1,
+        "tolerance": {
+          "standard": 0.125,
+          "display": "1/8",
+          "dominance_pct": 100.0,
+          "n": 1
+        }
+      },
       "G11": {
         "rate": 0.25,
         "count": 1,
@@ -142,28 +152,23 @@
           "dominance_pct": 100.0,
           "n": 1
         }
-      },
-      "T2": {
-        "rate": 0.25,
-        "count": 1,
-        "tolerance": {
-          "standard": 0.125,
-          "display": "1/8",
-          "dominance_pct": 100.0,
-          "n": 1
-        }
       }
     }
   },
   "median_values": {
+    "O1": {
+      "size_medians": {
+        "18- 24 MONTHS MEASUREMENT CHART REVIEW": 9.5
+      }
+    },
     "H1": {
       "size_medians": {
         "18- 24 MONTHS MEASUREMENT CHART REVIEW": 0.875
       }
     },
-    "O1": {
+    "H4": {
       "size_medians": {
-        "18- 24 MONTHS MEASUREMENT CHART REVIEW": 9.5
+        "18- 24 MONTHS MEASUREMENT CHART REVIEW": 13.0
       }
     },
     "H3": {
@@ -175,23 +180,10 @@
       "size_medians": {
         "18- 24 MONTHS MEASUREMENT CHART REVIEW": 25.0
       }
-    },
-    "H4": {
-      "size_medians": {
-        "18- 24 MONTHS MEASUREMENT CHART REVIEW": 13.0
-      }
     }
   },
   "grading_rules": {
-    "G11": {
-      "typical_increment": 0.25,
-      "n_pairs": 6
-    },
-    "H2": {
-      "typical_increment": 0.25,
-      "n_pairs": 6
-    },
-    "H1": {
+    "T2": {
       "typical_increment": 0.0,
       "n_pairs": 6
     },
@@ -199,29 +191,25 @@
       "typical_increment": 0.875,
       "n_pairs": 6
     },
-    "T10": {
+    "H1": {
       "typical_increment": 0.0,
       "n_pairs": 6
     },
-    "T2": {
+    "G11": {
+      "typical_increment": 0.25,
+      "n_pairs": 6
+    },
+    "H2": {
+      "typical_increment": 0.25,
+      "n_pairs": 6
+    },
+    "T10": {
       "typical_increment": 0.0,
       "n_pairs": 6
     }
   },
   "tolerance_standards": {
-    "G11": {
-      "standard": 0.125,
-      "display": "1/8",
-      "dominance_pct": 100.0,
-      "n": 1
-    },
-    "H2": {
-      "standard": 0.25,
-      "display": "1/4",
-      "dominance_pct": 100.0,
-      "n": 1
-    },
-    "H1": {
+    "T2": {
       "standard": 0.125,
       "display": "1/8",
       "dominance_pct": 100.0,
@@ -233,17 +221,35 @@
       "dominance_pct": 75.0,
       "n": 4
     },
+    "H1": {
+      "standard": 0.125,
+      "display": "1/8",
+      "dominance_pct": 100.0,
+      "n": 1
+    },
+    "G11": {
+      "standard": 0.125,
+      "display": "1/8",
+      "dominance_pct": 100.0,
+      "n": 1
+    },
+    "H2": {
+      "standard": 0.25,
+      "display": "1/4",
+      "dominance_pct": 100.0,
+      "n": 1
+    },
     "T10": {
       "standard": 0.125,
       "display": "1/8",
       "dominance_pct": 100.0,
       "n": 1
     },
-    "T2": {
-      "standard": 0.125,
-      "display": "1/8",
+    "H4": {
+      "standard": 0.375,
+      "display": "3/8",
       "dominance_pct": 100.0,
-      "n": 1
+      "n": 3
     },
     "H3": {
       "standard": 0.375,
@@ -252,12 +258,6 @@
       "n": 3
     },
     "I6": {
-      "standard": 0.375,
-      "display": "3/8",
-      "dominance_pct": 100.0,
-      "n": 3
-    },
-    "H4": {
       "standard": 0.375,
       "display": "3/8",
       "dominance_pct": 100.0,

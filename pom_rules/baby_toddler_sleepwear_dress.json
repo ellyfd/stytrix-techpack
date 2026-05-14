@@ -15,25 +15,15 @@
     "3T",
     "4T",
     "5T",
-    "0-3 MONTHS",
     "3-6 MONTHS",
     "6- 12 MONTHS",
-    "6T",
     "18- 24 MONTHS",
-    "12-1 8 MONTHS"
+    "12-1 8 MONTHS",
+    "6T",
+    "0-3 MONTHS"
   ],
   "measurement_rules": {
     "must": {
-      "B26": {
-        "rate": 1.0,
-        "count": 4,
-        "tolerance": {
-          "standard": 0.125,
-          "display": "1/8",
-          "dominance_pct": 75.0,
-          "n": 4
-        }
-      },
       "B29": {
         "rate": 1.0,
         "count": 4,
@@ -54,15 +44,26 @@
           "n": 4
         }
       },
-      "C3": {
-        "rate": 0.75,
-        "count": 3,
+      "B26": {
+        "rate": 1.0,
+        "count": 4,
         "tolerance": {
           "standard": 0.125,
           "display": "1/8",
+          "dominance_pct": 75.0,
+          "n": 4
+        }
+      },
+      "C1": {
+        "rate": 0.75,
+        "count": 3,
+        "tolerance": {
+          "standard": 0.25,
+          "display": "1/4",
           "dominance_pct": 100.0,
           "n": 3
-        }
+        },
+        "tier1_enforced": true
       },
       "F6": {
         "rate": 0.75,
@@ -70,6 +71,26 @@
         "tolerance": {
           "standard": 0.25,
           "display": "1/4",
+          "dominance_pct": 100.0,
+          "n": 3
+        }
+      },
+      "F11": {
+        "rate": 0.75,
+        "count": 3,
+        "tolerance": {
+          "standard": 0.375,
+          "display": "3/8",
+          "dominance_pct": 100.0,
+          "n": 3
+        }
+      },
+      "C6": {
+        "rate": 0.75,
+        "count": 3,
+        "tolerance": {
+          "standard": 0.125,
+          "display": "1/8",
           "dominance_pct": 100.0,
           "n": 3
         }
@@ -94,33 +115,12 @@
           "n": 3
         }
       },
-      "C6": {
+      "C3": {
         "rate": 0.75,
         "count": 3,
         "tolerance": {
           "standard": 0.125,
           "display": "1/8",
-          "dominance_pct": 100.0,
-          "n": 3
-        }
-      },
-      "C1": {
-        "rate": 0.75,
-        "count": 3,
-        "tolerance": {
-          "standard": 0.25,
-          "display": "1/4",
-          "dominance_pct": 100.0,
-          "n": 3
-        },
-        "tier1_enforced": true
-      },
-      "F11": {
-        "rate": 0.75,
-        "count": 3,
-        "tolerance": {
-          "standard": 0.375,
-          "display": "3/8",
           "dominance_pct": 100.0,
           "n": 3
         }
@@ -160,15 +160,6 @@
     "optional": {}
   },
   "median_values": {
-    "B26": {
-      "size_medians": {
-        "2T": 0.125,
-        "3T": 0.25,
-        "4T": 0.375,
-        "5T": 0.5,
-        "6T": 0.625
-      }
-    },
     "B25": {
       "size_medians": {
         "2T": 0.125,
@@ -178,22 +169,13 @@
         "6T": 0.625
       }
     },
-    "F6": {
+    "B26": {
       "size_medians": {
-        "2T": 0.375,
-        "3T": 0.75
-      }
-    },
-    "F9": {
-      "size_medians": {
-        "2T": 0.375,
-        "3T": 0.75
-      }
-    },
-    "H18": {
-      "size_medians": {
-        "2T": 0.375,
-        "3T": 0.75
+        "2T": 0.125,
+        "3T": 0.25,
+        "4T": 0.375,
+        "5T": 0.5,
+        "6T": 0.625
       }
     },
     "C1": {
@@ -210,6 +192,12 @@
         "6T": 11.875
       }
     },
+    "F6": {
+      "size_medians": {
+        "2T": 0.375,
+        "3T": 0.75
+      }
+    },
     "F11": {
       "size_medians": {
         "2T": 13.625,
@@ -223,13 +211,21 @@
         "18- 24 MONTHS": 13.25,
         "6T": 15.125
       }
+    },
+    "F9": {
+      "size_medians": {
+        "2T": 0.375,
+        "3T": 0.75
+      }
+    },
+    "H18": {
+      "size_medians": {
+        "2T": 0.375,
+        "3T": 0.75
+      }
     }
   },
   "grading_rules": {
-    "B26": {
-      "typical_increment": 0.125,
-      "n_pairs": 18
-    },
     "B29": {
       "typical_increment": 0.0,
       "n_pairs": 30
@@ -238,13 +234,25 @@
       "typical_increment": 0.125,
       "n_pairs": 18
     },
-    "C3": {
-      "typical_increment": 0.0,
-      "n_pairs": 24
+    "B26": {
+      "typical_increment": 0.125,
+      "n_pairs": 18
+    },
+    "C1": {
+      "typical_increment": 0.375,
+      "n_pairs": 27
     },
     "F6": {
       "typical_increment": 0.375,
       "n_pairs": 3
+    },
+    "F11": {
+      "typical_increment": 0.375,
+      "n_pairs": 27
+    },
+    "C6": {
+      "typical_increment": 0.0,
+      "n_pairs": 24
     },
     "F9": {
       "typical_increment": 0.375,
@@ -254,26 +262,12 @@
       "typical_increment": 0.375,
       "n_pairs": 3
     },
-    "C6": {
+    "C3": {
       "typical_increment": 0.0,
       "n_pairs": 24
-    },
-    "C1": {
-      "typical_increment": 0.375,
-      "n_pairs": 27
-    },
-    "F11": {
-      "typical_increment": 0.375,
-      "n_pairs": 27
     }
   },
   "tolerance_standards": {
-    "B26": {
-      "standard": 0.125,
-      "display": "1/8",
-      "dominance_pct": 75.0,
-      "n": 4
-    },
     "B29": {
       "standard": 0.125,
       "display": "1/8",
@@ -286,15 +280,33 @@
       "dominance_pct": 100.0,
       "n": 4
     },
-    "C3": {
+    "B26": {
       "standard": 0.125,
       "display": "1/8",
+      "dominance_pct": 75.0,
+      "n": 4
+    },
+    "C1": {
+      "standard": 0.25,
+      "display": "1/4",
       "dominance_pct": 100.0,
       "n": 3
     },
     "F6": {
       "standard": 0.25,
       "display": "1/4",
+      "dominance_pct": 100.0,
+      "n": 3
+    },
+    "F11": {
+      "standard": 0.375,
+      "display": "3/8",
+      "dominance_pct": 100.0,
+      "n": 3
+    },
+    "C6": {
+      "standard": 0.125,
+      "display": "1/8",
       "dominance_pct": 100.0,
       "n": 3
     },
@@ -310,21 +322,9 @@
       "dominance_pct": 100.0,
       "n": 3
     },
-    "C6": {
+    "C3": {
       "standard": 0.125,
       "display": "1/8",
-      "dominance_pct": 100.0,
-      "n": 3
-    },
-    "C1": {
-      "standard": 0.25,
-      "display": "1/4",
-      "dominance_pct": 100.0,
-      "n": 3
-    },
-    "F11": {
-      "standard": 0.375,
-      "display": "3/8",
       "dominance_pct": 100.0,
       "n": 3
     }
