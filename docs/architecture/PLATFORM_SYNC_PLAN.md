@@ -72,13 +72,13 @@
 **只會碰的檔案**（做工相關）：
 - `data/recipes_master.json`（既有，schema 升級）
 - `data/master.jsonl`（新加）
-- `data/ingest/m7_pullon/`（新加目錄）
+- `data/ingest/m7/`（新加目錄）
 - `data/ingest/consensus_v1/` `consensus_rules/` `ocr_v1/` `unified/`（既有，不動）
 - `l2_l3_ie/*.json`（既有，可能改用 derive）
 - `l2_l3_ie_by_client/*.json`（既有，可能改用 derive）
-- `star_schema/scripts/build_recipes_master.py`（既有，加 m7_pullon source）
+- `star_schema/scripts/build_recipes_master.py`（既有，加 m7 source）
 - `star_schema/scripts/extract_unified.py` / `vlm_pipeline.py` / `extract_raw_text.py`（既有，不動）
-- `.github/workflows/rebuild_master.yml`（trigger 加 m7_pullon）
+- `.github/workflows/rebuild_master.yml`（trigger 加 m7）
 - README.md / 網站架構圖.md / CLAUDE.md（補做工章節）
 
 ---
@@ -114,21 +114,21 @@
 
 ## 📋 Sync 清單（按 stytrix-techpack repo 路徑分組）
 
-### A. 加新 source — `data/ingest/m7_pullon/`
+### A. 加新 source — `data/ingest/m7/`
 
 | 動作 | File | 內容 |
 |---|---|---|
-| 🆕 新增 | `data/ingest/m7_pullon/entries.jsonl` | M7 Pipeline 輸出，每行一筆含 5-dim key + iso + methods + by_client breakdown + ie_seconds |
-| 🆕 新增 | `data/ingest/m7_pullon/.gitkeep` | 確保目錄存在 |
-| 🆕 新增 | `data/ingest/m7_pullon/_metadata.json` | M7 source 版本資訊 / 抓取時間 / EIDH 範圍 |
+| 🆕 新增 | `data/ingest/m7/entries.jsonl` | M7 Pipeline 輸出，每行一筆含 5-dim key + iso + methods + by_client breakdown + ie_seconds |
+| 🆕 新增 | `data/ingest/m7/.gitkeep` | 確保目錄存在 |
+| 🆕 新增 | `data/ingest/m7/_metadata.json` | M7 source 版本資訊 / 抓取時間 / EIDH 範圍 |
 
-**M7 端輸出**：寫新 script `build_master_v7.py`（取代 `build_recipes_master_v6 + build_client_specific_l2_l3_ie`）→ 輸出單一 master.jsonl → push 到 platform repo `data/ingest/m7_pullon/entries.jsonl`
+**M7 端輸出**：寫新 script `build_master_v7.py`（取代 `build_recipes_master_v6 + build_client_specific_l2_l3_ie`）→ 輸出單一 master.jsonl → push 到 platform repo `data/ingest/m7/entries.jsonl`
 
 ### B. 改現有平台 script — `star_schema/scripts/`
 
 | 動作 | File | 改什麼 |
 |---|---|---|
-| ✏️ 改 | `star_schema/scripts/build_recipes_master.py` | (1) 加 `build_from_m7_pullon()` 函式，仿 `build_from_consensus()`；(2) 把 m7_pullon 加進 cascade（建議 same_bucket 層）；(3) 輸出多加一個 `data/master.jsonl`（重量版含 by_client）+ 保留 recipes_master.json（輕量版） |
+| ✏️ 改 | `star_schema/scripts/build_recipes_master.py` | (1) 加 `build_from_m7_pullon()` 函式，仿 `build_from_consensus()`；(2) 把 m7 加進 cascade（建議 same_bucket 層）；(3) 輸出多加一個 `data/master.jsonl`（重量版含 by_client）+ 保留 recipes_master.json（輕量版） |
 | 🆕 新增 | `star_schema/scripts/derive_view_by_client.py` | 從 master.jsonl 抽 by_client 細節，重組成 26 個 `l2_l3_ie_by_client/<L1>.json` |
 | 🆕 新增 | `star_schema/scripts/derive_bible_actuals.py` | 從 master.jsonl 抽通用 L2-L5（不分 brand），重建 38 個 `l2_l3_ie/<L1>.json`（取代現有從 xlsx 抽的版本）|
 
@@ -136,15 +136,15 @@
 
 | 動作 | File | 改什麼 |
 |---|---|---|
-| ✏️ 改 | `.github/workflows/rebuild_master.yml` | (1) trigger 加 `data/ingest/m7_pullon/`；(2) Step 3 改成 3 步（build master / derive recipes_master / derive by_client）；(3) commit 多新增 `data/master.jsonl` |
+| ✏️ 改 | `.github/workflows/rebuild_master.yml` | (1) trigger 加 `data/ingest/m7/`；(2) Step 3 改成 3 步（build master / derive recipes_master / derive by_client）；(3) commit 多新增 `data/master.jsonl` |
 | ✏️ 改（可能可保留）| `.github/workflows/build_bible_skeleton.yml` | 評估：是否改用 derive_bible_actuals 取代從 xlsx 直接 build |
 
 ### D. 文件同步 — top-level + docs
 
 | 動作 | File | 改什麼 |
 |---|---|---|
-| ✏️ 改 | `README.md` | (1) 「資料來源」區補第 6 個 source（m7_pullon）；(2) 新增「Master + 兩個 View」區段；(3) 「ISO 查表版本演進」表加新 row m7_pullon |
-| ✏️ 改 | `網站架構圖.md` | Mermaid 圖補 m7_pullon source + master.jsonl 節點 + derive 兩個 view 流程 |
+| ✏️ 改 | `README.md` | (1) 「資料來源」區補第 6 個 source（m7）；(2) 新增「Master + 兩個 View」區段；(3) 「ISO 查表版本演進」表加新 row m7 |
+| ✏️ 改 | `網站架構圖.md` | Mermaid 圖補 m7 source + master.jsonl 節點 + derive 兩個 view 流程 |
 | 🆕 新增 | `data/master.jsonl` 章節說明 | README 加新 file description |
 | ✏️ 改 | `CLAUDE.md` | 補 v7 結構說明（給 AI 看的 brief） |
 
@@ -153,11 +153,11 @@
 | 動作 | File | 動作 |
 |---|---|---|
 | 🆕 新增 | `M7_Pipeline/scripts/build_master_v7.py` | 整合 v6 build_recipes_master + by_client，輸出 master.jsonl |
-| 🆕 新增 | `M7_Pipeline/scripts/push_master_to_platform.py` | 把 master.jsonl push 到 platform repo `data/ingest/m7_pullon/entries.jsonl` |
+| 🆕 新增 | `M7_Pipeline/scripts/push_master_to_platform.py` | 把 master.jsonl push 到 platform repo `data/ingest/m7/entries.jsonl` |
 | ⛔ 取消 | `build_recipes_master_v6.py` | retire（被 build_master_v7 取代）|
 | ⛔ 取消 | `build_client_specific_l2_l3_ie.py` | retire（functionality 移到 platform 端 derive）|
 | ⛔ 取消 | `convert_to_platform_schema.py` | retire（master.jsonl 已對齊 platform schema）|
-| ⛔ 取消 | `merge_into_platform_repo.py` | retire（改用 push_master_to_platform.py 直 push 到 ingest/m7_pullon）|
+| ⛔ 取消 | `merge_into_platform_repo.py` | retire（改用 push_master_to_platform.py 直 push 到 ingest/m7）|
 
 ---
 
@@ -165,15 +165,15 @@
 
 ### Phase 1 — 等 fetch 跑完馬上做（~1 day）
 
-1. **改 platform `build_recipes_master.py` 加 m7_pullon source**
+1. **改 platform `build_recipes_master.py` 加 m7 source**
    - 新增 `build_from_m7_pullon()` 函式
    - 加進 cascade
-   - **不**改 output schema（先讓 m7_pullon 走現有 5-dim entry schema）
+   - **不**改 output schema（先讓 m7 走現有 5-dim entry schema）
 2. **寫 M7 `build_master_v7.py`**
    - 整合 v6 + by_client，但 output 格式對齊 platform 現有 entry schema（5-dim）
    - 暫時不含 by_client（Phase 2 再加）
-3. **改 `rebuild_master.yml` trigger 加 ingest/m7_pullon/**
-4. **驗證**：M7 push entries.jsonl → workflow 跑 → recipes_master 含 m7_pullon source entries
+3. **改 `rebuild_master.yml` trigger 加 ingest/m7/**
+4. **驗證**：M7 push entries.jsonl → workflow 跑 → recipes_master 含 m7 source entries
 
 ### Phase 2 — Master Schema 升級（~2 days）
 
@@ -230,7 +230,7 @@ M7 Pipeline (聚陽端，Windows)：
                                   ▼
 ─────────────────────────────────────────────────────────────────────────
 Platform GitHub (stytrix-techpack)：
-  data/ingest/m7_pullon/entries.jsonl
+  data/ingest/m7/entries.jsonl
        + 5 個原 source（v4.3 / v4 / consensus / recipe / bridge / facts_agg）
                                   ↓ trigger rebuild_master.yml
                           star_schema/scripts/build_recipes_master.py
