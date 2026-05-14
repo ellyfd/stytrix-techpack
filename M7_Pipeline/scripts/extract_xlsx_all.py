@@ -354,15 +354,28 @@ def _classify_sheet(sheet_name: str, sample_rows: list[list]) -> str:
     name_is_mc = any(h in name_lower for h in MC_NAME_KEYWORDS)
     if name_is_mc:
         return "measurement"
+    # 2026-05-14: NET (主富供) 尺寸表 — sheet 名是 style code (如 "1-1300"),
+    # 標題列 "NET 全碼表" / "全碼尺寸", tolerance 用「誤差值」「(+ -)」非英文 TOL.
+    # 名稱級偵測都不中, 補一個 NET 簽名 shortcut.
+    if "全碼表" in blob or "全碼尺寸" in blob:
+        return "measurement"
+    # 2026-05-14: WMT ASTM Grade Rule Table — "POM #" header + "Tol (+)/Tol (-)" 欄,
+    # size label 是 "M (8) Plus" / "XS (4/5)" 這種帶括號後綴 → has_size_label 抓不到, 補簽名偵測.
+    if (("pom #" in blob or "pom#" in blob)
+            and ("tol (+)" in blob or "tol(+)" in blob or "tol (-)" in blob
+                 or "grade rule" in blob)):
+        return "measurement"
     # 內容偵測: 同 row 含 size token + tol + 數字 → 視為 MC
     # 細化: 需要 POM-ish row (有編號 + measurement-like data) 而不是隨意 "POM" 字
     has_size_label = any(s in blob for s in
                          ["xxs", "\nxs", " xs ", "\ns ", " s\n", "size:", "尺寸",
-                          "2t", "3t", "4t", "yxs", "ysm"])
-    has_tol = ("tol" in blob or "tolerance" in blob or "+/-" in blob)
+                          "2t", "3t", "4t", "yxs", "ysm", " size ", "size\n"])
+    has_tol = ("tol" in blob or "tolerance" in blob or "+/-" in blob
+               or "誤差值" in blob or "误差值" in blob or "公差" in blob
+               or "(+ -)" in blob or "(+-)" in blob or "±" in blob)
     has_pom_or_meas = ("pom" in blob or "measurement" in blob or "尺寸" in blob or
                        "點" in blob or "circumference" in blob or "length" in blob or
-                       "width" in blob)
+                       "width" in blob or "全碼" in blob or "圍" in blob or "围" in blob)
     if has_size_label and has_tol and has_pom_or_meas:
         return "measurement"
     return "junk"
@@ -546,7 +559,8 @@ def _parse_measurement_chart_sheet(sheet_rows: list[list]) -> list[dict]:
     """
     SIZE_TOKENS = {
         # Alpha
-        "XS", "S", "M", "L", "XL", "XXL", "2XL", "3XL", "4XL", "5XL", "6XL", "XXS",
+        "XS", "S", "M", "L", "XL", "XXL", "XXXL", "XXXXL",
+        "2XL", "3XL", "4XL", "5XL", "6XL", "XXS",
         # Toddler / Youth
         "2T", "3T", "4T", "5T", "6T", "YXS", "YSM", "YMD", "YLG", "YXL",
         # Numeric
@@ -555,19 +569,28 @@ def _parse_measurement_chart_sheet(sheet_rows: list[list]) -> list[dict]:
     }
 
     def _norm_size(s: str) -> str:
-        """Extract canonical size token from cell value like 'XS (0-2)' → 'XS' or 'S\n4-6' → 'S'."""
+        """Extract canonical size token. 處理 'XS (0-2)' / 'S\\n4-6' / 'L(10/12)' /
+        'M (8) Plus' (WMT ASTM 表的帶括號後綴 size label)."""
         if not s:
             return ""
-        # Try first word/token (split by space or newline)
-        for sep in ("\n", " ", "(", "/"):
-            if sep in s:
-                s = s.split(sep)[0]
+        su = str(s).strip().upper()
+        # 去掉描述後綴 (WMT ASTM: "M (8) PLUS" / "10 SLIM" / "12 HUSKY")
+        for suf in (" PLUS", " SLIM", " REG", " HUSKY", " PETITE", " TALL"):
+            if su.endswith(suf):
+                su = su[:-len(suf)].strip()
+        # 切在第一個分隔符 (空格 / 括號 / 斜線 / 換行 / 連字號)
+        for sep in ("\n", " ", "(", "/", "-"):
+            if sep in su:
+                su = su.split(sep)[0]
                 break
-        s = s.strip().upper()
-        return s if s in SIZE_TOKENS else ""
+        su = su.strip()
+        return su if su in SIZE_TOKENS else ""
 
     # Find header row: ≥3 size tokens + at least one POM/Points/項目 keyword
-    POM_KW = ("POM", "POINTS OF MEASURE", "DESCRIPTION", "項目", "TOL")
+    # 2026-05-14: 加 SIZE / 誤差值 / 尺寸 / 全碼 — NET 尺寸表 header 列是
+    # "SIZE | S | M | L | XL | 誤差值", 沒有 POM/DESCRIPTION 字眼。size_hits>=3 仍是強過濾。
+    POM_KW = ("POM", "POINTS OF MEASURE", "DESCRIPTION", "項目", "TOL",
+              "SIZE", "誤差值", "误差值", "尺寸", "全碼")
     header_row_idx = -1
     header = None
     for i, row in enumerate(sheet_rows[:40]):
@@ -577,6 +600,25 @@ def _parse_measurement_chart_sheet(sheet_rows: list[list]) -> list[dict]:
         if not any(kw in upper_blob for kw in POM_KW):
             continue
         size_hits = sum(1 for c in cells if _norm_size(c))
+        # 2026-05-14: WMT ASTM Grade Rule Table 是 2-row 拆分表頭 —
+        # 上一 row 放 size labels (cols 4-10), POM_KW row 只放 POM#/Name/Tol (cols 0-3).
+        # POM_KW row 本身 size_hits<3 時, 往上看 1-2 row 補 size 欄 (per-column merge).
+        if size_hits < 3 and i > 0:
+            for back in (1, 2):
+                if i - back < 0:
+                    break
+                prev = sheet_rows[i - back] or []
+                prev_cells = [str(c).strip() if c is not None else "" for c in prev]
+                if sum(1 for c in prev_cells if _norm_size(c)) >= 3:
+                    width = max(len(cells), len(prev_cells))
+                    merged = []
+                    for ci in range(width):
+                        a = cells[ci] if ci < len(cells) else ""
+                        b = prev_cells[ci] if ci < len(prev_cells) else ""
+                        merged.append(a if a else b)
+                    cells = merged
+                    size_hits = sum(1 for c in cells if _norm_size(c))
+                    break
         if size_hits >= 3:
             header_row_idx = i
             header = cells
@@ -607,9 +649,10 @@ def _parse_measurement_chart_sheet(sheet_rows: list[list]) -> list[dict]:
             if h_upper.startswith("POINTS OF MEASURE") or "POINT OF MEASURE" in h_upper:
                 pom_code_col = ci
                 continue
-        # Description
+        # Description (含 WMT ASTM 表的 "Name" 欄)
         if desc_col < 0 and pom_code_col >= 0 and ci > pom_code_col:
-            if ("DESCRIPTION" in h_upper or h_upper == "DESCRIPTION"):
+            if ("DESCRIPTION" in h_upper or h_upper == "DESCRIPTION"
+                    or h_upper == "NAME"):
                 desc_col = ci
                 continue
         # NOTES
@@ -620,8 +663,8 @@ def _parse_measurement_chart_sheet(sheet_rows: list[list]) -> list[dict]:
         if cn_trans_col < 0 and "翻譯" in h:
             cn_trans_col = ci
             continue
-        # Tol columns
-        if "TOL" in h_upper:
+        # Tol columns (含中文「誤差值」「公差」— NET / 主富供 用單一容差欄)
+        if "TOL" in h_upper or "誤差值" in h or "误差值" in h or "公差" in h:
             # Distinguish neg vs pos
             if "-" in h and tol_neg_col < 0:
                 tol_neg_col = ci

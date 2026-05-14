@@ -32,6 +32,17 @@ from collections import Counter, defaultdict
 # import shared modules
 SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR))
+
+# 2026-05-14: 防 stale __pycache__ — task #63 的 root cause。
+# 改了 page_classifier.py / client_parsers/*.py 後 re-extract, 若舊 .pyc 還在
+# (檔案 mtime 沒更新等情況), import 會吃到舊 bytecode → Strong Signal 7 等修正
+# 沒生效, 大批 design 落 A 桶 (parser-fail)。在 import parser 前先清掉所有 __pycache__。
+import shutil as _shutil_pc
+for _pc_root, _pc_dirs, _ in __import__("os").walk(str(SCRIPT_DIR)):
+    if "__pycache__" in _pc_dirs:
+        _shutil_pc.rmtree(__import__("os").path.join(_pc_root, "__pycache__"),
+                          ignore_errors=True)
+
 from page_classifier import classify_page  # noqa: E402
 import client_parsers  # noqa: E402
 
@@ -252,6 +263,10 @@ def main():
     p.add_argument("--client", help="只跑特定 brand code (filter folder)")
     p.add_argument("--reset", action="store_true",
                    help="--client 模式時清掉整個 jsonl 重抽 (預設保留其他 brand 的舊資料)")
+    p.add_argument("--per-task-timeout", type=int, default=90,
+                   help="單個 PDF watchdog 秒數 (default 90). UA/大檔複雜 PLM 建議 180-240")
+    p.add_argument("--chunk", type=int, default=400,
+                   help="每塊 chunk 多少 folders (default 400). 跑大 brand 可降到 100-200 控記憶體")
     args = p.parse_args()
 
     # Load _fetch_manifest.csv 反查 EIDH → 客戶 mapping
@@ -292,8 +307,9 @@ def main():
     # - 改成每 CHUNK 件開一個全新 pool, 跑完 pool 自然 destroy 釋放所有資源
     # - 每塊內部仍有 per-task watchdog 防單一 PDF hang
     # - 800/3041 全死的根因: 5 workers * 200 max_tasks 同時 respawn → pool 鎖死
-    CHUNK = 400
-    PER_TASK_TIMEOUT = 90  # 單個 PDF 90s 沒結果就 cancel
+    CHUNK = args.chunk          # default 400, --chunk 可調
+    PER_TASK_TIMEOUT = args.per_task_timeout  # default 90, --per-task-timeout 可調
+    print(f"[config] workers={args.workers} chunk={CHUNK} per_task_timeout={PER_TASK_TIMEOUT}s")
     pool_kwargs_base = {
         "max_workers": args.workers,
         "initializer": _init_worker,
