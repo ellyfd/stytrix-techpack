@@ -147,6 +147,14 @@ jobs:
       - name: Step 4c — derive brands.json (frontend Brand 下拉 source)
         run: python scripts/core/build_brands.py
 
+      # ── Step 4d — derive brand_pom_alias.json (2026-05-14 加) ──────────────
+      # canonical_aliases.json:客戶 + client_canonical_mapping.json:[*].{aliases,
+      # legacy_subgroup_codes} 合併成 brand→[raw stamps] lookup,前端 dataBrand
+      # Matches 用來把 brands.json 的 3-letter code (DKS) 對到 pom_rules raw
+      # truncated stamps (DSG WOMENS / KOHL'S WOM 等)。
+      - name: Step 4d — derive brand_pom_alias.json (brand 對 POM raw stamps)
+        run: python scripts/core/build_brand_alias.py
+
       # ── Commit derived outputs ─────────────────────────────────────────────
       - name: Commit updated data
         run: |

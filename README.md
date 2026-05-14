@@ -495,5 +495,6 @@ GitHub push → Vercel 自動建置（preview / production）。
 |---|------|--------|------|--------|
 | **D** | 評估 `data/ingest/m7/designs.jsonl.gz` server-side filter API | 大,需設計 | **mobile 用戶不再 OOM** — 現況 `filterBibleByCategory` 整檔 lazy fetch + 解壓 + parse 18,300 designs(31 MB gzipped → 332 MB JSON)cache module-scope,瀏覽器 tab 吃 ~400 MB 記憶體;mobile / 低 RAM 裝置可能 crash | 已收到實機 OOM 回報 |
 | **E** | Bible 拆 structure + actuals 兩檔 | 中大,需改 `derive_bible_actuals.py` + 前端 `filterBibleByBrand` / `filterBibleByCategory` + `_index.json` schema | **repo size git diff 變乾淨** — 實測 132 MB Bible = 44.8 MB structure (34%) + 87.5 MB actuals (66%);拆檔後 m7 push 只動 actuals,structure 不會被誤動。**前端 brand filter 省 95% bandwidth**(若 actuals 再拆 per-brand) | m7 entries 再增加(到 10k+)時更明顯 |
+| **F** | `bodytype_variance.json` 加 per-brand 維度 | 中,聚陽端寫 `M7_Pipeline/scripts/build_bodytype_variance_per_brand.py` | **非 ONY brand 的 Petite/Tall delta 變真實值** — 現況整檔 ONY-only,選 DKS/KOH 等 brand 看到的 delta 是外推。spec 寫好(`docs/architecture/PER_BRAND_BODYTYPE_VARIANCE_SPEC.md`),前端 warning + auto-detect `_meta.per_brand` flag 已 ship(2026-05-14),聚陽端跑 build 推新 schema 即生效 | 使用者反映「DKS 沒有 Petite/Tall/Plus 嗎? 這必須是品牌專屬」 |
 
-兩項都已實測過數字、寫好方案 A/B 評估,在 `CLAUDE.md` 「待辦 / Roadmap」區內;不在這輪 commit 內。
+三項都已實測過數字、寫好方案,在 `CLAUDE.md` 「待辦 / Roadmap」區內;不在這輪 commit 內(F 的前端 detection 已 ship,只等聚陽端資料)。
