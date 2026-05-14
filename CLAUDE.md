@@ -35,7 +35,7 @@
 | `l2_l3_ie/` 最大 L1 檔 | BM 23.4 MB / SB 18.2 MB / SA 16.7 MB | `ls -l` |
 | `l2_l3_ie/_index.json` schema | top-level `"schema": "phase2"` | 不是 `_metadata.schema`,L1 檔內才是 |
 | `recipes/` count | 71 recipe JSON + `_index.json` = 72 | `ls recipes/*.json` |
-| `data/runtime/*.json` count | **18 檔** | `ls data/runtime/*.json \| wc -l` |
+| `data/runtime/*.json` count | **15 檔**(2026-05-14 從 18 縮 — 3 個 Pipeline B 內部產物搬到 `pom_rules/_derive/`)| `ls data/runtime/*.json \| wc -l` |
 | `data/runtime/code_manifest.json` curated files | **317 個** / 34 KB | `build_code_manifest.py` 跑完讀 |
 | `scripts/core/*.py` entry-point | **21 支**(含 3 `_` prefix helper) | `ls scripts/core/*.py` |
 | `star_schema/scripts/*.py` | **6 支** | `ls star_schema/scripts/*.py` |
@@ -53,12 +53,68 @@
 3. **CLAUDE.md / 網站架構圖.md 多處 4,562 designs / 4,644 EIDH / 746 行 / 79.1 MB / 21 brand** ✗ → 全部改成實測值(18,300 / 5,076 / 137.4 MB / 24 brand)
 4. **`docs/spec/網站架構圖.md` Tech Debt: `7% 增量還算合理`** ✗ → 改 `+86%`,並補充「`designs.jsonl.gz` 332 MB uncompressed 會吃瀏覽器 ~400 MB 記憶體」這條 mobile risk
 
-### 量測時發現的問題(需要 user decision 才能動)
+### 量測時發現的問題(2026-05-14 全部清理完)
 
-1. **`l2_l3_ie/l2_l3_ie/` + `l2_l3_ie/l2_l3_ie/l2_l3_ie/` nested 重複目錄**:tracked in git(2026-05-08 commit `efef83e` / `5f1455a`),58 MB + 29 MB = ~87 MB 死重 Bible 資料。內容是 older 版本 38 L1 JSON,結構跟現役 `l2_l3_ie/` 同。建議:過 Part B 5-step clean orphan gate 確認無人引用 → `git rm -r l2_l3_ie/l2_l3_ie/`。
-2. **`data/ingest/m7_pullon/` 舊目錄**:2026-05-12 rename `m7_pullon → m7` 後保留(`entries.jsonl` 768 行 / `designs.jsonl.gz` 6.4 MB,舊版資料);新 path `data/ingest/m7/` 已是 5,076 entries / 31 MB。建議:確認 grep 無人引用後 `git rm -r data/ingest/m7_pullon/`。
-3. **`M7_Pipeline/_test_*.py` 5 隻**(`_test_ony.py` / `_test_ony3.py` / `_test_ony_fix.py` / `_test_by_classify.py` / `_test_by_parser.py`)在 M7_Pipeline 根目錄,看起來是聚陽端 ad-hoc 測試 script。建議:過 5-step gate 後 `git rm` 或移進 `M7_Pipeline/scripts/_archive/`。
-4. **`vercel.json` `includeFiles: "{data/**, ...}"` bundles 91 MB**(含 75 MB `data/ingest/` 不需要的部分)進 `analyze.js` function。可能超過 Vercel size limit(視 plan)。建議:改成只 bundle `data/runtime/l2_visual_guide.json`、`l2_decision_trees.json`、`l1_standard_38.json`(實際讀的 3 檔)+ `docs/spec/techpack-translation-style-guide.md`。
+1. ✅ **`l2_l3_ie/l2_l3_ie/` + `l2_l3_ie/l2_l3_ie/l2_l3_ie/` nested 重複目錄** — 跑完 Part B 5-step gate:literal-name grep 只有 CLAUDE.md(audit 自己)有命中;`l2_l3_ie` basename grep 只指向頂層 `l2_l3_ie/`(38 L1 + `_index.json`);無 glob/iterdir 命中;無 fetch / producer write 命中。`git rm -r l2_l3_ie/l2_l3_ie/` 後 `l2_l3_ie/` 196 MB → 138 MB(回收 87 MB)。出處 commit `efef83e` / `5f1455a`(rename detection bug,git mv 時被連帶建立的 nested 副本)。
+2. ✅ **`data/ingest/m7_pullon/` 舊目錄** — 跑完 gate:`build_recipes_master.py:76` `M7_PATH` 跟 `derive_bible_actuals.py:60` `M7_DESIGNS` 都指 `data/ingest/m7/`;workflow trigger 也是 `m7/`;`m7_pullon/` 目錄無 `facts.jsonl`,Step 6 glob `*/facts.jsonl` 不會掃到。`git rm -r data/ingest/m7_pullon/` 回收 13 MB。`data/source/M7_PULLON_DATA_SCHEMA.md` 同步把 path 從 `data/ingest/m7_pullon/` 改 `data/ingest/m7/`(script / function 名 `build_m7_pullon_source_v3.py` 等保留)。
+3. ✅ **`M7_Pipeline/_test_*.py` 5 隻**(`_test_ony` / `_test_ony3` / `_test_ony_fix` / `_test_by_classify` / `_test_by_parser`)— 內容掃過全是聚陽 Windows 端 ad-hoc debug script,hardcode `tp_samples_v2/...` 本地路徑(repo 無此目錄)。Step 2-7 gate 全空(除了 CLAUDE.md 自己 audit 註)。直接 `git rm`。
+4. ✅ **`vercel.json` `includeFiles` 收緊** — 從 `{data/**, docs/spec/techpack-translation-style-guide.md}`(bundle 91 MB)改成顯式 4 檔列表 `{data/runtime/l2_visual_guide.json, l2_decision_trees.json, l1_standard_38.json, docs/spec/techpack-translation-style-guide.md}`(bundle 184 KB)。`analyze.js` 實際只讀這 4 檔(grep `readFileSync` 確認),其他 75 MB `data/ingest/` 跟 14 MB `data/runtime/` 內的其他檔都不需要進 function bundle。**重要**:之後若 `analyze.js` 要新增讀檔,記得同步加進 `vercel.json` `includeFiles` 列表。
+
+### 待辦 / Roadmap(2026-05-14 架構評估後留下的兩項,需設計才能動)
+
+下面 D / E 是 code review 跑完後,留下來的**已知架構債**。屬於要設計 + 跨多檔改的 task,不在這輪 commit 內;放這裡備忘。
+
+| # | 任務 | 工作量 | 收益 | 觸發點 |
+|---|------|--------|------|--------|
+| **D** | 評估 `designs.jsonl.gz` server-side filter API | 大,需設計 | **mobile 用戶不再 OOM** — `filterBibleByCategory` 第一次觸發整檔 lazy fetch + 解壓 + parse 18,300 designs(31 MB gzipped → 332 MB JSON)cache 到 module scope,瀏覽器 tab 吃 ~400 MB 記憶體;mobile / 低 RAM 裝置可能 crash | 已收到實機 OOM 回報 |
+| **E** | Bible 拆 structure + actuals 兩檔 | 中大,需改 `derive_bible_actuals.py` + 前端 2 個 helper(`filterBibleByBrand` / `filterBibleByCategory`)+ `_index.json` schema 加 `actuals_files` 欄 | **repo size git diff 變乾淨 + 前端 brand filter 省 95% bandwidth** — 實測 132 MB Bible = 44.8 MB structure (34%) + 87.5 MB actuals (66%),actuals 是 m7 push 每次刷的部分;拆檔後 m7 push 只動 actuals,structure 不會被誤動 | m7 entries 再增加(到 10k+)時更明顯 |
+
+#### D 詳細(`designs.jsonl.gz` server-side filter)
+
+**問題**:現況 `filterBibleByCategory(bible, {brand, fabric, gender, dept, gt, it})` 在前端做 6 維 filter,需要拉整個 `data/ingest/m7/designs.jsonl.gz`(31 MB gzipped)→ `DecompressionStream('gzip')` 解壓 → JSON.parse 18,300 designs → cache module-scope。
+
+實測:
+- 網路:31 MB gzipped 下載
+- CPU:~332 MB 字串 parse
+- RAM:~400 MB 瀏覽器 tab heap(每個 design ~22 KB JS object × 18,300)
+
+**方案**:
+1. **server-side filter API**(`api/filter_bible.js`)— 接 6 維參數,Vercel function 端讀 jsonl.gz,只回符合的 step actuals(KB 級回應)。需 Vercel includeFiles 加 `data/ingest/m7/designs.jsonl.gz`(會讓 function bundle 從 184 KB 漲到 ~32 MB,在 50 MB 限制內)。
+2. **拆 per-brand designs.jsonl.gz** — 24 brand × ~770 designs/brand 平均 1.4 MB/檔,前端只 fetch 該 brand 的子集。
+
+**待決**:選方案 1 還是 2?方案 1 較好(集中在 server,前端不變);方案 2 較簡單(只動 derive 跟 fetch path)。
+
+#### E 詳細(Bible structure / actuals 拆檔)
+
+**問題**:`l2_l3_ie/<L1>.json` 38 檔每檔混合 structure(`l1`/`code`/`knit`/`woven`/`l2/l3/l4/l5_steps/ie_standard`)+ actuals(每 L5 step 的 `n_designs/sec_median/by_brand/machine_top`)。
+
+實測拆比例:
+```
+Full Bible (current):     132.0 MB
+Structure-only:            44.8 MB (34%)  ← brand-agnostic,從 xlsx 來,改動低
+Actuals-only:              87.5 MB (66%)  ← m7 觀察值,每次 push 都刷
+```
+
+**方案 A**(per-L1 拆 2 檔):
+```
+l2_l3_ie/AE.json           ← 只 structure + ie_standard, ~1 MB
+l2_l3_ie/AE.actuals.json   ← 只 actuals, ~2 MB
+```
+
+**方案 B**(actuals 再拆 per-brand,適合前端 lazy):
+```
+l2_l3_ie/AE.json                ← structure only, ~1 MB
+l2_l3_ie/actuals/AE.json        ← 跨 brand 聚合
+l2_l3_ie/actuals/AE__ONY.json   ← per-brand subset
+... ~24 brand × 38 L1 = 912 檔(小)
+```
+
+**改動面**:
+- `derive_bible_actuals.py` 從寫 1 檔變寫 2 (或 N) 檔
+- `index.html` `filterBibleByBrand` / `filterBibleByCategory` 改成兩階段 fetch
+- `_index.json` 加 `actuals_files` 欄
+
+**待 user 決定**:做方案 A 還是 B?(A 簡單,B 收益大)。
 
 ---
 
@@ -218,11 +274,11 @@
 
 | 資料夾 | 放什麼(類比成衣流程) | 舉例 | 不要放什麼 |
 |--------|----------------------|------|------------|
-| `data/runtime/` | **線上系統 runtime 讀的成品 JSON**(18 個 .json)。前端 `fetch('./data/runtime/...')`、API `analyze.js` 啟動時讀 | `l1_standard_38.json`、`l2_visual_guide.json`、`l2_decision_trees.json`、`recipes_master.json`、`iso_dictionary.json`、`pom_dictionary.json`、`grading_patterns.json`、`bucket_taxonomy.json`(28 v4 + 59 legacy)、`construction_bridge_v6.json`、`brands.json`(2026-05-11 加,前端 Brand 下拉動態 source)、`code_manifest.json`(2026-05-13 加,index.html「管理 ▸ Code 瀏覽」modal 的檔案清單,由 `scripts/core/build_code_manifest.py` 產生,**不在 CI workflow 內,要手跑**) | 原始 xlsx;靜態文件;ingest 中繼檔;**`designs_index/`** 已退役(2026-05-09) |
+| `data/runtime/` | **線上系統 runtime 讀的成品 JSON**(2026-05-14 起 **15 個 .json**,從 18 縮 — `gender_gt_pom_rules` / `client_rules` / `design_classification_v5` 搬到 `pom_rules/_derive/` 因為前端 / api 不讀)。前端 `fetch('./data/runtime/...')`、API `analyze.js` 啟動時讀 | `l1_standard_38.json`、`l2_visual_guide.json`、`l2_decision_trees.json`、`recipes_master.json`、`iso_dictionary.json`、`pom_dictionary.json`、`grading_patterns.json`、`bucket_taxonomy.json`(28 v4 + 59 legacy)、`construction_bridge_v6.json`、`brands.json`(2026-05-11 加,前端 Brand 下拉動態 source)、`code_manifest.json`(2026-05-13 加,index.html「管理 ▸ Code 瀏覽」modal 的檔案清單,由 `scripts/core/build_code_manifest.py` 產生,**不在 CI workflow 內,要手跑**)、`all_designs_gt_it_classification.json`(CI Step 2 vlm_pipeline/extract_unified 的 GT backfill fallback,不被前端 fetch)、`l1_iso_recommendations_v1.json`、`l1_part_presence_v1.json`、`bodytype_variance.json` | 原始 xlsx;靜態文件;ingest 中繼檔;Pipeline B 內部產物(放 `pom_rules/_derive/`);**`designs_index/`** 已退役(2026-05-09) |
 | `data/source/` | **手維護 / 上傳的原始底稿**(被 `scripts/core/build_*` 讀來生 runtime JSON) | `L2_代號中文對照表.xlsx`(L1/L2 代號對照,14 KB)、`BIBLE_UPGRADE.md`(SOP)、`M7_PULLON_DATA_SCHEMA.md`(m7 source schema)、**`canonical_aliases.json`**(2026-05-08 加,8 canonical 欄位的 alias normalize 規則,M7_Pipeline `consolidate_canonical.py` 讀;repo 暫存當 source-of-truth 規則表) | runtime 讀的檔;說明文件;**`五階層展開項目_*.xlsx` 不再進 repo**(2026-05-08 起,xlsx 留聚陽端,38 個 derive JSONs 進 repo) |
 | `data/ingest/` | **Pipeline staging**(CI / 外部協作上傳處)。`build_recipes_master.py` 的 `data/ingest/*/facts.jsonl` glob 會掃 | `data/ingest/uploads/`(PDF/PPTX 上傳處)、`data/ingest/{unified,vlm,pdf,metadata}/`、`data/ingest/{consensus_rules,ocr_v1,consensus_v1}/`、**`data/ingest/m7/`(2026-05-12 從 `m7_pullon/` rename;聚陽端 PullOn pipeline 推進來,5,076 entries / 32 MB designs.jsonl.gz / 332 MB uncompressed / 18,300 designs)** | runtime 讀的成品(放 `data/runtime/`) |
 | `data/legacy/` | **舊 `pom_analysis_v5.5.1/` 退役後留下的 fallback**(只給 `vlm_pipeline.py` / `extract_unified.py` 在 runtime 找不到時用) | `all_designs_gt_it_classification.json`、`pom_dictionary.json` | 任何新檔(此資料夾只縮不增) |
-| `pom_rules/` | **自動產生的 POM 規則庫**。**137 個 bucket**(2026-05-13 v8;v6 起 bucket key 改用 M7 manifest Item 原值 `<Dept>_<MK_Item>\|<Gender>`,v7 gender+fabric 也走 M7 列管,v8 Maternity 保留)。139 檔 = 137 bucket + `_index.json` + `pom_names.json`。跨 34 brand codes(GAP / ONY / ATHLETA / BRFS / CALIA / DSG / KOH / DKS / ANF / HLF / VRST / UA / BY / QCE 等) | `pom_rules/*.json`(由 `scripts/core/reclassify_and_rebuild.py` 產出,外部 BASE 跑 + PR push;`validate_pom_rules.yml` workflow 校驗) | 手寫規則;說明文件 |
+| `pom_rules/` | **自動產生的 POM 規則庫**。**137 個 bucket**(2026-05-13 v8;v6 起 bucket key 改用 M7 manifest Item 原值 `<Dept>_<MK_Item>\|<Gender>`,v7 gender+fabric 也走 M7 列管,v8 Maternity 保留)。139 檔 = 137 bucket + `_index.json` + `pom_names.json`。跨 34 brand codes(GAP / ONY / ATHLETA / BRFS / CALIA / DSG / KOH / DKS / ANF / HLF / VRST / UA / BY / QCE 等)。**`_derive/` 子目錄**(2026-05-14 加):放 Pipeline B 額外產的 3 個分類表 `client_rules.json` / `design_classification_v5.json` / `gender_gt_pom_rules.json`(從 `data/runtime/` 退役搬入,前端 / api 不讀,只 Pipeline B 自己用)| `pom_rules/*.json`(由 `scripts/core/reclassify_and_rebuild.py` 產出,外部 BASE 跑 + PR push;`validate_pom_rules.yml` workflow 校驗) | 手寫規則;說明文件 |
 | `M7_Pipeline/` | **聚陽端 PullOn pipeline v11**(2026-05-13 commit `17b5629` import,scripts + docs only,no PDF uploads)。原本只在聚陽 Windows 端跑,本次拷一份進 repo 做 audit / handover 用 | `PIPELINE.md` / `PDF_PIPELINE.md`(v11 5 brand POM rescue + audit_v6 honest 3-bucket)/ `PPTX_PIPELINE.md` / `PIPELINE_GLOSSARY.md` / `construction-page-rules.md` / `scripts/`(109 py + 9 ps1)/ `data/`(canonical_aliases / client_canonical_mapping / iso_dictionary / zone_glossary 等) | raw PDF 檔(>25 MB / IP 敏感);線上 runtime 讀的檔 |
 | `l2_l3_ie/` | **Bible 五階層展開** — 38 個 L1 部位,每部位 L1→L2→L3→L4→L5 工段樹。**Phase 2 dict schema(2026-05-08 commit f9faa8b 升級完成)**:每個 L5 step 是 dict `{l5, ie_standard:{sec,grade,primary,machine}, actuals?}`,`actuals` 含 m7 觀察值(`n_designs / sec_median / by_brand / machine_top`,option B trim 後)。`_metadata.schema = "phase2"` 標記。Bible **結構** 由 IE xlsx 決定(brand-agnostic),**L1-L5 樹不被 per-design 改**;Bible 38 檔現是 CI 自動產 — `derive_bible_actuals.py --all --in-place` 在 `rebuild_master.yml` Step 4b 跑,讀 xlsx-derived raw + `data/ingest/m7/designs.jsonl.gz` 後寫回。**`new_part_*` / `new_shape_design_*` / `new_method_describe_*` / `(NEW)*` placeholder 在 derive 層全 drop 不進 Bible**(IE 治理任務,聚陽端 SSRS 處理) | 按 L1 代號分檔的 JSON,38 檔 + `_index.json` | 其他層級的規則;**手改(CI 會蓋掉)**;brand 欄位嵌進樹結構(brand 走 actuals.by_brand);`new_*` placeholder |
 | `l2_l3_ie_by_client/` | ~~RETIRED 2026-05-08(Phase 2.5b)~~ — git rm 完成,功能由 `l2_l3_ie/<L1>.json` 升級後 schema 的 `actuals.by_brand` + frontend 的 `filterBibleByBrand()` / `filterBibleByCategory()` helper(2026-05-11 加 6 維,runtime 反查 designs.jsonl.gz)取代 | — | — |
@@ -230,6 +286,7 @@
 | `path2_universal/` | **通用模型(不分客戶/品牌)的做工推薦資料源**。ISO 工藝代號查表、knit/woven 做工紀錄、PATH2 pipeline 文件。前身為 `General Model_Path2_Construction Suggestion/`(2026-05-07 改名) | `iso_lookup_factory_v4.3.json`、`iso_lookup_factory_v4.json`、`PATH2_通用模型_做工推薦Pipeline.md` | 前端 runtime fetch 的檔(那該放 `data/runtime/`) |
 | `scripts/core/` | **資料產線腳本**(repo 內部執行的 build / rebuild / extract / search) | `build_l2_visual_guide.py`、`build_bible_skeleton.py`、`build_brands.py`(2026-05-11 加,從 m7 entries.jsonl 聚合產 runtime/brands.json)、`build_code_manifest.py`(2026-05-13 加,掃 curated 目錄產 runtime/code_manifest.json,給 index.html Code 瀏覽 modal)、`run_extract_new.py`、`reclassify_and_rebuild.py`、`enforce_tier1.py` | 共用函式庫(放 `scripts/lib/`);一次性 ad-hoc 腳本 |
 | `scripts/lib/` | **共用函式庫**(被 `scripts/core/` 的腳本 import,不是 entry point) | `extract_techpack.py`(PDF parser,被 `run_extract_new.py` / `run_extract_2025_seasonal.py` import) | 直接執行的腳本 |
+| `tests/` | **CI smoke test**(2026-05-14 加)。pytest 在 `rebuild_master.yml` Pre-Step 3 + `validate_pom_rules.yml` 都跑(~1s),catch schema drift `validate_buckets.py` 看不到的(`_index.json` parts count、`l2_l3_ie/_index` 38 parts、`brands.json` shape、`recipes/_index` vs disk file 一致性等) | `test_schema.py`(11 個 invariant)、`__init__.py` | 業務邏輯 unit test(scope 限 schema invariant);跨多檔的整合測試 |
 | `star_schema/scripts/` | **CI 觸發的 ingest pipeline**(GitHub Actions `rebuild_master.yml` 直接呼叫,**6 支** + 1 支 derive 在 `scripts/core/`) | Step 1 `extract_raw_text.py`、Step 2b `vlm_pipeline.py`、Step 2a `extract_unified.py`、Step 3 `build_recipes_master.py`、Step 4a `derive_view_recipes_master.py`、Step 4b `derive_bible_actuals.py`、Step 4c `scripts/core/build_brands.py`(2026-05-11 加;原 designs_index per-EIDH derive 在 2026-05-09 retired)| 內部產線腳本(放 `scripts/core/`) |
 | `api/` | **線上系統後端 endpoint**(Vercel functions) | `analyze.js`(Claude Vision)、`push-pom-dict.js`、`ingest_token.js` | 靜態資料 |
 | `docs/spec/` | **跨模組共用規格文件**(被 code 或 LLM prompt 引用) | `L1_部位定義_Sketch視覺指引.md`、`L2_VLM_Decision_Tree_Prompts_v2.md`、`L2_Visual_Differentiation_FullAnalysis_修正版.md`、`techpack-translation-style-guide.md`(api/analyze.js 啟動時 inject)、`pom_rules_v55_classification_logic.md`、`網站架構圖.md` | 純人類操作 SOP(放 `docs/sop/`);子系統內部文件 |
@@ -357,7 +414,7 @@ git commit -m "chore: 移除孤兒 $CANDIDATE (已通過 grep gate 驗證)"
 
 ---
 
-## 已知的下輪清理候選(2026-04-22 盤點 + 2026-05-07 重組後狀態)
+## 已知的下輪清理候選(2026-04-22 盤點 + 2026-05-07 重組後狀態 + 2026-05-14 code review 清理)
 
 下次跑 Part B SOP 時,可以考慮審這幾項:
 
@@ -366,6 +423,9 @@ git commit -m "chore: 移除孤兒 $CANDIDATE (已通過 grep gate 驗證)"
 | ~~`recipes/`~~ | 2026-04-23 確認是活檔:`star_schema/scripts/build_recipes_master.py` 每次 CI 都會掃 72 檔餵進 recipes_master.json | **不是候選** |
 | `path2_universal/iso_lookup_factory_v4.json` vs `v4.3.json` | v4 仍作 fallback 被 `index.html`、`build_recipes_master.py` 引用,非孤兒;只是舊版 | 仍會過 gate = 不可丟,維持 fallback |
 | `data/legacy/{all_designs_gt_it_classification,pom_dictionary}.json` | 2026-05-07 從 `pom_analysis_v5.5.1/data/` 搬過來,被 `vlm_pipeline.py` / `extract_unified.py` 當 fallback | 暫時 keep;下輪確認 runtime 副本是否完全取代後可清 |
+| ~~`l2_l3_ie/l2_l3_ie/` + `l2_l3_ie/l2_l3_ie/l2_l3_ie/`~~ | 2026-05-14 跑 Part B gate 後 `git rm -r` 完成 — Bible 從 196 MB → 138 MB(回收 87 MB nested 死重 from commit `efef83e`/`5f1455a` rename detection bug)| **已清** |
+| ~~`data/ingest/m7_pullon/`~~ | 2026-05-14 跑 gate 後 `git rm -r` — m7 rename 後 `M7_PATH`、`M7_DESIGNS`、workflow trigger 都已指 `m7/`,舊目錄無 `facts.jsonl` 不會被 glob 抓到。回收 13 MB | **已清** |
+| ~~`M7_Pipeline/_test_*.py` 5 隻~~ | 2026-05-14 跑 gate 後 `git rm` — 全是聚陽 Windows 端 ad-hoc debug script,hardcode `tp_samples_v2/` 本地路徑(repo 無此目錄)| **已清** |
 
 **不會是清理候選的(避免誤判)**:
 

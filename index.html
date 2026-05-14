@@ -5565,6 +5565,28 @@ function App() {
     if (!dataBrandMatches && mStep > 0) setMStep(0);
   }, [dataBrandMatches]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // 2026-05-14:POM rules v6+(commit d697e94)bucket key 從舊 GT taxonomy
+  // ("BOTTOM"/"TOP" 等)改成 M7 manifest Item 原值("Tee"/"Pull On Pants" 等)。
+  // 若使用者 localStorage 還存著舊 dept/gt 值,bucketKey lookup 會 100% 失敗
+  // → bucketMeta=null → currentBucket=null → 落到 static MISSY_POMS demo
+  // (read-only, 沒有 Base 編輯也沒有全碼跳檔)。
+  // 這個 useEffect 在 pomRules 載入後驗證 dept/gt/it,若不在當前 bucket 集合中
+  // 就清掉,讓使用者重選並讓 bucket lookup 通過。
+  useEffect(() => {
+    if (!pomRules?.buckets) return;
+    const validDepts = new Set(pomRules.buckets.map(b => b.department));
+    const validGts = new Set(pomRules.buckets.map(b => b.garment_type));
+    if (dept && !validDepts.has(dept)) {
+      console.warn(`[filter] persisted dept "${dept}" not in current pom_rules; clearing`);
+      setDept("");
+    }
+    if (gt && !validGts.has(gt)) {
+      console.warn(`[filter] persisted gt "${gt}" not in current pom_rules; clearing`);
+      setGt("");
+      setIt("");
+    }
+  }, [pomRules]); // eslint-disable-line react-hooks/exhaustive-deps
+
   /* ── Derived ── */
   const canAnalyze = brand && fabric && dept && gender && gt && sketchSrc;
   // 尺寸表不需要 sketch;聚陽模式還要 brand 跟資料 source_brand 對得上才能生成
@@ -8384,6 +8406,36 @@ function App() {
             })()}
             {mDone && !currentBucket && (
               <div style={{ animation: "slideUp 0.3s ease" }}>
+                {/* 2026-05-14:bucketKey 對不上的明確錯誤橫幅 — 取代之前靜默
+                    fallback 到 hardcoded MISSY_POMS demo(會誤導使用者以為這
+                    是符合 filter 的數據)。常見原因:POM rules v6+ 改了
+                    bucket key 格式(GT taxonomy → M7 manifest Item),使用者
+                    localStorage 還存著舊 dept/gt 值。useEffect 已自動清掉,
+                    但會留 dept/gt 空白,bucketKey=null,會落到下面 demo。 */}
+                {bucketKey && !bucketMeta && (
+                  <div style={{
+                    background: "#fef3c7", border: "1.5px solid #f59e0b",
+                    borderRadius: "12px", padding: "14px 18px", marginBottom: "12px",
+                    fontSize: "13px", color: "#92400e",
+                  }}>
+                    <div style={{ fontWeight: 700, marginBottom: "6px" }}>⚠ 找不到符合的 POM bucket</div>
+                    <div style={{ fontSize: "12px", lineHeight: 1.5 }}>
+                      你的篩選 <code style={{ background: "#fef9c3", padding: "1px 6px", borderRadius: "4px" }}>{bucketKey}</code> 在當前的 POM rules(v8 137 buckets)中沒對應資料。POM rules 在 2026-05-13 v6 後 bucket key 改用聚陽 M7 列管的 Item 原值(例如 <code>RTW_Tee|WOMENS</code>、<code>RTW_Pull On Pants|WOMENS</code>),如果 GT 或 Dept 是舊版選單留下的值,就會對不上。下面顯示的是預設範例(Old Navy Womens Alpha),不是你的 filter 結果。
+                    </div>
+                    <div style={{ marginTop: "10px", display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                      <button onClick={() => { setDept(""); setGt(""); setIt(""); }} style={{
+                        padding: "6px 14px", borderRadius: "6px", border: "1.5px solid #f59e0b",
+                        background: "#fff", color: "#92400e", fontSize: "12px", fontWeight: 600,
+                        cursor: "pointer", fontFamily: "inherit",
+                      }}>重設 Dept / GT / IT</button>
+                      <button onClick={() => { setBrand(""); setFabric(""); setDept(""); setGender(""); setGt(""); setIt(""); }} style={{
+                        padding: "6px 14px", borderRadius: "6px", border: "1.5px solid #d1d5db",
+                        background: "#fff", color: "#525252", fontSize: "12px", fontWeight: 600,
+                        cursor: "pointer", fontFamily: "inherit",
+                      }}>重設全部篩選</button>
+                    </div>
+                  </div>
+                )}
                 {/* Summary */}
                 <div style={{
                   background: "#fff", border: "1px solid #eee", borderRadius: "12px",

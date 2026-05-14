@@ -18,7 +18,7 @@ What it stamps
 - pom_rules/_index.json    — `_meta.source_brand: "ONY"`
 - data/runtime/bodytype_variance.json
 - data/runtime/grading_patterns.json
-- data/runtime/gender_gt_pom_rules.json
+- pom_rules/_derive/gender_gt_pom_rules.json (2026-05-14 從 data/runtime/ 退役)
    ↑ these three are flat dicts keyed by composite strings; a top-level
      `_meta` sibling doesn't collide with any composite key (none start with
      `_`) and front-end consumers always use direct keyed lookup, never
@@ -101,10 +101,12 @@ def main() -> int:
             changed += 1
             print("  stamped pom_rules/_index.json")
 
-    # Per the data/ restructure (PR #275) these live under data/runtime/.
+    # Per the data/ restructure (PR #275) bodytype_variance + grading_patterns
+    # live under data/runtime/.  gender_gt_pom_rules moved to pom_rules/_derive/
+    # 2026-05-14 (Pipeline B 內部產物,前端 / API 不消費,從 runtime/ 退役).
     for rel in ("data/runtime/bodytype_variance.json",
                 "data/runtime/grading_patterns.json",
-                "data/runtime/gender_gt_pom_rules.json"):
+                "pom_rules/_derive/gender_gt_pom_rules.json"):
         path = REPO / rel
         if not path.exists():
             print(f"  skip (missing): {rel}", file=sys.stderr)

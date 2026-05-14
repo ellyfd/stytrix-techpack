@@ -1,7 +1,7 @@
 # M7 PullOn Source Schema (v3)
 
 聚陽 Windows 端 `M7_Pipeline/scripts/build_m7_pullon_source_v3.py` 產的兩個檔案,
-push 進 `data/ingest/m7_pullon/`,給 platform Phase 3 build_recipes_master 跟 Phase 2
+push 進 `data/ingest/m7/`,給 platform Phase 3 build_recipes_master 跟 Phase 2
 derive view 使用。
 
 ## 設計原則
@@ -222,7 +222,7 @@ Consensus rule:
 1. 拉新一輪 M7 索引 + csv_5level + m7_report
 2. 跑 `python scripts/build_m7_pullon_source_v3.py`
 3. 看 stats(fabric coverage / callout coverage 趨勢)
-4. push 兩個 jsonl 到 platform `data/ingest/m7_pullon/`
+4. push 兩個 jsonl 到 platform `data/ingest/m7/`
 5. CI 觸發 build_recipes_master + Phase 2 derive
 
-CI 觸發路徑:`.github/workflows/rebuild_master.yml` 已 trigger on `data/ingest/m7_pullon/` push(2026-05-08 PR #283 加的)。
+CI 觸發路徑:`.github/workflows/rebuild_master.yml` 已 trigger on `data/ingest/m7/` push(2026-05-08 PR #283 加;2026-05-12 m7_pullon → m7 rename)。

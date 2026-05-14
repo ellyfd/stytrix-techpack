@@ -117,6 +117,15 @@ jobs:
       - name: Pre-Step 3 — validate buckets
         run: python scripts/core/validate_buckets.py --strict
 
+      # Schema invariants smoke test (pytest, ~1s).  Guards "did someone push
+      # a malformed JSON / forgot to regen _index.json" — drift that validate_
+      # buckets.py can't see (l2_l3_ie/_index parts count, recipes/_index vs
+      # disk, brands.json shape, etc).  Added 2026-05-14.
+      - name: Pre-Step 3 — pytest schema invariants
+        run: |
+          pip install -r requirements-test.txt
+          python -m pytest tests/ -v
+
       # ── Step 3: rebuild recipes_master ────────────────────────────────────
       # Reads data/ingest/*/facts.jsonl + 4 source handbooks
       # Writes data/runtime/recipes_master.json + data/runtime/l1_standard_38.json

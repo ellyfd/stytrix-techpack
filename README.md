@@ -17,6 +17,7 @@ Techpack Creation + Measurement Spec 合併介面。
 - [兩組獨立的資料 pipeline](#兩組獨立的資料-pipeline) — 線下規則產線 vs 線上 ingest
 - [Admin 通道](#admin-通道) — 5 個入口 + Pipeline 外送包
 - [本機預覽](#本機預覽) / [部署](#部署)
+- [待辦 / Roadmap](#待辦--roadmap) — D / E:server-side filter API + Bible 拆檔
 
 ## 目的
 
@@ -226,7 +227,7 @@ api/
   ├─ rebuild_master.yml                       ← push 到 main 或手動 workflow_dispatch 觸發；自動重建 recipes_master 並 push 回 main
   ├─ validate_pom_rules.yml                   ← **2026-05-13 加**:push 到 `pom_rules/**` 觸發,只跑 `validate_buckets.py --strict`(schema gate <1s)。CI 沒外部 BASE 不能 regen,只校驗
   └─ build_bible_skeleton.yml                       ← workflow_dispatch only(2026-05-08+;xlsx >25 MB 不進 repo,維護者本機 build push JSON,workflow 多半不再用)
-vercel.json                                   ← functions config：includeFiles 把 data/** + docs/spec/techpack-translation-style-guide.md 編進 analyze.js bundle
+vercel.json                                   ← functions config:**2026-05-14 收緊** — includeFiles 只 bundle analyze.js 真正讀的 3 個 runtime JSON(`l2_visual_guide` / `l2_decision_trees` / `l1_standard_38`)+ `docs/spec/techpack-translation-style-guide.md`(之前是 `data/**`,bundles 91 MB 含 75 MB ingest/ 不需要的;收緊後 184 KB)
 docs/
   ├─ spec/                                    ← 跨模組共用規格(被 code / LLM prompt 引用)
   │   ├─ L1_部位定義_Sketch視覺指引.md         ← VLM Pass 1 system prompt 資料來源
@@ -248,10 +249,11 @@ data/
   │   ├─ recipes_master.json                  ← 通用模型 recipe 推薦(GitHub Actions 自動重建)
   │   ├─ iso_dictionary.json                  ← ISO 字典(同上,自動重建)
   │   ├─ construction_bridge_v6.json          ← 跨設計 GT × zone 施工統計(build_recipes_master 會吃)
-  │   ├─ gender_gt_pom_rules.json             ← Gender × GT 的 POM 規則(規則產線輸出,1.5 MB)
-  │   ├─ all_designs_gt_it_classification.json ← 全量 design 的 GT / IT 分類(1292 designs)
-  │   ├─ bucket_taxonomy.json                 ← 59 個 bucket 分類表(Step 3 --strict 驗證用)
-  │   ├─ client_rules.json / design_classification_v5.json / ...
+  │   # ⚠ gender_gt_pom_rules / client_rules / design_classification_v5 已於 2026-05-14
+  │   #   從 data/runtime/ 搬到 pom_rules/_derive/ —— 是 Pipeline B 規則產線輸出,
+  │   #   前端 / api/ 不讀,放 runtime/ 名實不符
+  │   ├─ all_designs_gt_it_classification.json ← 全量 design 的 GT / IT 分類(1,292 designs;CI Step 2 vlm_pipeline/extract_unified fallback 讀)
+  │   ├─ bucket_taxonomy.json                 ← 28 v4 + 59 legacy bucket 分類表(Step 3 --strict 驗證用)
   │   ├─ l1_part_presence_v1.json             ← 聚陽模型:GT×IT 下每個部位出現率(345 KB)
   │   └─ l1_iso_recommendations_v1.json       ← 聚陽模型:部位名 → ISO 建議(519 KB)
   ├─ source/                                  ← 手維護 / 上傳的原始底稿
@@ -484,3 +486,14 @@ GitHub push → Vercel 自動建置（preview / production）。
 **GitHub Actions secrets**（Repo Settings）：
 - `ANTHROPIC_API_KEY` — workflow Step 2b VLM pipeline 用（沒設定時 2b 跳過，不擋 build）
 - `GITHUB_TOKEN` — 自動注入，Commit step push 用
+
+## 待辦 / Roadmap
+
+2026-05-14 跑完 code review + 清理(A、B、C 都已 commit;A=runtime/ orphan 搬到 `pom_rules/_derive/`、B=刪 `new/.py`、C=`tests/test_schema.py` 11 invariant pytest)後,留下兩項**已知架構債**。屬於要設計 + 跨多檔改的 task,需 user 決定才能動;詳細狀況見 [`CLAUDE.md` 待辦 / Roadmap 區](./CLAUDE.md#待辦--roadmap2026-05-14-架構評估後留下的兩項需設計才能動)。
+
+| # | 任務 | 工作量 | 收益 | 觸發點 |
+|---|------|--------|------|--------|
+| **D** | 評估 `data/ingest/m7/designs.jsonl.gz` server-side filter API | 大,需設計 | **mobile 用戶不再 OOM** — 現況 `filterBibleByCategory` 整檔 lazy fetch + 解壓 + parse 18,300 designs(31 MB gzipped → 332 MB JSON)cache module-scope,瀏覽器 tab 吃 ~400 MB 記憶體;mobile / 低 RAM 裝置可能 crash | 已收到實機 OOM 回報 |
+| **E** | Bible 拆 structure + actuals 兩檔 | 中大,需改 `derive_bible_actuals.py` + 前端 `filterBibleByBrand` / `filterBibleByCategory` + `_index.json` schema | **repo size git diff 變乾淨** — 實測 132 MB Bible = 44.8 MB structure (34%) + 87.5 MB actuals (66%);拆檔後 m7 push 只動 actuals,structure 不會被誤動。**前端 brand filter 省 95% bandwidth**(若 actuals 再拆 per-brand) | m7 entries 再增加(到 10k+)時更明顯 |
+
+兩項都已實測過數字、寫好方案 A/B 評估,在 `CLAUDE.md` 「待辦 / Roadmap」區內;不在這輪 commit 內。
