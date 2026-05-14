@@ -5212,11 +5212,45 @@ function App() {
   // 2026-05-12 改:之前單一字串 source_brand "Centric 8 (...)" 永遠不會等於 dropdown code,
   // 所有 brand 都被擋下;改成 codes array contains 檢查。舊 schema fallback 保留兼容。
   // 通用模型走 ISO 字典 + recipes_master,跟 brand 無關,brand 一律放行。
+  // 2026-05-14:brands.json 用 canonical_aliases.json normalize 過的 3-letter code,
+  // 但 pom_rules._meta.source_brand_codes 是 Centric 8 PDF brand_division 欄位的
+  // raw 10-char truncated string (e.g. "DSG WOMENS" / "KOHL'S WOM" / "ABERCROMBI"),
+  // 兩邊沒對齊 → DKS 找不到 DSG / KOH 找不到 KOHL'S 等。
+  // 短期前端 alias 對照(長期應該 pipeline 端 build pom_rules 時 normalize):
+  const BRAND_TO_POM_PREFIXES = {
+    'DKS':   ['DSG'],         // Dick's Sporting Goods
+    'KOH':   ["KOHL'S"],
+    'TGT':   ['TARGET'],
+    'ATH':   ['ATHLETA'],
+    'UA':    ['UNDER ARMO'],
+    'BR':    ['BRFS'],
+    'BY':    ['BEYOND YOG'],
+    'ANF':   ['ABERCROMBI', 'A & F'],
+    'HLA':   ['HOLLISTER'],
+    'HLF':   ['HIGH LIFE'],
+    'QCE':   ['QUINCE'],
+    // GAP / ONY 直接 match,不需要 alias
+  };
   const dataBrandMatches = useMemo(() => {
     if (appMode !== "makalot") return true;
     if (!brand) return true; // 還沒選就先放行,反正 bucketMeta 也會是 null
     const codes = pomRules?._meta?.source_brand_codes;
-    if (Array.isArray(codes) && codes.length) return codes.includes(brand);
+    if (Array.isArray(codes) && codes.length) {
+      // 1. Direct exact match
+      if (codes.includes(brand)) return true;
+      // 2. Prefix-based alias match (e.g. DKS 對到任何 "DSG..." raw stamp)
+      const prefixes = BRAND_TO_POM_PREFIXES[brand];
+      if (prefixes && prefixes.length) {
+        const norm = (s) => String(s || '').trim();
+        return prefixes.some(p =>
+          codes.some(c => {
+            const cn = norm(c);
+            return cn === p || cn.startsWith(p + ' ') || cn.startsWith(p);
+          })
+        );
+      }
+      return false;
+    }
     // fallback: 舊 schema 用單一字串等值比對
     const stamp = pomRules?._meta?.source_brand || "ONY";
     return brand === stamp;
@@ -7851,6 +7885,20 @@ function App() {
                 codesByTier.must = sortPomCodes([...codesByTier.must, ...promotedFoundational], currentBucket.pom_sort_order);
                 codesByTier.recommend = codesByTier.recommend.filter(c => !tier1Set.has(c) || mustSetNow.has(c));
                 codesByTier.optional  = codesByTier.optional .filter(c => !tier1Set.has(c) || mustSetNow.has(c));
+              }
+              // 2026-05-14 data quality gate:optional tier 內 code 若同時缺英文名 AND 缺 M size 中位數,
+              // 就是「資料不全」— 顯示出來只會是 `(空) / —` 雜訊,使用者看不懂也不知道怎麼用。
+              // 隱藏這些 codes(不算進 optional);使用者要的話可從「+ 新增 POM」UI 加回。
+              // 注意:must / recommend tier 不套這個 gate — 那兩 tier 是高 rate 已策展,
+              // 即使翻譯缺漏也代表資料是必備的,不能藏。Foundational ★ 也不影響(它強制進 must)。
+              const incompleteOptional = codesByTier.optional.filter(c => {
+                const hasEn = !!(pomNames[c]?.en);
+                const hasM  = mv[c]?.size_medians?.M != null;
+                return !hasEn && !hasM;
+              });
+              if (incompleteOptional.length) {
+                const skip = new Set(incompleteOptional);
+                codesByTier.optional = codesByTier.optional.filter(c => !skip.has(c));
               }
               const totalPoms = tiersOrdered.reduce((s, t) => s + codesByTier[t].length, 0);
               const allCodesFlat = sortPomCodes(
