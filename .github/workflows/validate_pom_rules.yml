@@ -1,0 +1,34 @@
+name: Validate pom_rules
+
+# POM 規則庫 schema sanity check(獨立 action,跟 Rebuild recipes_master 分開)
+#
+# 為什麼分開:pom_rules 的「重生」靠外部 BASE($BASE/_parsed/mc_pom_*.jsonl
+# 等),CI 沒這些檔跑不起來,所以 regen 走本機 + Vercel auto-deploy。CI 端只
+# 能做「驗證」—_index.json ↔ 實體檔對齊、bucket 字串 vs gender/dept/gt 欄
+# 位自洽 — 這就是 validate_buckets.py 在做的事。
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'pom_rules/**'
+      - 'scripts/core/validate_buckets.py'
+      - '.github/workflows/validate_pom_rules.yml'
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Validate pom_rules schema
+        run: python scripts/core/validate_buckets.py --strict
