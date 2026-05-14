@@ -331,7 +331,7 @@ master = run_cascade(all_entries)  # cascade: same_sub → same_bucket → same_
 |---|---|
 | Step 1: m7_report / facts / uploads / bridge | Step 1: mc_pom / ONY PDF |
 | Step 2: 7 個 source 進 build_recipes_master | Step 2: scripts/ 線下產線（reclassify_and_rebuild） |
-| Step 3: data/master.jsonl | Step 3: pom_rules/* (81 buckets) — 無 master 概念 |
+| Step 3: data/master.jsonl | Step 3: pom_rules/* (137 buckets) — 無 master 概念 |
 | Step 4: recipes_master / l2_l3_ie / by_client | Step 4: pom_rules/<bucket>.json 直接給 UI |
 
 **Cross-cut layer：MK Metadata（雙方共用 master schema）**：

@@ -49,8 +49,8 @@ data/
     ocr_v1/facts.jsonl        舊 OCR 1202(glob)
     construction_by_bucket/   外部資料源(688)
     m7/                ⭐ 2026-05-08+ 聚陽 PullOn pipeline 推進來
-      entries.jsonl           7.5 MB / 746 entries (aggregated)
-      designs.jsonl.gz        ~6 MB (gzipped per-EIDH 履歷)
+      entries.jsonl           30 MB / 5,076 entries (aggregated)
+      designs.jsonl.gz        ~32 MB (gzipped per-EIDH 履歷,5,076 designs)
 
   legacy/                     退役 fallback (只縮不增)
 
@@ -59,7 +59,7 @@ l2_l3_ie/<L1>.json (38 + _index)     Bible 五階層展開,Phase 2 dict schema (
 # l2_l3_ie_by_client/                ✅ RETIRED 2026-05-08 (Phase 2.5b);功能由
 #                                     l2_l3_ie/ + frontend filterBibleByBrand() helper 取代
 recipes/                              PATH2 做工配方(72 檔)
-pom_rules/                            81 個 bucket(自動產)
+pom_rules/                            137 個 bucket(自動產)
 path2_universal/                      通用模型 ISO 查表 (v4.3 + v4)
 star_schema/scripts/                  CI 觸發的 ingest pipeline
 api/                                  Vercel functions
@@ -136,7 +136,7 @@ python star_schema/scripts/build_recipes_master.py --strict
 | recipe (same_sub) | `recipes/recipe_*.json` | 71-72 |
 | consensus_v1 (same_bucket) | `data/ingest/consensus_v1/entries.jsonl` | 275 |
 | facts_agg (same_bucket) | `data/ingest/*/facts.jsonl` glob | 動態 |
-| **m7** ⭐ (same_bucket) | `data/ingest/m7/entries.jsonl` | ~750 entries (4644 EIDH) |
+| **m7** ⭐ (same_bucket) | `data/ingest/m7/entries.jsonl` | 5,076 entries (~750 unique buckets) |
 | v4.3 (same_gt) | `path2_universal/iso_lookup_factory_v4.3.json` | 230 |
 | v4 (general) | `path2_universal/iso_lookup_factory_v4.json` | 282 |
 | bridge (cross_design) | `data/runtime/construction_bridge_v6.json` | 53 |
@@ -182,7 +182,7 @@ python scripts/core/reclassify_and_rebuild.py
 
 | 輸入 | 輸出 |
 |---|---|
-| (POM 規則底稿) | `pom_rules/<bucket>.json` 81 個 |
+| (POM 規則底稿) | `pom_rules/<bucket>.json` 137 個 |
 | (POM dictionary) | `data/runtime/pom_dictionary.json` |
 
 ⛔ POM 跟做工 cascade 完全獨立,不要 cross-import。

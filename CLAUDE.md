@@ -17,6 +17,51 @@
 
 ---
 
+## 2026-05-14 Code Review 實測快照(數字皆 ground-truth)
+
+跑過實際 build / API / index.html fetch 後驗到的 ground truth(以下數字若跟其他段落 diverge,以本段為準):
+
+| 維度 | 量測值 | 量測方法 |
+|---|---|---|
+| `pom_rules/` bucket count | **137** | `ls pom_rules/*.json \| grep -vE "_index\|pom_names" \| wc -l` |
+| `pom_rules/_index.json` version / date | v5.5.1 / 2026-05-11 | 直接讀 |
+| `pom_rules/` source_brand_codes | 34 brands | `_index.json:_meta.source_brand_codes` |
+| `data/ingest/m7/entries.jsonl` | **5,076 entries** / 30 MB | `wc -l` + `ls -l` |
+| `data/ingest/m7/designs.jsonl.gz` | **31 MB gzipped / 332 MB uncompressed / 18,300 designs** | `gzip -dc \| wc -l` |
+| `data/runtime/brands.json` brand count | **24 brands** | `python3 scripts/core/build_brands.py` 後讀 JSON |
+| `data/runtime/recipes_master.json` entries | **6,571 entries** | `build_recipes_master.py --strict` 跑完讀 |
+| `data/runtime/bucket_taxonomy.json` | 28 v4 (dict) + 59 legacy_buckets (dict) | 直接讀 |
+| `l2_l3_ie/` size | **137.4 MB** / 38 L1 + `_index.json` | `_index.json:total_size` |
+| `l2_l3_ie/` 最大 L1 檔 | BM 23.4 MB / SB 18.2 MB / SA 16.7 MB | `ls -l` |
+| `l2_l3_ie/_index.json` schema | top-level `"schema": "phase2"` | 不是 `_metadata.schema`,L1 檔內才是 |
+| `recipes/` count | 71 recipe JSON + `_index.json` = 72 | `ls recipes/*.json` |
+| `data/runtime/*.json` count | **18 檔** | `ls data/runtime/*.json \| wc -l` |
+| `data/runtime/code_manifest.json` curated files | **317 個** / 34 KB | `build_code_manifest.py` 跑完讀 |
+| `scripts/core/*.py` entry-point | **21 支**(含 3 `_` prefix helper) | `ls scripts/core/*.py` |
+| `star_schema/scripts/*.py` | **6 支** | `ls star_schema/scripts/*.py` |
+| `M7_Pipeline/` py 總數 | **134 py**(109 in scripts/ + 5 _test_*.py root + 20 in misc subdir)+ **9 ps1** | `find M7_Pipeline -name "*.py"` |
+| `validate_buckets.py --strict` | exit 0,clean | 實跑 |
+| `build_recipes_master.py --strict` | exit 0,6571 entries,B-tier 0 / A-tier 277(不擋) | 實跑 |
+| `derive_view_recipes_master.py` | no-op(0 had `_m7_*` stripped) | 實跑 — 因 build_recipes_master 已不再 emit `_m7_*` 欄,Step 4a 變雞肋,但保留 idempotency |
+| `derive_bible_actuals.py --all --in-place` | 38 L1 重算,actuals coverage 2.3%-96.8% by L1 | 實跑 |
+| Vercel deploy on PR #349 | success(2026-05-14T10:42Z) | GitHub MCP `get_status` |
+
+### 量測時發現的問題(已修)
+
+1. **`api/analyze.js:47` 註解 `iso_lookup_factory_v4.2`** ✗ → 改 `v4.3`(實際讀的是 v4.3)
+2. **`index.html` 多處「81 bucket / 81 buckets」** ✗(L3500/3533/3571/3607/3664/3697/4853)→ 改 `137 bucket`,影響 Pipeline 外送包 README 給外部協作單位的文字
+3. **CLAUDE.md / 網站架構圖.md 多處 4,562 designs / 4,644 EIDH / 746 行 / 79.1 MB / 21 brand** ✗ → 全部改成實測值(18,300 / 5,076 / 137.4 MB / 24 brand)
+4. **`docs/spec/網站架構圖.md` Tech Debt: `7% 增量還算合理`** ✗ → 改 `+86%`,並補充「`designs.jsonl.gz` 332 MB uncompressed 會吃瀏覽器 ~400 MB 記憶體」這條 mobile risk
+
+### 量測時發現的問題(需要 user decision 才能動)
+
+1. **`l2_l3_ie/l2_l3_ie/` + `l2_l3_ie/l2_l3_ie/l2_l3_ie/` nested 重複目錄**:tracked in git(2026-05-08 commit `efef83e` / `5f1455a`),58 MB + 29 MB = ~87 MB 死重 Bible 資料。內容是 older 版本 38 L1 JSON,結構跟現役 `l2_l3_ie/` 同。建議:過 Part B 5-step clean orphan gate 確認無人引用 → `git rm -r l2_l3_ie/l2_l3_ie/`。
+2. **`data/ingest/m7_pullon/` 舊目錄**:2026-05-12 rename `m7_pullon → m7` 後保留(`entries.jsonl` 768 行 / `designs.jsonl.gz` 6.4 MB,舊版資料);新 path `data/ingest/m7/` 已是 5,076 entries / 31 MB。建議:確認 grep 無人引用後 `git rm -r data/ingest/m7_pullon/`。
+3. **`M7_Pipeline/_test_*.py` 5 隻**(`_test_ony.py` / `_test_ony3.py` / `_test_ony_fix.py` / `_test_by_classify.py` / `_test_by_parser.py`)在 M7_Pipeline 根目錄,看起來是聚陽端 ad-hoc 測試 script。建議:過 5-step gate 後 `git rm` 或移進 `M7_Pipeline/scripts/_archive/`。
+4. **`vercel.json` `includeFiles: "{data/**, ...}"` bundles 91 MB**(含 75 MB `data/ingest/` 不需要的部分)進 `analyze.js` function。可能超過 Vercel size limit(視 plan)。建議:改成只 bundle `data/runtime/l2_visual_guide.json`、`l2_decision_trees.json`、`l1_standard_38.json`(實際讀的 3 檔)+ `docs/spec/techpack-translation-style-guide.md`。
+
+---
+
 ## M7 Extract Pipeline v11（2026-05-13 5 brand POM gap 救援 + honest audit）
 
 **核心成果**:
@@ -102,7 +147,7 @@
 >
 > 1. **`data/ingest/m7_pullon/` → `data/ingest/m7/` rename**(2026-05-12 commits `3ed9a49` / `a0dc4f6`):聚陽 PullOn 是當下唯一料源,目錄名加 `_pullon` 是預備擴張,但實務上多餘 — 縮短成 `m7/`。同步改 `M7_PATH` 常數(`star_schema/scripts/build_recipes_master.py:76`)、`build_brands.py` 路徑、workflow `paths:` trigger。舊 `data/ingest/m7_pullon/` 目錄殘留但不再被讀(下輪 audit 可以 clean orphan)。**注意**:script/function 名 `build_from_m7_pullon()`、`build_m7_pullon_source_v3.py`、`push_m7_pullon_v3.ps1`、檔名 `data/source/M7_PULLON_DATA_SCHEMA.md` 仍保留原名(它們是聚陽 PullOn 產品線的 identifier,不是 repo 路徑)。
 >
-> 2. **M7_Pipeline v11 import**(2026-05-13 commit `17b5629`,scripts + docs only,no PDF uploads):repo 加 `M7_Pipeline/` 頂層目錄(原本只在聚陽 Windows 端跑,本次把 v11 流程文件 + 30+ 隻 py + 3 隻 ps1 拷一份進 repo 做 audit/handover 用,raw PDF 不進)。組成:
+> 2. **M7_Pipeline v11 import**(2026-05-13 commit `17b5629`,scripts + docs only,no PDF uploads):repo 加 `M7_Pipeline/` 頂層目錄(原本只在聚陽 Windows 端跑,本次把 v11 流程文件 + 109 隻 py(scripts/) + 9 隻 ps1 + 5 隻 _test_*.py(root) 拷一份進 repo 做 audit/handover 用,raw PDF 不進)。組成:
 >    - `M7_Pipeline/PIPELINE.md`(總覽)/ `PDF_PIPELINE.md`(v11 5 brand POM 救援 + audit_v6 honest)/ `PPTX_PIPELINE.md`(708K constructions)/ `PIPELINE_GLOSSARY.md`(callout → construction rename 對照)/ `construction-page-rules.md`(3 format 類型 + signal scoring)
 >    - `M7_Pipeline/scripts/`:Phase A fetch / Phase C extract(11 brand parsers + 4 new layouts)/ Phase E build / Phase F audit
 >    - `M7_Pipeline/data/`(canonical_aliases.json / client_canonical_mapping.json / iso_dictionary.json / zone_glossary.json / pullon_l1_l2_l3_patterns.md)
@@ -128,9 +173,9 @@
 >
 > 8. **`data/client_canonical_mapping.json` v3**(2026-05-08 commit `fefea8d`,但今天才在 docs 補):109 KB,22 客戶 subgroup_codes × 4 維 ground truth(gender / dept / fabric / category,例:A&F ACTIVE → 100% KNIT / 98% WOMEN / 95% ACTIVE / 88% LEGGINGS)+ PDF field mapping。**消費端**:M7_Pipeline `derive_metadata.py` / `generate_bucket_taxonomy_from_mk.py` 用,**不在 platform CI runtime 路徑上**(platform 用 `data/source/canonical_aliases.json`)。位置在 `data/` 而非 `data/source/` 是歷史結果,2026-05-08 v3 合併 v1 + v2 時暫放,下輪重組可考慮搬。
 
-> **2026-05-11 快照**(在 2026-05-09 之上加 m7 21-brand + Bible idempotency 修):
+> **2026-05-11 快照**(在 2026-05-09 之上加 m7 24-brand + Bible idempotency 修):
 >
-> 1. **m7 跨 21 brand**(原 10 → +11 新 brand:HLF / WMT / QCE / HLA / NET / JF / BR / SAN / DST / ZAR / ASICS)。source 端聚陽 push 進 4,562 件 EIDH;Bible(`l2_l3_ie/*.json`) actuals.by_brand 跟著刷到 21 brand,大小 73.7 → 79.1 MB(+7%)。
+> 1. **m7 跨 24 brand**(原 10 → +11 新 brand 在 2026-05-11;後續 m7 push 加進 ASICS / LEV / CATO / SMC 等到 24)。source 端聚陽 push 進 **18,300 件 EIDH**(`designs.jsonl.gz` 332 MB uncompressed / 31 MB gzipped)/ **5,076 entries**(`entries.jsonl` 30 MB);Bible(`l2_l3_ie/*.json`) actuals.by_brand 跟著刷,大小 73.7 → **137.4 MB**(+86%,2026-05-14 實測,比原 2026-05-11 預估 79.1 MB 大很多 — m7 entry growth 從 768 → 5,076 ×6.6 帶來的)。
 >
 > 2. **`derive_bible_actuals.py` idempotency 修**(原 `derive_view_l2_l3_ie.py`,2026-05-11 改名;見 #5):2026-05-08 第一次升 Phase 2 dict schema 後,script 對已是 dict 的 step 直接 pass-through,不重算 actuals → 新 brand 進 m7 後 Bible 不會跟著刷,即使 `--all --in-place` 也 0 diff。修法:dict step 也走完整 lookup → recompute → 寫入(actuals empty 時清掉,避免殘留)。
 >
@@ -145,8 +190,8 @@
 >    - 目錄 `l2_l3_ie/` 保留(L2/L3/IE 三層工時名有資訊量,改成 bible/ 是內部黑話)
 >
 > 6. **前端 `filterBibleByCategory` 6 維 filter + canonical alias 擴張**(commit `83727c0`):
->    - **filterBibleByCategory(bible, {brand, fabric, gender, dept, gt, it})**(`index.html:216`)— 在 `filterBibleByBrand`(只 brand)之上加 5 維:runtime 反查 `data/ingest/m7/designs.jsonl.gz`(6.4 MB gzipped lazy fetch + native `DecompressionStream('gzip')`,4,562 designs cache module-scope),篩中後在 `(L2|L3|L4|L5)` key 上重算 `sec_median` + design count,把 Bible actuals 換成「符合 filter 的 designs 在這個 step 觀察到的中位數」。任何 filter 可省略;全空 fallback `filterBibleByBrand` 或整體。失敗時 fallback brand-only。**消費端**:`index.html:5645` 取代舊 `filterBibleByBrand`-only 呼叫。
->    - **canonical_aliases.json 擴張到 23 brand 代碼 / 28 alias entries**:加進 16 個新 client / 微調 2 個(`DICKS SPORTING GOODS → DKS`(原 `DICKS`)、`GAP OUTLET → GAP`(原 `GO`))。新加 BY / HLF / WMT / QCE / HLA / JF / SAN / DST / ZAR / ASICS / NET / LEV / CATO / SMC,對齊 m7 21 brand + 平台預備擴張。`data/runtime/brands.json` 21 brand 為實際在 entries.jsonl 出現過的(其他 alias 是預備)。
+>    - **filterBibleByCategory(bible, {brand, fabric, gender, dept, gt, it})**(`index.html:216`)— 在 `filterBibleByBrand`(只 brand)之上加 5 維:runtime 反查 `data/ingest/m7/designs.jsonl.gz`(31 MB gzipped lazy fetch + native `DecompressionStream('gzip')`,18,300 designs cache module-scope),篩中後在 `(L2|L3|L4|L5)` key 上重算 `sec_median` + design count,把 Bible actuals 換成「符合 filter 的 designs 在這個 step 觀察到的中位數」。任何 filter 可省略;全空 fallback `filterBibleByBrand` 或整體。失敗時 fallback brand-only。**消費端**:`index.html:5645` 取代舊 `filterBibleByBrand`-only 呼叫。
+>    - **canonical_aliases.json 擴張到 23 brand 代碼 / 28 alias entries**:加進 16 個新 client / 微調 2 個(`DICKS SPORTING GOODS → DKS`(原 `DICKS`)、`GAP OUTLET → GAP`(原 `GO`))。新加 BY / HLF / WMT / QCE / HLA / JF / SAN / DST / ZAR / ASICS / NET / LEV / CATO / SMC,對齊 m7 24 brand + 平台預備擴張。`data/runtime/brands.json` 24 brand 為實際在 entries.jsonl 出現過的(其他 alias 是預備)。
 
 > **2026-05-09 快照**(consolidated 從 2026-05-07 重組 + 2026-05-08 ~ 09 各 PR):
 >
@@ -154,7 +199,7 @@
 >
 > 2. **Bible 升級 20260507**:`data/source/五階層展開項目_20260507.xlsx` 35.7 MB(2.3x prior),sheet schema 改成「語系資料 + 全部五階層」雙 sheet,新增 `機種 / 尺寸 / 圖片名字 / *_Sort` 欄。**xlsx 不再進 repo**(>25 MB GitHub web 上限),改寫 SOP `data/source/BIBLE_UPGRADE.md`。維護者本機跑 `scripts/core/build_bible_skeleton.py` build raw,Step 4b 升 dict + 掛 actuals。
 >
-> 3. **m7 第 7 個 source**:`data/ingest/m7/{entries.jsonl(746 行,聚合,餵 cascade), designs.jsonl.gz(3,900 件 EIDH 含 5-level 工段 + canonical block,餵 View B/C derive)}`。`build_recipes_master.py` 加 `build_from_m7_pullon()`。
+> 3. **m7 第 7 個 source**:`data/ingest/m7/{entries.jsonl(5,076 行,聚合,餵 cascade), designs.jsonl.gz(18,300 件 EIDH 含 5-level 工段 + canonical block,餵 View B/C derive)}`。`build_recipes_master.py` 加 `build_from_m7_pullon()`。
 >
 > 4. **canonical block + alias normalizer**(designs.jsonl.gz 每筆 design):8 canonical 欄位(客戶/報價款號/Program/Subgroup/W/K/Item/Season/PRODUCT_CATEGORY)各做 multi-source consensus(M7 列管 priority 3 / PDF priority 2 / 推論 priority 1),M7 兜底所以 `canonical.<field>.value` 永遠 100% 不掉拍;`confidence` "high"/"medium"/"low" 標 audit 強度;`sources` 留 audit trail。Alias 規則放 `data/source/canonical_aliases.json` 手維護。**Consumer**:`build_recipes_master.py` 讀 aggregated `entries.jsonl`;Phase 2 View B + C 直接吃 `designs.jsonl.gz` 含 canonical block。
 >
@@ -175,10 +220,10 @@
 |--------|----------------------|------|------------|
 | `data/runtime/` | **線上系統 runtime 讀的成品 JSON**(18 個 .json)。前端 `fetch('./data/runtime/...')`、API `analyze.js` 啟動時讀 | `l1_standard_38.json`、`l2_visual_guide.json`、`l2_decision_trees.json`、`recipes_master.json`、`iso_dictionary.json`、`pom_dictionary.json`、`grading_patterns.json`、`bucket_taxonomy.json`(28 v4 + 59 legacy)、`construction_bridge_v6.json`、`brands.json`(2026-05-11 加,前端 Brand 下拉動態 source)、`code_manifest.json`(2026-05-13 加,index.html「管理 ▸ Code 瀏覽」modal 的檔案清單,由 `scripts/core/build_code_manifest.py` 產生,**不在 CI workflow 內,要手跑**) | 原始 xlsx;靜態文件;ingest 中繼檔;**`designs_index/`** 已退役(2026-05-09) |
 | `data/source/` | **手維護 / 上傳的原始底稿**(被 `scripts/core/build_*` 讀來生 runtime JSON) | `L2_代號中文對照表.xlsx`(L1/L2 代號對照,14 KB)、`BIBLE_UPGRADE.md`(SOP)、`M7_PULLON_DATA_SCHEMA.md`(m7 source schema)、**`canonical_aliases.json`**(2026-05-08 加,8 canonical 欄位的 alias normalize 規則,M7_Pipeline `consolidate_canonical.py` 讀;repo 暫存當 source-of-truth 規則表) | runtime 讀的檔;說明文件;**`五階層展開項目_*.xlsx` 不再進 repo**(2026-05-08 起,xlsx 留聚陽端,38 個 derive JSONs 進 repo) |
-| `data/ingest/` | **Pipeline staging**(CI / 外部協作上傳處)。`build_recipes_master.py` 的 `data/ingest/*/facts.jsonl` glob 會掃 | `data/ingest/uploads/`(PDF/PPTX 上傳處)、`data/ingest/{unified,vlm,pdf,metadata}/`、`data/ingest/{consensus_rules,ocr_v1,consensus_v1}/`、**`data/ingest/m7/`(2026-05-12 從 `m7_pullon/` rename;聚陽端 PullOn pipeline 推進來,5,076 entries / 32 MB designs.jsonl.gz)** | runtime 讀的成品(放 `data/runtime/`) |
+| `data/ingest/` | **Pipeline staging**(CI / 外部協作上傳處)。`build_recipes_master.py` 的 `data/ingest/*/facts.jsonl` glob 會掃 | `data/ingest/uploads/`(PDF/PPTX 上傳處)、`data/ingest/{unified,vlm,pdf,metadata}/`、`data/ingest/{consensus_rules,ocr_v1,consensus_v1}/`、**`data/ingest/m7/`(2026-05-12 從 `m7_pullon/` rename;聚陽端 PullOn pipeline 推進來,5,076 entries / 32 MB designs.jsonl.gz / 332 MB uncompressed / 18,300 designs)** | runtime 讀的成品(放 `data/runtime/`) |
 | `data/legacy/` | **舊 `pom_analysis_v5.5.1/` 退役後留下的 fallback**(只給 `vlm_pipeline.py` / `extract_unified.py` 在 runtime 找不到時用) | `all_designs_gt_it_classification.json`、`pom_dictionary.json` | 任何新檔(此資料夾只縮不增) |
 | `pom_rules/` | **自動產生的 POM 規則庫**。**137 個 bucket**(2026-05-13 v8;v6 起 bucket key 改用 M7 manifest Item 原值 `<Dept>_<MK_Item>\|<Gender>`,v7 gender+fabric 也走 M7 列管,v8 Maternity 保留)。139 檔 = 137 bucket + `_index.json` + `pom_names.json`。跨 34 brand codes(GAP / ONY / ATHLETA / BRFS / CALIA / DSG / KOH / DKS / ANF / HLF / VRST / UA / BY / QCE 等) | `pom_rules/*.json`(由 `scripts/core/reclassify_and_rebuild.py` 產出,外部 BASE 跑 + PR push;`validate_pom_rules.yml` workflow 校驗) | 手寫規則;說明文件 |
-| `M7_Pipeline/` | **聚陽端 PullOn pipeline v11**(2026-05-13 commit `17b5629` import,scripts + docs only,no PDF uploads)。原本只在聚陽 Windows 端跑,本次拷一份進 repo 做 audit / handover 用 | `PIPELINE.md` / `PDF_PIPELINE.md`(v11 5 brand POM rescue + audit_v6 honest 3-bucket)/ `PPTX_PIPELINE.md` / `PIPELINE_GLOSSARY.md` / `construction-page-rules.md` / `scripts/`(30+ py + 3 ps1)/ `data/`(canonical_aliases / client_canonical_mapping / iso_dictionary / zone_glossary 等) | raw PDF 檔(>25 MB / IP 敏感);線上 runtime 讀的檔 |
+| `M7_Pipeline/` | **聚陽端 PullOn pipeline v11**(2026-05-13 commit `17b5629` import,scripts + docs only,no PDF uploads)。原本只在聚陽 Windows 端跑,本次拷一份進 repo 做 audit / handover 用 | `PIPELINE.md` / `PDF_PIPELINE.md`(v11 5 brand POM rescue + audit_v6 honest 3-bucket)/ `PPTX_PIPELINE.md` / `PIPELINE_GLOSSARY.md` / `construction-page-rules.md` / `scripts/`(109 py + 9 ps1)/ `data/`(canonical_aliases / client_canonical_mapping / iso_dictionary / zone_glossary 等) | raw PDF 檔(>25 MB / IP 敏感);線上 runtime 讀的檔 |
 | `l2_l3_ie/` | **Bible 五階層展開** — 38 個 L1 部位,每部位 L1→L2→L3→L4→L5 工段樹。**Phase 2 dict schema(2026-05-08 commit f9faa8b 升級完成)**:每個 L5 step 是 dict `{l5, ie_standard:{sec,grade,primary,machine}, actuals?}`,`actuals` 含 m7 觀察值(`n_designs / sec_median / by_brand / machine_top`,option B trim 後)。`_metadata.schema = "phase2"` 標記。Bible **結構** 由 IE xlsx 決定(brand-agnostic),**L1-L5 樹不被 per-design 改**;Bible 38 檔現是 CI 自動產 — `derive_bible_actuals.py --all --in-place` 在 `rebuild_master.yml` Step 4b 跑,讀 xlsx-derived raw + `data/ingest/m7/designs.jsonl.gz` 後寫回。**`new_part_*` / `new_shape_design_*` / `new_method_describe_*` / `(NEW)*` placeholder 在 derive 層全 drop 不進 Bible**(IE 治理任務,聚陽端 SSRS 處理) | 按 L1 代號分檔的 JSON,38 檔 + `_index.json` | 其他層級的規則;**手改(CI 會蓋掉)**;brand 欄位嵌進樹結構(brand 走 actuals.by_brand);`new_*` placeholder |
 | `l2_l3_ie_by_client/` | ~~RETIRED 2026-05-08(Phase 2.5b)~~ — git rm 完成,功能由 `l2_l3_ie/<L1>.json` 升級後 schema 的 `actuals.by_brand` + frontend 的 `filterBibleByBrand()` / `filterBibleByCategory()` helper(2026-05-11 加 6 維,runtime 反查 designs.jsonl.gz)取代 | — | — |
 | `recipes/` | **PATH2 做工配方**(根目錄 72 檔)。是 `star_schema/scripts/build_recipes_master.py` 活檔的輸入,不是遺留 | `recipe_<GENDER>_<DEPT>_<GT>_<IT>.json`(72 檔)+ `_index.json` | 一次性實驗檔(放 Notion / Drive) |
