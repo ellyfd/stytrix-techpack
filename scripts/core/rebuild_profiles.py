@@ -33,6 +33,25 @@ def extract_gender(brand_division, department=''):
         return 'MENS'
     return 'UNKNOWN'
 
+
+def resolve_gender(rec):
+    """gender 解析優先序 (2026-05-14):
+      1. MATERNITY override — M7列管 PRODUCT_CATEGORY 沒有「孕婦裝」這個分類,
+         但孕婦裝做工有別 (肚圍片/前片放長等), 不可併進 WOMENS。
+         brand_division / department 明寫 MATERNITY 時保留 MATERNITY。
+      2. mk_gender — 聚陽 M7列管 PRODUCT_CATEGORY (Women/Men/Girl/Boy/Baby), 100% 覆蓋。
+      3. extract_gender() 關鍵字 — 只在 mk_gender 空 (EIDH 不在 M7列管) 時 fallback。
+    """
+    bd = (rec.get('brand_division') or '').upper()
+    dep = (rec.get('department') or '').upper()
+    if 'MATERNITY' in bd or 'MATERNITY' in dep:
+        return 'MATERNITY'
+    mk = (rec.get('mk_gender') or '').strip()
+    if mk:
+        return mk
+    return extract_gender(rec.get('brand_division', ''), rec.get('department', ''))
+
+
 profiles = []
 # 2026-05-11: 自動讀三個分檔, 不再依賴 mc_pom_combined.jsonl
 # (它不存在,且 PowerShell concat 會壞 UTF-8)
@@ -62,7 +81,7 @@ for line in all_lines_iter:
             continue
         mcs = rec.get('mcs', [])
         has_mc_pom = len(mcs) > 0
-        
+
         # Build mc_poms list from mcs
         mc_poms = []
         all_sizes = set()
@@ -80,13 +99,12 @@ for line in all_lines_iter:
                     'tolerance': pom.get('tolerance', {}),
                     'body_type': bt
                 })
-        
+
         profiles.append({
             'design_id': rec.get('design_number', ''),
-            # 2026-05-14: gender 優先吃 M7列管 PRODUCT_CATEGORY (adapter 注入的 mk_gender),
-            # 對不到才 fallback 關鍵字 extract_gender(). 聚陽 canonical, 100% 覆蓋.
-            'gender': (rec.get('mk_gender') or '').strip()
-                      or extract_gender(rec.get('brand_division', ''), rec.get('department', '')),
+            # 2026-05-14: gender = M7列管 PRODUCT_CATEGORY 為主 + MATERNITY override.
+            # 見 resolve_gender() docstring.
+            'gender': resolve_gender(rec),
             'item_type': rec.get('item_type', ''),
             # 2026-05-14: 聚陽 canonical — manifest_item=Item(garment_type), mk_fabric=W/K(Knit/Woven).
             # reclassify_and_rebuild.py 的 real_gt_v2 / infer_fabric 優先吃這兩欄.

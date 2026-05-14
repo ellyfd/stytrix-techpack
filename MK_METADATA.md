@@ -172,18 +172,39 @@ Step 1 Raw → Step 2 Source (對齊 MK Metadata 5+1 維) → Step 3 Master → 
 - `l2_l3_ie/<L1>.json` 38 檔 (View B) — Phase 2 dict schema,每 L5 step 含 `ie_standard` + 可選 `actuals` (含 `by_brand`,m7_pullon 觀察值);取代了已退役的 `l2_l3_ie_by_client/`
 - ~~`data/runtime/designs_index/<EIDH>.json` 3,900 檔 (View C) — per-EIDH 詳情 lazy fetch~~ — **2026-05-09 retired**(前端無 UI 消費)
 
-### POM Pipeline（獨立）
+### POM Pipeline（獨立）— v8 實作（2026-05-14）
+
+實際 pipeline（Pipeline B 五步，詳見 stytrix-techpack skill `pipe-tp-pom.md`）：
 
 ```
-Step 1 mc_pom Raw → scripts/reclassify_and_rebuild → pom_rules/<bucket>.json
+M7 facets + M7列管_*.xlsx → adapter (pdf_facets_to_mc_pom.py) → mc_pom_*.jsonl
+  → rebuild_profiles → reclassify_and_rebuild → rebuild_all_analysis_v2
+  → rebuild_grading_3d → fix_sort_order → pom_rules/*.json
 ```
 
-bucket 命名 = MK 4 維（不再用獨立 POM bucket schema）：
-- `pom_rules/WOMENS_ACTIVE_PANTS_LEGGINGS.json`
-- `pom_rules/WOMENS_ACTIVE_PANTS_PANT.json`
-- ...
+**adapter 從 `M7列管_*.xlsx`「總表」sheet 用 EIDH 反查，注入 3 個聚陽 canonical 欄到 mc_pom record**：
 
-跟做工 master entry 6 維前綴對齊（做工 6 維 → POM 取前 4 維 prefix lookup）。
+| mc_pom 欄位 | M7列管 來源欄 | 值 |
+|---|---|---|
+| `manifest_item` | `Item` | Tee / Pull On Pants / …（32 種原值，**= garment_type**）|
+| `mk_gender` | `PRODUCT_CATEGORY` | Women→WOMENS / Men→MENS / Girl→GIRLS / Boy→BOYS / Baby→BABY/TODDLER |
+| `mk_fabric` | `W/K` | Knit / Woven |
+
+下游 `reclassify_and_rebuild.py` 另推一個 **`body_region`**（upper / lower / combined，從
+`manifest_item` 經 `_pipeline_base.MK_ITEM_REGION` 推）寫進每個 bucket — 只給 POM zone
+排序（`fix_sort_order.py`）與 tier1 預設（`enforce_tier1.py`）用，不是 garment_type 本身。
+Gender 另有 MATERNITY override（M7列管 PRODUCT_CATEGORY 無孕婦裝分類，brand_division/
+department 明寫 MATERNITY 時保留）。
+
+**bucket key 實作格式（v8）= `{Department}_{GT}|{Gender}`**，GT = M7列管 `Item` 原值：
+- `pom_rules/womens_rtw_tee.json`（bucket key `RTW_Tee|WOMENS`）
+- `pom_rules/womens_active_pull_on_pants.json`（bucket key `Active_Pull On Pants|WOMENS`）
+
+> ⚠️ **與本文件 v1.0 spec 的 `<gender>_<dept>_<garment>_<item>` 4 維 UPPERCASE 規劃不同**：
+> v8 實作沒有把 item 維度放進 bucket key（`item_type` 保留為前端 filter，掛客人自己的分類，
+> 不參與 bucket 分類）；GT 維度直接用 M7列管 `Item` 原值，不收斂成 garment taxonomy。
+> 目前 GT / Gender / Fabric 三維已走 M7列管 canonical，**只剩 Department 仍是關鍵字分類器**
+> （`real_dept_v4()`，M7列管 無乾淨部門欄，待聚陽補一個正規 `Department` 欄）。
 
 ---
 
@@ -206,6 +227,7 @@ bucket 命名 = MK 4 維（不再用獨立 POM bucket schema）：
 | 版本 | 日期 | 重點 |
 |---|---|---|
 | v1.0 | 2026-05-08 | 初版 MK Metadata spec — 6 個元素 + 5+1 維 canonical key + bucket_taxonomy v4 推導機制 |
+| v1.1 | 2026-05-14 | 補 POM Pipeline v8 實作：adapter 從 `M7列管_*.xlsx`「總表」用 EIDH 反查注入 `manifest_item`（=garment_type）/ `mk_gender`（PRODUCT_CATEGORY）/ `mk_fabric`（W/K）三個 canonical 欄，下游加 `body_region`。GT/Gender/Fabric 三維已走 M7列管，Department 仍待補欄。詳見「## 各 Pipeline 怎麼用 MK → POM Pipeline」 |
 
 ---
 

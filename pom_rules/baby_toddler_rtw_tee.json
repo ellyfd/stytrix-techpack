@@ -27,27 +27,68 @@
     "3T",
     "4T",
     "5T",
-    "9/10",
-    "6- 12 MONTHS 3/10/2025 1ST FIT BY EASTMAN 6- 12M",
-    "15/16",
-    "0-3 MONTHS",
-    "18- 24 MONTHS MEASUREMENT CHART REVIEW",
-    "3-6 MONTHS",
-    "6T",
-    "5/6",
-    "7/8",
-    "18- 24 MONTHS LA FIT/ SHINWON",
-    "13/14",
-    "11/12",
-    "7",
-    "17/18",
-    "6- 12 MONTHS",
     "18- 24 MONTHS",
     "12-1 8 MONTHS",
-    "3/4"
+    "11/12",
+    "5/6",
+    "9/10",
+    "17/18",
+    "18- 24 MONTHS LA FIT/ SHINWON",
+    "7/8",
+    "6T",
+    "6- 12 MONTHS",
+    "13/14",
+    "18- 24 MONTHS MEASUREMENT CHART REVIEW",
+    "15/16",
+    "3-6 MONTHS",
+    "6- 12 MONTHS 3/10/2025 1ST FIT BY EASTMAN 6- 12M",
+    "0-3 MONTHS",
+    "3/4",
+    "7"
   ],
   "measurement_rules": {
     "must": {
+      "C3": {
+        "rate": 0.724,
+        "count": 21,
+        "tolerance": {
+          "standard": 0.125,
+          "display": "1/8",
+          "dominance_pct": 100.0,
+          "n": 21
+        }
+      },
+      "D13": {
+        "rate": 0.724,
+        "count": 21,
+        "tolerance": {
+          "standard": 0.25,
+          "display": "1/4",
+          "dominance_pct": 100.0,
+          "n": 21
+        }
+      },
+      "J9": {
+        "rate": 0.724,
+        "count": 21,
+        "tolerance": {
+          "standard": 0.375,
+          "display": "3/8",
+          "dominance_pct": 100.0,
+          "n": 21
+        },
+        "tier1_enforced": true
+      },
+      "B34": {
+        "rate": 0.793,
+        "count": 23,
+        "tolerance": {
+          "standard": 0.125,
+          "display": "1/8",
+          "dominance_pct": 69.6,
+          "n": 23
+        }
+      },
       "B29": {
         "rate": 0.793,
         "count": 23,
@@ -68,37 +109,6 @@
           "n": 24
         }
       },
-      "J9": {
-        "rate": 0.724,
-        "count": 21,
-        "tolerance": {
-          "standard": 0.375,
-          "display": "3/8",
-          "dominance_pct": 100.0,
-          "n": 21
-        },
-        "tier1_enforced": true
-      },
-      "D13": {
-        "rate": 0.724,
-        "count": 21,
-        "tolerance": {
-          "standard": 0.25,
-          "display": "1/4",
-          "dominance_pct": 100.0,
-          "n": 21
-        }
-      },
-      "B34": {
-        "rate": 0.793,
-        "count": 23,
-        "tolerance": {
-          "standard": 0.125,
-          "display": "1/8",
-          "dominance_pct": 69.6,
-          "n": 23
-        }
-      },
       "Z18": {
         "rate": 0.759,
         "count": 22,
@@ -117,16 +127,6 @@
           "display": "1/4",
           "dominance_pct": 100.0,
           "n": 24
-        }
-      },
-      "C3": {
-        "rate": 0.724,
-        "count": 21,
-        "tolerance": {
-          "standard": 0.125,
-          "display": "1/8",
-          "dominance_pct": 100.0,
-          "n": 21
         }
       },
       "F10": {
@@ -181,14 +181,24 @@
       }
     },
     "recommend": {
-      "C10": {
-        "rate": 0.552,
-        "count": 16,
+      "E13": {
+        "rate": 0.621,
+        "count": 18,
         "tolerance": {
           "standard": 0.125,
           "display": "1/8",
+          "dominance_pct": 77.8,
+          "n": 18
+        }
+      },
+      "F7": {
+        "rate": 0.517,
+        "count": 15,
+        "tolerance": {
+          "standard": 0.25,
+          "display": "1/4",
           "dominance_pct": 100.0,
-          "n": 16
+          "n": 15
         }
       },
       "E9": {
@@ -201,27 +211,17 @@
           "n": 17
         }
       },
-      "E13": {
-        "rate": 0.621,
-        "count": 18,
+      "C10": {
+        "rate": 0.552,
+        "count": 16,
         "tolerance": {
           "standard": 0.125,
           "display": "1/8",
-          "dominance_pct": 77.8,
-          "n": 18
+          "dominance_pct": 100.0,
+          "n": 16
         }
       },
       "F20": {
-        "rate": 0.517,
-        "count": 15,
-        "tolerance": {
-          "standard": 0.25,
-          "display": "1/4",
-          "dominance_pct": 100.0,
-          "n": 15
-        }
-      },
-      "F7": {
         "rate": 0.517,
         "count": 15,
         "tolerance": {
@@ -253,16 +253,6 @@
           "n": 10
         }
       },
-      "T10": {
-        "rate": 0.345,
-        "count": 10,
-        "tolerance": {
-          "standard": 0.125,
-          "display": "1/8",
-          "dominance_pct": 100.0,
-          "n": 10
-        }
-      },
       "F11": {
         "rate": 0.379,
         "count": 11,
@@ -271,6 +261,16 @@
           "display": "3/8",
           "dominance_pct": 100.0,
           "n": 11
+        }
+      },
+      "T10": {
+        "rate": 0.345,
+        "count": 10,
+        "tolerance": {
+          "standard": 0.125,
+          "display": "1/8",
+          "dominance_pct": 100.0,
+          "n": 10
         }
       },
       "F9": {
@@ -291,6 +291,241 @@
         "3T": 0.25,
         "4T": 0.25,
         "5T": 0.25
+      }
+    },
+    "E1": {
+      "size_medians": {
+        "2T": 18.0,
+        "3T": 19.0,
+        "4T": 20.0,
+        "5T": 21.5,
+        "0-3 MONTHS": 11.75,
+        "3-6 MONTHS": 13.25,
+        "6- 12 MONTHS": 14.75,
+        "12-1 8 MONTHS": 15.75,
+        "18- 24 MONTHS": 16.75,
+        "6T": 22.562
+      }
+    },
+    "C3": {
+      "size_medians": {
+        "XS": 1.75,
+        "S": 2.0,
+        "M": 2.25,
+        "L": 2.25,
+        "XL": 2.375,
+        "XXL": 2.375,
+        "2T": 2.0,
+        "3T": 2.0,
+        "4T": 2.125,
+        "5T": 2.25,
+        "0-3 MONTHS": 1.062,
+        "3-6 MONTHS": 1.25,
+        "6- 12 MONTHS": 1.375,
+        "12-1 8 MONTHS": 1.0,
+        "18- 24 MONTHS": 1.0,
+        "6T": 1.25
+      }
+    },
+    "S18": {
+      "size_medians": {
+        "2T": 2.0,
+        "3T": 2.0,
+        "4T": 2.0,
+        "5T": 2.0
+      }
+    },
+    "K23": {
+      "size_medians": {
+        "2T": 6.0,
+        "3T": 6.0,
+        "4T": 6.25,
+        "5T": 6.5,
+        "12-1 8 MONTHS": 5.5,
+        "18- 24 MONTHS": 5.5,
+        "6T": 6.25
+      }
+    },
+    "E2": {
+      "size_medians": {
+        "XS": 5.5,
+        "S": 6.0,
+        "M": 6.5,
+        "L": 6.875,
+        "XL": 7.25,
+        "XXL": 7.625,
+        "0-3 MONTHS": 14.25,
+        "3-6 MONTHS": 14.375,
+        "6- 12 MONTHS": 14.5,
+        "12-1 8 MONTHS": 1.625,
+        "18- 24 MONTHS": 1.688
+      }
+    },
+    "C1": {
+      "size_medians": {
+        "XS": 15.0,
+        "S": 16.75,
+        "M": 18.5,
+        "L": 19.25,
+        "XL": 20.0,
+        "XXL": 20.75,
+        "2T": 13.5,
+        "3T": 14.0,
+        "4T": 14.5,
+        "5T": 15.125,
+        "0-3 MONTHS": 10.625,
+        "3-6 MONTHS": 11.375,
+        "6- 12 MONTHS": 12.125,
+        "12-1 8 MONTHS": 12.625,
+        "18- 24 MONTHS": 13.25,
+        "6T": 13.125
+      }
+    },
+    "F10": {
+      "size_medians": {
+        "XS": 14.5,
+        "S": 16.25,
+        "M": 18.0,
+        "L": 18.75,
+        "XL": 19.5,
+        "XXL": 20.25,
+        "2T": 14.0,
+        "3T": 14.375,
+        "4T": 14.75,
+        "5T": 15.25,
+        "12-1 8 MONTHS": 12.625,
+        "18- 24 MONTHS": 13.0,
+        "6T": 14.875
+      }
+    },
+    "E13": {
+      "size_medians": {
+        "XS": 5.0,
+        "S": 5.5,
+        "M": 6.0,
+        "L": 6.25,
+        "XL": 6.5,
+        "XXL": 6.75,
+        "2T": 3.0,
+        "3T": 2.938,
+        "4T": 2.938,
+        "5T": 3.125,
+        "0-3 MONTHS": 2.5,
+        "3-6 MONTHS": 2.5,
+        "6- 12 MONTHS": 2.75,
+        "12-1 8 MONTHS": 2.625,
+        "18- 24 MONTHS": 2.875,
+        "6T": 3.0
+      }
+    },
+    "D13": {
+      "size_medians": {
+        "XS": 6.75,
+        "S": 7.375,
+        "M": 8.0,
+        "L": 8.375,
+        "XL": 8.75,
+        "XXL": 9.125,
+        "2T": 5.75,
+        "3T": 6.0,
+        "4T": 6.125,
+        "5T": 6.375,
+        "0-3 MONTHS": 4.5,
+        "3-6 MONTHS": 4.75,
+        "6- 12 MONTHS": 5.0,
+        "12-1 8 MONTHS": 5.125,
+        "18- 24 MONTHS": 5.25,
+        "6T": 6.438
+      }
+    },
+    "I5": {
+      "size_medians": {
+        "2T": 11.438,
+        "3T": 11.812,
+        "4T": 12.188,
+        "5T": 12.625,
+        "0-3 MONTHS": 9.5,
+        "3-6 MONTHS": 9.875,
+        "6- 12 MONTHS": 10.25,
+        "12-1 8 MONTHS": 10.625,
+        "18- 24 MONTHS": 11.0,
+        "6T": 12.875,
+        "18- 24 MONTHS MEASUREMENT CHART REVIEW": 12.75
+      }
+    },
+    "F7": {
+      "size_medians": {
+        "XS": 13.75,
+        "S": 15.5,
+        "M": 17.25,
+        "L": 18.0,
+        "XL": 18.75,
+        "XXL": 19.5,
+        "2T": 13.0,
+        "3T": 13.375,
+        "4T": 13.75,
+        "5T": 14.25,
+        "0-3 MONTHS": 10.0,
+        "3-6 MONTHS": 10.625,
+        "6- 12 MONTHS": 11.25,
+        "12-1 8 MONTHS": 11.75,
+        "18- 24 MONTHS": 12.25
+      }
+    },
+    "J9": {
+      "size_medians": {
+        "2T": 15.625,
+        "3T": 16.5,
+        "4T": 17.375,
+        "5T": 18.25,
+        "0-3 MONTHS": 11.25,
+        "3-6 MONTHS": 12.188,
+        "6- 12 MONTHS": 13.125,
+        "12-1 8 MONTHS": 13.875,
+        "18- 24 MONTHS": 14.75,
+        "6T": 18.938,
+        "18- 24 MONTHS MEASUREMENT CHART REVIEW": 14.25
+      }
+    },
+    "E9": {
+      "size_medians": {
+        "XS": 5.875,
+        "S": 6.5,
+        "M": 7.125,
+        "L": 7.5,
+        "XL": 7.875,
+        "XXL": 8.25,
+        "2T": 5.25,
+        "3T": 5.5,
+        "4T": 5.625,
+        "5T": 5.875,
+        "0-3 MONTHS": 3.75,
+        "3-6 MONTHS": 4.0,
+        "6- 12 MONTHS": 4.25,
+        "12-1 8 MONTHS": 4.625,
+        "18- 24 MONTHS": 4.75,
+        "6T": 5.625
+      }
+    },
+    "B34": {
+      "size_medians": {
+        "XS": 21.0,
+        "S": 22.0,
+        "M": 22.0,
+        "L": 23.0,
+        "XL": 23.0,
+        "XXL": 23.0,
+        "2T": 21.0,
+        "3T": 21.0,
+        "4T": 21.0,
+        "5T": 22.0,
+        "0-3 MONTHS": 18.0,
+        "3-6 MONTHS": 19.0,
+        "6- 12 MONTHS": 20.0,
+        "12-1 8 MONTHS": 21.0,
+        "18- 24 MONTHS": 21.0,
+        "18- 24 MONTHS MEASUREMENT CHART REVIEW": 21.0,
+        "6T": 22.0
       }
     },
     "C10": {
@@ -353,197 +588,12 @@
         "6T": 3.0
       }
     },
-    "E9": {
+    "B2": {
       "size_medians": {
-        "XS": 5.875,
-        "S": 6.5,
-        "M": 7.125,
-        "L": 7.5,
-        "XL": 7.875,
-        "XXL": 8.25,
-        "2T": 5.25,
-        "3T": 5.5,
-        "4T": 5.625,
-        "5T": 5.875,
-        "0-3 MONTHS": 3.75,
-        "3-6 MONTHS": 4.0,
-        "6- 12 MONTHS": 4.25,
-        "12-1 8 MONTHS": 4.625,
-        "18- 24 MONTHS": 4.75,
-        "6T": 5.625
-      }
-    },
-    "C1": {
-      "size_medians": {
-        "XS": 15.0,
-        "S": 16.75,
-        "M": 18.5,
-        "L": 19.25,
-        "XL": 20.0,
-        "XXL": 20.75,
-        "2T": 13.5,
-        "3T": 14.0,
-        "4T": 14.5,
-        "5T": 15.125,
-        "0-3 MONTHS": 10.625,
-        "3-6 MONTHS": 11.375,
-        "6- 12 MONTHS": 12.125,
-        "12-1 8 MONTHS": 12.625,
-        "18- 24 MONTHS": 13.25,
-        "6T": 13.125
-      }
-    },
-    "K23": {
-      "size_medians": {
-        "2T": 6.0,
-        "3T": 6.0,
-        "4T": 6.25,
-        "5T": 6.5,
-        "12-1 8 MONTHS": 5.5,
-        "18- 24 MONTHS": 5.5,
-        "6T": 6.25
-      }
-    },
-    "E13": {
-      "size_medians": {
-        "XS": 5.0,
-        "S": 5.5,
-        "M": 6.0,
-        "L": 6.25,
-        "XL": 6.5,
-        "XXL": 6.75,
-        "2T": 3.0,
-        "3T": 2.938,
-        "4T": 2.938,
-        "5T": 3.125,
-        "0-3 MONTHS": 2.5,
-        "3-6 MONTHS": 2.5,
-        "6- 12 MONTHS": 2.75,
-        "12-1 8 MONTHS": 2.625,
-        "18- 24 MONTHS": 2.875,
-        "6T": 3.0
-      }
-    },
-    "J9": {
-      "size_medians": {
-        "2T": 15.625,
-        "3T": 16.5,
-        "4T": 17.375,
-        "5T": 18.25,
-        "0-3 MONTHS": 11.25,
-        "3-6 MONTHS": 12.188,
-        "6- 12 MONTHS": 13.125,
-        "12-1 8 MONTHS": 13.875,
-        "18- 24 MONTHS": 14.75,
-        "6T": 18.938,
-        "18- 24 MONTHS MEASUREMENT CHART REVIEW": 14.25
-      }
-    },
-    "D13": {
-      "size_medians": {
-        "XS": 6.75,
-        "S": 7.375,
-        "M": 8.0,
-        "L": 8.375,
-        "XL": 8.75,
-        "XXL": 9.125,
-        "2T": 5.75,
-        "3T": 6.0,
-        "4T": 6.125,
-        "5T": 6.375,
-        "0-3 MONTHS": 4.5,
-        "3-6 MONTHS": 4.75,
-        "6- 12 MONTHS": 5.0,
-        "12-1 8 MONTHS": 5.125,
-        "18- 24 MONTHS": 5.25,
-        "6T": 6.438
-      }
-    },
-    "F20": {
-      "size_medians": {
-        "XS": 14.0,
-        "S": 15.75,
-        "M": 17.5,
-        "L": 18.25,
-        "XL": 19.0,
-        "XXL": 19.75,
-        "2T": 13.0,
-        "3T": 13.375,
-        "4T": 13.75,
-        "5T": 14.25,
-        "0-3 MONTHS": 10.125,
-        "3-6 MONTHS": 10.75,
-        "6- 12 MONTHS": 11.375,
-        "12-1 8 MONTHS": 11.875,
-        "18- 24 MONTHS": 12.375
-      }
-    },
-    "B34": {
-      "size_medians": {
-        "XS": 21.0,
-        "S": 22.0,
-        "M": 22.0,
-        "L": 23.0,
-        "XL": 23.0,
-        "XXL": 23.0,
-        "2T": 21.0,
-        "3T": 21.0,
-        "4T": 21.0,
-        "5T": 22.0,
-        "0-3 MONTHS": 18.0,
-        "3-6 MONTHS": 19.0,
-        "6- 12 MONTHS": 20.0,
-        "12-1 8 MONTHS": 21.0,
-        "18- 24 MONTHS": 21.0,
-        "18- 24 MONTHS MEASUREMENT CHART REVIEW": 21.0,
-        "6T": 22.0
-      }
-    },
-    "F10": {
-      "size_medians": {
-        "XS": 14.5,
-        "S": 16.25,
-        "M": 18.0,
-        "L": 18.75,
-        "XL": 19.5,
-        "XXL": 20.25,
-        "2T": 14.0,
-        "3T": 14.375,
-        "4T": 14.75,
-        "5T": 15.25,
-        "12-1 8 MONTHS": 12.625,
-        "18- 24 MONTHS": 13.0,
-        "6T": 14.875
-      }
-    },
-    "E2": {
-      "size_medians": {
-        "XS": 5.5,
-        "S": 6.0,
-        "M": 6.5,
-        "L": 6.875,
-        "XL": 7.25,
-        "XXL": 7.625,
-        "0-3 MONTHS": 14.25,
-        "3-6 MONTHS": 14.375,
-        "6- 12 MONTHS": 14.5,
-        "12-1 8 MONTHS": 1.625,
-        "18- 24 MONTHS": 1.688
-      }
-    },
-    "I5": {
-      "size_medians": {
-        "2T": 11.438,
-        "3T": 11.812,
-        "4T": 12.188,
-        "5T": 12.625,
-        "0-3 MONTHS": 9.5,
-        "3-6 MONTHS": 9.875,
-        "6- 12 MONTHS": 10.25,
-        "12-1 8 MONTHS": 10.625,
-        "18- 24 MONTHS": 11.0,
-        "6T": 12.875,
-        "18- 24 MONTHS MEASUREMENT CHART REVIEW": 12.75
+        "2T": 1.75,
+        "3T": 2.0,
+        "4T": 2.0,
+        "5T": 2.0
       }
     },
     "Z18": {
@@ -567,6 +617,25 @@
         "18- 24 MONTHS MEASUREMENT CHART REVIEW": 0.625
       }
     },
+    "F20": {
+      "size_medians": {
+        "XS": 14.0,
+        "S": 15.75,
+        "M": 17.5,
+        "L": 18.25,
+        "XL": 19.0,
+        "XXL": 19.75,
+        "2T": 13.0,
+        "3T": 13.375,
+        "4T": 13.75,
+        "5T": 14.25,
+        "0-3 MONTHS": 10.125,
+        "3-6 MONTHS": 10.75,
+        "6- 12 MONTHS": 11.375,
+        "12-1 8 MONTHS": 11.875,
+        "18- 24 MONTHS": 12.375
+      }
+    },
     "N16": {
       "size_medians": {
         "2T": 1.75,
@@ -578,14 +647,6 @@
         "6- 12 MONTHS": 1.5,
         "12-1 8 MONTHS": 1.5,
         "18- 24 MONTHS": 1.5
-      }
-    },
-    "S18": {
-      "size_medians": {
-        "2T": 2.0,
-        "3T": 2.0,
-        "4T": 2.0,
-        "5T": 2.0
       }
     },
     "B25": {
@@ -608,65 +669,12 @@
         "6T": 6.562
       }
     },
-    "F7": {
+    "K24": {
       "size_medians": {
-        "XS": 13.75,
-        "S": 15.5,
-        "M": 17.25,
-        "L": 18.0,
-        "XL": 18.75,
-        "XXL": 19.5,
-        "2T": 13.0,
-        "3T": 13.375,
-        "4T": 13.75,
-        "5T": 14.25,
-        "0-3 MONTHS": 10.0,
-        "3-6 MONTHS": 10.625,
-        "6- 12 MONTHS": 11.25,
-        "12-1 8 MONTHS": 11.75,
-        "18- 24 MONTHS": 12.25
-      }
-    },
-    "C3": {
-      "size_medians": {
-        "XS": 1.75,
-        "S": 2.0,
-        "M": 2.25,
-        "L": 2.25,
-        "XL": 2.375,
-        "XXL": 2.375,
-        "2T": 2.0,
-        "3T": 2.0,
-        "4T": 2.125,
-        "5T": 2.25,
-        "0-3 MONTHS": 1.062,
-        "3-6 MONTHS": 1.25,
-        "6- 12 MONTHS": 1.375,
-        "12-1 8 MONTHS": 1.0,
-        "18- 24 MONTHS": 1.0,
-        "6T": 1.25
-      }
-    },
-    "B2": {
-      "size_medians": {
-        "2T": 1.75,
-        "3T": 2.0,
-        "4T": 2.0,
-        "5T": 2.0
-      }
-    },
-    "E1": {
-      "size_medians": {
-        "2T": 18.0,
-        "3T": 19.0,
-        "4T": 20.0,
-        "5T": 21.5,
-        "0-3 MONTHS": 11.75,
-        "3-6 MONTHS": 13.25,
-        "6- 12 MONTHS": 14.75,
-        "12-1 8 MONTHS": 15.75,
-        "18- 24 MONTHS": 16.75,
-        "6T": 22.562
+        "2T": 0.75,
+        "3T": 0.75,
+        "4T": 0.75,
+        "5T": 0.75
       }
     },
     "K25": {
@@ -677,14 +685,6 @@
         "5T": 0.312
       }
     },
-    "K24": {
-      "size_medians": {
-        "2T": 0.75,
-        "3T": 0.75,
-        "4T": 0.75,
-        "5T": 0.75
-      }
-    },
     "Z1": {
       "size_medians": {
         "0-3 MONTHS": 1.25,
@@ -693,68 +693,6 @@
         "12-1 8 MONTHS": 1.25,
         "18- 24 MONTHS": 1.25,
         "18- 24 MONTHS LA FIT/ SHINWON": 0.75
-      }
-    },
-    "P20": {
-      "size_medians": {
-        "2T": 4.75,
-        "3T": 4.75,
-        "4T": 5.0,
-        "5T": 5.0,
-        "0-3 MONTHS": 4.0,
-        "3-6 MONTHS": 4.0,
-        "6- 12 MONTHS": 4.25,
-        "12-1 8 MONTHS": 4.5,
-        "18- 24 MONTHS": 4.75,
-        "6T": 5.25
-      }
-    },
-    "P24": {
-      "size_medians": {
-        "2T": 9.625,
-        "3T": 10.0,
-        "4T": 10.375,
-        "5T": 10.75,
-        "0-3 MONTHS": 7.0,
-        "3-6 MONTHS": 7.375,
-        "6- 12 MONTHS": 7.75,
-        "12-1 8 MONTHS": 8.125,
-        "18- 24 MONTHS": 8.5,
-        "6T": 11.125
-      }
-    },
-    "P22": {
-      "size_medians": {
-        "2T": 6.25,
-        "3T": 6.25,
-        "4T": 6.375,
-        "5T": 6.375,
-        "0-3 MONTHS": 4.25,
-        "3-6 MONTHS": 4.5,
-        "6- 12 MONTHS": 4.75,
-        "12-1 8 MONTHS": 5.0,
-        "18- 24 MONTHS": 5.25,
-        "6T": 6.5
-      }
-    },
-    "T10": {
-      "size_medians": {
-        "XS": 0.625,
-        "S": 0.625,
-        "M": 0.625,
-        "L": 0.625,
-        "XL": 0.625,
-        "XXL": 0.625,
-        "2T": 0.75,
-        "3T": 0.75,
-        "4T": 0.75,
-        "5T": 0.75,
-        "0-3 MONTHS": 0.625,
-        "3-6 MONTHS": 0.625,
-        "6- 12 MONTHS": 0.625,
-        "12-1 8 MONTHS": 0.625,
-        "18- 24 MONTHS": 0.625,
-        "6T": 0.625
       }
     },
     "A3": {
@@ -802,6 +740,18 @@
         "18- 24 MONTHS LA FIT/ SHINWON": 10.25
       }
     },
+    "P21": {
+      "size_medians": {
+        "4T": 2.0,
+        "5T": 2.0,
+        "0-3 MONTHS": 1.375,
+        "3-6 MONTHS": 1.5,
+        "6- 12 MONTHS": 1.625,
+        "12-1 8 MONTHS": 1.75,
+        "18- 24 MONTHS": 1.875,
+        "6T": 2.125
+      }
+    },
     "F11": {
       "size_medians": {
         "2T": 13.5,
@@ -817,16 +767,46 @@
         "18- 24 MONTHS MEASUREMENT CHART REVIEW": 12.5
       }
     },
-    "P21": {
+    "P24": {
       "size_medians": {
-        "4T": 2.0,
-        "5T": 2.0,
-        "0-3 MONTHS": 1.375,
-        "3-6 MONTHS": 1.5,
-        "6- 12 MONTHS": 1.625,
-        "12-1 8 MONTHS": 1.75,
-        "18- 24 MONTHS": 1.875,
-        "6T": 2.125
+        "2T": 9.625,
+        "3T": 10.0,
+        "4T": 10.375,
+        "5T": 10.75,
+        "0-3 MONTHS": 7.0,
+        "3-6 MONTHS": 7.375,
+        "6- 12 MONTHS": 7.75,
+        "12-1 8 MONTHS": 8.125,
+        "18- 24 MONTHS": 8.5,
+        "6T": 11.125
+      }
+    },
+    "P22": {
+      "size_medians": {
+        "2T": 6.25,
+        "3T": 6.25,
+        "4T": 6.375,
+        "5T": 6.375,
+        "0-3 MONTHS": 4.25,
+        "3-6 MONTHS": 4.5,
+        "6- 12 MONTHS": 4.75,
+        "12-1 8 MONTHS": 5.0,
+        "18- 24 MONTHS": 5.25,
+        "6T": 6.5
+      }
+    },
+    "P20": {
+      "size_medians": {
+        "2T": 4.75,
+        "3T": 4.75,
+        "4T": 5.0,
+        "5T": 5.0,
+        "0-3 MONTHS": 4.0,
+        "3-6 MONTHS": 4.0,
+        "6- 12 MONTHS": 4.25,
+        "12-1 8 MONTHS": 4.5,
+        "18- 24 MONTHS": 4.75,
+        "6T": 5.25
       }
     },
     "P23": {
@@ -841,6 +821,26 @@
         "12-1 8 MONTHS": 7.0,
         "18- 24 MONTHS": 7.25,
         "6T": 10.375
+      }
+    },
+    "T10": {
+      "size_medians": {
+        "XS": 0.625,
+        "S": 0.625,
+        "M": 0.625,
+        "L": 0.625,
+        "XL": 0.625,
+        "XXL": 0.625,
+        "2T": 0.75,
+        "3T": 0.75,
+        "4T": 0.75,
+        "5T": 0.75,
+        "0-3 MONTHS": 0.625,
+        "3-6 MONTHS": 0.625,
+        "6- 12 MONTHS": 0.625,
+        "12-1 8 MONTHS": 0.625,
+        "18- 24 MONTHS": 0.625,
+        "6T": 0.625
       }
     },
     "J7": {
@@ -915,37 +915,26 @@
         "6- 12 MONTHS": 9.0
       }
     },
-    "I2": {
+    "F8": {
       "size_medians": {
-        "2T": 13.375,
-        "3T": 13.75,
-        "4T": 14.125,
-        "5T": 14.5,
-        "12-1 8 MONTHS": 12.625,
-        "18- 24 MONTHS": 13.0,
-        "6T": 14.875
+        "2T": 3.875,
+        "3T": 4.0,
+        "4T": 4.125,
+        "5T": 4.25,
+        "12-1 8 MONTHS": 3.375,
+        "18- 24 MONTHS": 3.5,
+        "6T": 4.375
       }
     },
-    "C8": {
+    "P26": {
       "size_medians": {
-        "2T": 1.875,
-        "3T": 2.0,
-        "4T": 2.125,
-        "5T": 2.25,
-        "12-1 8 MONTHS": 1.625,
-        "18- 24 MONTHS": 1.75,
-        "6T": 2.375
-      }
-    },
-    "E15": {
-      "size_medians": {
-        "2T": 4.0,
-        "3T": 4.25,
-        "4T": 4.25,
-        "5T": 4.5,
-        "12-1 8 MONTHS": 3.75,
-        "18- 24 MONTHS": 4.0,
-        "6T": 4.5
+        "2T": 3.75,
+        "3T": 3.75,
+        "4T": 4.0,
+        "5T": 4.0,
+        "12-1 8 MONTHS": 3.5,
+        "18- 24 MONTHS": 3.5,
+        "6T": 4.25
       }
     },
     "C7": {
@@ -959,15 +948,15 @@
         "6T": 2.5
       }
     },
-    "F8": {
+    "E15": {
       "size_medians": {
-        "2T": 3.875,
-        "3T": 4.0,
-        "4T": 4.125,
-        "5T": 4.25,
-        "12-1 8 MONTHS": 3.375,
-        "18- 24 MONTHS": 3.5,
-        "6T": 4.375
+        "2T": 4.0,
+        "3T": 4.25,
+        "4T": 4.25,
+        "5T": 4.5,
+        "12-1 8 MONTHS": 3.75,
+        "18- 24 MONTHS": 4.0,
+        "6T": 4.5
       }
     },
     "F4": {
@@ -992,15 +981,26 @@
         "6T": 1.0
       }
     },
-    "P26": {
+    "C8": {
       "size_medians": {
-        "2T": 3.75,
-        "3T": 3.75,
-        "4T": 4.0,
-        "5T": 4.0,
-        "12-1 8 MONTHS": 3.5,
-        "18- 24 MONTHS": 3.5,
-        "6T": 4.25
+        "2T": 1.875,
+        "3T": 2.0,
+        "4T": 2.125,
+        "5T": 2.25,
+        "12-1 8 MONTHS": 1.625,
+        "18- 24 MONTHS": 1.75,
+        "6T": 2.375
+      }
+    },
+    "I2": {
+      "size_medians": {
+        "2T": 13.375,
+        "3T": 13.75,
+        "4T": 14.125,
+        "5T": 14.5,
+        "12-1 8 MONTHS": 12.625,
+        "18- 24 MONTHS": 13.0,
+        "6T": 14.875
       }
     },
     "E33": {
@@ -1044,9 +1044,9 @@
         "6T": 19.125
       }
     },
-    "S7": {
+    "S16": {
       "size_medians": {
-        "18- 24 MONTHS": 0.5
+        "18- 24 MONTHS": 1.0
       }
     },
     "S6": {
@@ -1054,14 +1054,14 @@
         "18- 24 MONTHS": 3.0
       }
     },
-    "S16": {
-      "size_medians": {
-        "18- 24 MONTHS": 1.0
-      }
-    },
     "T21": {
       "size_medians": {
         "18- 24 MONTHS": 0.312
+      }
+    },
+    "S7": {
+      "size_medians": {
+        "18- 24 MONTHS": 0.5
       }
     },
     "X001": {
@@ -1094,6 +1094,62 @@
       "typical_increment": 0.0,
       "n_pairs": 10
     },
+    "E1": {
+      "typical_increment": 1.125,
+      "n_pairs": 62
+    },
+    "C3": {
+      "typical_increment": 0.125,
+      "n_pairs": 77
+    },
+    "S18": {
+      "typical_increment": 0.0,
+      "n_pairs": 15
+    },
+    "K23": {
+      "typical_increment": 0.25,
+      "n_pairs": 27
+    },
+    "E2": {
+      "typical_increment": 0.125,
+      "n_pairs": 36
+    },
+    "C1": {
+      "typical_increment": 0.625,
+      "n_pairs": 83
+    },
+    "F10": {
+      "typical_increment": 0.5,
+      "n_pairs": 45
+    },
+    "E13": {
+      "typical_increment": 0.125,
+      "n_pairs": 74
+    },
+    "D13": {
+      "typical_increment": 0.25,
+      "n_pairs": 86
+    },
+    "I5": {
+      "typical_increment": 0.375,
+      "n_pairs": 72
+    },
+    "F7": {
+      "typical_increment": 0.5,
+      "n_pairs": 52
+    },
+    "J9": {
+      "typical_increment": 0.875,
+      "n_pairs": 83
+    },
+    "E9": {
+      "typical_increment": 0.25,
+      "n_pairs": 69
+    },
+    "B34": {
+      "typical_increment": 0.0,
+      "n_pairs": 90
+    },
     "C10": {
       "typical_increment": 0.0,
       "n_pairs": 60
@@ -1106,109 +1162,37 @@
       "typical_increment": 0.125,
       "n_pairs": 89
     },
-    "E9": {
-      "typical_increment": 0.25,
-      "n_pairs": 69
-    },
-    "C1": {
-      "typical_increment": 0.625,
-      "n_pairs": 83
-    },
-    "K23": {
-      "typical_increment": 0.25,
-      "n_pairs": 27
-    },
-    "E13": {
-      "typical_increment": 0.125,
-      "n_pairs": 74
-    },
-    "J9": {
-      "typical_increment": 0.875,
-      "n_pairs": 83
-    },
-    "D13": {
-      "typical_increment": 0.25,
-      "n_pairs": 86
-    },
-    "F20": {
-      "typical_increment": 0.5,
-      "n_pairs": 56
-    },
-    "B34": {
+    "B2": {
       "typical_increment": 0.0,
-      "n_pairs": 90
-    },
-    "F10": {
-      "typical_increment": 0.5,
-      "n_pairs": 45
-    },
-    "E2": {
-      "typical_increment": 0.125,
-      "n_pairs": 36
-    },
-    "I5": {
-      "typical_increment": 0.375,
-      "n_pairs": 72
+      "n_pairs": 15
     },
     "Z18": {
       "typical_increment": 0.0,
       "n_pairs": 81
     },
+    "F20": {
+      "typical_increment": 0.5,
+      "n_pairs": 56
+    },
     "N16": {
       "typical_increment": 0.0,
       "n_pairs": 31
-    },
-    "S18": {
-      "typical_increment": 0.0,
-      "n_pairs": 15
     },
     "B25": {
       "typical_increment": 0.125,
       "n_pairs": 95
     },
-    "F7": {
-      "typical_increment": 0.5,
-      "n_pairs": 52
-    },
-    "C3": {
-      "typical_increment": 0.125,
-      "n_pairs": 77
-    },
-    "B2": {
-      "typical_increment": 0.0,
-      "n_pairs": 15
-    },
-    "E1": {
-      "typical_increment": 1.125,
-      "n_pairs": 62
-    },
-    "K25": {
+    "K24": {
       "typical_increment": 0.0,
       "n_pairs": 9
     },
-    "K24": {
+    "K25": {
       "typical_increment": 0.0,
       "n_pairs": 9
     },
     "Z1": {
       "typical_increment": 0.0,
       "n_pairs": 19
-    },
-    "P20": {
-      "typical_increment": 0.25,
-      "n_pairs": 29
-    },
-    "P24": {
-      "typical_increment": 0.375,
-      "n_pairs": 30
-    },
-    "P22": {
-      "typical_increment": 0.125,
-      "n_pairs": 30
-    },
-    "T10": {
-      "typical_increment": 0.0,
-      "n_pairs": 42
     },
     "A3": {
       "typical_increment": 0.375,
@@ -1222,17 +1206,33 @@
       "typical_increment": 0.25,
       "n_pairs": 24
     },
-    "F11": {
-      "typical_increment": 0.438,
-      "n_pairs": 36
-    },
     "P21": {
       "typical_increment": 0.125,
       "n_pairs": 16
     },
+    "F11": {
+      "typical_increment": 0.438,
+      "n_pairs": 36
+    },
+    "P24": {
+      "typical_increment": 0.375,
+      "n_pairs": 30
+    },
+    "P22": {
+      "typical_increment": 0.125,
+      "n_pairs": 30
+    },
+    "P20": {
+      "typical_increment": 0.25,
+      "n_pairs": 29
+    },
     "P23": {
       "typical_increment": 0.25,
       "n_pairs": 30
+    },
+    "T10": {
+      "typical_increment": 0.0,
+      "n_pairs": 42
     },
     "J7": {
       "typical_increment": 1.25,
@@ -1258,24 +1258,20 @@
       "typical_increment": 0.375,
       "n_pairs": 50
     },
-    "I2": {
-      "typical_increment": 0.375,
-      "n_pairs": 12
-    },
-    "C8": {
+    "F8": {
       "typical_increment": 0.125,
       "n_pairs": 12
     },
-    "E15": {
-      "typical_increment": 0.25,
+    "P26": {
+      "typical_increment": 0.0,
       "n_pairs": 12
     },
     "C7": {
       "typical_increment": 0.125,
       "n_pairs": 18
     },
-    "F8": {
-      "typical_increment": 0.125,
+    "E15": {
+      "typical_increment": 0.25,
       "n_pairs": 12
     },
     "F4": {
@@ -1286,8 +1282,12 @@
       "typical_increment": 1.0,
       "n_pairs": 12
     },
-    "P26": {
-      "typical_increment": 0.0,
+    "C8": {
+      "typical_increment": 0.125,
+      "n_pairs": 12
+    },
+    "I2": {
+      "typical_increment": 0.375,
       "n_pairs": 12
     },
     "E33": {
@@ -1298,49 +1298,49 @@
       "typical_increment": 0.375,
       "n_pairs": 15
     },
-    "L11": {
-      "typical_increment": 0.25,
-      "n_pairs": 3
-    },
-    "N20": {
-      "typical_increment": 0.375,
-      "n_pairs": 1
+    "L13": {
+      "typical_increment": 0.125,
+      "n_pairs": 4
     },
     "L16": {
       "typical_increment": 0.125,
       "n_pairs": 4
     },
-    "J18": {
-      "typical_increment": 0.75,
+    "N9": {
+      "typical_increment": 0.25,
       "n_pairs": 3
     },
-    "L13": {
-      "typical_increment": 0.125,
-      "n_pairs": 4
+    "L11": {
+      "typical_increment": 0.25,
+      "n_pairs": 3
     },
     "C2": {
       "typical_increment": 0.0,
+      "n_pairs": 1
+    },
+    "N20": {
+      "typical_increment": 0.375,
       "n_pairs": 1
     },
     "L20": {
       "typical_increment": 0.375,
       "n_pairs": 1
     },
-    "J21": {
-      "typical_increment": 0.25,
+    "L18": {
+      "typical_increment": 0.0,
       "n_pairs": 2
+    },
+    "J18": {
+      "typical_increment": 0.75,
+      "n_pairs": 3
     },
     "M13": {
       "typical_increment": 0.0,
       "n_pairs": 5
     },
-    "L18": {
-      "typical_increment": 0.0,
-      "n_pairs": 2
-    },
-    "N9": {
+    "J21": {
       "typical_increment": 0.25,
-      "n_pairs": 3
+      "n_pairs": 2
     },
     "P25": {
       "typical_increment": 0.0,
@@ -1354,7 +1354,7 @@
       "typical_increment": 0.0,
       "n_pairs": 6
     },
-    "S7": {
+    "S16": {
       "typical_increment": 0.0,
       "n_pairs": 12
     },
@@ -1362,11 +1362,11 @@
       "typical_increment": 0.0,
       "n_pairs": 12
     },
-    "S16": {
+    "T21": {
       "typical_increment": 0.0,
       "n_pairs": 12
     },
-    "T21": {
+    "S7": {
       "typical_increment": 0.0,
       "n_pairs": 12
     },
@@ -1402,6 +1402,90 @@
       "dominance_pct": 100.0,
       "n": 5
     },
+    "E1": {
+      "standard": 0.375,
+      "display": "3/8",
+      "dominance_pct": 100.0,
+      "n": 15
+    },
+    "C3": {
+      "standard": 0.125,
+      "display": "1/8",
+      "dominance_pct": 100.0,
+      "n": 21
+    },
+    "S18": {
+      "standard": 0.125,
+      "display": "1/8",
+      "dominance_pct": 100.0,
+      "n": 5
+    },
+    "K23": {
+      "standard": 0.25,
+      "display": "1/4",
+      "dominance_pct": 100.0,
+      "n": 7
+    },
+    "E2": {
+      "standard": 0.25,
+      "display": "1/4",
+      "dominance_pct": 70.0,
+      "n": 10
+    },
+    "C1": {
+      "standard": 0.375,
+      "display": "3/8",
+      "dominance_pct": 65.0,
+      "n": 20
+    },
+    "F10": {
+      "standard": 0.375,
+      "display": "3/8",
+      "dominance_pct": 72.7,
+      "n": 11
+    },
+    "E13": {
+      "standard": 0.125,
+      "display": "1/8",
+      "dominance_pct": 77.8,
+      "n": 18
+    },
+    "D13": {
+      "standard": 0.25,
+      "display": "1/4",
+      "dominance_pct": 100.0,
+      "n": 21
+    },
+    "I5": {
+      "standard": 0.25,
+      "display": "1/4",
+      "dominance_pct": 52.9,
+      "n": 17
+    },
+    "F7": {
+      "standard": 0.25,
+      "display": "1/4",
+      "dominance_pct": 100.0,
+      "n": 15
+    },
+    "J9": {
+      "standard": 0.375,
+      "display": "3/8",
+      "dominance_pct": 100.0,
+      "n": 21
+    },
+    "E9": {
+      "standard": 0.25,
+      "display": "1/4",
+      "dominance_pct": 100.0,
+      "n": 17
+    },
+    "B34": {
+      "standard": 0.125,
+      "display": "1/8",
+      "dominance_pct": 69.6,
+      "n": 23
+    },
     "C10": {
       "standard": 0.125,
       "display": "1/8",
@@ -1420,71 +1504,11 @@
       "dominance_pct": 66.7,
       "n": 24
     },
-    "E9": {
-      "standard": 0.25,
-      "display": "1/4",
-      "dominance_pct": 100.0,
-      "n": 17
-    },
-    "C1": {
-      "standard": 0.375,
-      "display": "3/8",
-      "dominance_pct": 65.0,
-      "n": 20
-    },
-    "K23": {
-      "standard": 0.25,
-      "display": "1/4",
-      "dominance_pct": 100.0,
-      "n": 7
-    },
-    "E13": {
+    "B2": {
       "standard": 0.125,
       "display": "1/8",
-      "dominance_pct": 77.8,
-      "n": 18
-    },
-    "J9": {
-      "standard": 0.375,
-      "display": "3/8",
       "dominance_pct": 100.0,
-      "n": 21
-    },
-    "D13": {
-      "standard": 0.25,
-      "display": "1/4",
-      "dominance_pct": 100.0,
-      "n": 21
-    },
-    "F20": {
-      "standard": 0.25,
-      "display": "1/4",
-      "dominance_pct": 100.0,
-      "n": 15
-    },
-    "B34": {
-      "standard": 0.125,
-      "display": "1/8",
-      "dominance_pct": 69.6,
-      "n": 23
-    },
-    "F10": {
-      "standard": 0.375,
-      "display": "3/8",
-      "dominance_pct": 72.7,
-      "n": 11
-    },
-    "E2": {
-      "standard": 0.25,
-      "display": "1/4",
-      "dominance_pct": 70.0,
-      "n": 10
-    },
-    "I5": {
-      "standard": 0.25,
-      "display": "1/4",
-      "dominance_pct": 52.9,
-      "n": 17
+      "n": 5
     },
     "Z18": {
       "standard": 0.125,
@@ -1492,17 +1516,17 @@
       "dominance_pct": 100.0,
       "n": 16
     },
+    "F20": {
+      "standard": 0.25,
+      "display": "1/4",
+      "dominance_pct": 100.0,
+      "n": 15
+    },
     "N16": {
       "standard": 0.125,
       "display": "1/8",
       "dominance_pct": 100.0,
       "n": 10
-    },
-    "S18": {
-      "standard": 0.125,
-      "display": "1/8",
-      "dominance_pct": 100.0,
-      "n": 5
     },
     "B25": {
       "standard": 0.25,
@@ -1510,37 +1534,13 @@
       "dominance_pct": 100.0,
       "n": 24
     },
-    "F7": {
-      "standard": 0.25,
-      "display": "1/4",
-      "dominance_pct": 100.0,
-      "n": 15
-    },
-    "C3": {
-      "standard": 0.125,
-      "display": "1/8",
-      "dominance_pct": 100.0,
-      "n": 21
-    },
-    "B2": {
-      "standard": 0.125,
-      "display": "1/8",
-      "dominance_pct": 100.0,
-      "n": 5
-    },
-    "E1": {
-      "standard": 0.375,
-      "display": "3/8",
-      "dominance_pct": 100.0,
-      "n": 15
-    },
-    "K25": {
+    "K24": {
       "standard": 0.125,
       "display": "1/8",
       "dominance_pct": 100.0,
       "n": 3
     },
-    "K24": {
+    "K25": {
       "standard": 0.125,
       "display": "1/8",
       "dominance_pct": 100.0,
@@ -1551,30 +1551,6 @@
       "display": "1/8",
       "dominance_pct": 100.0,
       "n": 6
-    },
-    "P20": {
-      "standard": 0.125,
-      "display": "1/8",
-      "dominance_pct": 100.0,
-      "n": 5
-    },
-    "P24": {
-      "standard": 0.125,
-      "display": "1/8",
-      "dominance_pct": 100.0,
-      "n": 5
-    },
-    "P22": {
-      "standard": 0.125,
-      "display": "1/8",
-      "dominance_pct": 100.0,
-      "n": 5
-    },
-    "T10": {
-      "standard": 0.125,
-      "display": "1/8",
-      "dominance_pct": 100.0,
-      "n": 10
     },
     "A3": {
       "standard": 0.25,
@@ -1594,13 +1570,31 @@
       "dominance_pct": 100.0,
       "n": 7
     },
+    "P21": {
+      "standard": 0.125,
+      "display": "1/8",
+      "dominance_pct": 100.0,
+      "n": 5
+    },
     "F11": {
       "standard": 0.375,
       "display": "3/8",
       "dominance_pct": 100.0,
       "n": 11
     },
-    "P21": {
+    "P24": {
+      "standard": 0.125,
+      "display": "1/8",
+      "dominance_pct": 100.0,
+      "n": 5
+    },
+    "P22": {
+      "standard": 0.125,
+      "display": "1/8",
+      "dominance_pct": 100.0,
+      "n": 5
+    },
+    "P20": {
       "standard": 0.125,
       "display": "1/8",
       "dominance_pct": 100.0,
@@ -1611,6 +1605,12 @@
       "display": "1/8",
       "dominance_pct": 100.0,
       "n": 5
+    },
+    "T10": {
+      "standard": 0.125,
+      "display": "1/8",
+      "dominance_pct": 100.0,
+      "n": 10
     },
     "J7": {
       "standard": 0.5,
@@ -1648,19 +1648,7 @@
       "dominance_pct": 100.0,
       "n": 8
     },
-    "I2": {
-      "standard": 0.375,
-      "display": "3/8",
-      "dominance_pct": 100.0,
-      "n": 2
-    },
-    "C8": {
-      "standard": 0.125,
-      "display": "1/8",
-      "dominance_pct": 100.0,
-      "n": 2
-    },
-    "E15": {
+    "P26": {
       "standard": 0.125,
       "display": "1/8",
       "dominance_pct": 100.0,
@@ -1672,15 +1660,27 @@
       "dominance_pct": 100.0,
       "n": 3
     },
+    "E15": {
+      "standard": 0.125,
+      "display": "1/8",
+      "dominance_pct": 100.0,
+      "n": 2
+    },
     "P59": {
       "standard": 0.125,
       "display": "1/8",
       "dominance_pct": 100.0,
       "n": 2
     },
-    "P26": {
+    "C8": {
       "standard": 0.125,
       "display": "1/8",
+      "dominance_pct": 100.0,
+      "n": 2
+    },
+    "I2": {
+      "standard": 0.375,
+      "display": "3/8",
       "dominance_pct": 100.0,
       "n": 2
     },
@@ -1696,31 +1696,31 @@
       "dominance_pct": 100.0,
       "n": 4
     },
-    "L11": {
-      "standard": 0.375,
-      "display": "3/8",
-      "dominance_pct": 100.0,
-      "n": 1
-    },
-    "N20": {
-      "standard": 0.25,
-      "display": "1/4",
-      "dominance_pct": 100.0,
-      "n": 1
-    },
-    "J18": {
-      "standard": 0.375,
-      "display": "3/8",
-      "dominance_pct": 100.0,
-      "n": 1
-    },
     "L13": {
       "standard": 0.125,
       "display": "1/8",
       "dominance_pct": 100.0,
       "n": 1
     },
+    "N9": {
+      "standard": 0.25,
+      "display": "1/4",
+      "dominance_pct": 100.0,
+      "n": 1
+    },
+    "L11": {
+      "standard": 0.375,
+      "display": "3/8",
+      "dominance_pct": 100.0,
+      "n": 1
+    },
     "C2": {
+      "standard": 0.25,
+      "display": "1/4",
+      "dominance_pct": 100.0,
+      "n": 1
+    },
+    "N20": {
       "standard": 0.25,
       "display": "1/4",
       "dominance_pct": 100.0,
@@ -1732,9 +1732,15 @@
       "dominance_pct": 100.0,
       "n": 1
     },
-    "J21": {
-      "standard": 0.25,
-      "display": "1/4",
+    "L18": {
+      "standard": 0.125,
+      "display": "1/8",
+      "dominance_pct": 100.0,
+      "n": 1
+    },
+    "J18": {
+      "standard": 0.375,
+      "display": "3/8",
       "dominance_pct": 100.0,
       "n": 1
     },
@@ -1744,13 +1750,7 @@
       "dominance_pct": 100.0,
       "n": 1
     },
-    "L18": {
-      "standard": 0.125,
-      "display": "1/8",
-      "dominance_pct": 100.0,
-      "n": 1
-    },
-    "N9": {
+    "J21": {
       "standard": 0.25,
       "display": "1/4",
       "dominance_pct": 100.0,

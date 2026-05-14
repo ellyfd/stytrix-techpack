@@ -10,27 +10,17 @@
   "gender": "BOYS",
   "n": 5,
   "size_range": [
-    "17/18",
-    "9/10",
-    "3/4",
-    "15/16",
     "5/6",
-    "7/8",
+    "9/10",
     "13/14",
-    "11/12"
+    "17/18",
+    "15/16",
+    "7/8",
+    "11/12",
+    "3/4"
   ],
   "measurement_rules": {
     "must": {
-      "T002": {
-        "rate": 1.0,
-        "count": 5,
-        "tolerance": {
-          "standard": 0.5,
-          "display": "1/2",
-          "dominance_pct": 100.0,
-          "n": 5
-        }
-      },
       "W001": {
         "rate": 1.0,
         "count": 5,
@@ -47,6 +37,16 @@
         "tolerance": {
           "standard": 0.25,
           "display": "1/4",
+          "dominance_pct": 100.0,
+          "n": 5
+        }
+      },
+      "T002": {
+        "rate": 1.0,
+        "count": 5,
+        "tolerance": {
+          "standard": 0.5,
+          "display": "1/2",
           "dominance_pct": 100.0,
           "n": 5
         }
@@ -204,10 +204,6 @@
     }
   },
   "grading_rules": {
-    "T002": {
-      "typical_increment": 0.0,
-      "n_pairs": 25
-    },
     "W001": {
       "typical_increment": 0.0,
       "n_pairs": 30
@@ -215,6 +211,10 @@
     "X001": {
       "typical_increment": -0.875,
       "n_pairs": 32
+    },
+    "T002": {
+      "typical_increment": 0.0,
+      "n_pairs": 25
     },
     "X063": {
       "typical_increment": 0.0,
@@ -226,12 +226,6 @@
     }
   },
   "tolerance_standards": {
-    "T002": {
-      "standard": 0.5,
-      "display": "1/2",
-      "dominance_pct": 100.0,
-      "n": 5
-    },
     "W001": {
       "standard": 0.125,
       "display": "1/8",
@@ -241,6 +235,12 @@
     "X001": {
       "standard": 0.25,
       "display": "1/4",
+      "dominance_pct": 100.0,
+      "n": 5
+    },
+    "T002": {
+      "standard": 0.5,
+      "display": "1/2",
       "dominance_pct": 100.0,
       "n": 5
     },
