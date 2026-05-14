@@ -248,10 +248,11 @@ data/
   │   ├─ recipes_master.json                  ← 通用模型 recipe 推薦(GitHub Actions 自動重建)
   │   ├─ iso_dictionary.json                  ← ISO 字典(同上,自動重建)
   │   ├─ construction_bridge_v6.json          ← 跨設計 GT × zone 施工統計(build_recipes_master 會吃)
-  │   ├─ gender_gt_pom_rules.json             ← Gender × GT 的 POM 規則(規則產線輸出,1.5 MB)
-  │   ├─ all_designs_gt_it_classification.json ← 全量 design 的 GT / IT 分類(1292 designs)
-  │   ├─ bucket_taxonomy.json                 ← 59 個 bucket 分類表(Step 3 --strict 驗證用)
-  │   ├─ client_rules.json / design_classification_v5.json / ...
+  │   # ⚠ gender_gt_pom_rules / client_rules / design_classification_v5 已於 2026-05-14
+  │   #   從 data/runtime/ 搬到 pom_rules/_derive/ —— 是 Pipeline B 規則產線輸出,
+  │   #   前端 / api/ 不讀,放 runtime/ 名實不符
+  │   ├─ all_designs_gt_it_classification.json ← 全量 design 的 GT / IT 分類(1,292 designs;CI Step 2 vlm_pipeline/extract_unified fallback 讀)
+  │   ├─ bucket_taxonomy.json                 ← 28 v4 + 59 legacy bucket 分類表(Step 3 --strict 驗證用)
   │   ├─ l1_part_presence_v1.json             ← 聚陽模型:GT×IT 下每個部位出現率(345 KB)
   │   └─ l1_iso_recommendations_v1.json       ← 聚陽模型:部位名 → ISO 建議(519 KB)
   ├─ source/                                  ← 手維護 / 上傳的原始底稿

@@ -20,15 +20,16 @@ data/
     l2_decision_trees.json    Pass 2 decision tree
     pom_dictionary.json       POM 代號對照(admin 編)
     construction_bridge_v6.json  跨設計 GT × zone 統計
-    bucket_taxonomy.json      v4 4-dim + legacy_buckets alias
+    bucket_taxonomy.json      v4 4-dim + legacy_buckets alias (28+59)
     grading_patterns.json     跳碼 pattern
     bodytype_variance.json    Body Type 差異
-    gender_gt_pom_rules.json  Gender × GT POM 規則
-    all_designs_gt_it_classification.json
-    client_rules.json
-    design_classification_v5.json
+    all_designs_gt_it_classification.json  全量 design 分類 (CI Step 2 fallback 用)
     l1_part_presence_v1.json   聚陽模型部位出現率
     l1_iso_recommendations_v1.json
+    code_manifest.json        Code 瀏覽 modal 的檔案清單
+    brands.json               前端 Brand 下拉 source (Step 4c 產)
+    # 2026-05-14:gender_gt_pom_rules / client_rules / design_classification_v5
+    # 從 runtime/ 退役搬到 pom_rules/_derive/ (Pipeline B 內部產物,前端/api 不讀)
 
   source/                     手維護 / 上傳的原始底稿
     L2_代號中文對照表.xlsx    L1/L2 代號對照(14 KB)

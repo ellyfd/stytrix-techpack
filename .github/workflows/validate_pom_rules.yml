@@ -13,6 +13,8 @@ on:
     paths:
       - 'pom_rules/**'
       - 'scripts/core/validate_buckets.py'
+      - 'tests/**'
+      - 'requirements-test.txt'
       - '.github/workflows/validate_pom_rules.yml'
   workflow_dispatch:
 
@@ -32,3 +34,10 @@ jobs:
 
       - name: Validate pom_rules schema
         run: python scripts/core/validate_buckets.py --strict
+
+      # Schema invariants smoke test — guards _index.json drift, missing
+      # _derive/ files, l2_l3_ie/_index parts count, etc. (2026-05-14 加)
+      - name: pytest schema invariants
+        run: |
+          pip install -r requirements-test.txt
+          python -m pytest tests/ -v
