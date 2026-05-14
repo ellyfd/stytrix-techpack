@@ -5649,9 +5649,16 @@ function App() {
     const GMAP = { BOY: "BOYS", GIRL: "GIRLS", WOMEN: "WOMENS", MEN: "MENS",
                    MATERNITY: "MATERNITY", BABY: "BABY/TODDLER" };
     const DMAP = { RTW: "RTW", ACTIVE: "Active", SWIMWEAR: "Swimwear",
-                   SLEEPWEAR: "Sleepwear", FLEECE: "Fleece" };
-    const GTMAP = { PANT: "PANTS", LEGGINGS: "LEGGINGS", SHORTS: "SHORTS",
-                    CAPRI: "LEGGINGS", JOGGERS: "PANTS" };
+                   SLEEPWEAR: "Sleepwear", FLEECE: "Fleece",
+                   COLLABORATION: "Collaboration" };
+    // 2026-05-14:gt 改讀 classification.item(M7 manifest Item raw,
+    // format 直接對齊 pom_rules v6+ buckets[*].garment_type,例如
+    // "Pull On Pants" / "Tee" / "Leggings" / "Blouse/Shirts")。
+    // 之前用 classification.it.value(UPPERCASE "PANT"/"TEE"/...)+ GTMAP
+    // 翻成舊 GT taxonomy ("PANTS"/"LEGGINGS"/"SHORTS"),導致 bucketKey
+    // 永遠對不上 v6+ 的 "Active_Pull On Pants|WOMENS" 格式。
+    // 實測:24/31 unique design items 跟 pom_rules.garment_type 1:1 match,
+    // 剩 7 個是 accessories / sub-items 沒 POM 覆蓋(Boxer/Panties/...)。
     return brandDesigns.map(d => {
       const fab = String(d.fabric?.value || "").toUpperCase();
       const c = d.classification || {};
@@ -5659,7 +5666,7 @@ function App() {
         fabric: fab === "WOVEN" ? "Woven" : (fab === "KNIT" ? "Knit" : null),
         gender: GMAP[String(c.gender?.value || "").toUpperCase()] || null,
         dept:   DMAP[String(c.dept?.value || "").toUpperCase()] || null,
-        gt:     GTMAP[String(c.it?.value || "").toUpperCase()] || null,
+        gt:     c.item || null,  // M7 manifest Item raw, 直接對齊 pom_rules.garment_type
       };
     });
   }, [brandDesigns]);
