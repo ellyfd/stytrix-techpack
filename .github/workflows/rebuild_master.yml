@@ -6,6 +6,10 @@ name: Rebuild recipes_master
 on:
   push:
     branches: [main]
+    # POM 規則庫的純 commit 不要在這支 workflow 顯示 skip run
+    # (POM 驗證走獨立 workflow validate_pom_rules.yml,regen 走本機 + Vercel)
+    paths-ignore:
+      - 'pom_rules/**'
   workflow_dispatch:
     inputs:
       force:
