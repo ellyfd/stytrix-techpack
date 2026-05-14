@@ -28,8 +28,20 @@ BASE = str(get_base_dir(description=__doc__))
 DATA = os.path.join(BASE, 'pom_analysis_v5.5.1', 'data')
 PARSED = os.path.join(BASE, '_parsed')
 
+# 2026-05-14: Pipeline B 斷鏈修復 — Step 3 (reclassify) 寫 design_classification_v5.json
+# 到 $BASE/ 根目錄、寫 pom_rules/ 到 repo。Step 5 的 input 路徑要對齊:
+#   - design_classification_v5.json: 先找 $BASE/ (現行 pipeline),
+#     fallback $BASE/pom_analysis_v5.5.1/data/ (舊 external BASE 契約)
+#   - pom_rules/_index.json: 讀 repo/pom_rules/ (不再讀 $BASE/pom_rules/)
+_SCRIPT_DIR_G = os.path.dirname(os.path.abspath(__file__))
+_REPO_ROOT_G = os.path.dirname(os.path.dirname(_SCRIPT_DIR_G))
+_POM_RULES_DIR_G = os.path.join(_REPO_ROOT_G, 'pom_rules')
+
 # ─── Load classification ───
-with open(os.path.join(DATA, 'design_classification_v5.json')) as f:
+_cls_path = os.path.join(BASE, 'design_classification_v5.json')
+if not os.path.exists(_cls_path):
+    _cls_path = os.path.join(DATA, 'design_classification_v5.json')  # external BASE fallback
+with open(_cls_path) as f:
     cls_data = json.load(f)
 designs_cls = {d['design_id']: d for d in cls_data['designs']}
 print(f"Classification loaded: {len(designs_cls)} designs")
@@ -49,7 +61,7 @@ def parse_val(s):
         return float(s)
     except:
         pass
-    s2 = s.replace('\u2044', '/')
+    s2 = s.replace('⁄', '/')
     m8 = CENTRIC8_RE.match(s2)
     if m8:
         num, whole, den = int(m8.group(1)), int(m8.group(2)), int(m8.group(3))
@@ -185,7 +197,7 @@ direct_count = 0
 skipped = []
 
 # Load pom_rules bucket keys for coverage check
-pom_rules_idx = os.path.join(BASE, 'pom_rules', '_index.json')
+pom_rules_idx = os.path.join(_POM_RULES_DIR_G, '_index.json')
 pom_rules_buckets = set()
 if os.path.exists(pom_rules_idx):
     with open(pom_rules_idx) as f:
@@ -245,6 +257,7 @@ inflection_rate = round(inflection_count / total_pom_families * 100, 1) if total
 covered = sum(1 for b in pom_rules_buckets if b in grading)
 
 # ─── Write output ───
+os.makedirs(DATA, exist_ok=True)  # external BASE 不一定有此子目錄;檔尾 repo sync 才是上線用
 out_path = os.path.join(DATA, 'grading_patterns.json')
 with open(out_path, 'w') as f:
     json.dump(grading, f, ensure_ascii=False)
@@ -277,3 +290,12 @@ if skipped:
         print(f"    {k} (n={n})")
 
 print(f"\n  Output: {out_path}")
+
+# ─── 2026-05-13: Pipeline B 斷鏈修復 — sync grading_patterns to repo ───
+# Step 5 原本只寫 $BASE/pom_analysis_v5.5.1/data/, 但線上 index.html 讀 data/runtime/.
+import shutil as _shutil_s5
+_SCRIPT_DIR_S5 = os.path.dirname(os.path.abspath(__file__))
+_REPO_ROOT_S5 = os.path.dirname(os.path.dirname(_SCRIPT_DIR_S5))
+_RUNTIME_S5 = os.path.join(_REPO_ROOT_S5, 'data', 'runtime')
+_shutil_s5.copy2(out_path, os.path.join(_RUNTIME_S5, 'grading_patterns.json'))
+print(f"  [repo sync] grading_patterns.json -> data/runtime/")

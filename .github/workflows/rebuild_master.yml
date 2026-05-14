@@ -24,9 +24,7 @@ jobs:
       contains(toJSON(github.event.commits.*.modified), 'data/ingest/uploads/') ||
       contains(toJSON(github.event.commits.*.added), 'data/ingest/uploads/') ||
       contains(toJSON(github.event.commits.*.modified), 'data/ingest/m7/') ||
-      contains(toJSON(github.event.commits.*.added), 'data/ingest/m7/') ||
-      contains(toJSON(github.event.commits.*.modified), 'pom_rules/') ||
-      contains(toJSON(github.event.commits.*.added), 'pom_rules/')
+      contains(toJSON(github.event.commits.*.added), 'data/ingest/m7/')
     permissions:
       contents: write
 

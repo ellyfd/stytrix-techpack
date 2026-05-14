@@ -79,3 +79,37 @@ def get_base_dir(description: str | None = None) -> Path:
     add_base_dir_arg(parser)
     args, _unknown = parser.parse_known_args()
     return resolve_base_dir(args.base_dir)
+
+
+# ─── 2026-05-14: M7 manifest Item → body region ───────────────────────────
+# Elly 指示: pom_rules 的 garment_type 直接用聚陽 M7 manifest 的 Item 原值
+# (不收斂成 TOP/PANTS/... 9 桶). 但 POM 排序 (fix_sort_order.py) 與 tier1
+# 預設 (enforce_tier1.py) 仍需要知道「上半身/下半身/連身」來決定 zone 順序。
+# 這張表「只」服務那兩個用途, 不是 garment_type 本身。
+# reclassify_and_rebuild.py 用它把 body_region 寫進每個 bucket;
+# 下游兩支腳本直接讀 bucket 的 body_region 欄, 不必再 import 這張表。
+MK_ITEM_REGION = {
+    # 上半身 (領→肩→袖→胸→身長 排序)
+    "Tee": "upper", "Graphic Tee": "upper", "Blouse/Shirts": "upper",
+    "Polo": "upper", "Camisole": "upper", "Pajama Top": "upper",
+    "Swimwear": "upper", "Jacket": "upper", "Coat": "upper",
+    "Blazer": "upper", "Vest": "upper", "Robe": "upper",
+    "Dress": "upper", "Gown": "upper", "Chemise": "upper",
+    # 下半身 (腰→約克→門襟→前後襠→臀→腿 排序)
+    "Pull On Pants": "lower", "Dressy Pants": "lower", "Pull On Dressy": "lower",
+    "Pajama Bottom": "lower", "Leggings": "lower", "Shorts": "lower",
+    "Skorts": "lower", "Boxer": "lower", "Panties": "lower", "Skirt": "lower",
+    # 連身 (上半身 zone 在前, 下半身 zone 在後)
+    "Pajama": "combined", "Pajama 3PC": "combined", "Suit": "combined",
+    "Jumper": "combined", "Coverall": "combined",
+    # 非服裝 — 預設 upper (POM 量少, 影響小)
+    "Accessories": "upper", "Blanket": "upper",
+}
+
+
+def mk_item_region(item: str) -> str:
+    """M7 manifest Item → 'upper'/'lower'/'combined' (POM 排序 + tier1 預設用).
+
+    未知 Item (manifest 新增、或 fallback 關鍵字產生的舊式 GT) → 預設 'upper'.
+    """
+    return MK_ITEM_REGION.get((item or "").strip(), "upper")

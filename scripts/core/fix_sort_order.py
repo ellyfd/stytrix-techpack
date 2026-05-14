@@ -22,6 +22,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _pipeline_base import get_base_dir  # noqa: E402
 
 BASE = str(get_base_dir(description=__doc__))
+# 2026-05-13: Pipeline B 斷鏈修復 — Step 3 (reclassify) 已改寫 repo/pom_rules/,
+# Step 6 也要對 repo/pom_rules/ 操作 (BASE/pom_rules/ 是空的或舊的).
+# design_classification_v5.json + _parsed/mc_pom_*.jsonl 仍從 BASE 讀.
+_SCRIPT_DIR_S6 = os.path.dirname(os.path.abspath(__file__))
+_REPO_ROOT_S6 = os.path.dirname(os.path.dirname(_SCRIPT_DIR_S6))
+_POM_RULES_DIR = os.path.join(_REPO_ROOT_S6, 'pom_rules')
 
 # ─── Zone definitions ───
 # Each POM code prefix maps to a zone number.
@@ -125,15 +131,17 @@ SUB_ORDER = {
 }
 
 
-def get_sort_key(code, gt):
-    """Return (zone, sub_order, code) for sorting."""
+def get_sort_key(code, region):
+    """Return (zone, sub_order, code) for sorting.
+
+    2026-05-14: garment_type 改用 M7 manifest Item 原值 (不是 TOP/PANTS 9 桶),
+    所以排序改吃 bucket 的 body_region 欄 ('upper'/'lower'/'combined').
+    """
     prefix = code[0]
 
-    if gt in UPPER_GTS:
-        zone = UPPER_ZONES.get(prefix, 99)
-    elif gt in LOWER_GTS:
+    if region == 'lower':
         zone = LOWER_ZONES.get(prefix, 99)
-    elif gt in COMBINED_GTS:
+    elif region == 'combined':
         # Combined: upper body part → low zone numbers, lower body → high zone numbers
         if prefix in COMBINED_UPPER_CODES:
             zone = UPPER_ZONES.get(prefix, 50)
@@ -143,6 +151,7 @@ def get_sort_key(code, gt):
             # T, P, Q, S, Z — put after lower body zones
             zone = 200 + LOWER_ZONES.get(prefix, UPPER_ZONES.get(prefix, 99))
     else:
+        # 'upper' or unknown → upper-body zone order
         zone = UPPER_ZONES.get(prefix, 99)
 
     sub = SUB_ORDER.get(code, 50)  # default 50 = middle
@@ -160,6 +169,8 @@ bucket_pom_pos = defaultdict(lambda: defaultdict(list))
 for year in ['2024', '2025', '2026']:
     fpath = os.path.join(BASE, '_parsed/mc_pom_{}.jsonl'.format(year))
     seen = set()
+    if not os.path.exists(fpath):
+        continue
     with open(fpath) as f:
         for line in f:
             rec = json.loads(line)
@@ -187,17 +198,19 @@ def median(lst):
     return lst[len(lst) // 2]
 
 # ─── Patch each bucket file ───
-index_path = os.path.join(BASE, 'pom_rules/_index.json')
+index_path = os.path.join(_POM_RULES_DIR, '_index.json')
 with open(index_path) as f:
     idx = json.load(f)
 
 for bucket_info in idx['buckets']:
-    fpath = os.path.join(BASE, 'pom_rules', bucket_info['file'])
+    fpath = os.path.join(_POM_RULES_DIR, bucket_info['file'])
     with open(fpath) as f:
         data = json.load(f)
 
     bucket = data['bucket']
     gt = data['garment_type']
+    # 2026-05-14: garment_type = M7 manifest Item 原值; 排序吃 body_region 欄
+    region = data.get('body_region', 'upper')
 
     # All POMs in this bucket
     all_poms = set()
@@ -209,7 +222,7 @@ for bucket_info in idx['buckets']:
     pos_lookup = bucket_pom_pos.get(bucket, {})
 
     def final_sort_key(code):
-        zone, sub, _ = get_sort_key(code, gt)
+        zone, sub, _ = get_sort_key(code, region)
         # Use median position as tiebreaker within same zone+sub
         positions = pos_lookup.get(code, [])
         med_pos = median(list(positions)) if len(positions) >= 2 else 0.5
@@ -229,11 +242,15 @@ zone_map = {'A': 'Hood', 'B': 'Neck', 'C': 'Shoulder', 'D': 'Armhole', 'E': 'Sle
             'K': 'Rise', 'L': 'Hip', 'M': 'Gusset', 'N': 'Leg', 'O': 'Inseam',
             'P': 'Pocket', 'Q': 'Cord', 'R': 'Fly', 'S': 'Snap', 'T': 'HemHt', 'Z': 'Misc'}
 
-with open(os.path.join(BASE, 'pom_rules/pom_names.json')) as f:
+with open(os.path.join(_POM_RULES_DIR, 'pom_names.json')) as f:
     pom_names = json.load(f)
 
 def show_sort(fname, limit=None):
-    with open(os.path.join(BASE, f'pom_rules/{fname}')) as f:
+    fp = os.path.join(_POM_RULES_DIR, fname)
+    if not os.path.exists(fp):
+        print(f"\n=== {fname} (not present, skip) ===")
+        return
+    with open(fp) as f:
         d = json.load(f)
     gt = d['garment_type']
     print(f"\n=== {fname} (GT={gt}, {len(d['pom_sort_order'])} POMs) ===")
@@ -244,11 +261,4 @@ def show_sort(fname, limit=None):
         zone = zone_map.get(code[0], '?')
         en = pom_names.get(code, {})
         en = en.get('en', '?')[:40] if isinstance(en, dict) else '?'
-        print(f"  {i+1:>3}. {code:<6} ({zone:<8}) {en}")
-
-show_sort('womens_rtw_pants.json')
-show_sort('womens_active_leggings.json', 30)
-show_sort('womens_rtw_top.json', 30)
-show_sort('womens_rtw_shorts.json', 30)
-show_sort('womens_active_pants.json', 30)
-show_sort('womens_rtw_romper_jumpsuit.json', 40)
+      

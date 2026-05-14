@@ -20,7 +20,7 @@ from pathlib import Path
 # foundational_measurements.enforced 規則一致。這裡 import 同目錄下的模組。
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from enforce_tier1 import enforce_bucket  # noqa: E402
-from _pipeline_base import get_base_dir  # noqa: E402
+from _pipeline_base import get_base_dir, mk_item_region  # noqa: E402
 
 # ─── Load ───
 BASE = str(get_base_dir(description=__doc__))
@@ -202,12 +202,26 @@ def infer_fabric(p):
     return 'Woven'  # RTW default = Woven
 
 
+# ═══════════════════════════════════════════════
+# 2026-05-14 Elly 指示: garment_type 直接用聚陽 M7 manifest 的 Item 原值,
+# 不做收斂 (不歸成 TOP/PANTS/... 9 桶). manifest 的 Item 欄就是聚陽自己的
+# 款式分類, 所有品牌都用 EIDH 反查 manifest 對映進來 (adapter 寫進 manifest_item).
+# 上半身/下半身/連身的判斷 (只給 POM 排序 + tier1 預設用, 不是 garment_type 本身)
+# 走 _pipeline_base.mk_item_region().
+# ═══════════════════════════════════════════════
+
+
 def real_gt_v2(p):
-    """Garment type classifier v2.
-    Handles swim (1PC, RASHGUARD, BOTTOM), sleep (ONESIE, ROBE, FOOTED),
-    and adds LEGGINGS as separate GT.
-    Priority order matters — more specific before general.
+    """Garment type = M7 manifest Item 原值 (聚陽款式分類).
+    2026-05-14: 改成直接回傳 manifest_item, 不再收斂成 9-bucket GT taxonomy.
+    manifest_item 空 (EIDH 不在 manifest, 罕見) 才 fallback 到關鍵字邏輯.
     """
+    # ── 主路徑: M7 manifest Item 原值就是 garment_type ──
+    mi = (p.get('manifest_item') or '').strip()
+    if mi:
+        return mi
+
+    # ── fallback: manifest_item 空 → design_type/item_type/description 關鍵字 ──
     dt = (p.get('design_type') or '').upper()
     it = (p.get('item_type') or '').upper()
     desc = (p.get('description') or '').upper()
@@ -481,9 +495,12 @@ def bucket_to_filename(bucket):
     gt_gender = rest.split('|')
     gt = gt_gender[0].lower()
     gender = gt_gender[1].lower() if len(gt_gender) > 1 else 'unknown'
-    # Sanitize: replace / with _ for filesystem safety (e.g. BABY/TODDLER → baby_toddler)
-    gender = gender.replace('/', '_')
-    return "{}_{}_{}".format(gender, dept.lower(), gt.replace(' ', '_'))
+    # Sanitize: space + / → _ for filesystem safety.
+    # gt 現在是 M7 manifest Item 原值 (含空格與 /, 如 "pull on pants" / "blouse/shirts"),
+    # gender 可能是 baby/toddler — 兩者都要清掉 / 與空格.
+    gender = gender.replace('/', '_').replace(' ', '_')
+    gt = gt.replace('/', '_').replace(' ', '_')
+    return "{}_{}_{}".format(gender, dept.lower(), gt)
 
 index_entries = []
 
@@ -637,6 +654,9 @@ for bucket, designs in sorted(bucket_profiles.items(), key=lambda x: -len(x[1]))
         'source_brand_distribution': dict(brand_counts.most_common()),
         'department': dept,
         'garment_type': gt,
+        # body_region: upper/lower/combined — 只給 POM 排序 + tier1 預設用,
+        # 不是 garment_type 本身 (garment_type = M7 manifest Item 原值)
+        'body_region': mk_item_region(gt),
         'gender': gender,
         'n': n,
         'size_range': sorted_sizes,
@@ -668,6 +688,7 @@ for bucket, designs in sorted(bucket_profiles.items(), key=lambda x: -len(x[1]))
         'n': n,
         'department': dept,
         'garment_type': gt,
+        'body_region': bucket_data['body_region'],
         'gender': gender,
         'pom_count': len(pom_freq),
         'must_count': len(bucket_data['measurement_rules']['must']),
@@ -735,4 +756,3 @@ total_kb = sum(e['size_kb'] for e in index_entries)
 print("Total size: {:.0f} KB".format(total_kb))
 print("design_classification_v5.json saved")
 print("Done!")
-

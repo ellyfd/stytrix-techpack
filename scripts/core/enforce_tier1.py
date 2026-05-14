@@ -23,22 +23,24 @@ DEFAULT_RULES_DIR = REPO_ROOT / "pom_rules"
 
 TIERS = ("must", "recommend", "optional")
 
-# Default tier1 POM lists by garment type. Used only when a bucket is missing
+# Default tier1 POM lists by body region. Used only when a bucket is missing
 # its own foundational_measurements. Pipelines that already set
 # foundational_measurements on each bucket override this.
 UPPER_TIER1 = ["F10", "C1", "J9", "J10", "E1", "I5"]
 LOWER_TIER1 = ["H1", "L2", "L8", "K1", "K2", "O4", "N9"]
-UPPER_GTS = {"TOP", "OUTERWEAR", "DRESS"}
-LOWER_GTS = {"PANTS", "LEGGINGS", "SHORTS", "SKIRT"}
-COMBINED_GTS = {"ROMPER_JUMPSUIT", "SET", "BODYSUIT"}
 
 
-def default_tier1_for_gt(gt):
-    if gt in UPPER_GTS:
+def default_tier1_for_region(region):
+    """region: 'upper'/'lower'/'combined' — bucket 的 body_region 欄.
+
+    2026-05-14: pom_rules garment_type 改用 M7 manifest Item 原值 (不再是
+    TOP/PANTS 9 桶), 所以 tier1 預設改吃 reclassify 寫進 bucket 的 body_region.
+    """
+    if region == "upper":
         return UPPER_TIER1[:]
-    if gt in LOWER_GTS:
+    if region == "lower":
         return LOWER_TIER1[:]
-    if gt in COMBINED_GTS:
+    if region == "combined":
         return UPPER_TIER1 + LOWER_TIER1
     return []
 
@@ -47,7 +49,7 @@ def enforce_bucket(data):
     """Mutate one bucket dict in-place. Return (changed, stats_delta)."""
     fm = data.get("foundational_measurements")
     if fm is None:
-        tier1 = default_tier1_for_gt(data.get("garment_type"))
+        tier1 = default_tier1_for_region(data.get("body_region"))
         if not tier1:
             return False, {}
         data["foundational_measurements"] = {"tier1_poms": tier1, "enforced": True}

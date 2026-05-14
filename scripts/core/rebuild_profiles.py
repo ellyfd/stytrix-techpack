@@ -85,6 +85,8 @@ for line in all_lines_iter:
             'design_id': rec.get('design_number', ''),
             'gender': extract_gender(rec.get('brand_division', ''), rec.get('department', '')),
             'item_type': rec.get('item_type', ''),
+            # 2026-05-14: 聚陽 canonical 款式 (EIDH 反查 M7 manifest). real_gt_v2 優先吃這欄.
+            'manifest_item': rec.get('manifest_item', ''),
             'category': rec.get('category', ''),
             'department_raw': rec.get('department', ''),
             'brand_division': rec.get('brand_division', ''),
