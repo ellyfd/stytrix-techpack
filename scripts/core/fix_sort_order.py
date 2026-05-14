@@ -159,7 +159,7 @@ def get_sort_key(code, region):
 
 
 # ─── Load raw mc_pom data for within-zone tiebreaking ───
-with open(os.path.join(BASE, 'design_classification_v5.json')) as f:
+with open(os.path.join(BASE, 'design_classification_v5.json'), encoding='utf-8') as f:
     clf = json.load(f)
 design_info = {d['design_id']: d for d in clf['designs']}
 
@@ -171,7 +171,7 @@ for year in ['2024', '2025', '2026']:
     seen = set()
     if not os.path.exists(fpath):
         continue
-    with open(fpath) as f:
+    with open(fpath, encoding='utf-8') as f:
         for line in f:
             rec = json.loads(line)
             dn = rec.get('design_number', '')
@@ -199,12 +199,12 @@ def median(lst):
 
 # ─── Patch each bucket file ───
 index_path = os.path.join(_POM_RULES_DIR, '_index.json')
-with open(index_path) as f:
+with open(index_path, encoding='utf-8') as f:
     idx = json.load(f)
 
 for bucket_info in idx['buckets']:
     fpath = os.path.join(_POM_RULES_DIR, bucket_info['file'])
-    with open(fpath) as f:
+    with open(fpath, encoding='utf-8') as f:
         data = json.load(f)
 
     bucket = data['bucket']
@@ -231,7 +231,7 @@ for bucket_info in idx['buckets']:
     sorted_poms = sorted(all_poms, key=final_sort_key)
     data['pom_sort_order'] = sorted_poms
 
-    with open(fpath, 'w') as f:
+    with open(fpath, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 print("Fixed sort order for {} buckets".format(len(idx['buckets'])))
@@ -242,7 +242,7 @@ zone_map = {'A': 'Hood', 'B': 'Neck', 'C': 'Shoulder', 'D': 'Armhole', 'E': 'Sle
             'K': 'Rise', 'L': 'Hip', 'M': 'Gusset', 'N': 'Leg', 'O': 'Inseam',
             'P': 'Pocket', 'Q': 'Cord', 'R': 'Fly', 'S': 'Snap', 'T': 'HemHt', 'Z': 'Misc'}
 
-with open(os.path.join(_POM_RULES_DIR, 'pom_names.json')) as f:
+with open(os.path.join(_POM_RULES_DIR, 'pom_names.json'), encoding='utf-8') as f:
     pom_names = json.load(f)
 
 def show_sort(fname, limit=None):
@@ -250,7 +250,7 @@ def show_sort(fname, limit=None):
     if not os.path.exists(fp):
         print(f"\n=== {fname} (not present, skip) ===")
         return
-    with open(fp) as f:
+    with open(fp, encoding='utf-8') as f:
         d = json.load(f)
     gt = d['garment_type']
     print(f"\n=== {fname} (GT={gt}, {len(d['pom_sort_order'])} POMs) ===")

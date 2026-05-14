@@ -41,7 +41,7 @@ _POM_RULES_DIR_G = os.path.join(_REPO_ROOT_G, 'pom_rules')
 _cls_path = os.path.join(BASE, 'design_classification_v5.json')
 if not os.path.exists(_cls_path):
     _cls_path = os.path.join(DATA, 'design_classification_v5.json')  # external BASE fallback
-with open(_cls_path) as f:
+with open(_cls_path, encoding='utf-8') as f:
     cls_data = json.load(f)
 designs_cls = {d['design_id']: d for d in cls_data['designs']}
 print(f"Classification loaded: {len(designs_cls)} designs")
@@ -88,7 +88,7 @@ for year in ['2024', '2025', '2026']:
     fpath = os.path.join(PARSED, f'mc_pom_{year}.jsonl')
     if not os.path.exists(fpath):
         continue
-    with open(fpath) as f:
+    with open(fpath, encoding='utf-8') as f:
         for line in f:
             rec = json.loads(line)
             dn = rec.get('design_number', '')
@@ -200,7 +200,7 @@ skipped = []
 pom_rules_idx = os.path.join(_POM_RULES_DIR_G, '_index.json')
 pom_rules_buckets = set()
 if os.path.exists(pom_rules_idx):
-    with open(pom_rules_idx) as f:
+    with open(pom_rules_idx, encoding='utf-8') as f:
         for b in json.load(f)['buckets']:
             pom_rules_buckets.add(b['bucket'])
 
@@ -259,7 +259,7 @@ covered = sum(1 for b in pom_rules_buckets if b in grading)
 # ─── Write output ───
 os.makedirs(DATA, exist_ok=True)  # external BASE 不一定有此子目錄;檔尾 repo sync 才是上線用
 out_path = os.path.join(DATA, 'grading_patterns.json')
-with open(out_path, 'w') as f:
+with open(out_path, 'w', encoding='utf-8') as f:
     json.dump(grading, f, ensure_ascii=False)
 
 print(f"\n=== Results ===")

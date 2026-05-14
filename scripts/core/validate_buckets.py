@@ -59,7 +59,7 @@ POM_INDEX = POM_RULES_DIR / "_index.json"
 
 
 def load_json(path: Path):
-    with path.open() as f:
+    with path.open(encoding='utf-8') as f:
         return json.load(f)
 
 

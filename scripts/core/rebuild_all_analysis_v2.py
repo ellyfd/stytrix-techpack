@@ -26,13 +26,13 @@ BASE = str(get_base_dir(description=__doc__))
 PARSED = os.path.join(BASE, '_parsed')
 
 # ─── Load classification ───
-with open(os.path.join(BASE, 'design_classification_v5.json')) as f:
+with open(os.path.join(BASE, 'design_classification_v5.json'), encoding='utf-8') as f:
     cls_data = json.load(f)
 designs_cls = {d['design_id']: d for d in cls_data['designs']}
 print(f"Classification loaded: {len(designs_cls)} designs")
 
 # ─── Load profiles ───
-with open(os.path.join(BASE, 'measurement_profiles_union.json')) as f:
+with open(os.path.join(BASE, 'measurement_profiles_union.json'), encoding='utf-8') as f:
     prof_data = json.load(f)
 profiles_by_id = {}
 for p in prof_data['profiles']:
@@ -84,7 +84,7 @@ for year in ['2024', '2025', '2026']:
     fpath = os.path.join(PARSED, f'mc_pom_{year}.jsonl')
     if not os.path.exists(fpath):
         continue
-    with open(fpath) as f:
+    with open(fpath, encoding='utf-8') as f:
         for line in f:
             rec = json.loads(line)
             dn = rec.get('design_number', '')
@@ -206,7 +206,7 @@ for group_key, poms in median_groups.items():
 # ONY-derived. Front-end reads this to flag when a different brand is selected.
 out1 = {'_meta': {'source_brand': 'ONY'},
         'gender_gt_rules': gender_gt_rules, 'median_values': median_values}
-with open(os.path.join(PARSED, 'gender_gt_pom_rules.json'), 'w') as f:
+with open(os.path.join(PARSED, 'gender_gt_pom_rules.json'), 'w', encoding='utf-8') as f:
     json.dump(out1, f, ensure_ascii=False)
 print(f"  {len(gender_gt_rules)} combos, {len(median_values)} median groups")
 
@@ -286,7 +286,7 @@ inflection_rate = round(inflection_count / total_pom_families * 100, 1) if total
 # `_meta` sibling carries the brand attribution. Composite keys never start
 # with `_`, so this doesn't collide with any real Dept_GT|Gender bucket.
 grading_out = {'_meta': {'source_brand': 'ONY'}, **grading}
-with open(os.path.join(PARSED, 'grading_patterns.json'), 'w') as f:
+with open(os.path.join(PARSED, 'grading_patterns.json'), 'w', encoding='utf-8') as f:
     json.dump(grading_out, f, ensure_ascii=False)
 print(f"  {len(grading)} combos, {total_pom_families} POM families, inflection rate {inflection_rate}%")
 
@@ -384,7 +384,7 @@ for combo, dids in sorted(gender_gt_groups.items()):
 bodytype_var_out = {'_meta': {'source_brand': 'ONY'}, **bodytype_var}
 # Indented on purpose — humans review this file directly when validating
 # bodytype-specific deltas; matches the on-disk convention in repo.
-with open(os.path.join(PARSED, 'bodytype_variance.json'), 'w') as f:
+with open(os.path.join(PARSED, 'bodytype_variance.json'), 'w', encoding='utf-8') as f:
     json.dump(bodytype_var_out, f, ensure_ascii=False, indent=2)
 print(f"  {len(bodytype_var)} comparisons")
 
@@ -443,7 +443,7 @@ for bucket, years in sorted(bucket_year.items()):
             'drift_summary': f"{yr_sorted[0]}→{yr_sorted[-1]}: {len(drift)} POMs drifted"
         }
 
-with open(os.path.join(PARSED, 'client_rules.json'), 'w') as f:
+with open(os.path.join(PARSED, 'client_rules.json'), 'w', encoding='utf-8') as f:
     json.dump(client_rules, f, ensure_ascii=False)
 print(f"  {len(client_rules)} buckets with multi-year data")
 
@@ -564,7 +564,7 @@ for p in prof_data['profiles']:
             'department_raw': p.get('department_raw', '')
         }
 
-with open(os.path.join(PARSED, 'all_designs_gt_it_classification.json'), 'w') as f:
+with open(os.path.join(PARSED, 'all_designs_gt_it_classification.json'), 'w', encoding='utf-8') as f:
     json.dump(all_designs_cls, f, ensure_ascii=False)
 
 gt_counts = Counter(d['gt'] for d in all_designs_cls.values())
@@ -578,7 +578,7 @@ print("\n=== ⑥ Building construction_bridge ===")
 
 zone_file = os.path.join(PARSED, 'zone_construction_analysis_v2_1.json')
 if os.path.exists(zone_file):
-    with open(zone_file) as f:
+    with open(zone_file, encoding='utf-8') as f:
         zone_data = json.load(f)
     
     # Map GT from classification to zone construction data
@@ -634,7 +634,7 @@ if os.path.exists(zone_file):
         'bridges': bridges
     }
     
-    with open(os.path.join(PARSED, 'construction_bridge_v6.json'), 'w') as f:
+    with open(os.path.join(PARSED, 'construction_bridge_v6.json'), 'w', encoding='utf-8') as f:
         json.dump(bridge_out, f, ensure_ascii=False)
     print(f"  {len(bridges)} GTs with construction data")
 else:
