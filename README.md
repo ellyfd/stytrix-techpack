@@ -17,6 +17,7 @@ Techpack Creation + Measurement Spec 合併介面。
 - [兩組獨立的資料 pipeline](#兩組獨立的資料-pipeline) — 線下規則產線 vs 線上 ingest
 - [Admin 通道](#admin-通道) — 5 個入口 + Pipeline 外送包
 - [本機預覽](#本機預覽) / [部署](#部署)
+- [待辦 / Roadmap](#待辦--roadmap) — D / E:server-side filter API + Bible 拆檔
 
 ## 目的
 
@@ -485,3 +486,14 @@ GitHub push → Vercel 自動建置（preview / production）。
 **GitHub Actions secrets**（Repo Settings）：
 - `ANTHROPIC_API_KEY` — workflow Step 2b VLM pipeline 用（沒設定時 2b 跳過，不擋 build）
 - `GITHUB_TOKEN` — 自動注入，Commit step push 用
+
+## 待辦 / Roadmap
+
+2026-05-14 跑完 code review + 清理(A、B、C 都已 commit;A=runtime/ orphan 搬到 `pom_rules/_derive/`、B=刪 `new/.py`、C=`tests/test_schema.py` 11 invariant pytest)後,留下兩項**已知架構債**。屬於要設計 + 跨多檔改的 task,需 user 決定才能動;詳細狀況見 [`CLAUDE.md` 待辦 / Roadmap 區](./CLAUDE.md#待辦--roadmap2026-05-14-架構評估後留下的兩項需設計才能動)。
+
+| # | 任務 | 工作量 | 收益 | 觸發點 |
+|---|------|--------|------|--------|
+| **D** | 評估 `data/ingest/m7/designs.jsonl.gz` server-side filter API | 大,需設計 | **mobile 用戶不再 OOM** — 現況 `filterBibleByCategory` 整檔 lazy fetch + 解壓 + parse 18,300 designs(31 MB gzipped → 332 MB JSON)cache module-scope,瀏覽器 tab 吃 ~400 MB 記憶體;mobile / 低 RAM 裝置可能 crash | 已收到實機 OOM 回報 |
+| **E** | Bible 拆 structure + actuals 兩檔 | 中大,需改 `derive_bible_actuals.py` + 前端 `filterBibleByBrand` / `filterBibleByCategory` + `_index.json` schema | **repo size git diff 變乾淨** — 實測 132 MB Bible = 44.8 MB structure (34%) + 87.5 MB actuals (66%);拆檔後 m7 push 只動 actuals,structure 不會被誤動。**前端 brand filter 省 95% bandwidth**(若 actuals 再拆 per-brand) | m7 entries 再增加(到 10k+)時更明顯 |
+
+兩項都已實測過數字、寫好方案 A/B 評估,在 `CLAUDE.md` 「待辦 / Roadmap」區內;不在這輪 commit 內。

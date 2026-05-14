@@ -60,9 +60,61 @@
 3. ✅ **`M7_Pipeline/_test_*.py` 5 隻**(`_test_ony` / `_test_ony3` / `_test_ony_fix` / `_test_by_classify` / `_test_by_parser`)— 內容掃過全是聚陽 Windows 端 ad-hoc debug script,hardcode `tp_samples_v2/...` 本地路徑(repo 無此目錄)。Step 2-7 gate 全空(除了 CLAUDE.md 自己 audit 註)。直接 `git rm`。
 4. ✅ **`vercel.json` `includeFiles` 收緊** — 從 `{data/**, docs/spec/techpack-translation-style-guide.md}`(bundle 91 MB)改成顯式 4 檔列表 `{data/runtime/l2_visual_guide.json, l2_decision_trees.json, l1_standard_38.json, docs/spec/techpack-translation-style-guide.md}`(bundle 184 KB)。`analyze.js` 實際只讀這 4 檔(grep `readFileSync` 確認),其他 75 MB `data/ingest/` 跟 14 MB `data/runtime/` 內的其他檔都不需要進 function bundle。**重要**:之後若 `analyze.js` 要新增讀檔,記得同步加進 `vercel.json` `includeFiles` 列表。
 
-### 待 user decision(暫不動)
+### 待辦 / Roadmap(2026-05-14 架構評估後留下的兩項,需設計才能動)
 
-5. **`designs.jsonl.gz` 332 MB JSON parse 吃瀏覽器 ~400 MB 記憶體** — `filterBibleByCategory` lazy fetch 設計需要重審。長線方案:① 改 server-side filter API(`api/filter_bible.js` 接 brand/fabric/gender/dept/gt/it,server 端讀 jsonl.gz,只回需要的 step actuals)② 拆 per-brand designs.jsonl.gz。屬於架構變更,需 PM 決定。
+下面 D / E 是 code review 跑完後,留下來的**已知架構債**。屬於要設計 + 跨多檔改的 task,不在這輪 commit 內;放這裡備忘。
+
+| # | 任務 | 工作量 | 收益 | 觸發點 |
+|---|------|--------|------|--------|
+| **D** | 評估 `designs.jsonl.gz` server-side filter API | 大,需設計 | **mobile 用戶不再 OOM** — `filterBibleByCategory` 第一次觸發整檔 lazy fetch + 解壓 + parse 18,300 designs(31 MB gzipped → 332 MB JSON)cache 到 module scope,瀏覽器 tab 吃 ~400 MB 記憶體;mobile / 低 RAM 裝置可能 crash | 已收到實機 OOM 回報 |
+| **E** | Bible 拆 structure + actuals 兩檔 | 中大,需改 `derive_bible_actuals.py` + 前端 2 個 helper(`filterBibleByBrand` / `filterBibleByCategory`)+ `_index.json` schema 加 `actuals_files` 欄 | **repo size git diff 變乾淨 + 前端 brand filter 省 95% bandwidth** — 實測 132 MB Bible = 44.8 MB structure (34%) + 87.5 MB actuals (66%),actuals 是 m7 push 每次刷的部分;拆檔後 m7 push 只動 actuals,structure 不會被誤動 | m7 entries 再增加(到 10k+)時更明顯 |
+
+#### D 詳細(`designs.jsonl.gz` server-side filter)
+
+**問題**:現況 `filterBibleByCategory(bible, {brand, fabric, gender, dept, gt, it})` 在前端做 6 維 filter,需要拉整個 `data/ingest/m7/designs.jsonl.gz`(31 MB gzipped)→ `DecompressionStream('gzip')` 解壓 → JSON.parse 18,300 designs → cache module-scope。
+
+實測:
+- 網路:31 MB gzipped 下載
+- CPU:~332 MB 字串 parse
+- RAM:~400 MB 瀏覽器 tab heap(每個 design ~22 KB JS object × 18,300)
+
+**方案**:
+1. **server-side filter API**(`api/filter_bible.js`)— 接 6 維參數,Vercel function 端讀 jsonl.gz,只回符合的 step actuals(KB 級回應)。需 Vercel includeFiles 加 `data/ingest/m7/designs.jsonl.gz`(會讓 function bundle 從 184 KB 漲到 ~32 MB,在 50 MB 限制內)。
+2. **拆 per-brand designs.jsonl.gz** — 24 brand × ~770 designs/brand 平均 1.4 MB/檔,前端只 fetch 該 brand 的子集。
+
+**待決**:選方案 1 還是 2?方案 1 較好(集中在 server,前端不變);方案 2 較簡單(只動 derive 跟 fetch path)。
+
+#### E 詳細(Bible structure / actuals 拆檔)
+
+**問題**:`l2_l3_ie/<L1>.json` 38 檔每檔混合 structure(`l1`/`code`/`knit`/`woven`/`l2/l3/l4/l5_steps/ie_standard`)+ actuals(每 L5 step 的 `n_designs/sec_median/by_brand/machine_top`)。
+
+實測拆比例:
+```
+Full Bible (current):     132.0 MB
+Structure-only:            44.8 MB (34%)  ← brand-agnostic,從 xlsx 來,改動低
+Actuals-only:              87.5 MB (66%)  ← m7 觀察值,每次 push 都刷
+```
+
+**方案 A**(per-L1 拆 2 檔):
+```
+l2_l3_ie/AE.json           ← 只 structure + ie_standard, ~1 MB
+l2_l3_ie/AE.actuals.json   ← 只 actuals, ~2 MB
+```
+
+**方案 B**(actuals 再拆 per-brand,適合前端 lazy):
+```
+l2_l3_ie/AE.json                ← structure only, ~1 MB
+l2_l3_ie/actuals/AE.json        ← 跨 brand 聚合
+l2_l3_ie/actuals/AE__ONY.json   ← per-brand subset
+... ~24 brand × 38 L1 = 912 檔(小)
+```
+
+**改動面**:
+- `derive_bible_actuals.py` 從寫 1 檔變寫 2 (或 N) 檔
+- `index.html` `filterBibleByBrand` / `filterBibleByCategory` 改成兩階段 fetch
+- `_index.json` 加 `actuals_files` 欄
+
+**待 user 決定**:做方案 A 還是 B?(A 簡單,B 收益大)。
 
 ---
 
