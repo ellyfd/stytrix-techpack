@@ -56,10 +56,10 @@
 | Pipeline | 涵蓋 | 此計畫處理？ |
 |---|---|---|
 | **做工 (Construction)** | m7_report / m7_detail / facts.jsonl / recipes_master / l2_l3_ie / l2_l3_ie_by_client / master.jsonl | ✅ **本計畫** |
-| **尺寸表 (Measurement / POM)** | pom_rules/*.json (81 buckets) / pom_dictionary.json / gender_gt_pom_rules.json / grading_patterns.json / bodytype_variance.json / mc_pom*.jsonl / measurement_filter_dimensions / `scripts/reclassify_and_rebuild.py` 等線下產線 | ⛔ **不動不刪**，保留現狀 |
+| **尺寸表 (Measurement / POM)** | pom_rules/*.json (137 buckets) / pom_dictionary.json / gender_gt_pom_rules.json / grading_patterns.json / bodytype_variance.json / mc_pom*.jsonl / measurement_filter_dimensions / `scripts/reclassify_and_rebuild.py` 等線下產線 | ⛔ **不動不刪**，保留現狀 |
 
 **不會碰的檔案**（platform repo）：
-- `pom_rules/*.json` 81 個 bucket 檔
+- `pom_rules/*.json` 137 個 bucket 檔
 - `pom_analysis_v5.5.1/` 整個資料夾
 - `data/pom_dictionary.json`
 - `data/gender_gt_pom_rules.json`
