@@ -53,12 +53,16 @@
 3. **CLAUDE.md / 網站架構圖.md 多處 4,562 designs / 4,644 EIDH / 746 行 / 79.1 MB / 21 brand** ✗ → 全部改成實測值(18,300 / 5,076 / 137.4 MB / 24 brand)
 4. **`docs/spec/網站架構圖.md` Tech Debt: `7% 增量還算合理`** ✗ → 改 `+86%`,並補充「`designs.jsonl.gz` 332 MB uncompressed 會吃瀏覽器 ~400 MB 記憶體」這條 mobile risk
 
-### 量測時發現的問題(需要 user decision 才能動)
+### 量測時發現的問題(2026-05-14 全部清理完)
 
-1. **`l2_l3_ie/l2_l3_ie/` + `l2_l3_ie/l2_l3_ie/l2_l3_ie/` nested 重複目錄**:tracked in git(2026-05-08 commit `efef83e` / `5f1455a`),58 MB + 29 MB = ~87 MB 死重 Bible 資料。內容是 older 版本 38 L1 JSON,結構跟現役 `l2_l3_ie/` 同。建議:過 Part B 5-step clean orphan gate 確認無人引用 → `git rm -r l2_l3_ie/l2_l3_ie/`。
-2. **`data/ingest/m7_pullon/` 舊目錄**:2026-05-12 rename `m7_pullon → m7` 後保留(`entries.jsonl` 768 行 / `designs.jsonl.gz` 6.4 MB,舊版資料);新 path `data/ingest/m7/` 已是 5,076 entries / 31 MB。建議:確認 grep 無人引用後 `git rm -r data/ingest/m7_pullon/`。
-3. **`M7_Pipeline/_test_*.py` 5 隻**(`_test_ony.py` / `_test_ony3.py` / `_test_ony_fix.py` / `_test_by_classify.py` / `_test_by_parser.py`)在 M7_Pipeline 根目錄,看起來是聚陽端 ad-hoc 測試 script。建議:過 5-step gate 後 `git rm` 或移進 `M7_Pipeline/scripts/_archive/`。
-4. **`vercel.json` `includeFiles: "{data/**, ...}"` bundles 91 MB**(含 75 MB `data/ingest/` 不需要的部分)進 `analyze.js` function。可能超過 Vercel size limit(視 plan)。建議:改成只 bundle `data/runtime/l2_visual_guide.json`、`l2_decision_trees.json`、`l1_standard_38.json`(實際讀的 3 檔)+ `docs/spec/techpack-translation-style-guide.md`。
+1. ✅ **`l2_l3_ie/l2_l3_ie/` + `l2_l3_ie/l2_l3_ie/l2_l3_ie/` nested 重複目錄** — 跑完 Part B 5-step gate:literal-name grep 只有 CLAUDE.md(audit 自己)有命中;`l2_l3_ie` basename grep 只指向頂層 `l2_l3_ie/`(38 L1 + `_index.json`);無 glob/iterdir 命中;無 fetch / producer write 命中。`git rm -r l2_l3_ie/l2_l3_ie/` 後 `l2_l3_ie/` 196 MB → 138 MB(回收 87 MB)。出處 commit `efef83e` / `5f1455a`(rename detection bug,git mv 時被連帶建立的 nested 副本)。
+2. ✅ **`data/ingest/m7_pullon/` 舊目錄** — 跑完 gate:`build_recipes_master.py:76` `M7_PATH` 跟 `derive_bible_actuals.py:60` `M7_DESIGNS` 都指 `data/ingest/m7/`;workflow trigger 也是 `m7/`;`m7_pullon/` 目錄無 `facts.jsonl`,Step 6 glob `*/facts.jsonl` 不會掃到。`git rm -r data/ingest/m7_pullon/` 回收 13 MB。`data/source/M7_PULLON_DATA_SCHEMA.md` 同步把 path 從 `data/ingest/m7_pullon/` 改 `data/ingest/m7/`(script / function 名 `build_m7_pullon_source_v3.py` 等保留)。
+3. ✅ **`M7_Pipeline/_test_*.py` 5 隻**(`_test_ony` / `_test_ony3` / `_test_ony_fix` / `_test_by_classify` / `_test_by_parser`)— 內容掃過全是聚陽 Windows 端 ad-hoc debug script,hardcode `tp_samples_v2/...` 本地路徑(repo 無此目錄)。Step 2-7 gate 全空(除了 CLAUDE.md 自己 audit 註)。直接 `git rm`。
+4. ✅ **`vercel.json` `includeFiles` 收緊** — 從 `{data/**, docs/spec/techpack-translation-style-guide.md}`(bundle 91 MB)改成顯式 4 檔列表 `{data/runtime/l2_visual_guide.json, l2_decision_trees.json, l1_standard_38.json, docs/spec/techpack-translation-style-guide.md}`(bundle 184 KB)。`analyze.js` 實際只讀這 4 檔(grep `readFileSync` 確認),其他 75 MB `data/ingest/` 跟 14 MB `data/runtime/` 內的其他檔都不需要進 function bundle。**重要**:之後若 `analyze.js` 要新增讀檔,記得同步加進 `vercel.json` `includeFiles` 列表。
+
+### 待 user decision(暫不動)
+
+5. **`designs.jsonl.gz` 332 MB JSON parse 吃瀏覽器 ~400 MB 記憶體** — `filterBibleByCategory` lazy fetch 設計需要重審。長線方案:① 改 server-side filter API(`api/filter_bible.js` 接 brand/fabric/gender/dept/gt/it,server 端讀 jsonl.gz,只回需要的 step actuals)② 拆 per-brand designs.jsonl.gz。屬於架構變更,需 PM 決定。
 
 ---
 
@@ -357,7 +361,7 @@ git commit -m "chore: 移除孤兒 $CANDIDATE (已通過 grep gate 驗證)"
 
 ---
 
-## 已知的下輪清理候選(2026-04-22 盤點 + 2026-05-07 重組後狀態)
+## 已知的下輪清理候選(2026-04-22 盤點 + 2026-05-07 重組後狀態 + 2026-05-14 code review 清理)
 
 下次跑 Part B SOP 時,可以考慮審這幾項:
 
@@ -366,6 +370,9 @@ git commit -m "chore: 移除孤兒 $CANDIDATE (已通過 grep gate 驗證)"
 | ~~`recipes/`~~ | 2026-04-23 確認是活檔:`star_schema/scripts/build_recipes_master.py` 每次 CI 都會掃 72 檔餵進 recipes_master.json | **不是候選** |
 | `path2_universal/iso_lookup_factory_v4.json` vs `v4.3.json` | v4 仍作 fallback 被 `index.html`、`build_recipes_master.py` 引用,非孤兒;只是舊版 | 仍會過 gate = 不可丟,維持 fallback |
 | `data/legacy/{all_designs_gt_it_classification,pom_dictionary}.json` | 2026-05-07 從 `pom_analysis_v5.5.1/data/` 搬過來,被 `vlm_pipeline.py` / `extract_unified.py` 當 fallback | 暫時 keep;下輪確認 runtime 副本是否完全取代後可清 |
+| ~~`l2_l3_ie/l2_l3_ie/` + `l2_l3_ie/l2_l3_ie/l2_l3_ie/`~~ | 2026-05-14 跑 Part B gate 後 `git rm -r` 完成 — Bible 從 196 MB → 138 MB(回收 87 MB nested 死重 from commit `efef83e`/`5f1455a` rename detection bug)| **已清** |
+| ~~`data/ingest/m7_pullon/`~~ | 2026-05-14 跑 gate 後 `git rm -r` — m7 rename 後 `M7_PATH`、`M7_DESIGNS`、workflow trigger 都已指 `m7/`,舊目錄無 `facts.jsonl` 不會被 glob 抓到。回收 13 MB | **已清** |
+| ~~`M7_Pipeline/_test_*.py` 5 隻~~ | 2026-05-14 跑 gate 後 `git rm` — 全是聚陽 Windows 端 ad-hoc debug script,hardcode `tp_samples_v2/` 本地路徑(repo 無此目錄)| **已清** |
 
 **不會是清理候選的(避免誤判)**:
 

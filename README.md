@@ -226,7 +226,7 @@ api/
   ├─ rebuild_master.yml                       ← push 到 main 或手動 workflow_dispatch 觸發；自動重建 recipes_master 並 push 回 main
   ├─ validate_pom_rules.yml                   ← **2026-05-13 加**:push 到 `pom_rules/**` 觸發,只跑 `validate_buckets.py --strict`(schema gate <1s)。CI 沒外部 BASE 不能 regen,只校驗
   └─ build_bible_skeleton.yml                       ← workflow_dispatch only(2026-05-08+;xlsx >25 MB 不進 repo,維護者本機 build push JSON,workflow 多半不再用)
-vercel.json                                   ← functions config：includeFiles 把 data/** + docs/spec/techpack-translation-style-guide.md 編進 analyze.js bundle
+vercel.json                                   ← functions config:**2026-05-14 收緊** — includeFiles 只 bundle analyze.js 真正讀的 3 個 runtime JSON(`l2_visual_guide` / `l2_decision_trees` / `l1_standard_38`)+ `docs/spec/techpack-translation-style-guide.md`(之前是 `data/**`,bundles 91 MB 含 75 MB ingest/ 不需要的;收緊後 184 KB)
 docs/
   ├─ spec/                                    ← 跨模組共用規格(被 code / LLM prompt 引用)
   │   ├─ L1_部位定義_Sketch視覺指引.md         ← VLM Pass 1 system prompt 資料來源
