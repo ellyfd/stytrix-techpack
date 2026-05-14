@@ -8077,22 +8077,22 @@ function App() {
                             </label>
                           </div>
                           {!collapsed && (
-                            <div style={{ background: "#fff", border: "1px solid #e8e5e1", borderRadius: "12px", overflow: "auto" }}>
-                              <table style={{ width: "100%", minWidth: isMobile ? (showPlus && hasPlus ? "500px" : "420px") : "auto", borderCollapse: "collapse", fontSize: isMobile ? "12px" : "14px" }}>
+                            <div style={{ background: T.c.bg, border: `1px solid ${T.c.border}`, borderRadius: T.r.xl, overflow: "auto" }}>
+                              <table style={{ width: "100%", minWidth: isMobile ? (showPlus && hasPlus ? "500px" : "420px") : "auto", borderCollapse: "collapse", fontSize: isMobile ? T.fs.base : T.fs.lg }}>
                                 <thead>
-                                  <tr style={{ background: "#faf9f7", borderBottom: "1.5px solid #e8e5e1" }}>
-                                    <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#525252", width: isMobile ? "24px" : "30px" }}>✓</th>
+                                  <tr style={{ background: T.c.bg2, borderBottom: `1px solid ${T.c.border}` }}>
+                                    <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: isMobile ? T.fs.sm : T.fs.md, color: T.c.text2, width: isMobile ? "24px" : "30px" }}>✓</th>
                                     {appMode !== "universal" && (
-                                      <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#525252", width: isMobile ? "38px" : "56px" }}>POM</th>
+                                      <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: isMobile ? T.fs.sm : T.fs.md, color: T.c.text2, width: isMobile ? "38px" : "56px" }}>POM</th>
                                     )}
                                     {!isMobile && (
-                                      <th style={{ padding: "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "13px", color: "#525252" }}>Name<span style={{ fontSize: "11px", fontWeight: 400, color: "#999", marginLeft: "4px" }}>(雙擊可改)</span></th>
+                                      <th style={{ padding: "8px 10px", textAlign: "left", fontWeight: 600, fontSize: T.fs.md, color: T.c.text2 }}>Name<span style={{ fontSize: T.fs.sm, fontWeight: 400, color: T.c.text4, marginLeft: "4px" }}>(雙擊可改)</span></th>
                                     )}
-                                    <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#525252", minWidth: isMobile ? "110px" : "140px" }}>中文{isMobile ? <span style={{ fontSize: "10px", fontWeight: 400, color: "#999", marginLeft: "3px" }}>/ EN</span> : <span style={{ fontSize: "11px", fontWeight: 400, color: "#999", marginLeft: "4px" }}>(雙擊可改)</span>}</th>
-                                    <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#525252", width: isMobile ? "52px" : "80px" }}>公差</th>
-                                    <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#065f46", width: isMobile ? "80px" : "110px" }}>Base (M)</th>
+                                    <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: isMobile ? T.fs.sm : T.fs.md, color: T.c.text2, minWidth: isMobile ? "110px" : "140px" }}>中文{isMobile ? <span style={{ fontSize: T.fs.xs, fontWeight: 400, color: T.c.text4, marginLeft: "3px" }}>/ EN</span> : <span style={{ fontSize: T.fs.sm, fontWeight: 400, color: T.c.text4, marginLeft: "4px" }}>(雙擊可改)</span>}</th>
+                                    <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? T.fs.sm : T.fs.md, color: T.c.text2, width: isMobile ? "52px" : "80px" }}>公差</th>
+                                    <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? T.fs.sm : T.fs.md, color: T.c.green, width: isMobile ? "80px" : "110px" }}>Base (M)</th>
                                     {showPlus && hasPlus && (
-                                      <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? "11px" : "13px", color: "#be185d", width: isMobile ? "80px" : "110px" }}>Base ({plusAnchor}){!isMobile && <div style={{ fontSize: "11px", fontWeight: 400, color: "#be185d" }}>Plus 獨立</div>}</th>
+                                      <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? T.fs.sm : T.fs.md, color: T.c.pink, width: isMobile ? "80px" : "110px" }}>Base ({plusAnchor}){!isMobile && <div style={{ fontSize: T.fs.sm, fontWeight: 400, color: T.c.pink }}>Plus 獨立</div>}</th>
                                     )}
                                   </tr>
                                 </thead>
@@ -8112,9 +8112,11 @@ function App() {
                                   const ovParsed = ov !== "" && !invalid ? parseVal(ov) : null;
                                   const isChanged = ovParsed != null && baseM != null && Math.abs(ovParsed - baseM) > 1e-9;
                                   const originalTip = isChanged ? `原值 ${fmtDisp(baseM)}` : undefined;
-                                  const inputBorder = invalid ? "#dc2626" : (isChanged ? "#f59e0b" : "#a7f3d0");
-                                  const inputColor  = invalid ? "#dc2626" : (isChanged ? "#b45309" : "#065f46");
-                                  const cellBg      = isChanged ? "#fffbeb" : "#ecfdf5";
+                                  // 2026-05-14:對齊上方 filter / 基碼-全碼 segmented control 的中性 design system —
+                                  // 不在 row 預設顯示 heavy 綠色框/底色。只在 invalid(紅)/ isChanged(amber)時才上色。
+                                  const inputBorder = invalid ? T.c.danger : (isChanged ? T.c.warning : T.c.border);
+                                  const inputColor  = invalid ? T.c.danger : (isChanged ? "#b45309" : T.c.green);
+                                  const cellBg      = isChanged ? "#fffbeb" : "transparent";
                                   // sub-row 條件:bodytype 有非零 delta 或使用者曾手動覆蓋過
                                   const petiteMsc = petiteEntry?.m_size_comparison?.[code];
                                   const tallMsc   = tallEntry?.m_size_comparison?.[code];
@@ -8214,8 +8216,8 @@ function App() {
                                           </div>
                                         )}
                                       </td>
-                                      <td style={{ padding: isMobile ? "5px 4px" : "9px 12px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "14px", color: "#7e22ce", fontWeight: 600, whiteSpace: "nowrap" }}>{tolStr(m)}</td>
-                                      <td style={{ padding: isMobile ? "4px 6px" : "8px 16px", textAlign: "right", background: "#ecfdf5" }}>
+                                      <td style={{ padding: isMobile ? "5px 4px" : "9px 12px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? T.fs.base : T.fs.lg, color: T.c.text2, fontWeight: 600, whiteSpace: "nowrap" }}>{tolStr(m)}</td>
+                                      <td style={{ padding: isMobile ? "4px 6px" : "8px 16px", textAlign: "right", background: cellBg }}>
                                         <input type="text" value={displayVal}
                                           onChange={(e) => setBaseOverrides(prev => ({ ...prev, [code]: e.target.value }))}
                                           onBlur={() => {
@@ -8238,9 +8240,9 @@ function App() {
                                           style={{
                                             width: isMobile ? "66px" : "104px", textAlign: "right", padding: isMobile ? "5px 6px" : "7px 9px",
                                             fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "14px", fontWeight: 700,
-                                            color: invalid ? "#dc2626" : "#065f46",
-                                            border: `1px solid ${invalid ? "#dc2626" : "#a7f3d0"}`, borderRadius: "6px",
-                                            background: "#fff",
+                                            color: inputColor,
+                                            border: `1px solid ${inputBorder}`, borderRadius: T.r.sm,
+                                            background: T.c.bg,
                                           }} />
                                       </td>
                                       {showPlus && hasPlus && (() => {
@@ -8249,7 +8251,7 @@ function App() {
                                         const invalid2 = ov2 !== "" && parseVal(ov2) == null;
                                         const display2 = ov2 !== "" ? ov2 : (base2X != null ? fmtDisp(base2X) : "");
                                         return (
-                                          <td style={{ padding: isMobile ? "4px 6px" : "8px 16px", textAlign: "right", background: "#fdf2f8" }}>
+                                          <td style={{ padding: isMobile ? "4px 6px" : "8px 16px", textAlign: "right", background: "transparent" }}>
                                             <input type="text" value={display2}
                                               onChange={(e) => setPlusBaseOverrides(prev => ({ ...prev, [code]: e.target.value }))}
                                               onBlur={() => {
@@ -8270,9 +8272,9 @@ function App() {
                                               style={{
                                                 width: isMobile ? "66px" : "104px", textAlign: "right", padding: isMobile ? "5px 6px" : "7px 9px",
                                                 fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "14px", fontWeight: 700,
-                                                color: invalid2 ? "#dc2626" : "#be185d",
-                                                border: `1px solid ${invalid2 ? "#dc2626" : "#fbcfe8"}`, borderRadius: "6px",
-                                                background: "#fff",
+                                                color: invalid2 ? T.c.danger : T.c.pink,
+                                                border: `1px solid ${invalid2 ? T.c.danger : T.c.border}`, borderRadius: T.r.sm,
+                                                background: T.c.bg,
                                               }} />
                                           </td>
                                         );
@@ -8285,12 +8287,12 @@ function App() {
                                       const deltaP = (ptM != null && baseM != null) ? (ptM - baseM) : null;
                                       const deltaStr = deltaP != null ? (deltaP > 0 ? `+${fmtDisp(deltaP)}` : `${fmtDisp(deltaP)}`) : null;
                                       return (
-                                        <tr style={{ background: "#faf5ff", borderBottom: "1px solid #f0eeeb", opacity: included ? 1 : 0.35 }}>
-                                          <td colSpan={labelSpan} style={{ padding: isMobile ? "3px 8px 5px" : "4px 12px 6px", textAlign: "right", fontSize: isMobile ? "11px" : "12px", color: "#7e22ce" }}>
-                                            <span style={{ color: "#c4b5fd", marginRight: "6px" }}>↳</span>
+                                        <tr style={{ background: T.c.bg2, borderBottom: `1px solid ${T.c.border3}`, opacity: included ? 1 : 0.35 }}>
+                                          <td colSpan={labelSpan} style={{ padding: isMobile ? "3px 8px 5px" : "4px 12px 6px", textAlign: "right", fontSize: isMobile ? "11px" : "12px", color: T.c.text2 }}>
+                                            <span style={{ color: T.c.text4, marginRight: "6px" }}>↳</span>
                                             <span style={{ fontWeight: 600 }}>{enFor(code)}</span>
-                                            <span style={{ color: "#a78bfa", marginLeft: "4px" }}>(Petite)</span>
-                                            {deltaStr && <span style={{ color: "#a78bfa", marginLeft: "10px", fontFamily: "'JetBrains Mono',monospace" }}>{deltaStr}</span>}
+                                            <span style={{ color: T.c.accent, marginLeft: "4px", fontWeight: 600 }}>(Petite)</span>
+                                            {deltaStr && <span style={{ color: T.c.text3, marginLeft: "10px", fontFamily: "'JetBrains Mono',monospace" }}>{deltaStr}</span>}
                                           </td>
                                           <td style={{ padding: isMobile ? "3px 4px 5px" : "4px 12px 6px", textAlign: "right" }}>
                                             <input type="text" value={displayP}
@@ -8313,9 +8315,9 @@ function App() {
                                               style={{
                                                 width: isMobile ? "66px" : "104px", textAlign: "right", padding: isMobile ? "4px 6px" : "6px 9px",
                                                 fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "13px", fontWeight: 700,
-                                                color: invalidP ? "#dc2626" : "#7e22ce",
-                                                border: `1px solid ${invalidP ? "#dc2626" : "#c4b5fd"}`, borderRadius: "6px",
-                                                background: "#fff",
+                                                color: invalidP ? T.c.danger : T.c.accent,
+                                                border: `1px solid ${invalidP ? T.c.danger : T.c.border}`, borderRadius: T.r.sm,
+                                                background: T.c.bg,
                                               }} />
                                           </td>
                                           {showPlus && hasPlus && <td />}
@@ -8329,12 +8331,12 @@ function App() {
                                       const deltaT = (tlM != null && baseM != null) ? (tlM - baseM) : null;
                                       const deltaStr = deltaT != null ? (deltaT > 0 ? `+${fmtDisp(deltaT)}` : `${fmtDisp(deltaT)}`) : null;
                                       return (
-                                        <tr style={{ background: "#eff6ff", borderBottom: "1px solid #f0eeeb", opacity: included ? 1 : 0.35 }}>
-                                          <td colSpan={labelSpan} style={{ padding: isMobile ? "3px 8px 5px" : "4px 12px 6px", textAlign: "right", fontSize: isMobile ? "11px" : "12px", color: "#1d4ed8" }}>
-                                            <span style={{ color: "#93c5fd", marginRight: "6px" }}>↳</span>
+                                        <tr style={{ background: T.c.bg2, borderBottom: `1px solid ${T.c.border3}`, opacity: included ? 1 : 0.35 }}>
+                                          <td colSpan={labelSpan} style={{ padding: isMobile ? "3px 8px 5px" : "4px 12px 6px", textAlign: "right", fontSize: isMobile ? "11px" : "12px", color: T.c.text2 }}>
+                                            <span style={{ color: T.c.text4, marginRight: "6px" }}>↳</span>
                                             <span style={{ fontWeight: 600 }}>{enFor(code)}</span>
-                                            <span style={{ color: "#60a5fa", marginLeft: "4px" }}>(Tall)</span>
-                                            {deltaStr && <span style={{ color: "#60a5fa", marginLeft: "10px", fontFamily: "'JetBrains Mono',monospace" }}>{deltaStr}</span>}
+                                            <span style={{ color: "#1d4ed8", marginLeft: "4px", fontWeight: 600 }}>(Tall)</span>
+                                            {deltaStr && <span style={{ color: T.c.text3, marginLeft: "10px", fontFamily: "'JetBrains Mono',monospace" }}>{deltaStr}</span>}
                                           </td>
                                           <td style={{ padding: isMobile ? "3px 4px 5px" : "4px 12px 6px", textAlign: "right" }}>
                                             <input type="text" value={displayT}
@@ -8357,9 +8359,9 @@ function App() {
                                               style={{
                                                 width: isMobile ? "66px" : "104px", textAlign: "right", padding: isMobile ? "4px 6px" : "6px 9px",
                                                 fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? "12px" : "13px", fontWeight: 700,
-                                                color: invalidT ? "#dc2626" : "#1d4ed8",
-                                                border: `1px solid ${invalidT ? "#dc2626" : "#93c5fd"}`, borderRadius: "6px",
-                                                background: "#fff",
+                                                color: invalidT ? T.c.danger : "#1d4ed8",
+                                                border: `1px solid ${invalidT ? T.c.danger : T.c.border}`, borderRadius: T.r.sm,
+                                                background: T.c.bg,
                                               }} />
                                           </td>
                                           {showPlus && hasPlus && <td />}
