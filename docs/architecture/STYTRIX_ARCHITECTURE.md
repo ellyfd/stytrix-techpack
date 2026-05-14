@@ -24,7 +24,7 @@
 | 「設計師上傳」 | 寫在 doc 裡 | **移除** — `data/ingest/uploads/` 是後端 admin 上傳處理好的檔，不是設計師 |
 | Bibles 範圍 | 只列五階字典 / ISO 等 | **完整列**：L1-L5 視覺規則合併進五階定義；補中英對照；補客戶 metadata 標準 |
 | construction_bridge_v6 | 列 Bible | **移到 Source**（會被新 design 補入）|
-| iso_lookup v4 vs v4.3 | cascade fallback | **整合最大化**（v4 + v4.3 + m7_pullon merge 成 v5）|
+| iso_lookup v4 vs v4.3 | cascade fallback | **整合最大化**（v4 + v4.3 + m7 merge 成 v5）|
 | 5 階 CSV per EIDH | 列 raw | **retire**（跟 m7_detail.csv 重疊）|
 | 客戶 metadata mapping | v1 + v2 兩份 | **合併成 v3**（一份檔含 ground truth + PDF field mapping）|
 | build_master_v7.py | 命名誤導（M7 端產 master）| **重命名 build_m7_pullon_source.py**（產 source #7，不是 master）|
@@ -105,7 +105,7 @@
 ✅ 三條路徑（給內部 / agent / 後端用）：
 1. **GitHub commit + push**（git push 進 ingest/ 子目錄觸發 workflow）
 2. **線上 admin 上傳到 `data/ingest/uploads/`**（透過 `api/ingest_token.js` 拿 PAT 直連 GitHub）
-3. **後端 M7 Pipeline 跑完 push**（push 到 `data/ingest/m7_pullon/`）
+3. **後端 M7 Pipeline 跑完 push**（push 到 `data/ingest/m7/`）
 
 **規格化產出**：每 source 產 entries.jsonl 對齊 platform schema，不限產出單位（IE / 業務 / 製樣中心 / agent / fetch script）。
 
@@ -134,7 +134,7 @@ Raw → 用 Bibles 對照 → Source entries.jsonl
 | 3 | `facts_agg` | 動態算 `data/ingest/*/facts.jsonl` | `extract_unified.py` 跑 |
 | 4 | `iso_lookup` (v4 + v4.3 整合) | `General Model_Path2/iso_lookup_factory_*.json` → 整合進 master | **v3 改：v4 + v4.3 maximize merge** |
 | 5 | `bridge` | `data/construction_bridge_v6.json` | （持續補入的整合資料）|
-| 6 | `m7_pullon` ★ | `data/ingest/m7_pullon/entries.jsonl` | **M7 端 `build_m7_pullon_source.py` 產，git push 進來** |
+| 6 | `m7` ★ | `data/ingest/m7/entries.jsonl` | **M7 端 `build_m7_pullon_source.py` 產，git push 進來** |
 | 7 | `consensus_rules / ocr_v1 / construction_by_bucket` | data/ingest 子目錄 | 既有 |
 
 ---
@@ -168,13 +168,13 @@ master = run_cascade(all_entries)  # cascade: same_sub → same_bucket → same_
 
 | 欄位 | 取值規則 | source 提供者 |
 |---|---|---|
-| `iso_distribution` | merge 各 source 票數，標記每 ISO 來源 | m7_pullon + v4.3 + v4 + facts_agg |
+| `iso_distribution` | merge 各 source 票數，標記每 ISO 來源 | m7 + v4.3 + v4 + facts_agg |
 | `iso_zh` | 取現有值（v4 主）| v4 |
 | `machine` | 取現有值（v4 主）| v4 |
-| `methods` | m7_pullon ground truth | m7_pullon |
-| `client_distribution` | m7_pullon | m7_pullon |
-| `by_client` | m7_pullon（給聚陽 view B 用）| m7_pullon |
-| `ie_total_seconds` | m7_pullon | m7_pullon |
+| `methods` | m7 ground truth | m7 |
+| `client_distribution` | m7 | m7 |
+| `by_client` | m7（給聚陽 view B 用）| m7 |
+| `ie_total_seconds` | m7 | m7 |
 | `n_total` | sum 各 source | all |
 | Gender 維度 | v4.3 + m7 都有就用，v4 沒就**新建** entry |  |
 | Fabric 維度 | v4 + m7 都有就用，v4.3 沒就**新建** entry | |
@@ -198,12 +198,12 @@ master = run_cascade(all_entries)  # cascade: same_sub → same_bucket → same_
     "l1": "WB"
   },
   "n_total": 1186,
-  "sources_merged": ["m7_pullon", "v4.3", "v4"],
+  "sources_merged": ["m7", "v4.3", "v4"],
   "confidence": "high",
   
   // 通用模型 view 用
   "iso_distribution": [
-    {"iso": "301", "n": 552, "pct": 46.5, "from": ["m7_pullon", "v4.3"]}
+    {"iso": "301", "n": 552, "pct": 46.5, "from": ["m7", "v4.3"]}
   ],
   "iso_zh": "車縫",
   "machine": ["平車", "lockstitch"],
@@ -237,17 +237,17 @@ master = run_cascade(all_entries)  # cascade: same_sub → same_bucket → same_
 
 ## Step 4 — 抽取(每用途一個 view 模板,2026-05-09 實裝後)
 
-從 `master.jsonl` + `data/ingest/m7_pullon/designs.jsonl.gz` 衍生 2 view:
+從 `master.jsonl` + `data/ingest/m7/designs.jsonl.gz` 衍生 2 view:
 
 | View | 檔 | UI 用途 | 從 master 抽什麼 |
 |---|---|---|---|
 | **A** | `data/runtime/recipes_master.json` | 通用模型 ISO consensus | strip `_m7_*` 內部欄位,輕量化(原檔的 ~1/15) |
-| **B** | `l2_l3_ie/<L1>.json`(38 檔) | 聚陽模型(含五階 + brand) | xlsx-derived raw + m7_pullon designs.jsonl.gz 觀察值,L5 step 升級為 dict `{l5, ie_standard, actuals?:{by_brand,sec_median,n_designs,...}}`(brand 維度走 actuals.by_brand,不另開檔)|
+| **B** | `l2_l3_ie/<L1>.json`(38 檔) | 聚陽模型(含五階 + brand) | xlsx-derived raw + m7 designs.jsonl.gz 觀察值,L5 step 升級為 dict `{l5, ie_standard, actuals?:{by_brand,sec_median,n_designs,...}}`(brand 維度走 actuals.by_brand,不另開檔)|
 
 衍生 script(`star_schema/scripts/` + `scripts/core/`,接進 `rebuild_master.yml` Step 4a/4b/4c):
 - `derive_view_recipes_master.py`(master.jsonl → view A,剝 `_m7_*`)
-- `derive_bible_actuals.py --all --in-place`(xlsx-derived raw + m7_pullon → view B,原地升級 schema + 掛 actuals;2026-05-11 修 dict pass-through bug,永遠重算)
-- `scripts/core/build_brands.py`(m7_pullon `entries.jsonl` → `data/runtime/brands.json`,前端 Brand 下拉動態 source,2026-05-11 加)
+- `derive_bible_actuals.py --all --in-place`(xlsx-derived raw + m7 → view B,原地升級 schema + 掛 actuals;2026-05-11 修 dict pass-through bug,永遠重算)
+- `scripts/core/build_brands.py`(m7 `entries.jsonl` → `data/runtime/brands.json`,前端 Brand 下拉動態 source,2026-05-11 加)
 
 **v3.0 → v3.2 改動**:
 - 原 v3.0 計畫的 View B = `l2_l3_ie_by_client/<L1>.json` 26 檔(分 brand)在 Phase 2.5b 退役 — brand 維度直接走升級後 Bible 的 `actuals.by_brand` + frontend `filterBibleByBrand()` helper,不另開資料夾。原 View C(通用五階)併進 View B(同檔多源)。
@@ -289,7 +289,7 @@ master = run_cascade(all_entries)  # cascade: same_sub → same_bucket → same_
 │   3. facts_agg                               │
 │   4. iso_lookup (v4 + v4.3 maximize merge)   │
 │   5. bridge                                  │
-│   6. m7_pullon ★（M7 端產 + push）           │
+│   6. m7 ★（M7 端產 + push）           │
 │   7. consensus_rules / ocr_v1 / etc          │
 │                                              │
 │ POM 走獨立 pipeline (scripts/reclassify_*)   │

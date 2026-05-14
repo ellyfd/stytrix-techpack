@@ -3,8 +3,8 @@
 ⚠️ **每次 build / 改 data path 之前 RTFM 這份。違反 = 資料用錯。**
 
 聚陽端 mirror 在 `M7_Pipeline/skills/data-pipeline-mapping/SKILL.md`。兩邊邊界:
-- 聚陽端負責 SSRS / TP fetch → push 進這個 repo 的 `data/ingest/m7_pullon/`
-- 這份文件從 `data/ingest/m7_pullon/` 收件開始
+- 聚陽端負責 SSRS / TP fetch → push 進這個 repo 的 `data/ingest/m7/`
+- 這份文件從 `data/ingest/m7/` 收件開始
 
 ---
 
@@ -33,7 +33,7 @@ data/
   source/                     手維護 / 上傳的原始底稿
     L2_代號中文對照表.xlsx    L1/L2 代號對照(14 KB)
     BIBLE_UPGRADE.md          Bible 升級 SOP (xlsx 留聚陽端不進 repo)
-    M7_PULLON_DATA_SCHEMA.md  m7_pullon source schema 文件
+    M7_PULLON_DATA_SCHEMA.md  m7 source schema 文件
     # ❌ 五階層展開項目_*.xlsx 不再進 repo
 
   ingest/                     Pipeline staging
@@ -48,14 +48,14 @@ data/
     consensus_rules/facts.jsonl  舊 OCR consensus(275,glob)
     ocr_v1/facts.jsonl        舊 OCR 1202(glob)
     construction_by_bucket/   外部資料源(688)
-    m7_pullon/                ⭐ 2026-05-08+ 聚陽 PullOn pipeline 推進來
+    m7/                ⭐ 2026-05-08+ 聚陽 PullOn pipeline 推進來
       entries.jsonl           7.5 MB / 746 entries (aggregated)
       designs.jsonl.gz        ~6 MB (gzipped per-EIDH 履歷)
 
   legacy/                     退役 fallback (只縮不增)
 
 l2_l3_ie/<L1>.json (38 + _index)     Bible 五階層展開,Phase 2 dict schema (升級於 2026-05-08);
-                                     每 L5 step 含 ie_standard + 可選 actuals (m7_pullon by_brand 觀察值)
+                                     每 L5 step 含 ie_standard + 可選 actuals (m7 by_brand 觀察值)
 # l2_l3_ie_by_client/                ✅ RETIRED 2026-05-08 (Phase 2.5b);功能由
 #                                     l2_l3_ie/ + frontend filterBibleByBrand() helper 取代
 recipes/                              PATH2 做工配方(72 檔)
@@ -136,7 +136,7 @@ python star_schema/scripts/build_recipes_master.py --strict
 | recipe (same_sub) | `recipes/recipe_*.json` | 71-72 |
 | consensus_v1 (same_bucket) | `data/ingest/consensus_v1/entries.jsonl` | 275 |
 | facts_agg (same_bucket) | `data/ingest/*/facts.jsonl` glob | 動態 |
-| **m7_pullon** ⭐ (same_bucket) | `data/ingest/m7_pullon/entries.jsonl` | ~750 entries (4644 EIDH) |
+| **m7** ⭐ (same_bucket) | `data/ingest/m7/entries.jsonl` | ~750 entries (4644 EIDH) |
 | v4.3 (same_gt) | `path2_universal/iso_lookup_factory_v4.3.json` | 230 |
 | v4 (general) | `path2_universal/iso_lookup_factory_v4.json` | 282 |
 | bridge (cross_design) | `data/runtime/construction_bridge_v6.json` | 53 |
@@ -151,8 +151,8 @@ python star_schema/scripts/build_recipes_master.py --strict
 
 **Step 4 derive views**(2026-05-08+ View A + B 實裝,spec 見 `docs/architecture/PHASE2_DERIVE_VIEWS_SPEC.md`):
 - **Step 4a** `derive_view_recipes_master.py` → View A:覆寫 `data/runtime/recipes_master.json`,剝 `_m7_*` 內部欄位
-- **Step 4b** `derive_bible_actuals.py --all --in-place` → View B:升級 `l2_l3_ie/<L1>.json` 38 檔為 Phase 2 dict schema + 掛 m7_pullon `actuals`(**2026-05-11 修 dict pass-through bug,永遠重算 actuals,新 brand 才會跟著 m7_pullon push 自動進 by_brand**)
-- **Step 4c** `scripts/core/build_brands.py` → `data/runtime/brands.json`:從 m7_pullon `entries.jsonl` 聚合各 brand 的 n_entries / n_designs(2026-05-11 加,前端 Brand 下拉動態 source,取代硬寫 BRANDS 常數)
+- **Step 4b** `derive_bible_actuals.py --all --in-place` → View B:升級 `l2_l3_ie/<L1>.json` 38 檔為 Phase 2 dict schema + 掛 m7 `actuals`(**2026-05-11 修 dict pass-through bug,永遠重算 actuals,新 brand 才會跟著 m7 push 自動進 by_brand**)
+- **Step 4c** `scripts/core/build_brands.py` → `data/runtime/brands.json`:從 m7 `entries.jsonl` 聚合各 brand 的 n_entries / n_designs(2026-05-11 加,前端 Brand 下拉動態 source,取代硬寫 BRANDS 常數)
 - ~~舊 Step 4c `derive_view_designs_index.py` → View C(per-EIDH designs_index)~~ — **2026-05-09 retired**(前端無 UI 消費,移除避免 dead 產物)。新 Step 4c 重用編號是因為 retired 後位置空出
 
 ---
@@ -203,7 +203,8 @@ python scripts/core/reclassify_and_rebuild.py
 
 | Workflow | Trigger | 跑什麼 |
 |---|---|---|
-| `.github/workflows/rebuild_master.yml` | push `data/ingest/uploads/**` 或 `data/ingest/m7_pullon/**` | extract_raw_text → vlm_pipeline → extract_unified → build_recipes_master --strict |
+| `.github/workflows/rebuild_master.yml` | push `data/ingest/uploads/**` 或 `data/ingest/m7/**`(2026-05-12 改 `m7_pullon` → `m7`,commit `a0dc4f6`)| Step 1 extract_raw_text → 2b vlm_pipeline → 2a extract_unified → Pre-3 validate_buckets --strict → 3 build_recipes_master --strict → 4a derive_view_recipes_master → 4b derive_bible_actuals → 4c build_brands |
+| `.github/workflows/validate_pom_rules.yml` ★ **2026-05-13 加** | push `pom_rules/**` 或 `scripts/core/validate_buckets.py` 或 workflow 本身 | 只跑 `validate_buckets.py --strict`(schema gate <1s,exit 1 on drift)。**不 regen** — 因為 regen 需要外部 `$POM_PIPELINE_BASE` 8,892 設計資料,CI 不具備 |
 | `.github/workflows/build_bible_skeleton.yml` | `workflow_dispatch` only | build_bible_skeleton |
 
 ---
@@ -213,16 +214,16 @@ python scripts/core/reclassify_and_rebuild.py
 | 症狀 | 原因 | 修法 |
 |---|---|---|
 | `bucket not in taxonomy` 報錯 | 用 v3 schema 讀 v4 file | 確認 `load_bucket_taxonomy()` 已升級含 `legacy_buckets` 合併 |
-| `recipes_master.json` 缺 m7_pullon entries | `data/ingest/m7_pullon/entries.jsonl` 沒 push 上 | 跑 M7 端 `push_m7_pullon_v3.ps1` |
+| `recipes_master.json` 缺 m7 entries | `data/ingest/m7/entries.jsonl` 沒 push 上 | 跑 M7 端 `push_m7_pullon_v3.ps1` |
 | `l2_l3_ie/<L1>.json` 沒更新 | xlsx 沒 build | 維護者本機跑 `scripts/core/build_bible_skeleton.py` 後 push 38 JSON |
-| 前端看到舊 ISO | CI 沒重跑 | 確認 push 有碰 `data/ingest/uploads/**` 或 `m7_pullon/**`;否則手動 `workflow_dispatch` |
+| 前端看到舊 ISO | CI 沒重跑 | 確認 push 有碰 `data/ingest/uploads/**` 或 `m7/**`;否則手動 `workflow_dispatch` |
 | brand-specific 五階層拿不到 | 還在試 fetch `/l2_l3_ie_by_client/`(已退役) | 改用 `l2_l3_ie/<L1>.json` + frontend `filterBibleByBrand()` (從 actuals.by_brand 過濾)。需要更細的 client × 品類組合用 `filterBibleByCategory(bible, {brand,fabric,gender,dept,gt,it})` 6 維 runtime filter,反查 `designs.jsonl.gz` 重算 sec_median(2026-05-11+) |
 
 ---
 
 ## 10. 不要碰
 
-- ❌ `l2_l3_ie/` 38 檔手改 — CI 自動產(`derive_bible_actuals.py --in-place`,從 xlsx + m7_pullon)
+- ❌ `l2_l3_ie/` 38 檔手改 — CI 自動產(`derive_bible_actuals.py --in-place`,從 xlsx + m7)
 - ❌ `recipes_master.json` 手改 — CI 自動產(`derive_view_recipes_master.py`)
 - ❌ `pom_rules/*.json` 手改 — script 自動產
 - ❌ `l2_l3_ie_by_client/` 加新檔 — RETIRED 2026-05-08 (Phase 2.5b),已 git rm
@@ -238,7 +239,7 @@ python scripts/core/reclassify_and_rebuild.py
 python scripts/core/build_bible_skeleton.py
 git add l2_l3_ie/ && git commit -m "feat(bible): rebuild" && git push
 
-# B. 聚陽端 push m7_pullon source(若 SSRS / 列管有更新)
+# B. 聚陽端 push m7 source(若 SSRS / 列管有更新)
 #    在 M7_Pipeline 端跑(見 M7 端 SKILL):
 #    python scripts/build_m7_pullon_source_v3.py
 #    .\scripts\push_m7_pullon_v3.ps1
@@ -259,6 +260,6 @@ git add l2_l3_ie/ && git commit -m "feat(bible): rebuild" && git push
 - TP PDF/PPTX SMB 拉取
 - `extract_raw_text_m7.py` 三 mode(--metadata-only / --pptx-only / --pdf-only)
 - `build_m7_pullon_source_v3.py`(deprecate v1+v2)
-- push 進這個 repo 的 `data/ingest/m7_pullon/`
+- push 進這個 repo 的 `data/ingest/m7/`
 
-**邊界**:聚陽端 push 完結束。Platform 端從 `data/ingest/m7_pullon/` 收件開始。
+**邊界**:聚陽端 push 完結束。Platform 端從 `data/ingest/m7/` 收件開始。

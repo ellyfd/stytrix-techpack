@@ -4,9 +4,9 @@
 >
 > **2026-05-11 兩個重要修正**:
 >
-> 1. **`derive_bible_actuals.py` idempotency 修**:Phase 2.3 原版對已是 dict schema 的 step 直接 pass-through(只把 list-form 的 step 重算),導致 Bible 第一次升級 bake 了當時的 brand 後就 freeze,後續 m7_pullon source 新增 brand 不會反映到 `actuals.by_brand`(`--all --in-place` 重跑 0 diff)。修法:dict step 也走完整 lookup → recompute → 寫入(actuals empty 時清掉,避免殘留)。Bible 從 10 brand → 21 brand,大小 73.7 → 79.1 MB(+7%)。
+> 1. **`derive_bible_actuals.py` idempotency 修**:Phase 2.3 原版對已是 dict schema 的 step 直接 pass-through(只把 list-form 的 step 重算),導致 Bible 第一次升級 bake 了當時的 brand 後就 freeze,後續 m7 source 新增 brand 不會反映到 `actuals.by_brand`(`--all --in-place` 重跑 0 diff)。修法:dict step 也走完整 lookup → recompute → 寫入(actuals empty 時清掉,避免殘留)。Bible 從 10 brand → 21 brand,大小 73.7 → 79.1 MB(+7%)。
 >
-> 2. **新增 Step 4c `scripts/core/build_brands.py`**:從 `data/ingest/m7_pullon/entries.jsonl` 聚合產 `data/runtime/brands.json`(~1.8 KB)。前端 `index.html` 把硬寫 10 entry 的 `const BRANDS = [...]` 換成 boot 時 fetch 這個檔,新 brand 進 m7_pullon → CI 重產 brands.json → 用戶 reload 看到。這個 derive 不算 Phase 2 view(沒從 master.jsonl 衍生),但 workflow 排在 4b 之後,共用一次 m7_pullon 讀取。
+> 2. **新增 Step 4c `scripts/core/build_brands.py`**:從 `data/ingest/m7/entries.jsonl` 聚合產 `data/runtime/brands.json`(~1.8 KB)。前端 `index.html` 把硬寫 10 entry 的 `const BRANDS = [...]` 換成 boot 時 fetch 這個檔,新 brand 進 m7 → CI 重產 brands.json → 用戶 reload 看到。這個 derive 不算 Phase 2 view(沒從 master.jsonl 衍生),但 workflow 排在 4b 之後,共用一次 m7 讀取。
 
 `build_recipes_master.py` Step 3 產 master.jsonl 後,從 master + per-EIDH designs 衍生**多個視角**的 view。
 
@@ -40,7 +40,7 @@ data/recipes_master.json l2_l3_ie/<L1>.json (38 檔) data/runtime/designs_index/
 ```
 
 **沒有「by_client」目錄,沒有「augmented」目錄,沒有「overlay」概念**。
-Bible 38 檔本身被增強 — 在每個 L5 step 旁加 `actuals` 欄,由 m7_pullon 來源填。
+Bible 38 檔本身被增強 — 在每個 L5 step 旁加 `actuals` 欄,由 m7 來源填。
 
 ---
 
@@ -119,7 +119,7 @@ Bible 38 檔本身被增強 — 在每個 L5 step 旁加 `actuals` 欄,由 m7_pu
   "_metadata": {
     "version": "phase2",
     "generated_at": "...",
-    "sources": ["xlsx 五階層展開項目_20260507", "m7_pullon (4644 EIDH)"],
+    "sources": ["xlsx 五階層展開項目_20260507", "m7 (4644 EIDH)"],
     "n_l5_steps_total": 271,
     "n_l5_steps_with_actuals": 154,
     "actuals_coverage_pct": 56.8
@@ -130,12 +130,12 @@ Bible 38 檔本身被增強 — 在每個 L5 step 旁加 `actuals` 欄,由 m7_pu
 **Schema 規則**:
 - 每個 L5 step 是 dict(不是 list)
 - `ie_standard` 必有(從 xlsx)
-- `actuals` 可有可無(只有 m7_pullon 跑過該 path 才有)
+- `actuals` 可有可無(只有 m7 跑過該 path 才有)
 - 未來新 source(constructions 等)再加同層 key,**不破壞 existing schema**
 
 ### `new_*` placeholder 過濾規則
 
-從 m7_pullon 進來的資料,**任一以下情況整筆 row drop,不進 Bible**:
+從 m7 進來的資料,**任一以下情況整筆 row drop,不進 Bible**:
 - L2 含 `new_part_` 開頭
 - L3 含 `new_shape_design_` 開頭
 - L4 含 `new_method_describe_` 開頭
@@ -167,7 +167,7 @@ const brandActuals = step.actuals?.by_brand;  // optional
 
 ## View C — `data/runtime/designs_index/<EIDH>.json` (NEW 目錄, lazy fetch) — RETIRED 2026-05-09
 
-> **退役狀態**:本章節保留為**未來重啟參考**。曾於 2026-05-08 實裝(Step 4c + 3,900 檔產出),但 2026-05-09 audit 發現 `index.html` 並無 EIDH 詳情頁 fetch 這些檔,屬 dead 產物。已 git rm 整個目錄 + `derive_view_designs_index.py` script + workflow Step 4c。若未來前端要做 EIDH 詳情頁,可從 `data/ingest/m7_pullon/designs.jsonl.gz` 重接 derive。
+> **退役狀態**:本章節保留為**未來重啟參考**。曾於 2026-05-08 實裝(Step 4c + 3,900 檔產出),但 2026-05-09 audit 發現 `index.html` 並無 EIDH 詳情頁 fetch 這些檔,屬 dead 產物。已 git rm 整個目錄 + `derive_view_designs_index.py` script + workflow Step 4c。若未來前端要做 EIDH 詳情頁,可從 `data/ingest/m7/designs.jsonl.gz` 重接 derive。
 
 **用途**:Frontend 看單一 EIDH 詳情時 fetch。
 **Source**:`m7_pullon_designs.jsonl` 拆成 per-EIDH 個別檔。
@@ -219,7 +219,7 @@ data/runtime/designs_index/<EIDH>.json (3,900 檔)
 
 新檔 `star_schema/scripts/derive_bible_actuals.py`:
 - Read `l2_l3_ie/<L1>.json` 現有版(從 xlsx 衍生的純 canonical)
-- Read `data/ingest/m7_pullon/entries.jsonl`(m7_pullon source)
+- Read `data/ingest/m7/entries.jsonl`(m7 source)
 - For each L1: walk Bible 樹,attach `actuals` per L5 step (median sec / by_brand / machine 分布 / size 分布)
 - **過濾 `new_part_*` / `new_shape_design_*` / `new_method_describe_*` / `(NEW)*` 全 drop**
 - Output overwrite `l2_l3_ie/<L1>.json`(38 檔)
@@ -229,7 +229,7 @@ data/runtime/designs_index/<EIDH>.json (3,900 檔)
 ### Phase 2.4 — Write derive_view_designs_index.py
 
 新檔 `star_schema/scripts/derive_view_designs_index.py`:
-- Read `data/ingest/m7_pullon/designs.jsonl.gz`(or .jsonl)
+- Read `data/ingest/m7/designs.jsonl.gz`(or .jsonl)
 - 拆每 EIDH 一個檔 → `data/runtime/designs_index/<EIDH>.json`
 - 寫 `data/runtime/designs_index/_index.json` 帶 EIDH list + size
 
@@ -261,7 +261,7 @@ data/runtime/designs_index/<EIDH>.json (3,900 檔)
 | 修改責任 | CI 自動產 | 手改禁止 |
 
 ⛔ **`l2_l3_ie/` 38 檔在 Phase 2 後永遠不手改** — CI 自動產的衍生檔。
-要改規則,改 derive script;要補資料,push 進 m7_pullon ingest 或更新 xlsx。
+要改規則,改 derive script;要補資料,push 進 m7 ingest 或更新 xlsx。
 
 ---
 
@@ -269,7 +269,7 @@ data/runtime/designs_index/<EIDH>.json (3,900 檔)
 
 未來新 source(例:techpack VLM constructions)整合:
 - 不改 Bible structure
-- 不改 m7_pullon source schema
+- 不改 m7 source schema
 - 只改 `derive_bible_actuals.py` 加 `constructions` key 在每個 L5 dict 同層
 
 source 跟 view 解耦。
@@ -280,7 +280,7 @@ source 跟 view 解耦。
 
 - [x] Phase 2.1: restructure build_recipes_master 出 master.jsonl(L94-95 `OUT_MASTER_JSONL` / `OUT_MASTER_META`)
 - [x] Phase 2.2: `star_schema/scripts/derive_view_recipes_master.py`(Step 4a)
-- [x] Phase 2.3: `star_schema/scripts/derive_bible_actuals.py`(Step 4b,核心)— 過濾 `new_*` placeholder + 升級 38 檔 dict schema + 掛 m7_pullon `actuals`
+- [x] Phase 2.3: `star_schema/scripts/derive_bible_actuals.py`(Step 4b,核心)— 過濾 `new_*` placeholder + 升級 38 檔 dict schema + 掛 m7 `actuals`
 - [⊘] Phase 2.4: `star_schema/scripts/derive_view_designs_index.py`(Step 4c)— 曾實裝產 per-EIDH 3,900 檔,**2026-05-09 retired**(前端無 UI 消費,移除避免 dead 產物)
 - [x] Phase 2.5: wire CI(`.github/workflows/rebuild_master.yml` Step 4a/4b/4c)+ `l2_l3_ie_by_client/` git rm 完成
 - [x] Phase 2.6: frontend integration(`index.html` `readStepRow()` schema-agnostic Bible reader,`filterBibleByBrand()` helper 從 `actuals.by_brand` 過濾,2026-05-11 commit `83727c0` 加 `filterBibleByCategory(bible, {brand,fabric,gender,dept,gt,it})` 6 維 runtime filter — lazy fetch `designs.jsonl.gz` + native gzip 解壓 + module-scope cache,按 `(L2|L3|L4|L5)` 重算 sec_median + design count,失敗 fallback `filterBibleByBrand`)
