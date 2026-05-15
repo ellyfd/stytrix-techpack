@@ -27,7 +27,19 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 _ALIASES_CACHE = None
-_ALIASES_PATH = Path(__file__).resolve().parent.parent.parent / "data" / "canonical_aliases.json"
+
+
+def _find_aliases_path():
+    """canonical_aliases.json SOT = stytrix-techpack/data/source/canonical_aliases.json
+    (2026-05-15: 原讀 M7_Pipeline/data/canonical_aliases.json 副本，已刪，改讀 repo SOT)。
+    候選順序：M7_Pipeline-in-repo / C:\\temp 固定 repo 位置 / 舊本地 copy（過渡 fallback）。"""
+    m7 = Path(__file__).resolve().parent.parent.parent  # M7_Pipeline/
+    for c in (m7.parent / "data" / "source" / "canonical_aliases.json",
+              Path("C:/temp/stytrix-techpack/data/source/canonical_aliases.json"),
+              m7 / "data" / "canonical_aliases.json"):
+        if c.exists():
+            return c
+    return m7 / "data" / "canonical_aliases.json"  # last-resort default（_load_aliases 會 graceful 退空 dict）
 
 
 def _load_aliases():
@@ -35,9 +47,10 @@ def _load_aliases():
     global _ALIASES_CACHE
     if _ALIASES_CACHE is not None:
         return _ALIASES_CACHE
-    if _ALIASES_PATH.exists():
+    path = _find_aliases_path()
+    if path.exists():
         try:
-            _ALIASES_CACHE = json.loads(_ALIASES_PATH.read_text(encoding="utf-8"))
+            _ALIASES_CACHE = json.loads(path.read_text(encoding="utf-8"))
         except Exception:
             _ALIASES_CACHE = {}
     else:

@@ -1,8 +1,9 @@
 {
   "_description": "聚陽 M7 列管 ↔ 客戶 PDF 命名 alias 對照表。M7_Pipeline/scripts/lib/consolidate_canonical.py 載入這份規則,把多 source consensus 的 medium 衝突(命名差異造成的假衝突)降為 high。8 canonical 欄位:客戶/報價款號/Program/Subgroup/W/K/Item/Season/PRODUCT_CATEGORY",
   "_updated": "2026-05-08",
-  "_consumer": "M7_Pipeline/scripts/lib/consolidate_canonical.py (上游 pipeline,本 repo 只當 source-of-truth 規則表存)",
+  "_consumer": "M7_Pipeline/scripts/lib/consolidate_canonical.py 直接讀本檔（2026-05-15 起：原本 M7_Pipeline/data/canonical_aliases.json 副本已刪，consolidate_canonical.py 改 _find_aliases_path() 讀本 SOT）",
   "_authority": "Elly 業務知識 + canonical_consensus_report.txt 衝突清單反推",
+  "_sot": "本檔 = canonical_aliases SOT（手維護底稿，data/source/）。勿再建副本。",
 
   "客戶": {
     "_rule": "客戶全名 → 縮寫(M7 列管慣例 vs PDF 簡寫)",
@@ -33,17 +34,7 @@
     "NET": "NET",
     "LEVIS": "LEV",
     "CATO": "CATO",
-    "SMART CLOTHING": "SMC",
-    "_OLD_BANANA_REPUBLIC_END": null,
-    "BRFS": "BR",
-    "ABERCROMBIE & FITCH": "ANF",
-    "A & F": "ANF",
-    "A_&_F": "ANF",
-    "ATHLETA": "ATH",
-    "TARGET": "TGT",
-    "KOHLS": "KOH",
-    "UNDER ARMOUR": "UA",
-    "BEYOND YOGA": "BY"
+    "SMART CLOTHING": "SMC"
   },
 
   "PRODUCT_CATEGORY": {
