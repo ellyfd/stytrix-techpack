@@ -169,3 +169,37 @@ def test_brand_pom_alias_present():
     for must_have in ("DKS", "KOH", "TGT", "ATH", "GAP", "ONY"):
         assert must_have in aliases, f"missing critical brand alias: {must_have!r}"
         assert len(aliases[must_have]) >= 1, f"brand {must_have!r} has empty alias list"
+
+
+# ── brand_size_runs (2026-05-15 加) ───────────────────────────────────────────
+
+def test_brand_size_runs_present():
+    """data/runtime/brand_size_runs.json 是 scripts/core/build_brand_size_runs.py
+    的 derive output。前端 Size Rule toggle 依 (brand × gender) 查該客人實際用
+    的尺寸套(MISSY字母 / 數字碼 / MISSY+PLUS 等),取代用 bucket size_range 推
+    Alpha/Numeric/Plus 的舊邏輯。CI Step 4e 跑這個 build。
+    """
+    p = REPO / "data" / "runtime" / "brand_size_runs.json"
+    assert p.exists(), "brand_size_runs.json missing — CI Step 4e 沒跑或 build 失敗"
+    payload = _load("data/runtime/brand_size_runs.json")
+    assert payload.get("_meta", {}).get("version"), "brand_size_runs.json missing _meta.version"
+    by_bg = payload.get("by_brand_gender", {})
+    assert isinstance(by_bg, dict)
+    assert len(by_bg) >= 30, f"only {len(by_bg)} (brand × gender) combos"
+    # 關鍵 (brand × gender) 必須有 entry
+    for key in ("DKS|WOMENS", "ATH|WOMENS", "GAP|WOMENS", "ONY|WOMENS", "BR|WOMENS"):
+        assert key in by_bg, f"missing critical (brand × gender): {key!r}"
+        runs = by_bg[key]
+        assert isinstance(runs, list) and len(runs) >= 1, f"{key} has no runs"
+        for r in runs:
+            for f in ("key", "label", "sizes", "base", "n"):
+                assert f in r, f"{key} run missing field {f!r}"
+            assert isinstance(r["sizes"], list) and r["sizes"], f"{key} run has empty sizes"
+            assert r["base"] in r["sizes"], (
+                f"{key} run base {r['base']!r} not in sizes {r['sizes']}"
+            )
+    # DKS WOMENS 必須有 alpha + numeric 兩個 run(case in CLAUDE.md)
+    dks_keys = {r["key"] for r in by_bg["DKS|WOMENS"]}
+    assert "alpha" in dks_keys and "numeric" in dks_keys, (
+        f"DKS|WOMENS should have alpha + numeric; got {dks_keys}"
+    )
