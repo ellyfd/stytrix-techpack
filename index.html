@@ -744,6 +744,47 @@ const PLUS_POMS = {
 
 const MISSY_META = { sizes: ["XS","S","M","L","XL","XXL"], base: "M", rule: "Old Navy Womens Alpha" };
 const PLUS_META  = { sizes: ["1X","2X","3X","4X"], base: "2X", rule: "Old Navy Womens Plus Alpha" };
+// Size-run helpers — pom_rules buckets put Alpha (XXS-XXL), Numeric (0-18) 跟 Plus (1X-4X)
+// 三套 size run 全擠在同一個 size_range array。聚陽端「盤x客人x尺寸套x基碼」xlsx
+// 列管每個 (盤 × 客人 × gender × 尺寸套) 對應的基碼,但該 xlsx 還沒進 repo
+// (見 docs/sop/ TODO)。在那之前用以下 default rules:
+//   alpha → M
+//   numeric WOMENS → 8;MENS → 32;其他 → 該 run 的中位 size
+//   plus → 2X (PLUS_META.base)
+const SIZE_ALPHA_ORDER = ["XXXS","XXS","XS","S","M","L","XL","XXL","XXXL"];
+const isAlphaSize = s => SIZE_ALPHA_ORDER.includes(s);
+const isPlusSize = s => /^\d+X$/.test(s);
+const isNumericSize = s => /^\d+$/.test(s);
+const splitSizeRange = (sizes) => {
+  const alpha = [], numeric = [], plus = [];
+  for (const s of (sizes || [])) {
+    if (isPlusSize(s)) plus.push(s);
+    else if (isNumericSize(s)) numeric.push(s);
+    else if (isAlphaSize(s)) alpha.push(s);
+  }
+  alpha.sort((a, b) => SIZE_ALPHA_ORDER.indexOf(a) - SIZE_ALPHA_ORDER.indexOf(b));
+  numeric.sort((a, b) => parseInt(a) - parseInt(b));
+  plus.sort((a, b) => parseInt(a) - parseInt(b));
+  return { alpha, numeric, plus };
+};
+const pickRunAnchor = (run, seq, gender) => {
+  if (!seq.length) return null;
+  if (run === 'alpha') {
+    if (seq.includes('M')) return 'M';
+    if (seq.includes('L')) return 'L';
+    return seq[Math.floor(seq.length / 2)];
+  }
+  if (run === 'numeric') {
+    const g = String(gender || '').toUpperCase();
+    if (g === 'WOMENS' && seq.includes('8')) return '8';
+    if (g === 'MENS' && seq.includes('32')) return '32';
+    return seq[Math.floor(seq.length / 2)];
+  }
+  if (run === 'plus') {
+    return seq.includes('2X') ? '2X' : seq[0];
+  }
+  return seq[0];
+};
 
 /* ─────────────────────────────────────────────────────────────────────────
    DESIGN TOKENS
@@ -5127,13 +5168,8 @@ function App() {
     { zh: "內長", en: "Inseam",                candidates: ["O4"] },
     { zh: "褲口", en: "Leg Opening",           candidates: ["N9"] },
   ];
-  const universalGarmentFamily = (() => {
-    const bottoms = new Set(["PANTS", "SHORTS", "SKIRT", "LEGGINGS"]);
-    return bottoms.has(gt) ? "bottom" : "top";
-  })();
-  const universalSpec = universalGarmentFamily === "bottom" ? UNIVERSAL_BOTTOM_SPEC : UNIVERSAL_TOP_SPEC;
-  // 依目前 bucket 解析通用模型的基礎 POM codes(按 candidate 優先序挑第一個在 bucket 有資料的)已移到
-  // currentBucket state 宣告之後,避免 TDZ ReferenceError。
+  // universalGarmentFamily / universalSpec 移到 currentBucket state 宣告之後,
+  // 否則 currentBucket?.body_region 會 TDZ。見下方 useMemo。
   useEffect(() => {
     loadRuntimeJSON('./pom_rules/_index.json',           d => { setPomRules(d); window.POM_RULES = d; });
     loadRuntimeJSON('./data/runtime/brand_pom_alias.json', setBrandAlias);  // 2026-05-14 加,brand alias lookup
@@ -5197,6 +5233,19 @@ function App() {
   };
   const [currentBucket, setCurrentBucket] = useState(null);
   const [bucketLoading, setBucketLoading] = useState(false);
+  // 2026-05-15 fix:原本硬寫的 GT 名單 ["PANTS","SHORTS","SKIRT","LEGGINGS"] 跟 pom_rules
+  // v6+ 用的 M7 manifest Item 原值對不上(實際 GT 是 "Dressy Pants"/"Pull On Pants"/
+  // "Skorts" 等)— 所有下身 bucket 都會 fallback 到 "top",`universalBasicCodes` 取交集
+  // 後為空,通用模型 0 sizes。改用 bucket.body_region(乾淨欄位:upper/lower/combined),
+  // boot 期 currentBucket 還沒載入時 fallback 到 GT 名字 substring match。
+  const universalGarmentFamily = (() => {
+    const br = currentBucket?.body_region;
+    if (br === 'lower') return 'bottom';
+    if (br === 'upper') return 'top';
+    if (gt && /pants|shorts|skirt|leggings|skorts/i.test(gt)) return 'bottom';
+    return 'top';
+  })();
+  const universalSpec = universalGarmentFamily === "bottom" ? UNIVERSAL_BOTTOM_SPEC : UNIVERSAL_TOP_SPEC;
   // 依目前 bucket 解析通用模型的基礎 POM codes(按 candidate 優先序挑第一個在 bucket 有資料的)。
   // 聚陽 / 通用共用同一套 measurement/grading 版面,差異只在這組 code 集合。
   const universalBasicCodes = useMemo(() => {
@@ -5494,6 +5543,13 @@ function App() {
   // 切換時整張全碼表的 M 基碼換成 <bt>_M(來自 bodytype_variance),
   // 跳檔仍走 Missy 的 grading_patterns / typical_increment(使用者明示)。
   const [gradingBodytype, setGradingBodytype] = useState('regular');
+  // 2026-05-15:Size Rule toggle(Alpha XXS-XXL / Numeric 0-18)。
+  // pom_rules buckets 的 size_range 把 Alpha + Numeric + Plus 三套擠同一陣列,
+  // 不分 run 一起塞橫排會混亂。預設 'alpha';bucket 換時若新 bucket 無 alpha 只
+  // 有 numeric 會自動 fallback 到 numeric(見下方 useEffect)。
+  const [sizeRun, setSizeRun] = useState('alpha');
+  // Numeric run 的基碼覆寫(平行於 baseOverrides — alpha 用 baseOverrides,numeric 用這個)
+  const [numericBaseOverrides, setNumericBaseOverrides] = useState({});
   // 顯示單位/格式切換(只影響顯示;內部資料一律為英吋 float)
   // displayUnit: 'in' | 'cm';  displayFormat: 'fraction' | 'decimal' (僅 inch 時有效,cm 固定小數)
   const [displayUnit, setDisplayUnit] = useState('in');
@@ -5552,6 +5608,7 @@ function App() {
     };
     setBaseOverrides(prev => rebuild(prev));
     setPlusBaseOverrides(prev => rebuild(prev));
+    setNumericBaseOverrides(prev => rebuild(prev));
   };
   const changeUnit = (u) => {
     if (u === displayUnit) return;
@@ -5583,10 +5640,20 @@ function App() {
     setPlusBaseOverrides({});
     setPetiteBaseOverrides({});
     setTallBaseOverrides({});
+    setNumericBaseOverrides({});
     setShowPlus(false);
     setGradingBodytype('regular');
     setUserAddedCodes(new Set());
     setCustomPoms([]);
+    // sizeRun 預設 alpha;若 bucket 只有 numeric run(無 alpha),自動 fallback 到 numeric。
+    const sr = currentBucket?.size_range;
+    if (Array.isArray(sr)) {
+      const split = splitSizeRange(sr);
+      if (split.alpha.length === 0 && split.numeric.length > 0) setSizeRun('numeric');
+      else setSizeRun('alpha');
+    } else {
+      setSizeRun('alpha');
+    }
   }, [currentBucket?.bucket]);
   // 模式切換時(聚陽↔通用)也重置 user-added / custom(universal filter 會不同)
   useEffect(() => {
@@ -7681,12 +7748,25 @@ function App() {
               );
               const tier1SetU = new Set(currentBucket.foundational_measurements?.tier1_poms || []);
               const gradingDisabled = !(bucketIncludedU > 0);
+              // 2026-05-15:size_range 把 Alpha (XXS-XXL) + Numeric (0-18) + Plus (1X-4X)
+              // 三套塞同一陣列。拆出來給 SIZE RULE toggle 跟下游 visibleSizes 用。
+              // 多數美式 women's bottom bucket 兩套都有(例:DKS Dressy Pants),
+              // 需要 toggle 切換 — 否則 38 件全擠同一橫排。
+              const runSplitU = splitSizeRange(sizesU);
+              const hasAlphaU = runSplitU.alpha.length > 0;
+              const hasNumericU = runSplitU.numeric.length > 0;
+              // 若 sizeRun 指向 bucket 沒有的 run,降級到有的那邊
+              const effectiveSizeRun = (sizeRun === 'numeric' && !hasNumericU) ? 'alpha'
+                                     : (sizeRun === 'alpha' && !hasAlphaU && hasNumericU) ? 'numeric'
+                                     : sizeRun;
+              const currentRunSeq = effectiveSizeRun === 'numeric' ? runSplitU.numeric : runSplitU.alpha;
+              const currentRunAnchor = pickRunAnchor(effectiveSizeRun, currentRunSeq, gender);
               const sizeRuleLabel = (() => {
                 const rule = currentBucket?.size_rule;
                 if (rule) return String(rule).replace(/_/g, " ").replace(/\b\w/g, ch => ch.toUpperCase());
-                if (gender === "W") return "Womens Alpha";
-                if (gender === "M") return "Mens Alpha";
-                return "Alpha";
+                const g = gender === "W" ? "Womens" : gender === "M" ? "Mens" : "";
+                const runWord = effectiveSizeRun === 'numeric' ? "Numeric" : "Alpha";
+                return g ? `${g} ${runWord}` : runWord;
               })();
               return (
                 <div style={{
@@ -7733,13 +7813,45 @@ function App() {
                     {!isMobile && (
                       <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "6px" }}>
                         <span style={{ fontSize: "10px", color: "#bbb", fontWeight: 500, letterSpacing: "0.05em", textTransform: "uppercase" }}>Size Rule</span>
-                        <span style={{
-                          padding: "3px 10px", borderRadius: "4px",
-                          background: "#faf9f7", color: "#555",
-                          border: "1px solid #e8e5e1",
-                          fontSize: "11px", fontWeight: 600, letterSpacing: "0.02em",
-                          fontFamily: "'JetBrains Mono',monospace",
-                        }}>{sizeRuleLabel}</span>
+                        {hasAlphaU && hasNumericU ? (
+                          // 兩套都有 → segmented toggle(取代靜態 chip)
+                          <div role="group" aria-label="Size run 切換"
+                            style={{
+                              display: "inline-flex",
+                              border: "1px solid #e8e5e1", borderRadius: "4px", overflow: "hidden",
+                              fontFamily: "'JetBrains Mono',monospace",
+                            }}>
+                            {[
+                              { v: 'alpha', l: 'Alpha', sub: 'XXS-XXL' },
+                              { v: 'numeric', l: 'Numeric', sub: '0-18' },
+                            ].map((opt, i) => {
+                              const active = effectiveSizeRun === opt.v;
+                              return (
+                                <button key={opt.v}
+                                  onClick={() => setSizeRun(opt.v)}
+                                  aria-pressed={active}
+                                  title={opt.sub}
+                                  style={{
+                                    padding: "3px 10px",
+                                    background: active ? "#1a1a1a" : "#faf9f7",
+                                    color: active ? "#fff" : "#555",
+                                    border: "none",
+                                    borderRight: i === 0 ? "1px solid #e8e5e1" : "none",
+                                    fontSize: "11px", fontWeight: 600, letterSpacing: "0.02em",
+                                    fontFamily: "inherit", cursor: "pointer",
+                                  }}>{opt.l}</button>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <span style={{
+                            padding: "3px 10px", borderRadius: "4px",
+                            background: "#faf9f7", color: "#555",
+                            border: "1px solid #e8e5e1",
+                            fontSize: "11px", fontWeight: 600, letterSpacing: "0.02em",
+                            fontFamily: "'JetBrains Mono',monospace",
+                          }}>{sizeRuleLabel}</span>
+                        )}
                       </div>
                     )}
                   </div>
@@ -7770,7 +7882,7 @@ function App() {
                               ? `${codesByTierU.must.length} 必備 · ${codesByTierU.recommend.length} 建議 · ${codesByTierU.optional.length} 選配`
                               : (gradingBodytype === 'plus'
                                 ? `Plus · ${plusSeqU.length} sizes(2X BASE)`
-                                : `${sizesU.filter(s => !isPlusU(s)).length} sizes${hasPlusU ? `  (Plus 可切換)` : ""}`)}
+                                : `${currentRunSeq.length} sizes (${currentRunAnchor || 'M'} BASE)${hasPlusU ? `  · Plus 可切換` : ""}`)}
                           </div>
                         </div>
                       )}
@@ -7946,8 +8058,16 @@ function App() {
               const excludedBucketCodes = allBucketCodes.filter(c => keep(c) && excluded.has(c)); // 被 user 排除
               // Size run / Plus 相關衍生值(跟全碼表共用,讓基碼 header 也能顯示 toggle)
               const isPlus = s => /^\d+X$/.test(s);
-              const plusSeq = sizes.filter(isPlus).slice().sort((a, b) => parseInt(a) - parseInt(b));
-              const plusAnchor = plusSeq[0] || "2X";
+              const baseRunSplit = splitSizeRange(sizes);
+              const hasAlphaBase = baseRunSplit.alpha.length > 0;
+              const hasNumericBase = baseRunSplit.numeric.length > 0;
+              const effSizeRunBase = (sizeRun === 'numeric' && !hasNumericBase) ? 'alpha'
+                                   : (sizeRun === 'alpha' && !hasAlphaBase && hasNumericBase) ? 'numeric'
+                                   : sizeRun;
+              const baseNonPlusSeq = effSizeRunBase === 'numeric' ? baseRunSplit.numeric : baseRunSplit.alpha;
+              const baseNonPlusAnchor = pickRunAnchor(effSizeRunBase, baseNonPlusSeq, gender) || (effSizeRunBase === 'numeric' ? baseNonPlusSeq[0] : 'M');
+              const plusSeq = baseRunSplit.plus;
+              const plusAnchor = plusSeq.includes('2X') ? '2X' : (plusSeq[0] || '2X');
               const hasPlus = plusSeq.length > 0;
               // inflection 查 grading_patterns:該 POM 的相鄰跳碼 median 變化 > 50% 算 true(資料端定義)。
               // 供 基碼 / 全碼 兩邊 POM code 旁加 ⚡ 提示編輯者「這條跳碼不等距,改 M 不會等量平移」。
@@ -8010,18 +8130,22 @@ function App() {
               // 未選 Item Type 時,長度敏感 POM 視為「待選長度」— 不顯示數值
               const isLengthPending = code =>
                 !it && IT_LENGTH_HINTS[gt] && IT_LENGTH_DEP_POMS[gt]?.has(code);
-              // 基碼 M：使用者覆寫優先，否則資料中位數;長度待選時留空
+              // 基碼:Alpha 用 baseOverrides + M;Numeric 用 numericBaseOverrides + numeric anchor。
               const effectiveBaseM = code => {
-                const ov = baseOverrides[code];
+                const useNumeric = effSizeRunBase === 'numeric';
+                const ovStore = useNumeric ? numericBaseOverrides : baseOverrides;
+                const ov = ovStore[code];
                 if (ov != null && ov !== "") {
                   const v = parseVal(ov);
                   if (v != null) return v;
                 }
                 if (isLengthPending(code)) return null;
-                return mv[code]?.size_medians?.M;
+                return mv[code]?.size_medians?.[baseNonPlusAnchor];
               };
               const isOverrideValid = code => {
-                const ov = baseOverrides[code];
+                const useNumeric = effSizeRunBase === 'numeric';
+                const ovStore = useNumeric ? numericBaseOverrides : baseOverrides;
+                const ov = ovStore[code];
                 if (ov == null || ov === "") return true;
                 return parseVal(ov) != null;
               };
@@ -8051,7 +8175,9 @@ function App() {
                         setIt(opt);
                         const inches = parseHintInches(hints[opt]);
                         if (inches != null && mv[lengthCode]) {
-                          setBaseOverrides(prev => ({ ...prev, [lengthCode]: fmtDisp(inches) }));
+                          // 把長度寫進當前 sizeRun 的 override store(alpha → baseOverrides;numeric → numericBaseOverrides)
+                          const setter = effSizeRunBase === 'numeric' ? setNumericBaseOverrides : setBaseOverrides;
+                          setter(prev => ({ ...prev, [lengthCode]: fmtDisp(inches) }));
                         }
                       };
                       return (
@@ -8169,7 +8295,7 @@ function App() {
                                     )}
                                     <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "left", fontWeight: 600, fontSize: isMobile ? T.fs.sm : T.fs.md, color: T.c.text2, minWidth: isMobile ? "110px" : "140px" }}>中文{isMobile ? <span style={{ fontSize: T.fs.xs, fontWeight: 400, color: T.c.text4, marginLeft: "3px" }}>/ EN</span> : <span style={{ fontSize: T.fs.sm, fontWeight: 400, color: T.c.text4, marginLeft: "4px" }}>(雙擊可改)</span>}</th>
                                     <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? T.fs.sm : T.fs.md, color: T.c.text2, width: isMobile ? "52px" : "80px" }}>公差</th>
-                                    <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? T.fs.sm : T.fs.md, color: T.c.green, width: isMobile ? "80px" : "110px" }}>Base (M)</th>
+                                    <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? T.fs.sm : T.fs.md, color: T.c.green, width: isMobile ? "80px" : "110px" }}>Base ({baseNonPlusAnchor || 'M'})</th>
                                     {showPlus && hasPlus && (
                                       <th style={{ padding: isMobile ? "5px 4px" : "8px 10px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? T.fs.sm : T.fs.md, color: T.c.pink, width: isMobile ? "80px" : "110px" }}>Base ({plusAnchor}){!isMobile && <div style={{ fontSize: T.fs.sm, fontWeight: 400, color: T.c.pink }}>Plus 獨立</div>}</th>
                                     )}
@@ -8181,30 +8307,31 @@ function App() {
                                   const m = tier === "custom" ? (customMeta ? { tolerance: customMeta.tolerance } : null) : mr[tier]?.[code];
                                   const mvRow = mv[code];
                                   const pending = tier !== "custom" && isLengthPending(code);
-                                  const baseM = pending ? null : (tier === "custom" ? null : mvRow?.size_medians?.M);
+                                  // 2026-05-15:Base column 值跟隨 effSizeRunBase(Alpha=M / Numeric=8 etc)
+                                  const useNumericBase = effSizeRunBase === 'numeric';
+                                  const baseM = pending ? null : (tier === "custom" ? null : mvRow?.size_medians?.[baseNonPlusAnchor]);
+                                  const baseOvStore = useNumericBase ? numericBaseOverrides : baseOverrides;
+                                  const setBaseOvStore = useNumericBase ? setNumericBaseOverrides : setBaseOverrides;
                                   const included = !excluded.has(code);
                                   const pn = pomNames[code] || {};
-                                  const ov = baseOverrides[code] ?? "";
+                                  const ov = baseOvStore[code] ?? "";
                                   const invalid = ov !== "" && parseVal(ov) == null;
                                   const displayVal = ov !== "" ? ov : (baseM != null ? fmtDisp(baseM) : "");
-                                  // 已修改：用戶輸入過且合法、且與中位數不同
                                   const ovParsed = ov !== "" && !invalid ? parseVal(ov) : null;
                                   const isChanged = ovParsed != null && baseM != null && Math.abs(ovParsed - baseM) > 1e-9;
                                   const originalTip = isChanged ? `原值 ${fmtDisp(baseM)}` : undefined;
-                                  // 2026-05-14:對齊上方 filter / 基碼-全碼 segmented control 的中性 design system —
-                                  // 不在 row 預設顯示 heavy 綠色框/底色。只在 invalid(紅)/ isChanged(amber)時才上色。
                                   const inputBorder = invalid ? T.c.danger : (isChanged ? T.c.warning : T.c.border);
-                                  const inputColor  = invalid ? T.c.danger : (isChanged ? "#b45309" : T.c.green);
+                                  const inputColor  = invalid ? T.c.danger : (isChanged ? "#b45309" : (useNumericBase ? "#b45309" : T.c.green));
                                   const cellBg      = isChanged ? "#fffbeb" : "transparent";
-                                  // sub-row 條件:bodytype 有非零 delta 或使用者曾手動覆蓋過
+                                  // sub-row 條件:Alpha mode 才看 Petite/Tall;Numeric 無 bodytype variance 資料。
                                   const petiteMsc = petiteEntry?.m_size_comparison?.[code];
                                   const tallMsc   = tallEntry?.m_size_comparison?.[code];
                                   const petiteOv  = petiteBaseOverrides[code] ?? "";
                                   const tallOv    = tallBaseOverrides[code] ?? "";
                                   const petiteHasDelta = !!(petiteMsc && Math.abs(petiteMsc.delta ?? 0) > 1e-9);
                                   const tallHasDelta   = !!(tallMsc && Math.abs(tallMsc.delta ?? 0) > 1e-9);
-                                  const showPetiteSub = showPetite && hasPetiteData && !pending && (petiteHasDelta || petiteOv !== "");
-                                  const showTallSub   = showTall && hasTallData && !pending && (tallHasDelta || tallOv !== "");
+                                  const showPetiteSub = !useNumericBase && showPetite && hasPetiteData && !pending && (petiteHasDelta || petiteOv !== "");
+                                  const showTallSub   = !useNumericBase && showTall && hasTallData && !pending && (tallHasDelta || tallOv !== "");
                                   const labelSpan = 1 + (appMode !== "universal" ? 1 : 0) + (!isMobile ? 1 : 0) + 2;
                                   return (
                                     <React.Fragment key={code}>
@@ -8298,15 +8425,15 @@ function App() {
                                       <td style={{ padding: isMobile ? "5px 4px" : "9px 12px", textAlign: "right", fontFamily: "'JetBrains Mono',monospace", fontSize: isMobile ? T.fs.base : T.fs.lg, color: T.c.text2, fontWeight: 600, whiteSpace: "nowrap" }}>{tolStr(m)}</td>
                                       <td style={{ padding: isMobile ? "4px 6px" : "8px 16px", textAlign: "right", background: cellBg }}>
                                         <input type="text" value={displayVal}
-                                          onChange={(e) => setBaseOverrides(prev => ({ ...prev, [code]: e.target.value }))}
+                                          onChange={(e) => setBaseOvStore(prev => ({ ...prev, [code]: e.target.value }))}
                                           onBlur={() => {
-                                            const raw = baseOverrides[code];
+                                            const raw = baseOvStore[code];
                                             if (raw == null || raw === "") return;
                                             const parsed = parseVal(raw);
                                             if (parsed == null) return;
                                             const normalized = fmtDisp(parsed);
                                             if (normalized !== "—" && normalized !== raw) {
-                                              setBaseOverrides(prev => ({ ...prev, [code]: normalized }));
+                                              setBaseOvStore(prev => ({ ...prev, [code]: normalized }));
                                             }
                                           }}
                                           onKeyDown={(e) => {
@@ -8728,10 +8855,30 @@ function App() {
                 && Object.keys(bodytypeVariance[`${brand}|${gender}|${gt}|PETITE`].m_size_comparison).length > 0);
               const hasGradingTall = !!(bodytypeVariance?.[`${brand}|${gender}|${gt}|TALL`]?.m_size_comparison
                 && Object.keys(bodytypeVariance[`${brand}|${gender}|${gt}|TALL`].m_size_comparison).length > 0);
+              // 2026-05-15:size_range 拆成 alpha / numeric / plus 三 run。
+              // sizeRun toggle 決定非 Plus 模式下顯示 alpha (XXS-XXL) 還是 numeric (0-18)。
+              const isPlus = s => /^\d+X$/.test(s);
+              const runSplit = splitSizeRange(sizes);
+              const hasAlpha = runSplit.alpha.length > 0;
+              const hasNumeric = runSplit.numeric.length > 0;
+              const effectiveSizeRun = (sizeRun === 'numeric' && !hasNumeric) ? 'alpha'
+                                     : (sizeRun === 'alpha' && !hasAlpha && hasNumeric) ? 'numeric'
+                                     : sizeRun;
+              const nonPlusSeq = effectiveSizeRun === 'numeric' ? runSplit.numeric : runSplit.alpha;
+              const nonPlusAnchor = pickRunAnchor(effectiveSizeRun, nonPlusSeq, gender) || (effectiveSizeRun === 'numeric' ? nonPlusSeq[0] : 'M');
+              const anchorIdx = nonPlusSeq.indexOf(nonPlusAnchor);
+              // 非 Plus 模式的基碼覆寫:Alpha 用 baseOverrides(可受 Petite/Tall 變體影響),
+              // Numeric 用 numericBaseOverrides(Petite/Tall 無 numeric 變體資料,直接吃 median)。
               const effectiveBaseM = code => {
-                // Override 來源跟隨 gradingBodytype:Petite 編輯寫 petiteBaseOverrides、
-                // Tall 寫 tallBaseOverrides,Regular 才寫 baseOverrides。
-                // 這樣在 Petite sub-tab 編輯的 M 不會滲透到 Regular,也不會被 Regular override 蓋掉。
+                if (effectiveSizeRun === 'numeric') {
+                  const ov = numericBaseOverrides[code];
+                  if (ov != null && ov !== "") {
+                    const v = parseVal(ov);
+                    if (v != null) return v;
+                  }
+                  return mv[code]?.size_medians?.[nonPlusAnchor];
+                }
+                // Alpha:Override 來源跟隨 gradingBodytype(Petite/Tall/Regular 各自獨立 store)
                 const ovSource = gradingBodytype === 'petite' ? petiteBaseOverrides
                                : gradingBodytype === 'tall' ? tallBaseOverrides
                                : baseOverrides;
@@ -8740,7 +8887,6 @@ function App() {
                   const v = parseVal(ov);
                   if (v != null) return v;
                 }
-                // sub-tab=Petite/Tall 時,M = bucket median + delta(delta=0 時等於 regular)。
                 const base = mv[code]?.size_medians?.M;
                 if (gradingBtEntry) {
                   const msc = gradingBtEntry.m_size_comparison?.[code];
@@ -8751,14 +8897,10 @@ function App() {
               // tier1 set + ★ 圖例觸發
               const gradingTier1Set = new Set(currentBucket.foundational_measurements?.tier1_poms || []);
               // 全碼 size 值:
-              // Missy (XXS/XS/S/M/L/XL/XXL) 用 M + 步進 × 跳碼 推導 — M 改整條跟著走。
-              // Plus (1X/2X/3X/4X) 完全獨立:自己的基碼 2X,不受 Missy M 影響。
-              //   2X 可獨立編輯(plusBaseOverrides),其他 Plus 以 2X + 步進 × 跳碼 推導。
-              const isPlus = s => /^\d+X$/.test(s);
-              const missySeq = sizes.filter(x => !isPlus(x));
-              const plusSeq = sizes.filter(isPlus).slice().sort((a, b) => parseInt(a) - parseInt(b)); // 升冪:2X < 3X < 4X
-              const plusAnchor = plusSeq[0] || "2X"; // Plus 基碼以最小的 (通常 2X) 為 anchor
-              const mIdxMissy = missySeq.indexOf("M");
+              // 非 Plus (Alpha XXS-XXL 或 Numeric 0-18) 用 anchor + 跳碼推導 — anchor 改整條跟著走。
+              // Plus (1X/2X/3X/4X) 完全獨立:自己的基碼 2X,不受非 Plus anchor 影響。
+              const plusSeq = runSplit.plus;
+              const plusAnchor = plusSeq.includes('2X') ? '2X' : (plusSeq[0] || '2X');
               const hasPlus = plusSeq.length > 0;
               const effectivePlusBase = (code) => {
                 const ov = plusBaseOverrides[code];
@@ -8832,33 +8974,34 @@ function App() {
                     }
                   }
                 } else {
-                  const origM = mv[code]?.size_medians?.M;
-                  const newM = effectiveBaseM(code);
-                  if (newM == null) v = origS ?? null;
-                  else if (mIdxMissy >= 0) {
-                    const sIdx = missySeq.indexOf(s);
-                    // 跳檔一律走 Missy 的邏輯(grading_patterns pairs → typical_increment 線性 → orig shift)
-                    // sub-tab=Petite/Tall 只影響 newM(已從 effectiveBaseM 套 <bt>_M),跳檔不另外讀 bt_grading。
-                    if (sIdx >= 0 && pairs) {
-                      v = walkPairs(pairs, missySeq, mIdxMissy, sIdx, newM);
+                  // 非 Plus run(Alpha 或 Numeric)— 用該 run 的 anchor 推導
+                  const origAnchor = mv[code]?.size_medians?.[nonPlusAnchor];
+                  const newAnchor = effectiveBaseM(code);
+                  if (newAnchor == null) v = origS ?? null;
+                  else if (anchorIdx >= 0) {
+                    const sIdx = nonPlusSeq.indexOf(s);
+                    // grading_patterns pairs 通常只覆蓋 Alpha (XS→S 等);Numeric run 跳到 fallback。
+                    // sub-tab=Petite/Tall 只影響 newAnchor(已從 effectiveBaseM 套 <bt>_M)。
+                    if (sIdx >= 0 && pairs && effectiveSizeRun === 'alpha') {
+                      v = walkPairs(pairs, nonPlusSeq, anchorIdx, sIdx, newAnchor);
                     }
                     if (v == null) {
                       const inc = gr[code]?.typical_increment;
-                      if (sIdx >= 0 && inc != null) v = newM + (sIdx - mIdxMissy) * inc;
-                      else if (origS == null || origM == null) v = origS ?? null;
-                      else v = origS + (newM - origM);
+                      if (sIdx >= 0 && inc != null) v = newAnchor + (sIdx - anchorIdx) * inc;
+                      else if (origS == null || origAnchor == null) v = origS ?? null;
+                      else v = origS + (newAnchor - origAnchor);
                     }
                   } else {
-                    if (origS == null || origM == null) v = origS ?? null;
-                    else v = origS + (newM - origM);
+                    if (origS == null || origAnchor == null) v = origS ?? null;
+                    else v = origS + (newAnchor - origAnchor);
                   }
                 }
                 return applyRunOffset(code, v);
               };
               // 顯示哪些 sizes:
-              // 全碼頁身型 radio 是單選互斥 — gradingBodytype='plus' 整張表只看 1X–4X(2X 為基),
-              // 其餘(regular/petite/tall)則用 Missy XXS–XXL。基碼頁的 showPlus toggle 不適用此處。
-              const visibleSizes = gradingBodytype === 'plus' ? plusSeq : missySeq;
+              // 全碼頁身型 radio 是單選互斥 — gradingBodytype='plus' 整張表只看 1X–4X(2X 為基);
+              // 其餘(regular/petite/tall)用 sizeRun 選定的非 Plus run(Alpha XXS-XXL 或 Numeric 0-18)。
+              const visibleSizes = gradingBodytype === 'plus' ? plusSeq : nonPlusSeq;
               // size_run_offsets 是 legacy 結構(bucket 大多沒有此欄),保留以防舊 bucket 還在用。
               // bodytype 切換改走 gradingBodytype + bodytype_variance,不再透過 offset 加總。
               const runOffsets = currentBucket.size_run_offsets || {};
@@ -8902,7 +9045,7 @@ function App() {
                                   <th style={{ padding: isMobile ? "6px 6px" : "10px 12px", textAlign: "left", fontWeight: 600, fontSize: isMobile ? "10px" : "12px", color: "#888", minWidth: isMobile ? "110px" : "140px" }}>中文{isMobile ? <span style={{ fontSize: "10px", fontWeight: 400, color: "#bbb", marginLeft: "3px" }}>/ EN</span> : <span style={{ fontSize: "10px", fontWeight: 400, color: "#bbb", marginLeft: "4px" }}>(基碼可改)</span>}</th>
                                   <th style={{ padding: isMobile ? "6px 6px" : "10px 12px", textAlign: "right", fontWeight: 600, fontSize: isMobile ? "10px" : "12px", color: "#7e22ce", width: isMobile ? "58px" : "90px" }}>公差</th>
                                   {visibleSizes.map(s => {
-                                    const isBase = (s === "M") || (isPlus(s) && s === plusAnchor);
+                                    const isBase = (s === nonPlusAnchor) || (isPlus(s) && s === plusAnchor);
                                     return (
                                       <th key={s} style={{ padding: isMobile ? "6px 6px" : "10px 8px", textAlign: "center", fontWeight: 700, fontSize: isMobile ? "10px" : "12px", color: isBase ? "#065f46" : "#555", fontFamily: "'JetBrains Mono',monospace", background: isBase ? "#ecfdf5" : "transparent", minWidth: isBase ? (isMobile ? "78px" : "100px") : (isMobile ? "62px" : "56px"), whiteSpace: "nowrap" }}>{s}{isBase && <div style={{ fontSize: "10px", color: "#065f46" }}>BASE{!isMobile && " · 可編輯"}</div>}</th>
                                     );
@@ -8966,42 +9109,42 @@ function App() {
                                 </td>
                                 {visibleSizes.map(s => {
                                   const val = sizeValueFor(code, s);
-                                  const isMissyBase = s === "M";
+                                  // 非 Plus run 的 BASE:在 alpha 模式是 M,在 numeric 模式是 8(WOMENS 預設)。
+                                  // Numeric 模式不受 bodytype(Petite/Tall) 影響(無 numeric variance 資料),
+                                  // 寫進 numericBaseOverrides 獨立 store。
+                                  const isNonPlusBase = s === nonPlusAnchor && !isPlus(s);
                                   const isPlusBase = isPlus(s) && s === plusAnchor;
-                                  if (isMissyBase || isPlusBase) {
-                                    // Missy M 編輯:依 gradingBodytype 分別寫入各自的 overrides 表;
-                                    // Plus 2X 一律寫 plusBaseOverrides(Plus 獨立於身型)。
-                                    const storeMap = isMissyBase
-                                      ? (gradingBodytype === 'petite' ? petiteBaseOverrides
+                                  if (isNonPlusBase || isPlusBase) {
+                                    const useNumeric = isNonPlusBase && effectiveSizeRun === 'numeric';
+                                    const storeMap = isPlusBase ? plusBaseOverrides
+                                      : useNumeric ? numericBaseOverrides
+                                      : (gradingBodytype === 'petite' ? petiteBaseOverrides
                                         : gradingBodytype === 'tall' ? tallBaseOverrides
-                                        : baseOverrides)
-                                      : plusBaseOverrides;
-                                    const setStore = isMissyBase
-                                      ? (gradingBodytype === 'petite' ? setPetiteBaseOverrides
+                                        : baseOverrides);
+                                    const setStore = isPlusBase ? setPlusBaseOverrides
+                                      : useNumeric ? setNumericBaseOverrides
+                                      : (gradingBodytype === 'petite' ? setPetiteBaseOverrides
                                         : gradingBodytype === 'tall' ? setTallBaseOverrides
-                                        : setBaseOverrides)
-                                      : setPlusBaseOverrides;
-                                    // 預設顯示值:Missy 用 effectiveBaseM(會套 <bt>_M),Plus 直接吃 median
-                                    const rawBase = isMissyBase ? effectiveBaseM(code) : mv[code]?.size_medians?.[s];
+                                        : setBaseOverrides);
+                                    const rawBase = isNonPlusBase ? effectiveBaseM(code) : mv[code]?.size_medians?.[s];
                                     const ov = storeMap[code] ?? "";
                                     const invalid = ov !== "" && parseVal(ov) == null;
                                     const displayVal = ov !== "" ? ov : (rawBase != null ? fmtDisp(rawBase) : "");
-                                    // Missy M 欄位底色依 bodytype 顯示(紫/藍/綠)
-                                    const cellBg = isMissyBase
-                                      ? (gradingBodytype === 'petite' ? "#faf5ff"
+                                    const cellBg = isPlusBase ? "#fdf2f8"
+                                      : useNumeric ? "#fef3c7"
+                                      : (gradingBodytype === 'petite' ? "#faf5ff"
                                         : gradingBodytype === 'tall' ? "#eff6ff"
-                                        : "#ecfdf5")
-                                      : "#fdf2f8"; // Plus 2X
-                                    const borderColor = isMissyBase
-                                      ? (gradingBodytype === 'petite' ? "#c4b5fd"
+                                        : "#ecfdf5");
+                                    const borderColor = isPlusBase ? "#fbcfe8"
+                                      : useNumeric ? "#fcd34d"
+                                      : (gradingBodytype === 'petite' ? "#c4b5fd"
                                         : gradingBodytype === 'tall' ? "#93c5fd"
-                                        : "#a7f3d0")
-                                      : "#fbcfe8";
-                                    const fgColor = isMissyBase
-                                      ? (gradingBodytype === 'petite' ? "#7e22ce"
+                                        : "#a7f3d0");
+                                    const fgColor = isPlusBase ? "#be185d"
+                                      : useNumeric ? "#b45309"
+                                      : (gradingBodytype === 'petite' ? "#7e22ce"
                                         : gradingBodytype === 'tall' ? "#1d4ed8"
-                                        : "#065f46")
-                                      : "#be185d";
+                                        : "#065f46");
                                     return (
                                       <td key={s} style={{ padding: isMobile ? "4px 6px" : "8px 14px", textAlign: "center", background: cellBg }}>
                                         <input type="text" value={displayVal}
