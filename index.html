@@ -5073,6 +5073,11 @@ function App() {
   /* ── Sketch 上傳 ── */
   const [sketchSrc, setSketchSrc] = useState(null);
   const [pomRules, setPomRules] = useState(null);
+  // brand_pom_alias.json: data-driven brand alias lookup (取代之前 hardcode
+  // BRAND_TO_POM_PREFIXES)。從 data/source/canonical_aliases.json:客戶 +
+  // data/client_canonical_mapping.json:[*].{aliases,legacy_subgroup_codes}
+  // 合併,build-time 由 scripts/core/build_brand_alias.py 產出。
+  const [brandAlias, setBrandAlias] = useState(null);
   const [brands, setBrands] = useState([]);
   const [adminOpen, setAdminOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -5131,6 +5136,7 @@ function App() {
   // currentBucket state 宣告之後,避免 TDZ ReferenceError。
   useEffect(() => {
     loadRuntimeJSON('./pom_rules/_index.json',           d => { setPomRules(d); window.POM_RULES = d; });
+    loadRuntimeJSON('./data/runtime/brand_pom_alias.json', setBrandAlias);  // 2026-05-14 加,brand alias lookup
     loadRuntimeJSON('./data/runtime/grading_patterns.json',  setGradingPatterns);
     loadRuntimeJSON('./data/runtime/bodytype_variance.json', setBodytypeVariance);
     loadRuntimeJSON('./data/runtime/pom_dictionary.json',    d => { setPomNames(d); window.POM_NAMES = d; });
@@ -5212,49 +5218,46 @@ function App() {
   // 2026-05-12 改:之前單一字串 source_brand "Centric 8 (...)" 永遠不會等於 dropdown code,
   // 所有 brand 都被擋下;改成 codes array contains 檢查。舊 schema fallback 保留兼容。
   // 通用模型走 ISO 字典 + recipes_master,跟 brand 無關,brand 一律放行。
-  // 2026-05-14:brands.json 用 canonical_aliases.json normalize 過的 3-letter code,
+  // 2026-05-14 data-driven 版本(取代 hardcode BRAND_TO_POM_PREFIXES):
+  // brands.json 用 canonical_aliases.json normalize 過的 3-letter code (DKS、KOH、ANF...),
   // 但 pom_rules._meta.source_brand_codes 是 Centric 8 PDF brand_division 欄位的
-  // raw 10-char truncated string (e.g. "DSG WOMENS" / "KOHL'S WOM" / "ABERCROMBI"),
-  // 兩邊沒對齊 → DKS 找不到 DSG / KOH 找不到 KOHL'S 等。
-  // 短期前端 alias 對照(長期應該 pipeline 端 build pom_rules 時 normalize):
-  const BRAND_TO_POM_PREFIXES = {
-    'DKS':   ['DSG'],         // Dick's Sporting Goods
-    'KOH':   ["KOHL'S"],
-    'TGT':   ['TARGET'],
-    'ATH':   ['ATHLETA'],
-    'UA':    ['UNDER ARMO'],
-    'BR':    ['BRFS'],
-    'BY':    ['BEYOND YOG'],
-    'ANF':   ['ABERCROMBI', 'A & F'],
-    'HLA':   ['HOLLISTER'],
-    'HLF':   ['HIGH LIFE'],
-    'QCE':   ['QUINCE'],
-    // GAP / ONY 直接 match,不需要 alias
-  };
+  // raw 10-char truncated string ("DSG WOMENS" / "KOHL'S WOM" / "UNDER ARMO"...)。
+  // 對齊規則由 data/runtime/brand_pom_alias.json 提供(scripts/core/build_brand_alias.py
+  // 從 canonical_aliases.json + client_canonical_mapping.json 合併產出)。
+  // 比對方向:bidirectional,因為 raw stamp 是 10-char truncated:
+  //   1) 完全相等
+  //   2) alias.startsWith(stamp) — stamp 是 alias 的截斷前綴 (例 "UNDER ARMO" prefix of "UNDER ARMOUR")
+  //   3) stamp.startsWith(alias + ' ') — alias 是 stamp 的開頭子名 (例 "DSG" 開頭 "DSG WOMENS")
   const dataBrandMatches = useMemo(() => {
     if (appMode !== "makalot") return true;
     if (!brand) return true; // 還沒選就先放行,反正 bucketMeta 也會是 null
     const codes = pomRules?._meta?.source_brand_codes;
     if (Array.isArray(codes) && codes.length) {
-      // 1. Direct exact match
+      // 1. Direct exact match (常見:GAP / ONY / ATHLETA)
       if (codes.includes(brand)) return true;
-      // 2. Prefix-based alias match (e.g. DKS 對到任何 "DSG..." raw stamp)
-      const prefixes = BRAND_TO_POM_PREFIXES[brand];
-      if (prefixes && prefixes.length) {
-        const norm = (s) => String(s || '').trim();
-        return prefixes.some(p =>
-          codes.some(c => {
-            const cn = norm(c);
-            return cn === p || cn.startsWith(p + ' ') || cn.startsWith(p);
-          })
-        );
+      // 2. Data-driven alias match via brand_pom_alias.json
+      const aliases = brandAlias?.aliases?.[brand];
+      if (Array.isArray(aliases) && aliases.length) {
+        const match = (alias, stamp) => {
+          const aT = String(alias || '').trim();
+          const sT = String(stamp || '').trim();
+          if (!aT || !sT) return false;
+          if (aT === sT) return true;
+          // stamp 是 alias 的截斷前綴
+          if (aT.length > sT.length && aT.startsWith(sT)) return true;
+          // alias 是 stamp 的開頭子名 (需有 space 分隔避免太寬鬆 match)
+          if (sT.length > aT.length && sT.startsWith(aT + ' ')) return true;
+          return false;
+        };
+        return aliases.some(a => codes.some(c => match(a, c)));
       }
+      // brand_pom_alias.json 還沒載入或該 brand 不在 lookup 內 → 拒絕
       return false;
     }
     // fallback: 舊 schema 用單一字串等值比對
     const stamp = pomRules?._meta?.source_brand || "ONY";
     return brand === stamp;
-  }, [appMode, brand, pomRules]);
+  }, [appMode, brand, pomRules, brandAlias]);
   // appMode === "makalot" 且 brand 跟資料 source_brand 不符 → bucketMeta 直接 null,
   // 後續 bucket fetch 不發,currentBucket 保持空,POM tier / 基碼 / 全碼整塊不渲染。
   const bucketMeta = useMemo(() => {
@@ -7662,6 +7665,20 @@ function App() {
                 && Object.keys(bodytypeVariance[`${gender}|${gt}|PETITE`].m_size_comparison).length > 0);
               const hasTallU = !!(bodytypeVariance?.[`${gender}|${gt}|TALL`]?.m_size_comparison
                 && Object.keys(bodytypeVariance[`${gender}|${gt}|TALL`].m_size_comparison).length > 0);
+              // 2026-05-14:bodytype_variance.json 目前是 ONY-only(整檔
+              // _meta.source_brand = "ONY"),沒有 per-brand 維度。當使用者選了
+              // 非 ONY brand (DKS / KOH / TGT 等),Petite / Tall delta 數字
+              // 是「外推」— 從 ONY 觀察值借用,不是該 brand 真實打版規則。
+              // 未來聚陽端 ship per-brand schema(見 docs/architecture/
+              // PER_BRAND_BODYTYPE_VARIANCE_SPEC.md)後,key 會變
+              // BRAND|GENDER|GT|BODYTYPE,前端自動偵測切換,這個 warning 消失。
+              const bodytypeSrcBrand = bodytypeVariance?._meta?.source_brand || null;
+              const bodytypeHasPerBrand = !!(bodytypeVariance?._meta?.per_brand);
+              const bodytypeIsExternalBrand = !!(
+                brand && bodytypeSrcBrand && !bodytypeHasPerBrand
+                && brand !== bodytypeSrcBrand
+                && !((brandAlias?.aliases?.[brand] || []).includes(bodytypeSrcBrand))
+              );
               const tier1SetU = new Set(currentBucket.foundational_measurements?.tier1_poms || []);
               const gradingDisabled = !(bucketIncludedU > 0);
               const sizeRuleLabel = (() => {
@@ -7841,6 +7858,20 @@ function App() {
                           </div>
                         );
                       })()}
+                      {/* 2026-05-14 警示:bodytype_variance.json 還是 ONY-only schema
+                          時,提醒使用者 Petite/Tall delta 不是該 brand 自家資料,
+                          是 ONY 觀察值的外推。聚陽端 ship per-brand schema 後
+                          (_meta.per_brand=true)這條會自動隱藏。 */}
+                      {bodytypeIsExternalBrand && (hasPetiteU || hasTallU) && (
+                        <span title={`Petite/Tall delta 來自 ${bodytypeSrcBrand} 觀察值;${brand} 沒有自家 bodytype 資料(聚陽端尚未 ship per-brand bodytype_variance)`}
+                          style={{
+                            fontSize: T.fs.xs, color: T.c.warning, fontWeight: 600,
+                            background: "#fff7ed", border: `1px solid ${T.c.warning}`,
+                            padding: "2px 8px", borderRadius: T.r.sm, whiteSpace: "nowrap",
+                          }}>
+                          ⚠ Petite/Tall 從 {bodytypeSrcBrand} 外推
+                        </span>
+                      )}
 
                       {sizeView === "grading" && tier1SetU.size > 0 && (
                         <span style={{ fontSize: "11px", color: "#0891b2", background: "#ecfeff", padding: "2px 8px", borderRadius: "6px", fontWeight: 500, marginLeft: "auto" }}

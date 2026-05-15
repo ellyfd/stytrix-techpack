@@ -149,3 +149,23 @@ def test_canonical_aliases_loadable():
     a = _load("data/source/canonical_aliases.json")
     assert isinstance(a, dict)
     assert any(a.values()), "canonical_aliases.json appears empty"
+
+
+# ── brand_pom_alias (2026-05-14 加) ───────────────────────────────────────────
+
+def test_brand_pom_alias_present():
+    """data/runtime/brand_pom_alias.json 是 scripts/core/build_brand_alias.py 的
+    derive output,前端 dataBrandMatches 用來把 brands.json 短碼對到 pom_rules
+    raw 截斷 stamps。CI Step 4d 跑這個 build。
+    """
+    p = REPO / "data" / "runtime" / "brand_pom_alias.json"
+    assert p.exists(), "brand_pom_alias.json missing — CI Step 4d 沒跑或 build 失敗"
+    payload = _load("data/runtime/brand_pom_alias.json")
+    assert payload.get("version"), "brand_pom_alias.json missing version"
+    aliases = payload.get("aliases", {})
+    assert isinstance(aliases, dict)
+    assert len(aliases) >= 10, f"only {len(aliases)} short-codes in brand_pom_alias"
+    # 關鍵 brand 必須有 entry(否則前端 cascading filter 整段壞掉)
+    for must_have in ("DKS", "KOH", "TGT", "ATH", "GAP", "ONY"):
+        assert must_have in aliases, f"missing critical brand alias: {must_have!r}"
+        assert len(aliases[must_have]) >= 1, f"brand {must_have!r} has empty alias list"
