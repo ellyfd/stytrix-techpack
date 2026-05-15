@@ -5517,7 +5517,9 @@ function App() {
   const [mStep, setMStep] = useState(0);
   const [mAnalyzing, setMAnalyzing] = useState(false);
   const [mStage, setMStage] = useState(0);
-  const [sizeRun, setSizeRun] = useState("missy"); // "missy" | "plus"
+  // legacy MISSY/PLUS demo fallback (只在 currentBucket 缺檔的 hardcoded MISSY_POMS view 用,
+  // 跟下方新加的 sizeRun ('alpha'|'numeric') 不同概念。2026-05-15 rename 避免兩個 const 同名衝突。
+  const [legacySizeRun, setLegacySizeRun] = useState("missy"); // "missy" | "plus"
   const [showPetite, setShowPetite] = useState(true);
   const [showTall, setShowTall] = useState(true);
   const [openPom, setOpenPom] = useState(null);
@@ -5709,7 +5711,7 @@ function App() {
   const structCount = vis.filter(c => c.source === "struct").length;
 
   // Measurement derived
-  const curPoms = sizeRun === "missy" ? MISSY_POMS : PLUS_POMS;
+  const curPoms = legacySizeRun === "missy" ? MISSY_POMS : PLUS_POMS;
   const allCodes = [...curPoms.must, ...curPoms.recommend, ...curPoms.optional].map(p => p.code);
   const includedCount = allCodes.filter(c => !excluded.has(c)).length;
   const bucketCodesRaw = currentBucket ? [
@@ -6447,7 +6449,7 @@ function App() {
 
   const runMeasurement = () => {
     setMStep(1); setMAnalyzing(true); setMStage(0);
-    setOpenPom(null); setSizeRun("missy");
+    setOpenPom(null); setLegacySizeRun("missy");
     setShowPetite(false); setShowTall(false);
     // 預設只勾「必備」tier;「建議 / 選配」預先加入 excluded 且折疊起來,
     // 使用者要擴展時自行展開/勾選。
@@ -8671,20 +8673,20 @@ function App() {
 
                 {/* MISSY / PLUS sub-tabs */}
                 <div style={{ display: "flex", gap: "6px", marginBottom: "8px", alignItems: "center", flexWrap: "wrap" }}>
-                  <button onClick={() => { setSizeRun("missy"); setOpenPom(null); }} style={{
+                  <button onClick={() => { setLegacySizeRun("missy"); setOpenPom(null); }} style={{
                     padding: "8px 18px", borderRadius: "6px", cursor: "pointer",
-                    border: sizeRun === "missy" ? "2px solid #1a1a1a" : "1.5px solid #e8e5e1",
-                    background: sizeRun === "missy" ? "#1a1a1a" : "#fff",
-                    color: sizeRun === "missy" ? "#fff" : "#555", fontSize: "12px", fontWeight: 700
+                    border: legacySizeRun === "missy" ? "2px solid #1a1a1a" : "1.5px solid #e8e5e1",
+                    background: legacySizeRun === "missy" ? "#1a1a1a" : "#fff",
+                    color: legacySizeRun === "missy" ? "#fff" : "#555", fontSize: "12px", fontWeight: 700
                   }}>MISSY <span style={{ fontSize: "10px", opacity: 0.6 }}>XS–XXL</span></button>
-                  <button onClick={() => { setSizeRun("plus"); setOpenPom(null); }} style={{
+                  <button onClick={() => { setLegacySizeRun("plus"); setOpenPom(null); }} style={{
                     padding: "8px 18px", borderRadius: "6px", cursor: "pointer",
-                    border: sizeRun === "plus" ? "2px solid #be185d" : "1.5px solid #e8e5e1",
-                    background: sizeRun === "plus" ? "#be185d" : "#fff",
-                    color: sizeRun === "plus" ? "#fff" : "#555", fontSize: "12px", fontWeight: 700
+                    border: legacySizeRun === "plus" ? "2px solid #be185d" : "1.5px solid #e8e5e1",
+                    background: legacySizeRun === "plus" ? "#be185d" : "#fff",
+                    color: legacySizeRun === "plus" ? "#fff" : "#555", fontSize: "12px", fontWeight: 700
                   }}>PLUS <span style={{ fontSize: "10px", opacity: 0.6 }}>1X–4X</span></button>
 
-                  {sizeRun === "missy" && (
+                  {legacySizeRun === "missy" && (
                     <div style={{ display: "flex", gap: "4px", marginLeft: "auto" }}>
                       <label style={{
                         display: "flex", alignItems: "center", gap: "5px", padding: "6px 12px",
@@ -8714,25 +8716,25 @@ function App() {
 
                 {/* Size run info bar */}
                 <div style={{
-                  background: sizeRun === "missy" ? "#ecfdf5" : "#fdf2f8",
-                  border: `1.5px solid ${sizeRun === "missy" ? "#a7f3d0" : "#fbcfe8"}`,
+                  background: legacySizeRun === "missy" ? "#ecfdf5" : "#fdf2f8",
+                  border: `1.5px solid ${legacySizeRun === "missy" ? "#a7f3d0" : "#fbcfe8"}`,
                   borderRadius: "12px", padding: "8px 16px", marginBottom: "10px",
                   display: "flex", justifyContent: "space-between", alignItems: "center"
                 }}>
-                  <div style={{ fontSize: "11px", color: sizeRun === "missy" ? "#065f46" : "#be185d" }}>
-                    <span style={{ fontWeight: 700 }}>{sizeRun === "missy" ? "MISSY" : "PLUS"}</span>
-                    {" · "}{(sizeRun === "missy" ? MISSY_META : PLUS_META).sizes.join(" / ")}
-                    {" · Base: "}<span style={{ fontWeight: 700 }}>{(sizeRun === "missy" ? MISSY_META : PLUS_META).base}</span>
-                    {sizeRun === "missy" && showPetite && <span style={{ marginLeft: "8px", color: "#7e22ce" }}>+PETITE</span>}
-                    {sizeRun === "missy" && showTall && <span style={{ marginLeft: "4px", color: "#1d4ed8" }}>+TALL</span>}
+                  <div style={{ fontSize: "11px", color: legacySizeRun === "missy" ? "#065f46" : "#be185d" }}>
+                    <span style={{ fontWeight: 700 }}>{legacySizeRun === "missy" ? "MISSY" : "PLUS"}</span>
+                    {" · "}{(legacySizeRun === "missy" ? MISSY_META : PLUS_META).sizes.join(" / ")}
+                    {" · Base: "}<span style={{ fontWeight: 700 }}>{(legacySizeRun === "missy" ? MISSY_META : PLUS_META).base}</span>
+                    {legacySizeRun === "missy" && showPetite && <span style={{ marginLeft: "8px", color: "#7e22ce" }}>+PETITE</span>}
+                    {legacySizeRun === "missy" && showTall && <span style={{ marginLeft: "4px", color: "#1d4ed8" }}>+TALL</span>}
                   </div>
-                  <div style={{ fontSize: "10px", color: sizeRun === "missy" ? "#065f46" : "#be185d", fontFamily: "'JetBrains Mono',monospace" }}>
-                    {(sizeRun === "missy" ? MISSY_META : PLUS_META).rule}
+                  <div style={{ fontSize: "10px", color: legacySizeRun === "missy" ? "#065f46" : "#be185d", fontFamily: "'JetBrains Mono',monospace" }}>
+                    {(legacySizeRun === "missy" ? MISSY_META : PLUS_META).rule}
                   </div>
                 </div>
 
                 {/* POM Lists */}
-                {sizeRun === "missy" ? (
+                {legacySizeRun === "missy" ? (
                   <>
                     <TierSection tier="must" count={MISSY_POMS.must.length}>
                       {MISSY_POMS.must.map(p => <MissyPomRow key={p.code} pom={p} tier="must"
