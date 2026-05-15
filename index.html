@@ -5250,6 +5250,9 @@ function App() {
   // 2026-05-15:依 (brand × gender) 從 brand_size_runs.json 取該客人實際用的尺寸套。
   // brandSizeRuns 來自 data/runtime/brand_size_runs.json(由 scripts/core/build_brand_size_runs.py
   // 從聚陽端「盤x客人x尺寸套x基碼_v9.xlsx」抽出),每筆 run 有 {key, label, sizes, base, n}。
+  // 2026-05-15 fix:state 宣告必須在使用前(函式 component 是線性執行,
+  // 之前放在 L5598 的 useState 會踩 TDZ ReferenceError 把整個 App render 炸掉)。
+  const [brandSizeRuns, setBrandSizeRuns] = useState(null);
   const availableRuns = useMemo(() => {
     if (!brand || !gender || !brandSizeRuns?.by_brand_gender) return [];
     return brandSizeRuns.by_brand_gender[`${brand}|${gender}`] || [];
@@ -5595,7 +5598,7 @@ function App() {
   // BR WOMENS 只有字母 M base / ATH WOMENS 字母 S base + alpha_plus + 數字)。
   // 找不到 lookup(brand 未選 / 不在 xlsx 列管)時 fallback 用 splitSizeRange
   // 從 bucket.size_range 自動拆 alpha/numeric/plus(舊行為)。
-  const [brandSizeRuns, setBrandSizeRuns] = useState(null);
+  // (brandSizeRuns useState 已上移到 availableRuns useMemo 之前,避免 TDZ)
   const [sizeRun, setSizeRun] = useState('alpha');  // run key:'alpha' / 'numeric' / 'plus' / 'alpha_big' / 'alpha_plus' / 'big' / 'petite' / 'youth' / 'alpha_numeric_slash' / 'numeric_slash'
   // Numeric run 的基碼覆寫(平行於 baseOverrides — alpha-family 用 baseOverrides,
   // numeric-family 用這個,plus-family 用 plusBaseOverrides)
