@@ -1,6 +1,6 @@
 # Phase 2 — Derive Views Spec (v3, 命名乾淨)
 
-> **狀態(2026-05-11)**:Phase 2 View A + B 接線完成,38 檔 Bible 已升級為 dict schema,`l2_l3_ie_by_client/` 已退役 git rm。**View C designs_index per-EIDH 在 2026-05-09 retired** — 雖然 derive script 寫好且 3,900 個 per-EIDH 檔產出過,但 audit 發現前端無 UI 消費,刪除避免 dead 產物 + 縮 repo size。本檔仍保留 View C 設計章節作為**未來重啟參考**(若前端要做 EIDH 詳情頁可重接)。實作對應 Step 4a/4b 在 `.github/workflows/rebuild_master.yml`。
+> **狀態(2026-05-14)**:Phase 2 View A + B 接線完成,38 檔 Bible 升級 dict schema。`l2_l3_ie_by_client/`(原 plan 的分 brand 五階)已退役 git rm,brand 維度走 `l2_l3_ie/<L1>.json:actuals.by_brand` + frontend `filterBibleByBrand/Category` helper。**View C designs_index per-EIDH** 短暫實裝後在 2026-05-09 retired(前端無 UI 消費,刪 derive script + 3,900 dead 產物;若未來要做 EIDH 詳情頁可從 `designs.jsonl.gz` 重接)。實作對應 Step 4a/4b 在 `.github/workflows/rebuild_master.yml`。
 >
 > **2026-05-11 兩個重要修正**:
 >
@@ -32,11 +32,14 @@
 │  data/master.jsonl  ← single source of truth (做工 only)            │
 └─────────────────────────────────────────────────────────────────────┘
                               ↓ derive
-        ┌─────────────────────┼──────────────────────────┐
-        ↓                     ↓                          ↓
-View A:                  View B:                    View C:
-data/recipes_master.json l2_l3_ie/<L1>.json (38 檔) data/runtime/designs_index/<EIDH>.json
-(generic ISO consensus)  (Bible 增強版,同檔多源)   (per-EIDH lazy fetch)
+        ┌─────────────────────┴──────────────────────────┐
+        ↓                                                ↓
+View A:                                            View B:
+data/runtime/recipes_master.json                   l2_l3_ie/<L1>.json (38 檔)
+(generic ISO consensus)                            (Phase 2 dict schema +
+                                                    actuals.by_brand 24 brand)
+
+⊘ View C designs_index per-EIDH:2026-05-09 retired(前端無 UI 消費)
 ```
 
 **沒有「by_client」目錄,沒有「augmented」目錄,沒有「overlay」概念**。
@@ -165,37 +168,24 @@ const brandActuals = step.actuals?.by_brand;  // optional
 
 ---
 
-## View C — `data/runtime/designs_index/<EIDH>.json` (NEW 目錄, lazy fetch) — RETIRED 2026-05-09
+## View C — `data/runtime/designs_index/<EIDH>.json` — ⊘ RETIRED 2026-05-09
 
-> **退役狀態**:本章節保留為**未來重啟參考**。曾於 2026-05-08 實裝(Step 4c + 3,900 檔產出),但 2026-05-09 audit 發現 `index.html` 並無 EIDH 詳情頁 fetch 這些檔,屬 dead 產物。已 git rm 整個目錄 + `derive_view_designs_index.py` script + workflow Step 4c。若未來前端要做 EIDH 詳情頁,可從 `data/ingest/m7/designs.jsonl.gz` 重接 derive。
-
-**用途**:Frontend 看單一 EIDH 詳情時 fetch。
-**Source**:`m7_pullon_designs.jsonl` 拆成 per-EIDH 個別檔。
-
-**結構**:對應 `m7_pullon_designs.jsonl` 每筆 entry,拆 3,900 個檔。每檔 ~18 KB,適合 lazy fetch。
-
-跟 `l2_l3_ie/<L1>.json` lazy-fetch pattern 一致。
+曾於 2026-05-08 實裝(Step 4c + 3,900 檔產出),但 2026-05-09 audit 發現 `index.html` 並無 EIDH 詳情頁 fetch 這些檔,屬 dead 產物。已 git rm 整個目錄 + `derive_view_designs_index.py` script + workflow Step 4c。若未來前端要做 EIDH 詳情頁,可從 `data/ingest/m7/designs.jsonl.gz` 重接 derive。
 
 ---
 
-## Derive Pipeline
+## Derive Pipeline(實裝)
 
 ```
-build_recipes_master.py (existing, 修出 master.jsonl)
+build_recipes_master.py
          ↓
-   data/master.jsonl (single source of truth, 做工 only)
+   data/master.jsonl (內部 master,含 _m7_* 給 derive 用)
          ↓
-   ┌─────┴────────────────────────────────────────────┐
-   ↓                                                  ↓
-derive_view_recipes_master.py    derive_bible_actuals.py (NEW)
-   ↓                                                  ↓
-data/recipes_master.json         l2_l3_ie/<L1>.json (38 檔, 增強版)
-
-m7_pullon_designs.jsonl
-         ↓
-derive_view_designs_index.py (NEW)
-         ↓
-data/runtime/designs_index/<EIDH>.json (3,900 檔)
+   ┌─────┴───────────────────────────────────────────┐
+   ↓                                                 ↓
+derive_view_recipes_master.py   derive_bible_actuals.py
+   ↓                                                 ↓
+data/runtime/recipes_master.json   l2_l3_ie/<L1>.json (38 檔,Phase 2 dict + actuals)
 ```
 
 ---
@@ -226,27 +216,20 @@ data/runtime/designs_index/<EIDH>.json (3,900 檔)
 - Schema 升級:steps from list → list-of-dict
 - 砍 `l2_l3_ie_by_client/` 整個目錄(retire)
 
-### Phase 2.4 — Write derive_view_designs_index.py
-
-新檔 `star_schema/scripts/derive_view_designs_index.py`:
-- Read `data/ingest/m7/designs.jsonl.gz`(or .jsonl)
-- 拆每 EIDH 一個檔 → `data/runtime/designs_index/<EIDH>.json`
-- 寫 `data/runtime/designs_index/_index.json` 帶 EIDH list + size
+### Phase 2.4 — ⊘ RETIRED(原規劃 `derive_view_designs_index.py`,前端無 UI 消費)
 
 ### Phase 2.5 — Wire workflow
 
 修 `.github/workflows/rebuild_master.yml`:
-- Step 3 結束後加 Step 4: 跑 3 支 derive script
-- Step 4 結果 commit `data/recipes_master.json` + `l2_l3_ie/` + `data/runtime/designs_index/`
+- Step 3 結束後加 Step 4a (View A) + 4b (View B) + 4c (build_brands)
 - 同 commit 把 `l2_l3_ie_by_client/` 26 檔 git rm
 
 ### Phase 2.6 — Frontend integration
 
 修 `index.html`:
-- 通用模型 ISO consensus 仍用 `data/recipes_master.json`
-- 五階層字典 fetch `l2_l3_ie/<L1>.json`(新 schema list-of-dict)
-- EIDH 詳情頁:fetch `data/runtime/designs_index/<EIDH>.json`
-- ⚠ 舊 `l2_l3_ie_by_client/` 26 檔不再存在,frontend 對應路徑要拔掉
+- 通用模型 ISO consensus 仍用 `data/runtime/recipes_master.json`
+- 五階層字典 fetch `l2_l3_ie/<L1>.json`(Phase 2 dict schema 含 `actuals.by_brand`)
+- ⚠ 舊 `l2_l3_ie_by_client/` 26 檔不再存在,frontend 對應路徑已拔掉
 
 ---
 

@@ -109,8 +109,8 @@ python star_schema/scripts/extract_raw_text.py \
 **輸出**（只對新檔動刀）：
 - `data/ingest/metadata/designs.jsonl`（append，D-number 去重）
 - `data/ingest/pptx/<name>.txt`（new only）
-- `data/ingest/pdf/callout_images/<...>.png`（new only）
-- `data/ingest/pdf/callout_manifest.jsonl`（append）
+- `data/ingest/pdf/construction_images/<...>.png`（new only）
+- `data/ingest/pdf/construction_manifest.jsonl`（append）
 
 ### Step 2a — `extract_unified.py`
 
@@ -129,7 +129,7 @@ python star_schema/scripts/extract_unified.py \
 python star_schema/scripts/vlm_pipeline.py \
   --map-iso \
   --out data/ingest/vlm \
-  --callout-dir data/ingest/pdf/callout_images \
+  --construction-dir data/ingest/pdf/construction_images \
   --allow-empty
 ```
 
@@ -158,7 +158,7 @@ find data/ingest/uploads -maxdepth 1 -type f ! -name '.gitkeep' \
   -exec git rm --force {} \; 2>/dev/null || true
 git add data/recipes_master.json data/iso_dictionary.json data/l1_standard_38.json
 git add data/ingest/metadata/designs.jsonl data/ingest/pptx/ data/ingest/unified/ \
-        data/ingest/pdf/callout_manifest.jsonl
+        data/ingest/pdf/construction_manifest.jsonl
 git diff --cached --quiet || git commit -m "chore(data): auto-rebuild recipes_master [skip ci]"
 git push origin HEAD
 ```
@@ -203,10 +203,14 @@ GET /actions/runs/<runId>/jobs
 
 | 英文 step name | 中文 UI label |
 |---|---|
-| `Step 1 — extract raw text & callout images` | `1｜拆解文字 & callout 圖片` |
+| `Step 1 — extract raw text & construction images` | `1｜拆解文字 & construction 圖片` |
 | `Step 2a — unified extraction` | `2a｜統一萃取 (PPTX)` |
-| `Step 2b — VLM callout extraction` | `2b｜VLM 分析 callout (PDF)` |
+| `Step 2b — VLM construction extraction` | `2b｜VLM 分析 construction (PDF)` |
+| `Pre-Step 3 — validate buckets` | `驗 bucket schema` |
 | `Step 3 — rebuild recipes_master` | `3｜重建 recipes_master` |
+| `Step 4a — derive View A (recipes_master.json strip _m7_*)` | `4a｜衍生通用模型 view` |
+| `Step 4b — derive View B (l2_l3_ie schema upgrade + actuals)` | `4b｜升級 Bible + 掛 actuals` |
+| `Step 4c — derive brands.json` | `4c｜產 brand 下拉清單` |
 | `Commit updated data` | `提交資料` |
 
 Icon：`completed+success → ✓`；`skipped → ⏭`；`failure → ❌`；`in_progress → ⚙`；未開始 → `○`。

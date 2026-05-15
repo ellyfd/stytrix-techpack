@@ -87,8 +87,8 @@
 | `data/ingest/construction_by_bucket/` | 688 設計外部資料源 | ✅ |
 | `data/construction_bridge_v6.json` | 跨設計 GT × zone × ISO bridge | ✅ |
 | `recipes/*.json` (71 檔) | same_sub_category 統計 | ✅（新 sub-category 加） |
-| `General Model_Path2/iso_lookup_factory_v4.3.json` | 230 entries (Dept × Gender × GT × L1) | ✅（會被 v5 整合）|
-| `General Model_Path2/iso_lookup_factory_v4.json` | 282 entries (Fabric × Dept × GT × L1) | ✅（會被 v5 整合）|
+| `path2_universal/iso_lookup_factory_v4.3.json` | 230 entries (Dept × Gender × GT × L1) | ✅(2026-05-07 從 `General Model_Path2/` 改名)|
+| `path2_universal/iso_lookup_factory_v4.json` | 282 entries (Fabric × Dept × GT × L1) | ✅(2026-05-07 從 `General Model_Path2/` 改名)|
 
 ### D. POM Raw（**獨立 pipeline，⛔ 不交集**）
 
@@ -132,7 +132,7 @@ Raw → 用 Bibles 對照 → Source entries.jsonl
 | 1 | `recipe` | `recipes/*.json` (71) | 手動編輯 |
 | 2 | `consensus_v1` | `data/ingest/consensus_v1/entries.jsonl` | OCR + facts 整合（人工驗證） |
 | 3 | `facts_agg` | 動態算 `data/ingest/*/facts.jsonl` | `extract_unified.py` 跑 |
-| 4 | `iso_lookup` (v4 + v4.3 整合) | `General Model_Path2/iso_lookup_factory_*.json` → 整合進 master | **v3 改：v4 + v4.3 maximize merge** |
+| 4 | `iso_lookup` (v4 + v4.3 整合) | `path2_universal/iso_lookup_factory_*.json` → 整合進 master | **v3 改：v4 + v4.3 maximize merge** |
 | 5 | `bridge` | `data/construction_bridge_v6.json` | （持續補入的整合資料）|
 | 6 | `m7` ★ | `data/ingest/m7/entries.jsonl` | **M7 端 `build_m7_pullon_source.py` 產，git push 進來** |
 | 7 | `consensus_rules / ocr_v1 / construction_by_bucket` | data/ingest 子目錄 | 既有 |
@@ -307,20 +307,26 @@ master = run_cascade(all_entries)  # cascade: same_sub → same_bucket → same_
                │ derive
        ┌───────┼────────┐
        ↓       ↓        ↓
-┌──── Step 4 — 抽取（Views）─────────┐
-│  A. recipes_master.json (通用)      │
-│  B. l2_l3_ie_by_client/* (聚陽brand)│
-│  C. l2_l3_ie/* (聚陽通用)           │
+┌──── Step 4 — 抽取(Views)─────────┐
+│  A. recipes_master.json (通用)     │
+│  B. l2_l3_ie/* (38 檔,Phase 2     │
+│     dict + actuals.by_brand 24    │
+│     brand)+ brands.json            │
+│  ⊘ 原 by_client/ 已退役,brand 走  │
+│     B 的 actuals.by_brand          │
+│  ⊘ 原 designs_index/ 已退役        │
 │                                    │
-│  POM 自己的 view:                   │
-│  pom_rules/* / gender_gt_pom_rules │
-│  (走獨立 pipeline 不在這條)          │
+│  POM 自己的 view:                  │
+│  pom_rules/* (137 buckets v8)      │
+│  (走獨立 pipeline 不在這條)         │
 └──────────────┬─────────────────────┘
                ↓
        ┌────────┴─────────┐
        ↓                  ↓
    通用模型 UI         聚陽模型 UI
-  (view A + ISO)    (view B 五階)
+  (view A + ISO)    (view B 五階,
+                    frontend filterBibleByBrand
+                    / filterBibleByCategory 6 維)
 ```
 
 ---

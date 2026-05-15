@@ -338,9 +338,15 @@ Item Type 是 Centric 8 PDF 的原始值，**77 種**，直接傳到前端 filte
 ### 最低門檻
 - bucket 內 designs **< 3** → 跳過不產出
 
-### 產出統計（v5.5.1）
-- **1,056 designs → 81 buckets → 83 files**（+_index.json +pom_names.json）
-- 排除 ATHLETA 12 筆，新增 Collaboration dept
+### 產出統計（v8,2026-05-13)
+- **8,892 designs → 137 buckets → 139 files**（+_index.json +pom_names.json)
+- 跨 34 brand codes(GAP / ONY / ATHLETA / BRFS / CALIA / DSG / KOH / DKS / ANF / HLF / VRST / UA / BY / QCE 等)
+- v6 起 bucket key 改用 M7 manifest Item 原值 `<Dept>_<MK_Item>|<Gender>`(不再用 derived 9-bucket GT taxonomy)
+- v7:gender + fabric 也改走聚陽 M7 列管(PRODUCT_CATEGORY + W/K 欄)
+- v8:Maternity 保留(40 件 design,resolve_gender() overlay 把 MATERNITY override 回 mk_gender)
+
+> **歷史**:v5.5.1(2026-04 前)= 1,056 designs / 81 buckets / 83 files,排除 ATHLETA + 新增 Collaboration dept。
+> v6-v8 跳變參考 CLAUDE.md Part A「POM rules v6 → v7 → v8」段落。
 
 ---
 
