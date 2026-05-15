@@ -393,7 +393,7 @@ for combo, dids in sorted(gender_gt_groups.items()):
                 }
 
 # _meta: schema = brand-keyed (old was {'source_brand':'ONY'} - stale after brand-keying)
-bodytype_var_out = {'_meta': {'schema': 'brand|gender|gt|bodytype',
+bodytype_var_out = {'_meta': {'schema': 'brand|gender|gt|bodytype', 'per_brand': True,
                               'note': '2026-05-14 v9: brand 維度,每 brand 各算 petite/tall/plus'},
                     **bodytype_var}
 # Indented on purpose - humans review this file directly when validating
