@@ -405,6 +405,7 @@ for p in profiles:
             'sizes': p.get('sizes', []),
             'body_types': p.get('body_types', []),
             'brand_division': p.get('brand_division', ''),
+            '_client_code': p.get('_client_code', ''),  # 聚陽 canonical brand code
         })
 
     classification_log.append({
@@ -420,6 +421,7 @@ for p in profiles:
         'design_type': p.get('design_type', ''),
         'description': p.get('description', ''),
         'brand_division': p.get('brand_division', ''),
+        '_client_code': p.get('_client_code', ''),  # 聚陽 canonical brand code (餵 bodytype_variance brand 維度)
     })
 
 # ─── Audit ───
@@ -486,7 +488,7 @@ print(f"[reclassify] OUT_DIR = {OUT_DIR}")
 
 # Clear old files
 for f in os.listdir(OUT_DIR):
-    os.remove(os.path.join(OUT_DIR, f))
+    (os.path.isdir(os.path.join(OUT_DIR, f)) or os.remove(os.path.join(OUT_DIR, f)))
 
 SIZE_ORDER = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '2XL', '3XL',
               '0', '2', '4', '6', '8', '10', '12', '14', '16', '18', '20',
@@ -644,14 +646,21 @@ for bucket, designs in sorted(bucket_profiles.items(), key=lambda x: -len(x[1]))
 
     # 2026-05-11: source_brand 動態化 — ATHLETA filter 拿掉後 bucket 可能含 ONY/GAP/ATH/BRFS 混合
     # 取最頻繁的 brand 當主要,並列出全部分布 (frontend 可選顯示 single vs multi-source)
+    # 2026-05-14: brand 維度走聚陽 canonical — _client_code 是 adapter 從 M7列管 注入的
+    # 3-letter code (DKS/ONY/GAP/KOH/TGT…, v9 實測 100% 覆蓋), 直接對齊 brands.json dropdown。
+    # 舊版硬解 brand_division + bd[:10] 截斷成 'DSG WOMENS' 跟 brands.json 對不上 (DKS 找不到資料 bug)。
     brand_counts = Counter()
     for d in designs:
+        cc = (d.get('_client_code') or '').strip().upper()
+        if cc:
+            brand_counts[cc] += 1
+            continue
+        # fallback: _client_code 空 (EIDH 不在 M7列管, v9 實測 0%) → 從 brand_division 粗推
         bd = (d.get('brand_division') or '').strip().upper()
-        # 把 brand_division (如 "OLD NAVY - WOMENS") 縮成 short brand
         if 'OLD NAVY' in bd: brand_counts['ONY'] += 1
         elif 'GAP' in bd: brand_counts['GAP'] += 1
-        elif 'ATHLETA' in bd: brand_counts['ATHLETA'] += 1
-        elif 'BRFS' in bd or 'BANANA REPUBLIC' in bd: brand_counts['BRFS'] += 1
+        elif 'ATHLETA' in bd: brand_counts['ATH'] += 1
+        elif 'BANANA' in bd or bd.startswith('BRFS'): brand_counts['BR'] += 1
         elif bd: brand_counts[bd[:10]] += 1
         else: brand_counts['UNKNOWN'] += 1
     primary_brand = brand_counts.most_common(1)[0][0] if brand_counts else 'UNKNOWN'

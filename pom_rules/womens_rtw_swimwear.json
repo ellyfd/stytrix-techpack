@@ -1,8 +1,8 @@
 {
   "bucket": "RTW_Swimwear|WOMENS",
-  "source_brand": "KOHL'S WOM",
+  "source_brand": "KOH",
   "source_brand_distribution": {
-    "KOHL'S WOM": 6
+    "KOH": 6
   },
   "department": "RTW",
   "garment_type": "Swimwear",
@@ -90,6 +90,16 @@
       }
     },
     "optional": {
+      "A226": {
+        "rate": 0.333,
+        "count": 2,
+        "tolerance": {
+          "standard": 0.125,
+          "display": "1/8",
+          "dominance_pct": 100.0,
+          "n": 2
+        }
+      },
       "A171": {
         "rate": 0.333,
         "count": 2,
@@ -109,29 +119,10 @@
           "dominance_pct": 100.0,
           "n": 2
         }
-      },
-      "A226": {
-        "rate": 0.333,
-        "count": 2,
-        "tolerance": {
-          "standard": 0.125,
-          "display": "1/8",
-          "dominance_pct": 100.0,
-          "n": 2
-        }
       }
     }
   },
   "median_values": {
-    "A000": {
-      "size_medians": {
-        "2": 3.0,
-        "6": 3.0,
-        "10": 3.0,
-        "14": 3.0,
-        "18": 3.0
-      }
-    },
     "A450": {
       "size_medians": {
         "2": 13.25,
@@ -139,6 +130,15 @@
         "10": 14.25,
         "14": 15.0,
         "18": 15.75
+      }
+    },
+    "A000": {
+      "size_medians": {
+        "2": 3.0,
+        "6": 3.0,
+        "10": 3.0,
+        "14": 3.0,
+        "18": 3.0
       }
     },
     "A460": {
@@ -150,6 +150,11 @@
         "18": 14.125
       }
     },
+    "A226": {
+      "size_medians": {
+        "10": 5.25
+      }
+    },
     "A171": {
       "size_medians": {
         "10": 10.25
@@ -159,25 +164,24 @@
       "size_medians": {
         "10": 2.25
       }
-    },
-    "A226": {
-      "size_medians": {
-        "10": 5.25
-      }
     }
   },
   "grading_rules": {
-    "A000": {
-      "typical_increment": 0.0,
-      "n_pairs": 21
-    },
     "A450": {
       "typical_increment": 0.625,
       "n_pairs": 12
     },
+    "A000": {
+      "typical_increment": 0.0,
+      "n_pairs": 21
+    },
     "A460": {
       "typical_increment": 0.625,
       "n_pairs": 12
+    },
+    "A226": {
+      "typical_increment": 0.0,
+      "n_pairs": 10
     },
     "A171": {
       "typical_increment": 0.0,
@@ -187,16 +191,12 @@
       "typical_increment": 0.0,
       "n_pairs": 10
     },
-    "A226": {
+    "A164": {
       "typical_increment": 0.0,
-      "n_pairs": 10
+      "n_pairs": 4
     },
     "A100": {
       "typical_increment": 0.25,
-      "n_pairs": 4
-    },
-    "A164": {
-      "typical_increment": 0.0,
       "n_pairs": 4
     },
     "A120": {
@@ -205,23 +205,29 @@
     }
   },
   "tolerance_standards": {
-    "A000": {
-      "standard": 0.125,
-      "display": "1/8",
-      "dominance_pct": 100.0,
-      "n": 4
-    },
     "A450": {
       "standard": 0.25,
       "display": "1/4",
       "dominance_pct": 100.0,
       "n": 3
     },
+    "A000": {
+      "standard": 0.125,
+      "display": "1/8",
+      "dominance_pct": 100.0,
+      "n": 4
+    },
     "A460": {
       "standard": 0.25,
       "display": "1/4",
       "dominance_pct": 100.0,
       "n": 3
+    },
+    "A226": {
+      "standard": 0.125,
+      "display": "1/8",
+      "dominance_pct": 100.0,
+      "n": 2
     },
     "A171": {
       "standard": 0.25,
@@ -235,21 +241,15 @@
       "dominance_pct": 100.0,
       "n": 2
     },
-    "A226": {
+    "A164": {
       "standard": 0.125,
       "display": "1/8",
       "dominance_pct": 100.0,
-      "n": 2
+      "n": 1
     },
     "A100": {
       "standard": 0.25,
       "display": "1/4",
-      "dominance_pct": 100.0,
-      "n": 1
-    },
-    "A164": {
-      "standard": 0.125,
-      "display": "1/8",
       "dominance_pct": 100.0,
       "n": 1
     },

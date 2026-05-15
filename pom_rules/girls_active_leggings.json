@@ -1,8 +1,8 @@
 {
   "bucket": "Active_Leggings|GIRLS",
-  "source_brand": "DSG GIRLS",
+  "source_brand": "DKS",
   "source_brand_distribution": {
-    "DSG GIRLS": 36
+    "DKS": 36
   },
   "department": "Active",
   "garment_type": "Leggings",
@@ -10,36 +10,40 @@
   "gender": "GIRLS",
   "n": 36,
   "size_range": [
+    "S/8-9",
+    "L/14",
+    "M/10-12",
     "XL/16",
     "XXS/4-5",
-    "M/10-12",
-    "L/14",
-    "S/8-9",
     "XS/6-7"
   ],
   "measurement_rules": {
     "must": {
-      "CJ100": {
+      "CI100": {
         "rate": 1.0,
         "count": 36,
         "tolerance": {
-          "standard": 0.5,
-          "display": "1/2",
-          "dominance_pct": 72.2,
-          "n": 36
-        }
-      },
-      "CD100": {
-        "rate": 1.0,
-        "count": 36,
-        "tolerance": {
-          "standard": 0.375,
-          "display": "3/8",
+          "standard": 0.25,
+          "display": "1/4",
           "dominance_pct": 100.0,
           "n": 36
         }
       },
-      "CA101": {
+      "CA108": {
+        "rate": 1.0,
+        "count": 36,
+        "tolerance": {
+          "standard": 0.125,
+          "display": "1/8",
+          "dominance_pct": 100.0,
+          "n": 36
+        }
+      },
+      "CF200": {
+        "rate": 1.0,
+        "count": 36
+      },
+      "CF201": {
         "rate": 1.0,
         "count": 36,
         "tolerance": {
@@ -73,31 +77,27 @@
         "rate": 1.0,
         "count": 36
       },
-      "CA108": {
+      "CJ100": {
         "rate": 1.0,
         "count": 36,
         "tolerance": {
-          "standard": 0.125,
-          "display": "1/8",
+          "standard": 0.5,
+          "display": "1/2",
+          "dominance_pct": 72.2,
+          "n": 36
+        }
+      },
+      "CA101": {
+        "rate": 1.0,
+        "count": 36,
+        "tolerance": {
+          "standard": 0.375,
+          "display": "3/8",
           "dominance_pct": 100.0,
           "n": 36
         }
       },
-      "CF200": {
-        "rate": 1.0,
-        "count": 36
-      },
-      "CI100": {
-        "rate": 1.0,
-        "count": 36,
-        "tolerance": {
-          "standard": 0.25,
-          "display": "1/4",
-          "dominance_pct": 100.0,
-          "n": 36
-        }
-      },
-      "CF201": {
+      "CD100": {
         "rate": 1.0,
         "count": 36,
         "tolerance": {
@@ -161,14 +161,14 @@
       }
     },
     "recommend": {
-      "CE101": {
-        "rate": 0.639,
-        "count": 23,
+      "CH100": {
+        "rate": 0.556,
+        "count": 20,
         "tolerance": {
-          "standard": 0.125,
-          "display": "1/8",
+          "standard": 0.25,
+          "display": "1/4",
           "dominance_pct": 100.0,
-          "n": 23
+          "n": 20
         }
       },
       "CH102": {
@@ -191,26 +191,26 @@
           "n": 23
         }
       },
-      "CH100": {
-        "rate": 0.556,
-        "count": 20,
+      "CE101": {
+        "rate": 0.639,
+        "count": 23,
         "tolerance": {
-          "standard": 0.25,
-          "display": "1/4",
+          "standard": 0.125,
+          "display": "1/8",
           "dominance_pct": 100.0,
-          "n": 20
+          "n": 23
         }
       }
     },
     "optional": {
-      "CL189": {
-        "rate": 0.361,
-        "count": 13,
+      "CL187": {
+        "rate": 0.444,
+        "count": 16,
         "tolerance": {
           "standard": 0.25,
           "display": "1/4",
           "dominance_pct": 100.0,
-          "n": 13
+          "n": 16
         }
       },
       "CL172": {
@@ -223,6 +223,20 @@
           "n": 16
         }
       },
+      "CL189": {
+        "rate": 0.361,
+        "count": 13,
+        "tolerance": {
+          "standard": 0.25,
+          "display": "1/4",
+          "dominance_pct": 100.0,
+          "n": 13
+        }
+      },
+      "CI113": {
+        "rate": 0.361,
+        "count": 13
+      },
       "CL160": {
         "rate": 0.472,
         "count": 17,
@@ -231,20 +245,6 @@
           "display": "1/8",
           "dominance_pct": 100.0,
           "n": 17
-        }
-      },
-      "CI113": {
-        "rate": 0.361,
-        "count": 13
-      },
-      "CL187": {
-        "rate": 0.444,
-        "count": 16,
-        "tolerance": {
-          "standard": 0.25,
-          "display": "1/4",
-          "dominance_pct": 100.0,
-          "n": 16
         }
       },
       "CJ200": {
@@ -260,40 +260,46 @@
     }
   },
   "median_values": {
-    "CL189": {
-      "size_medians": {
-        "L/14": 0.25,
-        "XL/16": 0.25
-      }
-    },
-    "CJ100": {
-      "size_medians": {
-        "L/14": 1.5,
-        "XL/16": 2.0
-      }
-    },
-    "CD100": {
+    "CL187": {
       "size_medians": {
         "L/14": 0.5,
-        "XL/16": 0.875
+        "XL/16": 1.0
       }
     },
-    "CA101": {
+    "CH100": {
       "size_medians": {
-        "L/14": 0.625,
-        "XL/16": 1.25
+        "L/14": 0.25,
+        "XL/16": 0.5
+      }
+    },
+    "CH102": {
+      "size_medians": {
+        "L/14": 0.75,
+        "XL/16": 1.0
+      }
+    },
+    "CI100": {
+      "size_medians": {
+        "L/14": 0.25,
+        "XL/16": 0.562
+      }
+    },
+    "CF200": {
+      "size_medians": {
+        "L/14": 0.25,
+        "XL/16": 0.5
+      }
+    },
+    "CF201": {
+      "size_medians": {
+        "L/14": 0.75,
+        "XL/16": 1.5
       }
     },
     "CA100": {
       "size_medians": {
         "L/14": 0.625,
         "XL/16": 1.25
-      }
-    },
-    "CL172": {
-      "size_medians": {
-        "L/14": 0.125,
-        "XL/16": 0.25
       }
     },
     "CD101": {
@@ -308,34 +314,16 @@
         "XL/16": 1.25
       }
     },
-    "CL160": {
+    "CL172": {
       "size_medians": {
-        "L/14": 0.25,
+        "L/14": 0.125,
         "XL/16": 0.25
       }
     },
-    "CF200": {
+    "CL189": {
       "size_medians": {
         "L/14": 0.25,
-        "XL/16": 0.5
-      }
-    },
-    "CI100": {
-      "size_medians": {
-        "L/14": 0.25,
-        "XL/16": 0.562
-      }
-    },
-    "CH102": {
-      "size_medians": {
-        "L/14": 0.75,
-        "XL/16": 1.0
-      }
-    },
-    "CF201": {
-      "size_medians": {
-        "L/14": 0.75,
-        "XL/16": 1.5
+        "XL/16": 0.25
       }
     },
     "CI113": {
@@ -344,16 +332,28 @@
         "XL/16": 0.375
       }
     },
-    "CL187": {
+    "CJ100": {
       "size_medians": {
-        "L/14": 0.5,
-        "XL/16": 1.0
+        "L/14": 1.5,
+        "XL/16": 2.0
       }
     },
-    "CH100": {
+    "CA101": {
+      "size_medians": {
+        "L/14": 0.625,
+        "XL/16": 1.25
+      }
+    },
+    "CD100": {
+      "size_medians": {
+        "L/14": 0.5,
+        "XL/16": 0.875
+      }
+    },
+    "CL160": {
       "size_medians": {
         "L/14": 0.25,
-        "XL/16": 0.5
+        "XL/16": 0.25
       }
     },
     "CG100": {
@@ -382,33 +382,41 @@
     }
   },
   "grading_rules": {
-    "CL189": {
+    "CL187": {
+      "typical_increment": 0.5,
+      "n_pairs": 57
+    },
+    "CH100": {
+      "typical_increment": 0.25,
+      "n_pairs": 60
+    },
+    "CH102": {
+      "typical_increment": 1.0,
+      "n_pairs": 95
+    },
+    "CI100": {
+      "typical_increment": 0.312,
+      "n_pairs": 92
+    },
+    "CA108": {
       "typical_increment": 0.0,
-      "n_pairs": 51
+      "n_pairs": 110
     },
-    "CJ100": {
-      "typical_increment": 2.0,
-      "n_pairs": 156
-    },
-    "CD100": {
-      "typical_increment": 0.562,
+    "CF200": {
+      "typical_increment": 0.25,
       "n_pairs": 144
     },
-    "CA101": {
-      "typical_increment": 0.688,
+    "CF201": {
+      "typical_increment": 0.875,
       "n_pairs": 144
     },
     "CA100": {
       "typical_increment": 0.688,
       "n_pairs": 144
     },
-    "CE101": {
+    "CE100": {
       "typical_increment": 0.0,
-      "n_pairs": 112
-    },
-    "CL172": {
-      "typical_increment": 0.0,
-      "n_pairs": 61
+      "n_pairs": 110
     },
     "CD101": {
       "typical_increment": 0.625,
@@ -418,45 +426,37 @@
       "typical_increment": 0.688,
       "n_pairs": 144
     },
-    "CA108": {
+    "CL172": {
       "typical_increment": 0.0,
-      "n_pairs": 110
+      "n_pairs": 61
     },
-    "CL160": {
+    "CL189": {
       "typical_increment": 0.0,
       "n_pairs": 51
     },
-    "CF200": {
-      "typical_increment": 0.25,
-      "n_pairs": 144
-    },
-    "CI100": {
-      "typical_increment": 0.312,
-      "n_pairs": 92
-    },
-    "CH102": {
-      "typical_increment": 1.0,
-      "n_pairs": 95
-    },
-    "CF201": {
-      "typical_increment": 0.875,
-      "n_pairs": 144
+    "CE101": {
+      "typical_increment": 0.0,
+      "n_pairs": 112
     },
     "CI113": {
       "typical_increment": 0.188,
       "n_pairs": 26
     },
-    "CE100": {
+    "CJ100": {
+      "typical_increment": 2.0,
+      "n_pairs": 156
+    },
+    "CA101": {
+      "typical_increment": 0.688,
+      "n_pairs": 144
+    },
+    "CD100": {
+      "typical_increment": 0.562,
+      "n_pairs": 144
+    },
+    "CL160": {
       "typical_increment": 0.0,
-      "n_pairs": 110
-    },
-    "CL187": {
-      "typical_increment": 0.5,
-      "n_pairs": 57
-    },
-    "CH100": {
-      "typical_increment": 0.25,
-      "n_pairs": 60
+      "n_pairs": 51
     },
     "CG100": {
       "typical_increment": 0.562,
@@ -476,90 +476,6 @@
     }
   },
   "tolerance_standards": {
-    "CL189": {
-      "standard": 0.25,
-      "display": "1/4",
-      "dominance_pct": 100.0,
-      "n": 13
-    },
-    "CJ100": {
-      "standard": 0.5,
-      "display": "1/2",
-      "dominance_pct": 72.2,
-      "n": 36
-    },
-    "CD100": {
-      "standard": 0.375,
-      "display": "3/8",
-      "dominance_pct": 100.0,
-      "n": 36
-    },
-    "CA101": {
-      "standard": 0.375,
-      "display": "3/8",
-      "dominance_pct": 100.0,
-      "n": 36
-    },
-    "CA100": {
-      "standard": 0.375,
-      "display": "3/8",
-      "dominance_pct": 100.0,
-      "n": 36
-    },
-    "CE101": {
-      "standard": 0.125,
-      "display": "1/8",
-      "dominance_pct": 100.0,
-      "n": 23
-    },
-    "CL172": {
-      "standard": 0.125,
-      "display": "1/8",
-      "dominance_pct": 100.0,
-      "n": 16
-    },
-    "CD101": {
-      "standard": 0.375,
-      "display": "3/8",
-      "dominance_pct": 100.0,
-      "n": 36
-    },
-    "CA108": {
-      "standard": 0.125,
-      "display": "1/8",
-      "dominance_pct": 100.0,
-      "n": 36
-    },
-    "CL160": {
-      "standard": 0.125,
-      "display": "1/8",
-      "dominance_pct": 100.0,
-      "n": 17
-    },
-    "CI100": {
-      "standard": 0.25,
-      "display": "1/4",
-      "dominance_pct": 100.0,
-      "n": 36
-    },
-    "CH102": {
-      "standard": 0.125,
-      "display": "1/8",
-      "dominance_pct": 100.0,
-      "n": 19
-    },
-    "CF201": {
-      "standard": 0.375,
-      "display": "3/8",
-      "dominance_pct": 100.0,
-      "n": 36
-    },
-    "CE100": {
-      "standard": 0.125,
-      "display": "1/8",
-      "dominance_pct": 100.0,
-      "n": 23
-    },
     "CL187": {
       "standard": 0.25,
       "display": "1/4",
@@ -571,6 +487,90 @@
       "display": "1/4",
       "dominance_pct": 100.0,
       "n": 20
+    },
+    "CH102": {
+      "standard": 0.125,
+      "display": "1/8",
+      "dominance_pct": 100.0,
+      "n": 19
+    },
+    "CI100": {
+      "standard": 0.25,
+      "display": "1/4",
+      "dominance_pct": 100.0,
+      "n": 36
+    },
+    "CA108": {
+      "standard": 0.125,
+      "display": "1/8",
+      "dominance_pct": 100.0,
+      "n": 36
+    },
+    "CF201": {
+      "standard": 0.375,
+      "display": "3/8",
+      "dominance_pct": 100.0,
+      "n": 36
+    },
+    "CA100": {
+      "standard": 0.375,
+      "display": "3/8",
+      "dominance_pct": 100.0,
+      "n": 36
+    },
+    "CE100": {
+      "standard": 0.125,
+      "display": "1/8",
+      "dominance_pct": 100.0,
+      "n": 23
+    },
+    "CD101": {
+      "standard": 0.375,
+      "display": "3/8",
+      "dominance_pct": 100.0,
+      "n": 36
+    },
+    "CL172": {
+      "standard": 0.125,
+      "display": "1/8",
+      "dominance_pct": 100.0,
+      "n": 16
+    },
+    "CL189": {
+      "standard": 0.25,
+      "display": "1/4",
+      "dominance_pct": 100.0,
+      "n": 13
+    },
+    "CE101": {
+      "standard": 0.125,
+      "display": "1/8",
+      "dominance_pct": 100.0,
+      "n": 23
+    },
+    "CJ100": {
+      "standard": 0.5,
+      "display": "1/2",
+      "dominance_pct": 72.2,
+      "n": 36
+    },
+    "CA101": {
+      "standard": 0.375,
+      "display": "3/8",
+      "dominance_pct": 100.0,
+      "n": 36
+    },
+    "CD100": {
+      "standard": 0.375,
+      "display": "3/8",
+      "dominance_pct": 100.0,
+      "n": 36
+    },
+    "CL160": {
+      "standard": 0.125,
+      "display": "1/8",
+      "dominance_pct": 100.0,
+      "n": 17
     },
     "CG100": {
       "standard": 0.3125,

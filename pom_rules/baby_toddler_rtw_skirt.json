@@ -15,11 +15,11 @@
     "3T",
     "4T",
     "5T",
-    "12-1 8 MONTHS",
-    "18- 24 MONTHS MEASUREMENT CHART REVIEW",
     "6T",
+    "18- 24 MONTHS MEASUREMENT CHART REVIEW",
     "18- 24 MONTHS",
-    "6- 12 MONTHS"
+    "6- 12 MONTHS",
+    "12-1 8 MONTHS"
   ],
   "measurement_rules": {
     "must": {
@@ -82,7 +82,7 @@
       }
     },
     "recommend": {
-      "H4": {
+      "H3": {
         "rate": 0.667,
         "count": 2,
         "tolerance": {
@@ -102,7 +102,7 @@
           "n": 2
         }
       },
-      "H3": {
+      "H4": {
         "rate": 0.667,
         "count": 2,
         "tolerance": {
@@ -114,7 +114,17 @@
       }
     },
     "optional": {
-      "T2": {
+      "H2": {
+        "rate": 0.333,
+        "count": 1,
+        "tolerance": {
+          "standard": 0.25,
+          "display": "1/4",
+          "dominance_pct": 100.0,
+          "n": 1
+        }
+      },
+      "T10": {
         "rate": 0.333,
         "count": 1,
         "tolerance": {
@@ -134,22 +144,12 @@
           "n": 1
         }
       },
-      "T10": {
+      "T2": {
         "rate": 0.333,
         "count": 1,
         "tolerance": {
           "standard": 0.125,
           "display": "1/8",
-          "dominance_pct": 100.0,
-          "n": 1
-        }
-      },
-      "H2": {
-        "rate": 0.333,
-        "count": 1,
-        "tolerance": {
-          "standard": 0.25,
-          "display": "1/4",
           "dominance_pct": 100.0,
           "n": 1
         }
@@ -167,9 +167,9 @@
         "18- 24 MONTHS MEASUREMENT CHART REVIEW": 9.0
       }
     },
-    "H4": {
+    "H3": {
       "size_medians": {
-        "18- 24 MONTHS MEASUREMENT CHART REVIEW": 13.0
+        "18- 24 MONTHS MEASUREMENT CHART REVIEW": 8.5
       }
     },
     "I6": {
@@ -177,26 +177,14 @@
         "18- 24 MONTHS MEASUREMENT CHART REVIEW": 25.0
       }
     },
-    "H3": {
+    "H4": {
       "size_medians": {
-        "18- 24 MONTHS MEASUREMENT CHART REVIEW": 8.5
+        "18- 24 MONTHS MEASUREMENT CHART REVIEW": 13.0
       }
     }
   },
   "grading_rules": {
-    "H1": {
-      "typical_increment": 0.0,
-      "n_pairs": 6
-    },
-    "O1": {
-      "typical_increment": 0.875,
-      "n_pairs": 6
-    },
-    "T2": {
-      "typical_increment": 0.0,
-      "n_pairs": 6
-    },
-    "G11": {
+    "H2": {
       "typical_increment": 0.25,
       "n_pairs": 6
     },
@@ -204,12 +192,48 @@
       "typical_increment": 0.0,
       "n_pairs": 6
     },
-    "H2": {
+    "G11": {
       "typical_increment": 0.25,
+      "n_pairs": 6
+    },
+    "T2": {
+      "typical_increment": 0.0,
+      "n_pairs": 6
+    },
+    "H1": {
+      "typical_increment": 0.0,
+      "n_pairs": 6
+    },
+    "O1": {
+      "typical_increment": 0.875,
       "n_pairs": 6
     }
   },
   "tolerance_standards": {
+    "H2": {
+      "standard": 0.25,
+      "display": "1/4",
+      "dominance_pct": 100.0,
+      "n": 1
+    },
+    "T10": {
+      "standard": 0.125,
+      "display": "1/8",
+      "dominance_pct": 100.0,
+      "n": 1
+    },
+    "G11": {
+      "standard": 0.125,
+      "display": "1/8",
+      "dominance_pct": 100.0,
+      "n": 1
+    },
+    "T2": {
+      "standard": 0.125,
+      "display": "1/8",
+      "dominance_pct": 100.0,
+      "n": 1
+    },
     "H1": {
       "standard": 0.125,
       "display": "1/8",
@@ -222,31 +246,7 @@
       "dominance_pct": 66.7,
       "n": 3
     },
-    "T2": {
-      "standard": 0.125,
-      "display": "1/8",
-      "dominance_pct": 100.0,
-      "n": 1
-    },
-    "G11": {
-      "standard": 0.125,
-      "display": "1/8",
-      "dominance_pct": 100.0,
-      "n": 1
-    },
-    "T10": {
-      "standard": 0.125,
-      "display": "1/8",
-      "dominance_pct": 100.0,
-      "n": 1
-    },
-    "H2": {
-      "standard": 0.25,
-      "display": "1/4",
-      "dominance_pct": 100.0,
-      "n": 1
-    },
-    "H4": {
+    "H3": {
       "standard": 0.375,
       "display": "3/8",
       "dominance_pct": 100.0,
@@ -258,7 +258,7 @@
       "dominance_pct": 100.0,
       "n": 2
     },
-    "H3": {
+    "H4": {
       "standard": 0.375,
       "display": "3/8",
       "dominance_pct": 100.0,

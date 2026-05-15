@@ -295,98 +295,112 @@ print(f"  {len(grading)} combos, {total_pom_families} POM families, inflection r
 # ═══════════════════════════════════════════════
 print("\n=== ③ Building bodytype_variance ===")
 
-# For each Gender|GT, compare REGULAR vs PETITE/PLUS/TALL
+# 2026-05-14 v9: bodytype_variance 加 brand 維度。key = Brand|Gender|GT|BodyType。
+# 舊版 key = Gender|GT|BodyType 無 brand -> 每個 brand 都繼承 ONY 的 petite/tall/plus
+# (DKS 沒 petite/tall/plus 卻顯示 toggle 的 bug)。現在按 _client_code 分桶, brand 各算各的。
 bodytype_var = {}
 
 for combo, dids in sorted(gender_gt_groups.items()):
     gender = combo.split('|')[0]
     gt = combo.split('|')[1]
-    
-    # Collect per-bodytype POM values
-    bt_pom_values = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))  # bt -> pom -> size -> [val]
-    
-    for did in dids:
-        prof = profiles_by_id.get(did)
-        if not prof:
-            continue
-        for mc_pom in prof.get('mc_poms', []):
-            bt = (mc_pom.get('body_type', '') or '').upper() or 'REGULAR'
-            if bt in ('MISSY', 'MISSY-R', ''):
-                bt = 'REGULAR'
-            code = mc_pom.get('code', '').split('.')[0]
-            if not code:
-                continue
-            for sz, val_str in mc_pom.get('sizes', {}).items():
-                try:
-                    v = parse_val(str(val_str))
-                except:
-                    v = None
-                if v is not None:
-                    bt_pom_values[bt][code][sz].append(v)
-    
-    # Compare each non-REGULAR bt vs REGULAR
-    regular = bt_pom_values.get('REGULAR', {})
-    if not regular:
-        continue
-    
-    for bt in ['PETITE', 'PLUS', 'TALL']:
-        bt_data = bt_pom_values.get(bt, {})
-        if not bt_data:
-            continue
-        
-        key = f"{combo}|{bt}"
-        
-        # M size comparison
-        m_comparison = {}
-        for code in set(regular.keys()) & set(bt_data.keys()):
-            reg_m = regular[code].get('M', [])
-            bt_m = bt_data[code].get('M', [])
-            if reg_m and bt_m:
-                reg_med = median(reg_m)
-                bt_med = median(bt_m)
-                if reg_med is not None and bt_med is not None:
-                    m_comparison[code] = {
-                        'regular_M': round(reg_med, 4),
-                        f'{bt.lower()}_M': round(bt_med, 4),
-                        'delta': round(bt_med - reg_med, 4)
-                    }
-        
-        # Grading deltas comparison
-        size_order = get_size_order(gender)
-        grading_deltas = {}
-        for code in set(regular.keys()) & set(bt_data.keys()):
-            reg_ordered = {sz: median(regular[code].get(sz, [])) for sz in size_order if regular[code].get(sz)}
-            bt_ordered = {sz: median(bt_data[code].get(sz, [])) for sz in size_order if bt_data[code].get(sz)}
-            
-            reg_sizes = [sz for sz in size_order if sz in reg_ordered and reg_ordered[sz] is not None]
-            bt_sizes = [sz for sz in size_order if sz in bt_ordered and bt_ordered[sz] is not None]
-            
-            reg_grade = []
-            for i in range(len(reg_sizes) - 1):
-                reg_grade.append(round(reg_ordered[reg_sizes[i+1]] - reg_ordered[reg_sizes[i]], 4))
-            bt_grade = []
-            for i in range(len(bt_sizes) - 1):
-                bt_grade.append(round(bt_ordered[bt_sizes[i+1]] - bt_ordered[bt_sizes[i]], 4))
-            
-            if reg_grade and bt_grade:
-                grading_deltas[code] = {
-                    'regular_grading': reg_grade,
-                    f'{bt.lower()}_grading': bt_grade,
-                    'same_pattern': reg_grade == bt_grade
-                }
-        
-        if m_comparison or grading_deltas:
-            bodytype_var[key] = {
-                'm_size_comparison': m_comparison,
-                'grading_deltas': grading_deltas
-            }
 
-bodytype_var_out = {'_meta': {'source_brand': 'ONY'}, **bodytype_var}
-# Indented on purpose — humans review this file directly when validating
+    # dids 再按 brand (_client_code) 細分
+    dids_by_brand = defaultdict(list)
+    for did in dids:
+        _cls = designs_cls.get(did) or {}
+        _brand = (_cls.get('_client_code') or '').strip().upper()
+        if _brand:
+            dids_by_brand[_brand].append(did)
+
+    for brand, brand_dids in sorted(dids_by_brand.items()):
+        # Collect per-bodytype POM values (this brand x this combo)
+        bt_pom_values = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))  # bt -> pom -> size -> [val]
+
+        for did in brand_dids:
+            prof = profiles_by_id.get(did)
+            if not prof:
+                continue
+            for mc_pom in prof.get('mc_poms', []):
+                bt = (mc_pom.get('body_type', '') or '').upper() or 'REGULAR'
+                if bt in ('MISSY', 'MISSY-R', ''):
+                    bt = 'REGULAR'
+                code = mc_pom.get('code', '').split('.')[0]
+                if not code:
+                    continue
+                for sz, val_str in mc_pom.get('sizes', {}).items():
+                    try:
+                        v = parse_val(str(val_str))
+                    except:
+                        v = None
+                    if v is not None:
+                        bt_pom_values[bt][code][sz].append(v)
+
+        # Compare each non-REGULAR bt vs REGULAR (within this brand)
+        regular = bt_pom_values.get('REGULAR', {})
+        if not regular:
+            continue
+
+        for bt in ['PETITE', 'PLUS', 'TALL']:
+            bt_data = bt_pom_values.get(bt, {})
+            if not bt_data:
+                continue
+
+            key = f"{brand}|{combo}|{bt}"
+
+            # M size comparison
+            m_comparison = {}
+            for code in set(regular.keys()) & set(bt_data.keys()):
+                reg_m = regular[code].get('M', [])
+                bt_m = bt_data[code].get('M', [])
+                if reg_m and bt_m:
+                    reg_med = median(reg_m)
+                    bt_med = median(bt_m)
+                    if reg_med is not None and bt_med is not None:
+                        m_comparison[code] = {
+                            'regular_M': round(reg_med, 4),
+                            f'{bt.lower()}_M': round(bt_med, 4),
+                            'delta': round(bt_med - reg_med, 4)
+                        }
+
+            # Grading deltas comparison
+            size_order = get_size_order(gender)
+            grading_deltas = {}
+            for code in set(regular.keys()) & set(bt_data.keys()):
+                reg_ordered = {sz: median(regular[code].get(sz, [])) for sz in size_order if regular[code].get(sz)}
+                bt_ordered = {sz: median(bt_data[code].get(sz, [])) for sz in size_order if bt_data[code].get(sz)}
+
+                reg_sizes = [sz for sz in size_order if sz in reg_ordered and reg_ordered[sz] is not None]
+                bt_sizes = [sz for sz in size_order if sz in bt_ordered and bt_ordered[sz] is not None]
+
+                reg_grade = []
+                for i in range(len(reg_sizes) - 1):
+                    reg_grade.append(round(reg_ordered[reg_sizes[i+1]] - reg_ordered[reg_sizes[i]], 4))
+                bt_grade = []
+                for i in range(len(bt_sizes) - 1):
+                    bt_grade.append(round(bt_ordered[bt_sizes[i+1]] - bt_ordered[bt_sizes[i]], 4))
+
+                if reg_grade and bt_grade:
+                    grading_deltas[code] = {
+                        'regular_grading': reg_grade,
+                        f'{bt.lower()}_grading': bt_grade,
+                        'same_pattern': reg_grade == bt_grade
+                    }
+
+            if m_comparison or grading_deltas:
+                bodytype_var[key] = {
+                    'm_size_comparison': m_comparison,
+                    'grading_deltas': grading_deltas
+                }
+
+# _meta: schema = brand-keyed (old was {'source_brand':'ONY'} - stale after brand-keying)
+bodytype_var_out = {'_meta': {'schema': 'brand|gender|gt|bodytype',
+                              'note': '2026-05-14 v9: brand 維度,每 brand 各算 petite/tall/plus'},
+                    **bodytype_var}
+# Indented on purpose - humans review this file directly when validating
 # bodytype-specific deltas; matches the on-disk convention in repo.
 with open(os.path.join(PARSED, 'bodytype_variance.json'), 'w', encoding='utf-8') as f:
     json.dump(bodytype_var_out, f, ensure_ascii=False, indent=2)
-print(f"  {len(bodytype_var)} comparisons")
+print(f"  {len(bodytype_var)} comparisons (brand-keyed)")
 
 # ═══════════════════════════════════════════════
 # ④ client_rules (cross-year comparison)

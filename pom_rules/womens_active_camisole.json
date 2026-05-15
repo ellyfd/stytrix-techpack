@@ -1,8 +1,8 @@
 {
   "bucket": "Active_Camisole|WOMENS",
-  "source_brand": "ATHLETA",
+  "source_brand": "ATH",
   "source_brand_distribution": {
-    "ATHLETA": 4
+    "ATH": 4
   },
   "department": "Active",
   "garment_type": "Camisole",
@@ -14,36 +14,32 @@
   ],
   "measurement_rules": {
     "must": {
-      "B33": {
+      "H18": {
+        "rate": 1.0,
+        "count": 4,
+        "tolerance": {
+          "standard": 0.5,
+          "display": "1/2",
+          "dominance_pct": 100.0,
+          "n": 4
+        }
+      },
+      "J7": {
+        "rate": 1.0,
+        "count": 4,
+        "tolerance": {
+          "standard": 0.5,
+          "display": "1/2",
+          "dominance_pct": 100.0,
+          "n": 4
+        }
+      },
+      "D1": {
         "rate": 1.0,
         "count": 4,
         "tolerance": {
           "standard": 0.25,
           "display": "1/4",
-          "dominance_pct": 100.0,
-          "n": 4
-        }
-      },
-      "B30": {
-        "rate": 1.0,
-        "count": 4,
-        "tolerance": {
-          "standard": 0.125,
-          "display": "1/8",
-          "dominance_pct": 100.0,
-          "n": 4
-        }
-      },
-      "H17": {
-        "rate": 1.0,
-        "count": 4
-      },
-      "Z44": {
-        "rate": 1.0,
-        "count": 4,
-        "tolerance": {
-          "standard": 0.0625,
-          "display": "1/16",
           "dominance_pct": 100.0,
           "n": 4
         }
@@ -59,17 +55,21 @@
         },
         "tier1_enforced": true
       },
-      "J7": {
+      "H17": {
+        "rate": 1.0,
+        "count": 4
+      },
+      "B32": {
         "rate": 1.0,
         "count": 4,
         "tolerance": {
-          "standard": 0.5,
-          "display": "1/2",
+          "standard": 0.25,
+          "display": "1/4",
           "dominance_pct": 100.0,
           "n": 4
         }
       },
-      "B32": {
+      "B33": {
         "rate": 1.0,
         "count": 4,
         "tolerance": {
@@ -89,22 +89,22 @@
           "n": 4
         }
       },
-      "H18": {
+      "Z44": {
         "rate": 1.0,
         "count": 4,
         "tolerance": {
-          "standard": 0.5,
-          "display": "1/2",
+          "standard": 0.0625,
+          "display": "1/16",
           "dominance_pct": 100.0,
           "n": 4
         }
       },
-      "D1": {
+      "B30": {
         "rate": 1.0,
         "count": 4,
         "tolerance": {
-          "standard": 0.25,
-          "display": "1/4",
+          "standard": 0.125,
+          "display": "1/8",
           "dominance_pct": 100.0,
           "n": 4
         }
@@ -144,29 +144,9 @@
     "optional": {}
   },
   "median_values": {
-    "B33": {
+    "H18": {
       "size_medians": {
-        "M": 8.0
-      }
-    },
-    "B30": {
-      "size_medians": {
-        "M": 1.75
-      }
-    },
-    "H17": {
-      "size_medians": {
-        "M": 5.5
-      }
-    },
-    "Z44": {
-      "size_medians": {
-        "M": 1.375
-      }
-    },
-    "F10": {
-      "size_medians": {
-        "M": 15.0
+        "M": 13.625
       }
     },
     "J7": {
@@ -174,9 +154,29 @@
         "M": 15.0
       }
     },
+    "D1": {
+      "size_medians": {
+        "M": 8.5
+      }
+    },
+    "F10": {
+      "size_medians": {
+        "M": 15.0
+      }
+    },
+    "H17": {
+      "size_medians": {
+        "M": 5.5
+      }
+    },
     "B32": {
       "size_medians": {
         "M": 10.0
+      }
+    },
+    "B33": {
+      "size_medians": {
+        "M": 8.0
       }
     },
     "B31": {
@@ -184,26 +184,56 @@
         "M": 3.75
       }
     },
-    "H18": {
+    "Z44": {
       "size_medians": {
-        "M": 13.625
+        "M": 1.375
       }
     },
-    "D1": {
+    "B30": {
       "size_medians": {
-        "M": 8.5
+        "M": 1.75
       }
     }
   },
   "grading_rules": {},
   "tolerance_standards": {
+    "H18": {
+      "standard": 0.5,
+      "display": "1/2",
+      "dominance_pct": 100.0,
+      "n": 4
+    },
+    "J7": {
+      "standard": 0.5,
+      "display": "1/2",
+      "dominance_pct": 100.0,
+      "n": 4
+    },
+    "D1": {
+      "standard": 0.25,
+      "display": "1/4",
+      "dominance_pct": 100.0,
+      "n": 4
+    },
+    "F10": {
+      "standard": 0.5,
+      "display": "1/2",
+      "dominance_pct": 100.0,
+      "n": 4
+    },
+    "B32": {
+      "standard": 0.25,
+      "display": "1/4",
+      "dominance_pct": 100.0,
+      "n": 4
+    },
     "B33": {
       "standard": 0.25,
       "display": "1/4",
       "dominance_pct": 100.0,
       "n": 4
     },
-    "B30": {
+    "B31": {
       "standard": 0.125,
       "display": "1/8",
       "dominance_pct": 100.0,
@@ -215,39 +245,9 @@
       "dominance_pct": 100.0,
       "n": 4
     },
-    "F10": {
-      "standard": 0.5,
-      "display": "1/2",
-      "dominance_pct": 100.0,
-      "n": 4
-    },
-    "J7": {
-      "standard": 0.5,
-      "display": "1/2",
-      "dominance_pct": 100.0,
-      "n": 4
-    },
-    "B32": {
-      "standard": 0.25,
-      "display": "1/4",
-      "dominance_pct": 100.0,
-      "n": 4
-    },
-    "B31": {
+    "B30": {
       "standard": 0.125,
       "display": "1/8",
-      "dominance_pct": 100.0,
-      "n": 4
-    },
-    "H18": {
-      "standard": 0.5,
-      "display": "1/2",
-      "dominance_pct": 100.0,
-      "n": 4
-    },
-    "D1": {
-      "standard": 0.25,
-      "display": "1/4",
       "dominance_pct": 100.0,
       "n": 4
     }

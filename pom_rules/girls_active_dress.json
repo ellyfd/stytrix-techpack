@@ -1,8 +1,8 @@
 {
   "bucket": "Active_Dress|GIRLS",
-  "source_brand": "DSG GIRLS",
+  "source_brand": "DKS",
   "source_brand_distribution": {
-    "DSG GIRLS": 6
+    "DKS": 6
   },
   "department": "Active",
   "garment_type": "Dress",
@@ -10,16 +10,40 @@
   "gender": "GIRLS",
   "n": 6,
   "size_range": [
+    "S/8-9",
+    "L/14",
+    "M/10-12",
     "XL/16",
     "XXS/4-5",
-    "M/10-12",
-    "L/14",
-    "S/8-9",
     "XS/6-7"
   ],
   "measurement_rules": {
     "must": {
-      "AH100": {
+      "AB100": {
+        "rate": 1.0,
+        "count": 6,
+        "tolerance": {
+          "standard": 0.375,
+          "display": "3/8",
+          "dominance_pct": 100.0,
+          "n": 6
+        }
+      },
+      "AD100": {
+        "rate": 1.0,
+        "count": 6
+      },
+      "AA111": {
+        "rate": 1.0,
+        "count": 6,
+        "tolerance": {
+          "standard": 0.25,
+          "display": "1/4",
+          "dominance_pct": 100.0,
+          "n": 6
+        }
+      },
+      "AN103": {
         "rate": 1.0,
         "count": 6,
         "tolerance": {
@@ -49,7 +73,7 @@
           "n": 6
         }
       },
-      "AD100": {
+      "AH111": {
         "rate": 1.0,
         "count": 6
       },
@@ -59,20 +83,6 @@
         "tolerance": {
           "standard": 0.125,
           "display": "1/8",
-          "dominance_pct": 100.0,
-          "n": 6
-        }
-      },
-      "AH111": {
-        "rate": 1.0,
-        "count": 6
-      },
-      "AN103": {
-        "rate": 1.0,
-        "count": 6,
-        "tolerance": {
-          "standard": 0.25,
-          "display": "1/4",
           "dominance_pct": 100.0,
           "n": 6
         }
@@ -87,17 +97,7 @@
           "n": 6
         }
       },
-      "AB100": {
-        "rate": 1.0,
-        "count": 6,
-        "tolerance": {
-          "standard": 0.375,
-          "display": "3/8",
-          "dominance_pct": 100.0,
-          "n": 6
-        }
-      },
-      "AA111": {
+      "AH100": {
         "rate": 1.0,
         "count": 6,
         "tolerance": {
@@ -145,7 +145,7 @@
       }
     },
     "recommend": {
-      "AA103": {
+      "AA100": {
         "rate": 0.667,
         "count": 4,
         "tolerance": {
@@ -155,7 +155,7 @@
           "n": 4
         }
       },
-      "AA100": {
+      "AA103": {
         "rate": 0.667,
         "count": 4,
         "tolerance": {
@@ -167,22 +167,12 @@
       }
     },
     "optional": {
-      "AM100": {
+      "AA101": {
         "rate": 0.333,
         "count": 2,
         "tolerance": {
-          "standard": 0.375,
-          "display": "3/8",
-          "dominance_pct": 100.0,
-          "n": 2
-        }
-      },
-      "AA110": {
-        "rate": 0.333,
-        "count": 2,
-        "tolerance": {
-          "standard": 0.25,
-          "display": "1/4",
+          "standard": 0.5,
+          "display": "1/2",
           "dominance_pct": 100.0,
           "n": 2
         }
@@ -197,6 +187,16 @@
           "n": 2
         }
       },
+      "AM100": {
+        "rate": 0.333,
+        "count": 2,
+        "tolerance": {
+          "standard": 0.375,
+          "display": "3/8",
+          "dominance_pct": 100.0,
+          "n": 2
+        }
+      },
       "AA102": {
         "rate": 0.333,
         "count": 2,
@@ -207,12 +207,12 @@
           "n": 2
         }
       },
-      "AA101": {
+      "AA110": {
         "rate": 0.333,
         "count": 2,
         "tolerance": {
-          "standard": 0.5,
-          "display": "1/2",
+          "standard": 0.25,
+          "display": "1/4",
           "dominance_pct": 100.0,
           "n": 2
         }
@@ -220,64 +220,16 @@
     }
   },
   "median_values": {
-    "AH100": {
+    "AB100": {
       "size_medians": {
-        "L/14": 0.25,
-        "XL/16": 0.5
-      }
-    },
-    "AD101": {
-      "size_medians": {
-        "L/14": 1.0,
-        "XL/16": 2.0
-      }
-    },
-    "CQ100": {
-      "size_medians": {
-        "L/14": 1.0,
-        "XL/16": 2.0
+        "L/14": 0.75,
+        "XL/16": 1.5
       }
     },
     "AD100": {
       "size_medians": {
         "L/14": 0.5,
         "XL/16": 1.0
-      }
-    },
-    "AH106": {
-      "size_medians": {
-        "L/14": 0.125,
-        "XL/16": 0.25
-      }
-    },
-    "AA103": {
-      "size_medians": {
-        "L/14": 1.5,
-        "XL/16": 3.0
-      }
-    },
-    "AH111": {
-      "size_medians": {
-        "L/14": 0.25,
-        "XL/16": 0.5
-      }
-    },
-    "AN103": {
-      "size_medians": {
-        "L/14": 0.312,
-        "XL/16": 0.625
-      }
-    },
-    "AH107": {
-      "size_medians": {
-        "L/14": 0.125,
-        "XL/16": 0.125
-      }
-    },
-    "AB100": {
-      "size_medians": {
-        "L/14": 0.75,
-        "XL/16": 1.5
       }
     },
     "AA111": {
@@ -286,22 +238,64 @@
         "XL/16": 0.375
       }
     },
+    "AN103": {
+      "size_medians": {
+        "L/14": 0.312,
+        "XL/16": 0.625
+      }
+    },
+    "AD101": {
+      "size_medians": {
+        "L/14": 1.0,
+        "XL/16": 2.0
+      }
+    },
+    "CQ100": {
+      "size_medians": {
+        "L/14": 1.0,
+        "XL/16": 2.0
+      }
+    },
+    "AH111": {
+      "size_medians": {
+        "L/14": 0.25,
+        "XL/16": 0.5
+      }
+    },
     "AA100": {
       "size_medians": {
         "L/14": 1.5,
         "XL/16": 3.0
       }
     },
-    "AM100": {
+    "AH106": {
       "size_medians": {
-        "L/14": 0.5,
-        "XL/16": 1.0
+        "L/14": 0.125,
+        "XL/16": 0.25
       }
     },
-    "AA110": {
+    "AH107": {
       "size_medians": {
-        "L/14": 0.375,
-        "XL/16": 0.875
+        "L/14": 0.125,
+        "XL/16": 0.125
+      }
+    },
+    "AH100": {
+      "size_medians": {
+        "L/14": 0.25,
+        "XL/16": 0.5
+      }
+    },
+    "AA103": {
+      "size_medians": {
+        "L/14": 1.5,
+        "XL/16": 3.0
+      }
+    },
+    "AA101": {
+      "size_medians": {
+        "L/14": 1.0,
+        "XL/16": 2.0
       }
     },
     "AA109": {
@@ -310,22 +304,40 @@
         "XL/16": 0.75
       }
     },
+    "AM100": {
+      "size_medians": {
+        "L/14": 0.5,
+        "XL/16": 1.0
+      }
+    },
     "AA102": {
       "size_medians": {
         "L/14": 1.0,
         "XL/16": 2.125
       }
     },
-    "AA101": {
+    "AA110": {
       "size_medians": {
-        "L/14": 1.0,
-        "XL/16": 2.0
+        "L/14": 0.375,
+        "XL/16": 0.875
       }
     }
   },
   "grading_rules": {
-    "AH100": {
-      "typical_increment": 0.25,
+    "AB100": {
+      "typical_increment": 0.75,
+      "n_pairs": 24
+    },
+    "AD100": {
+      "typical_increment": 1.0,
+      "n_pairs": 30
+    },
+    "AA111": {
+      "typical_increment": 0.188,
+      "n_pairs": 12
+    },
+    "AN103": {
+      "typical_increment": 0.312,
       "n_pairs": 12
     },
     "AD101": {
@@ -336,65 +348,65 @@
       "typical_increment": 1.0,
       "n_pairs": 30
     },
-    "AD100": {
-      "typical_increment": 1.0,
-      "n_pairs": 30
-    },
-    "AH106": {
-      "typical_increment": 0.125,
-      "n_pairs": 12
-    },
-    "AA103": {
-      "typical_increment": 1.5,
-      "n_pairs": 20
-    },
     "AH111": {
       "typical_increment": 0.0,
       "n_pairs": 30
     },
-    "AN103": {
-      "typical_increment": 0.312,
+    "AA100": {
+      "typical_increment": 1.5,
+      "n_pairs": 20
+    },
+    "AH106": {
+      "typical_increment": 0.125,
       "n_pairs": 12
     },
     "AH107": {
       "typical_increment": 0.0,
       "n_pairs": 30
     },
-    "AB100": {
-      "typical_increment": 0.75,
-      "n_pairs": 24
-    },
-    "AA111": {
-      "typical_increment": 0.188,
+    "AH100": {
+      "typical_increment": 0.25,
       "n_pairs": 12
     },
-    "AA100": {
+    "AA103": {
       "typical_increment": 1.5,
       "n_pairs": 20
     },
-    "AM100": {
-      "typical_increment": 0.625,
+    "AA101": {
+      "typical_increment": 1.0,
       "n_pairs": 8
-    },
-    "AA110": {
-      "typical_increment": 0.5,
-      "n_pairs": 6
     },
     "AA109": {
       "typical_increment": 0.562,
+      "n_pairs": 8
+    },
+    "AM100": {
+      "typical_increment": 0.625,
       "n_pairs": 8
     },
     "AA102": {
       "typical_increment": 1.0,
       "n_pairs": 10
     },
-    "AA101": {
-      "typical_increment": 1.0,
-      "n_pairs": 8
+    "AA110": {
+      "typical_increment": 0.5,
+      "n_pairs": 6
     }
   },
   "tolerance_standards": {
-    "AH100": {
+    "AB100": {
+      "standard": 0.375,
+      "display": "3/8",
+      "dominance_pct": 100.0,
+      "n": 6
+    },
+    "AA111": {
+      "standard": 0.25,
+      "display": "1/4",
+      "dominance_pct": 100.0,
+      "n": 6
+    },
+    "AN103": {
       "standard": 0.25,
       "display": "1/4",
       "dominance_pct": 100.0,
@@ -412,21 +424,15 @@
       "dominance_pct": 100.0,
       "n": 6
     },
-    "AH106": {
-      "standard": 0.125,
-      "display": "1/8",
-      "dominance_pct": 100.0,
-      "n": 6
-    },
-    "AA103": {
+    "AA100": {
       "standard": 0.5,
       "display": "1/2",
       "dominance_pct": 100.0,
       "n": 4
     },
-    "AN103": {
-      "standard": 0.25,
-      "display": "1/4",
+    "AH106": {
+      "standard": 0.125,
+      "display": "1/8",
       "dominance_pct": 100.0,
       "n": 6
     },
@@ -436,33 +442,21 @@
       "dominance_pct": 100.0,
       "n": 6
     },
-    "AB100": {
-      "standard": 0.375,
-      "display": "3/8",
-      "dominance_pct": 100.0,
-      "n": 6
-    },
-    "AA111": {
+    "AH100": {
       "standard": 0.25,
       "display": "1/4",
       "dominance_pct": 100.0,
       "n": 6
     },
-    "AA100": {
+    "AA103": {
       "standard": 0.5,
       "display": "1/2",
       "dominance_pct": 100.0,
       "n": 4
     },
-    "AM100": {
-      "standard": 0.375,
-      "display": "3/8",
-      "dominance_pct": 100.0,
-      "n": 2
-    },
-    "AA110": {
-      "standard": 0.25,
-      "display": "1/4",
+    "AA101": {
+      "standard": 0.5,
+      "display": "1/2",
       "dominance_pct": 100.0,
       "n": 2
     },
@@ -472,15 +466,21 @@
       "dominance_pct": 100.0,
       "n": 2
     },
+    "AM100": {
+      "standard": 0.375,
+      "display": "3/8",
+      "dominance_pct": 100.0,
+      "n": 2
+    },
     "AA102": {
       "standard": 0.5,
       "display": "1/2",
       "dominance_pct": 100.0,
       "n": 2
     },
-    "AA101": {
-      "standard": 0.5,
-      "display": "1/2",
+    "AA110": {
+      "standard": 0.25,
+      "display": "1/4",
       "dominance_pct": 100.0,
       "n": 2
     }

@@ -7661,10 +7661,10 @@ function App() {
               const plusSeqU = sizesU.filter(isPlusU).slice().sort((a, b) => parseInt(a) - parseInt(b));
               const hasPlusU = plusSeqU.length > 0;
               const visibleSizesU = showPlus ? sizesU : sizesU.filter(s => !isPlusU(s));
-              const hasPetiteU = !!(bodytypeVariance?.[`${gender}|${gt}|PETITE`]?.m_size_comparison
-                && Object.keys(bodytypeVariance[`${gender}|${gt}|PETITE`].m_size_comparison).length > 0);
-              const hasTallU = !!(bodytypeVariance?.[`${gender}|${gt}|TALL`]?.m_size_comparison
-                && Object.keys(bodytypeVariance[`${gender}|${gt}|TALL`].m_size_comparison).length > 0);
+              const hasPetiteU = !!(bodytypeVariance?.[`${brand}|${gender}|${gt}|PETITE`]?.m_size_comparison
+                && Object.keys(bodytypeVariance[`${brand}|${gender}|${gt}|PETITE`].m_size_comparison).length > 0);
+              const hasTallU = !!(bodytypeVariance?.[`${brand}|${gender}|${gt}|TALL`]?.m_size_comparison
+                && Object.keys(bodytypeVariance[`${brand}|${gender}|${gt}|TALL`].m_size_comparison).length > 0);
               // 2026-05-14:bodytype_variance.json 目前是 ONY-only(整檔
               // _meta.source_brand = "ONY"),沒有 per-brand 維度。當使用者選了
               // 非 ONY brand (DKS / KOH / TGT 等),Petite / Tall delta 數字
@@ -7963,7 +7963,7 @@ function App() {
               // bucket median + delta 算(不同母體,不可直接拿 <bt>_M)。
               const bodytypeEntryFor = (bt) => {
                 if (!gender || !gt || !bodytypeVariance) return null;
-                return bodytypeVariance[`${gender}|${gt}|${bt.toUpperCase()}`] || null;
+                return bodytypeVariance[`${brand}|${gender}|${gt}|${bt.toUpperCase()}`] || null;
               };
               const petiteEntry = bodytypeEntryFor('petite');
               const tallEntry = bodytypeEntryFor('tall');
@@ -8722,12 +8722,12 @@ function App() {
               // gradingBodytype sub-tab(全碼頁專用):'regular' | 'petite' | 'tall'。
               // 只替換每個 POM 的 M 基碼為 bodytype_variance 的 <bt>_M;跳檔仍走 Missy。
               const gradingBtEntry = (gradingBodytype !== 'regular' && gender && gt && bodytypeVariance)
-                ? (bodytypeVariance[`${gender}|${gt}|${gradingBodytype.toUpperCase()}`] || null)
+                ? (bodytypeVariance[`${brand}|${gender}|${gt}|${gradingBodytype.toUpperCase()}`] || null)
                 : null;
-              const hasGradingPetite = !!(bodytypeVariance?.[`${gender}|${gt}|PETITE`]?.m_size_comparison
-                && Object.keys(bodytypeVariance[`${gender}|${gt}|PETITE`].m_size_comparison).length > 0);
-              const hasGradingTall = !!(bodytypeVariance?.[`${gender}|${gt}|TALL`]?.m_size_comparison
-                && Object.keys(bodytypeVariance[`${gender}|${gt}|TALL`].m_size_comparison).length > 0);
+              const hasGradingPetite = !!(bodytypeVariance?.[`${brand}|${gender}|${gt}|PETITE`]?.m_size_comparison
+                && Object.keys(bodytypeVariance[`${brand}|${gender}|${gt}|PETITE`].m_size_comparison).length > 0);
+              const hasGradingTall = !!(bodytypeVariance?.[`${brand}|${gender}|${gt}|TALL`]?.m_size_comparison
+                && Object.keys(bodytypeVariance[`${brand}|${gender}|${gt}|TALL`].m_size_comparison).length > 0);
               const effectiveBaseM = code => {
                 // Override 來源跟隨 gradingBodytype:Petite 編輯寫 petiteBaseOverrides、
                 // Tall 寫 tallBaseOverrides,Regular 才寫 baseOverrides。

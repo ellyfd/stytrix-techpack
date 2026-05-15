@@ -15,19 +15,29 @@
     "3T",
     "4T",
     "5T",
-    "6- 12 MONTHS 10-1 5-2 4 1ST FIT BY SAE_A- CREW- INFANT",
-    "3-6 MONTHS",
-    "0-3 MONTHS",
-    "12-1 8 MONTHS",
-    "3-6 MONTHS MEASUREMENT CHART REVIEW",
     "6T",
+    "0-3 MONTHS",
+    "3-6 MONTHS MEASUREMENT CHART REVIEW",
     "18- 24 MONTHS",
+    "3-6 MONTHS",
+    "3-6 MONTHS 3RD FIT 9/27/24",
     "6- 12 MONTHS",
+    "6- 12 MONTHS 10-1 5-2 4 1ST FIT BY SAE_A- CREW- INFANT",
     "6- 12 MONTHS 11-1 4-2 4 2ND PROD FIT BY SAE_A- INFANT CREW",
-    "3-6 MONTHS 3RD FIT 9/27/24"
+    "12-1 8 MONTHS"
   ],
   "measurement_rules": {
     "must": {
+      "B26": {
+        "rate": 1.0,
+        "count": 6,
+        "tolerance": {
+          "standard": 0.125,
+          "display": "1/8",
+          "dominance_pct": 66.7,
+          "n": 6
+        }
+      },
       "K2": {
         "rate": 1.0,
         "count": 6,
@@ -38,6 +48,16 @@
           "n": 4
         },
         "tier1_enforced": true
+      },
+      "B29": {
+        "rate": 1.0,
+        "count": 6,
+        "tolerance": {
+          "standard": 0.125,
+          "display": "1/8",
+          "dominance_pct": 100.0,
+          "n": 6
+        }
       },
       "K1": {
         "rate": 1.0,
@@ -50,26 +70,6 @@
         },
         "tier1_enforced": true
       },
-      "B26": {
-        "rate": 1.0,
-        "count": 6,
-        "tolerance": {
-          "standard": 0.125,
-          "display": "1/8",
-          "dominance_pct": 66.7,
-          "n": 6
-        }
-      },
-      "B29": {
-        "rate": 1.0,
-        "count": 6,
-        "tolerance": {
-          "standard": 0.125,
-          "display": "1/8",
-          "dominance_pct": 100.0,
-          "n": 6
-        }
-      },
       "B25": {
         "rate": 1.0,
         "count": 6,
@@ -79,17 +79,6 @@
           "dominance_pct": 100.0,
           "n": 6
         }
-      },
-      "J9": {
-        "rate": 0.833,
-        "count": 5,
-        "tolerance": {
-          "standard": 0.375,
-          "display": "3/8",
-          "dominance_pct": 100.0,
-          "n": 5
-        },
-        "tier1_enforced": true
       },
       "N9": {
         "rate": 0.833,
@@ -102,13 +91,23 @@
         },
         "tier1_enforced": true
       },
-      "H4": {
+      "H3": {
         "rate": 0.833,
         "count": 5,
         "tolerance": {
           "standard": 0.375,
           "display": "3/8",
           "dominance_pct": 100.0,
+          "n": 5
+        }
+      },
+      "E13": {
+        "rate": 0.833,
+        "count": 5,
+        "tolerance": {
+          "standard": 0.25,
+          "display": "1/4",
+          "dominance_pct": 80.0,
           "n": 5
         }
       },
@@ -123,24 +122,24 @@
         },
         "tier1_enforced": true
       },
-      "E13": {
+      "H4": {
         "rate": 0.833,
         "count": 5,
         "tolerance": {
-          "standard": 0.25,
-          "display": "1/4",
-          "dominance_pct": 80.0,
+          "standard": 0.375,
+          "display": "3/8",
+          "dominance_pct": 100.0,
           "n": 5
         }
       },
-      "H1": {
+      "J9": {
         "rate": 0.833,
         "count": 5,
         "tolerance": {
-          "standard": 0.125,
-          "display": "1/8",
+          "standard": 0.375,
+          "display": "3/8",
           "dominance_pct": 100.0,
-          "n": 3
+          "n": 5
         },
         "tier1_enforced": true
       },
@@ -155,15 +154,16 @@
         },
         "tier1_enforced": true
       },
-      "H3": {
+      "H1": {
         "rate": 0.833,
         "count": 5,
         "tolerance": {
-          "standard": 0.375,
-          "display": "3/8",
+          "standard": 0.125,
+          "display": "1/8",
           "dominance_pct": 100.0,
-          "n": 5
-        }
+          "n": 3
+        },
+        "tier1_enforced": true
       },
       "F10": {
         "rate": 0.667,
@@ -257,16 +257,6 @@
           "n": 4
         }
       },
-      "Q2": {
-        "rate": 0.5,
-        "count": 3,
-        "tolerance": {
-          "standard": 0.25,
-          "display": "1/4",
-          "dominance_pct": 100.0,
-          "n": 3
-        }
-      },
       "B34": {
         "rate": 0.5,
         "count": 3,
@@ -274,6 +264,16 @@
           "standard": 0.5,
           "display": "1/2",
           "dominance_pct": 66.7,
+          "n": 3
+        }
+      },
+      "Q2": {
+        "rate": 0.5,
+        "count": 3,
+        "tolerance": {
+          "standard": 0.25,
+          "display": "1/4",
+          "dominance_pct": 100.0,
           "n": 3
         }
       },
@@ -299,12 +299,46 @@
           "n": 2
         }
       },
+      "N5": {
+        "rate": 0.333,
+        "count": 2,
+        "tolerance": {
+          "standard": 0.25,
+          "display": "1/4",
+          "dominance_pct": 100.0,
+          "n": 2
+        }
+      },
+      "N4": {
+        "rate": 0.333,
+        "count": 2
+      },
       "N3": {
         "rate": 0.333,
         "count": 2,
         "tolerance": {
           "standard": 0.25,
           "display": "1/4",
+          "dominance_pct": 100.0,
+          "n": 2
+        }
+      },
+      "G1": {
+        "rate": 0.333,
+        "count": 2,
+        "tolerance": {
+          "standard": 0.125,
+          "display": "1/8",
+          "dominance_pct": 100.0,
+          "n": 2
+        }
+      },
+      "G6": {
+        "rate": 0.333,
+        "count": 2,
+        "tolerance": {
+          "standard": 0.125,
+          "display": "1/8",
           "dominance_pct": 100.0,
           "n": 2
         }
@@ -319,21 +353,7 @@
           "n": 2
         }
       },
-      "N4": {
-        "rate": 0.333,
-        "count": 2
-      },
-      "N5": {
-        "rate": 0.333,
-        "count": 2,
-        "tolerance": {
-          "standard": 0.25,
-          "display": "1/4",
-          "dominance_pct": 100.0,
-          "n": 2
-        }
-      },
-      "G6": {
+      "S22": {
         "rate": 0.333,
         "count": 2,
         "tolerance": {
@@ -353,7 +373,7 @@
           "n": 2
         }
       },
-      "S22": {
+      "K20": {
         "rate": 0.333,
         "count": 2,
         "tolerance": {
@@ -363,7 +383,29 @@
           "n": 2
         }
       },
-      "G1": {
+      "S11": {
+        "rate": 0.333,
+        "count": 2
+      },
+      "F9": {
+        "rate": 0.333,
+        "count": 2,
+        "tolerance": {
+          "standard": 0.25,
+          "display": "1/4",
+          "dominance_pct": 100.0,
+          "n": 2
+        }
+      },
+      "S6": {
+        "rate": 0.333,
+        "count": 2
+      },
+      "K21": {
+        "rate": 0.333,
+        "count": 2
+      },
+      "B5": {
         "rate": 0.333,
         "count": 2,
         "tolerance": {
@@ -383,36 +425,6 @@
           "n": 2
         }
       },
-      "C6": {
-        "rate": 0.333,
-        "count": 2,
-        "tolerance": {
-          "standard": 0.125,
-          "display": "1/8",
-          "dominance_pct": 100.0,
-          "n": 2
-        }
-      },
-      "S7": {
-        "rate": 0.333,
-        "count": 2
-      },
-      "F4": {
-        "rate": 0.333,
-        "count": 2
-      },
-      "S6": {
-        "rate": 0.333,
-        "count": 2
-      },
-      "F8": {
-        "rate": 0.333,
-        "count": 2
-      },
-      "K21": {
-        "rate": 0.333,
-        "count": 2
-      },
       "B3": {
         "rate": 0.333,
         "count": 2,
@@ -423,15 +435,9 @@
           "n": 2
         }
       },
-      "K20": {
+      "S7": {
         "rate": 0.333,
-        "count": 2,
-        "tolerance": {
-          "standard": 0.125,
-          "display": "1/8",
-          "dominance_pct": 100.0,
-          "n": 2
-        }
+        "count": 2
       },
       "B15": {
         "rate": 0.333,
@@ -443,17 +449,15 @@
           "n": 2
         }
       },
-      "F9": {
+      "F8": {
         "rate": 0.333,
-        "count": 2,
-        "tolerance": {
-          "standard": 0.25,
-          "display": "1/4",
-          "dominance_pct": 100.0,
-          "n": 2
-        }
+        "count": 2
       },
-      "B5": {
+      "F4": {
+        "rate": 0.333,
+        "count": 2
+      },
+      "C6": {
         "rate": 0.333,
         "count": 2,
         "tolerance": {
@@ -462,14 +466,44 @@
           "dominance_pct": 100.0,
           "n": 2
         }
-      },
-      "S11": {
-        "rate": 0.333,
-        "count": 2
       }
     }
   },
   "median_values": {
+    "O3": {
+      "size_medians": {
+        "0-3 MONTHS": 6.312,
+        "3-6 MONTHS": 6.562,
+        "6- 12 MONTHS": 6.938,
+        "12-1 8 MONTHS": 7.25,
+        "18- 24 MONTHS": 7.562
+      }
+    },
+    "T10": {
+      "size_medians": {
+        "2T": 1.0,
+        "3T": 1.0,
+        "4T": 1.0,
+        "5T": 1.0,
+        "12-1 8 MONTHS": 1.0,
+        "18- 24 MONTHS": 1.0,
+        "6T": 1.0
+      }
+    },
+    "B26": {
+      "size_medians": {
+        "2T": 2.25,
+        "4T": 2.5,
+        "12-1 8 MONTHS": 2.0,
+        "18- 24 MONTHS": 2.062
+      }
+    },
+    "F11": {
+      "size_medians": {
+        "2T": 0.375,
+        "3T": 0.75
+      }
+    },
     "K2": {
       "size_medians": {
         "2T": 10.75,
@@ -482,6 +516,12 @@
         "12-1 8 MONTHS": 10.25,
         "18- 24 MONTHS": 10.5,
         "6T": 11.5
+      }
+    },
+    "B29": {
+      "size_medians": {
+        "12-1 8 MONTHS": 0.875,
+        "18- 24 MONTHS": 1.0
       }
     },
     "K1": {
@@ -498,40 +538,6 @@
         "6T": 8.0
       }
     },
-    "O3": {
-      "size_medians": {
-        "0-3 MONTHS": 6.312,
-        "3-6 MONTHS": 6.562,
-        "6- 12 MONTHS": 6.938,
-        "12-1 8 MONTHS": 7.25,
-        "18- 24 MONTHS": 7.562
-      }
-    },
-    "B26": {
-      "size_medians": {
-        "2T": 2.25,
-        "4T": 2.5,
-        "12-1 8 MONTHS": 2.0,
-        "18- 24 MONTHS": 2.062
-      }
-    },
-    "B29": {
-      "size_medians": {
-        "12-1 8 MONTHS": 0.875,
-        "18- 24 MONTHS": 1.0
-      }
-    },
-    "T10": {
-      "size_medians": {
-        "2T": 1.0,
-        "3T": 1.0,
-        "4T": 1.0,
-        "5T": 1.0,
-        "12-1 8 MONTHS": 1.0,
-        "18- 24 MONTHS": 1.0,
-        "6T": 1.0
-      }
-    },
     "B25": {
       "size_medians": {
         "2T": 5.75,
@@ -539,23 +545,6 @@
         "5T": 6.125,
         "12-1 8 MONTHS": 5.5,
         "6T": 6.25
-      }
-    },
-    "F11": {
-      "size_medians": {
-        "2T": 0.375,
-        "3T": 0.75
-      }
-    },
-    "J9": {
-      "size_medians": {
-        "2T": 10.625,
-        "3T": 11.5,
-        "4T": 12.375,
-        "5T": 13.25,
-        "12-1 8 MONTHS": 8.875,
-        "18- 24 MONTHS": 9.75,
-        "6T": 14.125
       }
     },
     "N9": {
@@ -570,26 +559,14 @@
         "0-3 MONTHS": 5.375
       }
     },
-    "H4": {
+    "H3": {
       "size_medians": {
-        "2T": 12.375,
-        "3T": 12.75,
-        "4T": 13.125,
-        "5T": 13.5,
-        "12-1 8 MONTHS": 11.625,
-        "18- 24 MONTHS": 12.0,
-        "6T": 13.875
-      }
-    },
-    "O4": {
-      "size_medians": {
-        "2T": 12.375,
-        "3T": 14.25,
-        "4T": 16.125,
-        "5T": 18.0,
-        "6T": 19.875,
-        "12-1 8 MONTHS": 9.0,
-        "18- 24 MONTHS": 10.5
+        "2T": 8.625,
+        "3T": 9.0,
+        "4T": 9.375,
+        "5T": 9.75,
+        "18- 24 MONTHS": 8.25,
+        "6T": 10.125
       }
     },
     "E13": {
@@ -604,26 +581,37 @@
         "12-1 8 MONTHS": 4.25
       }
     },
-    "Q2": {
+    "O4": {
       "size_medians": {
-        "2T": 3.5,
-        "3T": 3.5,
-        "4T": 3.5,
-        "5T": 3.5,
-        "12-1 8 MONTHS": 3.5,
-        "18- 24 MONTHS": 3.5,
-        "6T": 3.5
+        "2T": 12.375,
+        "3T": 14.25,
+        "4T": 16.125,
+        "5T": 18.0,
+        "6T": 19.875,
+        "12-1 8 MONTHS": 9.0,
+        "18- 24 MONTHS": 10.5
       }
     },
-    "H1": {
+    "H4": {
       "size_medians": {
-        "2T": 1.0,
-        "3T": 1.0,
-        "4T": 1.0,
-        "5T": 1.0,
-        "12-1 8 MONTHS": 1.0,
-        "18- 24 MONTHS": 1.0,
-        "6T": 1.0
+        "2T": 12.375,
+        "3T": 12.75,
+        "4T": 13.125,
+        "5T": 13.5,
+        "12-1 8 MONTHS": 11.625,
+        "18- 24 MONTHS": 12.0,
+        "6T": 13.875
+      }
+    },
+    "J9": {
+      "size_medians": {
+        "2T": 10.625,
+        "3T": 11.5,
+        "4T": 12.375,
+        "5T": 13.25,
+        "12-1 8 MONTHS": 8.875,
+        "18- 24 MONTHS": 9.75,
+        "6T": 14.125
       }
     },
     "B34": {
@@ -648,14 +636,37 @@
         "6T": 13.625
       }
     },
-    "H3": {
+    "H1": {
       "size_medians": {
-        "2T": 8.625,
-        "3T": 9.0,
-        "4T": 9.375,
-        "5T": 9.75,
-        "18- 24 MONTHS": 8.25,
-        "6T": 10.125
+        "2T": 1.0,
+        "3T": 1.0,
+        "4T": 1.0,
+        "5T": 1.0,
+        "12-1 8 MONTHS": 1.0,
+        "18- 24 MONTHS": 1.0,
+        "6T": 1.0
+      }
+    },
+    "Q2": {
+      "size_medians": {
+        "2T": 3.5,
+        "3T": 3.5,
+        "4T": 3.5,
+        "5T": 3.5,
+        "12-1 8 MONTHS": 3.5,
+        "18- 24 MONTHS": 3.5,
+        "6T": 3.5
+      }
+    },
+    "N5": {
+      "size_medians": {
+        "2T": 7.25,
+        "3T": 7.125,
+        "4T": 7.25,
+        "5T": 7.125,
+        "12-1 8 MONTHS": 7.25,
+        "18- 24 MONTHS": 7.0,
+        "6T": 7.25
       }
     },
     "C1": {
@@ -669,41 +680,6 @@
         "6T": 12.125
       }
     },
-    "N3": {
-      "size_medians": {
-        "2T": 7.5,
-        "3T": 7.75,
-        "4T": 8.0,
-        "5T": 8.25,
-        "12-1 8 MONTHS": 7.0,
-        "18- 24 MONTHS": 7.25,
-        "6T": 8.5
-      }
-    },
-    "L8": {
-      "size_medians": {
-        "2T": 12.375,
-        "3T": 12.75,
-        "4T": 13.125,
-        "5T": 13.5,
-        "12-1 8 MONTHS": 11.625,
-        "18- 24 MONTHS": 12.0,
-        "6T": 13.875
-      }
-    },
-    "D13": {
-      "size_medians": {
-        "2T": 0.25,
-        "3T": 0.5,
-        "4T": 0.75,
-        "5T": 1.0
-      }
-    },
-    "E2": {
-      "size_medians": {
-        "4T": 2.125
-      }
-    },
     "N4": {
       "size_medians": {
         "2T": 6.5,
@@ -715,15 +691,32 @@
         "6T": 10.5
       }
     },
-    "J10": {
+    "N3": {
       "size_medians": {
-        "2T": 10.625,
-        "3T": 11.5,
-        "4T": 12.375,
-        "5T": 13.25,
-        "12-1 8 MONTHS": 8.875,
-        "18- 24 MONTHS": 9.75,
-        "6T": 14.125
+        "2T": 7.5,
+        "3T": 7.75,
+        "4T": 8.0,
+        "5T": 8.25,
+        "12-1 8 MONTHS": 7.0,
+        "18- 24 MONTHS": 7.25,
+        "6T": 8.5
+      }
+    },
+    "D13": {
+      "size_medians": {
+        "2T": 0.25,
+        "3T": 0.5,
+        "4T": 0.75,
+        "5T": 1.0
+      }
+    },
+    "G1": {
+      "size_medians": {
+        "2T": 3.5,
+        "5T": 4.0,
+        "12-1 8 MONTHS": 3.25,
+        "18- 24 MONTHS": 3.5,
+        "6T": 4.0
       }
     },
     "F10": {
@@ -735,17 +728,6 @@
         "12-1 8 MONTHS": 10.875,
         "18- 24 MONTHS": 11.25,
         "6T": 13.125
-      }
-    },
-    "N5": {
-      "size_medians": {
-        "2T": 7.25,
-        "3T": 7.125,
-        "4T": 7.25,
-        "5T": 7.125,
-        "12-1 8 MONTHS": 7.25,
-        "18- 24 MONTHS": 7.0,
-        "6T": 7.25
       }
     },
     "G6": {
@@ -768,6 +750,39 @@
         "6T": 4.0
       }
     },
+    "E2": {
+      "size_medians": {
+        "4T": 2.125
+      }
+    },
+    "J10": {
+      "size_medians": {
+        "2T": 10.625,
+        "3T": 11.5,
+        "4T": 12.375,
+        "5T": 13.25,
+        "12-1 8 MONTHS": 8.875,
+        "18- 24 MONTHS": 9.75,
+        "6T": 14.125
+      }
+    },
+    "L8": {
+      "size_medians": {
+        "2T": 12.375,
+        "3T": 12.75,
+        "4T": 13.125,
+        "5T": 13.5,
+        "12-1 8 MONTHS": 11.625,
+        "18- 24 MONTHS": 12.0,
+        "6T": 13.875
+      }
+    },
+    "S22": {
+      "size_medians": {
+        "5T": 0.25,
+        "6T": 0.5
+      }
+    },
     "C3": {
       "size_medians": {
         "2T": 0.25,
@@ -777,21 +792,6 @@
         "6T": 0.25
       }
     },
-    "S22": {
-      "size_medians": {
-        "5T": 0.25,
-        "6T": 0.5
-      }
-    },
-    "G1": {
-      "size_medians": {
-        "2T": 3.5,
-        "5T": 4.0,
-        "12-1 8 MONTHS": 3.25,
-        "18- 24 MONTHS": 3.5,
-        "6T": 4.0
-      }
-    },
     "K20": {
       "size_medians": {
         "12-1 8 MONTHS": 0.25
@@ -799,41 +799,17 @@
     }
   },
   "grading_rules": {
-    "K2": {
-      "typical_increment": 0.25,
-      "n_pairs": 23
-    },
-    "T2": {
-      "typical_increment": 0.0,
-      "n_pairs": 4
-    },
-    "K1": {
-      "typical_increment": 0.25,
-      "n_pairs": 24
-    },
     "O3": {
       "typical_increment": 0.375,
       "n_pairs": 8
     },
-    "L11": {
-      "typical_increment": 0.438,
-      "n_pairs": 4
-    },
-    "B26": {
-      "typical_increment": 0.125,
-      "n_pairs": 6
-    },
-    "N11": {
-      "typical_increment": 0.25,
-      "n_pairs": 4
+    "H2": {
+      "typical_increment": 0.375,
+      "n_pairs": 7
     },
     "M4": {
       "typical_increment": 0.0,
       "n_pairs": 4
-    },
-    "B29": {
-      "typical_increment": 0.0,
-      "n_pairs": 6
     },
     "T10": {
       "typical_increment": 0.0,
@@ -843,67 +819,79 @@
       "typical_increment": 0.0,
       "n_pairs": 4
     },
-    "H2": {
-      "typical_increment": 0.375,
-      "n_pairs": 7
-    },
-    "B25": {
+    "B26": {
       "typical_increment": 0.125,
-      "n_pairs": 11
+      "n_pairs": 6
     },
     "F11": {
       "typical_increment": 0.25,
       "n_pairs": 4
     },
-    "J9": {
-      "typical_increment": 0.875,
-      "n_pairs": 18
+    "K2": {
+      "typical_increment": 0.25,
+      "n_pairs": 23
     },
-    "L3": {
-      "typical_increment": 0.062,
+    "B29": {
+      "typical_increment": 0.0,
+      "n_pairs": 6
+    },
+    "K1": {
+      "typical_increment": 0.25,
+      "n_pairs": 24
+    },
+    "T2": {
+      "typical_increment": 0.0,
       "n_pairs": 4
+    },
+    "N11": {
+      "typical_increment": 0.25,
+      "n_pairs": 4
+    },
+    "L11": {
+      "typical_increment": 0.438,
+      "n_pairs": 4
+    },
+    "B25": {
+      "typical_increment": 0.125,
+      "n_pairs": 11
     },
     "N9": {
       "typical_increment": 0.25,
       "n_pairs": 20
     },
-    "Z26": {
+    "D19": {
       "typical_increment": 0.0,
+      "n_pairs": 2
+    },
+    "L3": {
+      "typical_increment": 0.062,
       "n_pairs": 4
     },
-    "D21": {
-      "typical_increment": 0.0,
-      "n_pairs": 3
-    },
-    "H4": {
+    "H3": {
       "typical_increment": 0.375,
-      "n_pairs": 18
-    },
-    "Z21": {
-      "typical_increment": 0.0,
-      "n_pairs": 4
-    },
-    "E9": {
-      "typical_increment": -0.125,
-      "n_pairs": 3
-    },
-    "O4": {
-      "typical_increment": 1.5,
-      "n_pairs": 19
+      "n_pairs": 17
     },
     "E13": {
       "typical_increment": 0.125,
       "n_pairs": 17
     },
-    "Q2": {
-      "typical_increment": 0.0,
-      "n_pairs": 16
-    },
     "L5": {
       "typical_increment": 0.125,
       "n_pairs": 3
     },
-    "D20": {
+    "Z21": {
+      "typical_increment": 0.0,
+      "n_pairs": 4
+    },
+    "Z26": {
+      "typical_increment": 0.0,
+      "n_pairs": 4
+    },
+    "O4": {
+      "typical_increment": 1.5,
+      "n_pairs": 19
+    },
+    "D21": {
       "typical_increment": 0.0,
       "n_pairs": 3
     },
@@ -911,65 +899,73 @@
       "typical_increment": 0.0,
       "n_pairs": 3
     },
-    "H1": {
-      "typical_increment": 0.0,
-      "n_pairs": 20
+    "H4": {
+      "typical_increment": 0.375,
+      "n_pairs": 18
     },
-    "E35": {
-      "typical_increment": 0.25,
-      "n_pairs": 2
-    },
-    "C4": {
-      "typical_increment": -0.125,
-      "n_pairs": 3
+    "J9": {
+      "typical_increment": 0.875,
+      "n_pairs": 18
     },
     "B34": {
       "typical_increment": 0.0,
       "n_pairs": 14
     },
-    "D19": {
-      "typical_increment": 0.0,
-      "n_pairs": 2
-    },
     "I5": {
       "typical_increment": 0.375,
       "n_pairs": 18
     },
-    "H3": {
-      "typical_increment": 0.375,
-      "n_pairs": 17
+    "H1": {
+      "typical_increment": 0.0,
+      "n_pairs": 20
+    },
+    "D20": {
+      "typical_increment": 0.0,
+      "n_pairs": 3
+    },
+    "E35": {
+      "typical_increment": 0.25,
+      "n_pairs": 2
+    },
+    "E9": {
+      "typical_increment": -0.125,
+      "n_pairs": 3
+    },
+    "Q2": {
+      "typical_increment": 0.0,
+      "n_pairs": 16
+    },
+    "C4": {
+      "typical_increment": -0.125,
+      "n_pairs": 3
+    },
+    "N5": {
+      "typical_increment": 0.0,
+      "n_pairs": 12
     },
     "C1": {
       "typical_increment": 0.375,
       "n_pairs": 16
     },
+    "N4": {
+      "typical_increment": 1.0,
+      "n_pairs": 12
+    },
     "N3": {
       "typical_increment": 0.25,
       "n_pairs": 12
-    },
-    "L8": {
-      "typical_increment": 0.375,
-      "n_pairs": 16
     },
     "D13": {
       "typical_increment": 0.25,
       "n_pairs": 10
     },
-    "N4": {
-      "typical_increment": 1.0,
-      "n_pairs": 12
-    },
-    "J10": {
-      "typical_increment": 0.875,
-      "n_pairs": 12
+    "G1": {
+      "typical_increment": 0.375,
+      "n_pairs": 8
     },
     "F10": {
       "typical_increment": 0.375,
       "n_pairs": 16
-    },
-    "N5": {
-      "typical_increment": 0.0,
-      "n_pairs": 12
     },
     "G6": {
       "typical_increment": 0.375,
@@ -979,67 +975,27 @@
       "typical_increment": 0.0,
       "n_pairs": 16
     },
-    "C3": {
-      "typical_increment": 0.0,
-      "n_pairs": 10
+    "J10": {
+      "typical_increment": 0.875,
+      "n_pairs": 12
+    },
+    "L8": {
+      "typical_increment": 0.375,
+      "n_pairs": 16
     },
     "S22": {
       "typical_increment": 0.0,
       "n_pairs": 10
     },
-    "G1": {
-      "typical_increment": 0.375,
-      "n_pairs": 8
-    },
-    "F6": {
-      "typical_increment": 0.375,
-      "n_pairs": 4
-    },
-    "C6": {
+    "C3": {
       "typical_increment": 0.0,
-      "n_pairs": 4
-    },
-    "S7": {
-      "typical_increment": 0.0,
-      "n_pairs": 4
-    },
-    "P7": {
-      "typical_increment": 0.0,
-      "n_pairs": 1
-    },
-    "F4": {
-      "typical_increment": 0.188,
-      "n_pairs": 2
-    },
-    "S6": {
-      "typical_increment": 0.0,
-      "n_pairs": 4
-    },
-    "E1": {
-      "typical_increment": 0.5,
-      "n_pairs": 4
-    },
-    "F8": {
-      "typical_increment": 0.125,
-      "n_pairs": 2
-    },
-    "K21": {
-      "typical_increment": 0.0,
-      "n_pairs": 6
-    },
-    "B3": {
-      "typical_increment": 0.375,
-      "n_pairs": 4
-    },
-    "P5": {
-      "typical_increment": 0.0,
-      "n_pairs": 1
+      "n_pairs": 10
     },
     "K20": {
       "typical_increment": 0.0,
       "n_pairs": 4
     },
-    "B15": {
+    "S11": {
       "typical_increment": 0.0,
       "n_pairs": 4
     },
@@ -1047,17 +1003,115 @@
       "typical_increment": 0.375,
       "n_pairs": 4
     },
+    "P5": {
+      "typical_increment": 0.0,
+      "n_pairs": 1
+    },
+    "S6": {
+      "typical_increment": 0.0,
+      "n_pairs": 4
+    },
+    "K21": {
+      "typical_increment": 0.0,
+      "n_pairs": 6
+    },
     "B5": {
       "typical_increment": 0.0,
       "n_pairs": 4
     },
-    "S11": {
+    "F6": {
+      "typical_increment": 0.375,
+      "n_pairs": 4
+    },
+    "E1": {
+      "typical_increment": 0.5,
+      "n_pairs": 4
+    },
+    "B3": {
+      "typical_increment": 0.375,
+      "n_pairs": 4
+    },
+    "S7": {
+      "typical_increment": 0.0,
+      "n_pairs": 4
+    },
+    "B15": {
+      "typical_increment": 0.0,
+      "n_pairs": 4
+    },
+    "P7": {
+      "typical_increment": 0.0,
+      "n_pairs": 1
+    },
+    "F8": {
+      "typical_increment": 0.125,
+      "n_pairs": 2
+    },
+    "F4": {
+      "typical_increment": 0.188,
+      "n_pairs": 2
+    },
+    "C6": {
       "typical_increment": 0.0,
       "n_pairs": 4
     }
   },
   "tolerance_standards": {
+    "O3": {
+      "standard": 0.25,
+      "display": "1/4",
+      "dominance_pct": 66.7,
+      "n": 3
+    },
+    "H2": {
+      "standard": 0.25,
+      "display": "1/4",
+      "dominance_pct": 50.0,
+      "n": 2
+    },
+    "M4": {
+      "standard": 0.125,
+      "display": "1/8",
+      "dominance_pct": 100.0,
+      "n": 1
+    },
+    "T10": {
+      "standard": 0.125,
+      "display": "1/8",
+      "dominance_pct": 100.0,
+      "n": 4
+    },
+    "T9": {
+      "standard": 0.125,
+      "display": "1/8",
+      "dominance_pct": 100.0,
+      "n": 1
+    },
+    "B26": {
+      "standard": 0.125,
+      "display": "1/8",
+      "dominance_pct": 66.7,
+      "n": 6
+    },
+    "F11": {
+      "standard": 0.375,
+      "display": "3/8",
+      "dominance_pct": 75.0,
+      "n": 4
+    },
     "K2": {
+      "standard": 0.25,
+      "display": "1/4",
+      "dominance_pct": 100.0,
+      "n": 4
+    },
+    "B29": {
+      "standard": 0.125,
+      "display": "1/8",
+      "dominance_pct": 100.0,
+      "n": 6
+    },
+    "K1": {
       "standard": 0.25,
       "display": "1/4",
       "dominance_pct": 100.0,
@@ -1069,17 +1123,11 @@
       "dominance_pct": 100.0,
       "n": 1
     },
-    "K1": {
+    "N11": {
       "standard": 0.25,
       "display": "1/4",
       "dominance_pct": 100.0,
-      "n": 4
-    },
-    "O3": {
-      "standard": 0.25,
-      "display": "1/4",
-      "dominance_pct": 66.7,
-      "n": 3
+      "n": 1
     },
     "F7": {
       "standard": 0.25,
@@ -1093,71 +1141,11 @@
       "dominance_pct": 100.0,
       "n": 1
     },
-    "B26": {
-      "standard": 0.125,
-      "display": "1/8",
-      "dominance_pct": 66.7,
-      "n": 6
-    },
-    "N11": {
-      "standard": 0.25,
-      "display": "1/4",
-      "dominance_pct": 100.0,
-      "n": 1
-    },
-    "M4": {
-      "standard": 0.125,
-      "display": "1/8",
-      "dominance_pct": 100.0,
-      "n": 1
-    },
-    "B29": {
-      "standard": 0.125,
-      "display": "1/8",
-      "dominance_pct": 100.0,
-      "n": 6
-    },
-    "T10": {
-      "standard": 0.125,
-      "display": "1/8",
-      "dominance_pct": 100.0,
-      "n": 4
-    },
-    "T9": {
-      "standard": 0.125,
-      "display": "1/8",
-      "dominance_pct": 100.0,
-      "n": 1
-    },
-    "H2": {
-      "standard": 0.25,
-      "display": "1/4",
-      "dominance_pct": 50.0,
-      "n": 2
-    },
     "B25": {
       "standard": 0.25,
       "display": "1/4",
       "dominance_pct": 100.0,
       "n": 6
-    },
-    "F11": {
-      "standard": 0.375,
-      "display": "3/8",
-      "dominance_pct": 75.0,
-      "n": 4
-    },
-    "J9": {
-      "standard": 0.375,
-      "display": "3/8",
-      "dominance_pct": 100.0,
-      "n": 5
-    },
-    "L3": {
-      "standard": 0.125,
-      "display": "1/8",
-      "dominance_pct": 100.0,
-      "n": 1
     },
     "N9": {
       "standard": 0.25,
@@ -1165,23 +1153,35 @@
       "dominance_pct": 100.0,
       "n": 5
     },
-    "Z26": {
+    "D19": {
+      "standard": 0.25,
+      "display": "1/4",
+      "dominance_pct": 100.0,
+      "n": 1
+    },
+    "L3": {
       "standard": 0.125,
       "display": "1/8",
       "dominance_pct": 100.0,
       "n": 1
     },
-    "D21": {
-      "standard": 0.125,
-      "display": "1/8",
-      "dominance_pct": 100.0,
-      "n": 1
-    },
-    "H4": {
+    "H3": {
       "standard": 0.375,
       "display": "3/8",
       "dominance_pct": 100.0,
       "n": 5
+    },
+    "E13": {
+      "standard": 0.25,
+      "display": "1/4",
+      "dominance_pct": 80.0,
+      "n": 5
+    },
+    "L5": {
+      "standard": 0.375,
+      "display": "3/8",
+      "dominance_pct": 100.0,
+      "n": 1
     },
     "Z21": {
       "standard": 0.125,
@@ -1189,9 +1189,9 @@
       "dominance_pct": 100.0,
       "n": 1
     },
-    "E9": {
-      "standard": 0.25,
-      "display": "1/4",
+    "Z26": {
+      "standard": 0.125,
+      "display": "1/8",
       "dominance_pct": 100.0,
       "n": 1
     },
@@ -1201,49 +1201,7 @@
       "dominance_pct": 40.0,
       "n": 5
     },
-    "E13": {
-      "standard": 0.25,
-      "display": "1/4",
-      "dominance_pct": 80.0,
-      "n": 5
-    },
-    "Q2": {
-      "standard": 0.25,
-      "display": "1/4",
-      "dominance_pct": 100.0,
-      "n": 3
-    },
-    "L5": {
-      "standard": 0.375,
-      "display": "3/8",
-      "dominance_pct": 100.0,
-      "n": 1
-    },
-    "D20": {
-      "standard": 0.125,
-      "display": "1/8",
-      "dominance_pct": 100.0,
-      "n": 1
-    },
-    "N16": {
-      "standard": 0.125,
-      "display": "1/8",
-      "dominance_pct": 100.0,
-      "n": 1
-    },
-    "H1": {
-      "standard": 0.125,
-      "display": "1/8",
-      "dominance_pct": 100.0,
-      "n": 3
-    },
-    "E35": {
-      "standard": 0.375,
-      "display": "3/8",
-      "dominance_pct": 100.0,
-      "n": 1
-    },
-    "C4": {
+    "D21": {
       "standard": 0.125,
       "display": "1/8",
       "dominance_pct": 100.0,
@@ -1255,17 +1213,29 @@
       "dominance_pct": 100.0,
       "n": 1
     },
+    "N16": {
+      "standard": 0.125,
+      "display": "1/8",
+      "dominance_pct": 100.0,
+      "n": 1
+    },
+    "H4": {
+      "standard": 0.375,
+      "display": "3/8",
+      "dominance_pct": 100.0,
+      "n": 5
+    },
+    "J9": {
+      "standard": 0.375,
+      "display": "3/8",
+      "dominance_pct": 100.0,
+      "n": 5
+    },
     "B34": {
       "standard": 0.5,
       "display": "1/2",
       "dominance_pct": 66.7,
       "n": 3
-    },
-    "D19": {
-      "standard": 0.25,
-      "display": "1/4",
-      "dominance_pct": 100.0,
-      "n": 1
     },
     "I5": {
       "standard": 0.375,
@@ -1273,11 +1243,47 @@
       "dominance_pct": 80.0,
       "n": 5
     },
-    "H3": {
+    "H1": {
+      "standard": 0.125,
+      "display": "1/8",
+      "dominance_pct": 100.0,
+      "n": 3
+    },
+    "D20": {
+      "standard": 0.125,
+      "display": "1/8",
+      "dominance_pct": 100.0,
+      "n": 1
+    },
+    "E35": {
       "standard": 0.375,
       "display": "3/8",
       "dominance_pct": 100.0,
-      "n": 5
+      "n": 1
+    },
+    "E9": {
+      "standard": 0.25,
+      "display": "1/4",
+      "dominance_pct": 100.0,
+      "n": 1
+    },
+    "Q2": {
+      "standard": 0.25,
+      "display": "1/4",
+      "dominance_pct": 100.0,
+      "n": 3
+    },
+    "C4": {
+      "standard": 0.125,
+      "display": "1/8",
+      "dominance_pct": 100.0,
+      "n": 1
+    },
+    "N5": {
+      "standard": 0.25,
+      "display": "1/4",
+      "dominance_pct": 100.0,
+      "n": 2
     },
     "C1": {
       "standard": 0.25,
@@ -1291,17 +1297,29 @@
       "dominance_pct": 100.0,
       "n": 2
     },
-    "L8": {
-      "standard": 0.375,
-      "display": "3/8",
-      "dominance_pct": 100.0,
-      "n": 4
-    },
     "D13": {
       "standard": 0.25,
       "display": "1/4",
       "dominance_pct": 100.0,
       "n": 4
+    },
+    "G1": {
+      "standard": 0.125,
+      "display": "1/8",
+      "dominance_pct": 100.0,
+      "n": 2
+    },
+    "F10": {
+      "standard": 0.375,
+      "display": "3/8",
+      "dominance_pct": 100.0,
+      "n": 4
+    },
+    "G6": {
+      "standard": 0.125,
+      "display": "1/8",
+      "dominance_pct": 100.0,
+      "n": 2
     },
     "E2": {
       "standard": 0.25,
@@ -1315,19 +1333,13 @@
       "dominance_pct": 100.0,
       "n": 2
     },
-    "F10": {
+    "L8": {
       "standard": 0.375,
       "display": "3/8",
       "dominance_pct": 100.0,
       "n": 4
     },
-    "N5": {
-      "standard": 0.25,
-      "display": "1/4",
-      "dominance_pct": 100.0,
-      "n": 2
-    },
-    "G6": {
+    "S22": {
       "standard": 0.125,
       "display": "1/8",
       "dominance_pct": 100.0,
@@ -1339,13 +1351,25 @@
       "dominance_pct": 100.0,
       "n": 2
     },
-    "S22": {
+    "K20": {
       "standard": 0.125,
       "display": "1/8",
       "dominance_pct": 100.0,
       "n": 2
     },
-    "G1": {
+    "F9": {
+      "standard": 0.25,
+      "display": "1/4",
+      "dominance_pct": 100.0,
+      "n": 2
+    },
+    "P5": {
+      "standard": 0.125,
+      "display": "1/8",
+      "dominance_pct": 100.0,
+      "n": 1
+    },
+    "B5": {
       "standard": 0.125,
       "display": "1/8",
       "dominance_pct": 100.0,
@@ -1356,18 +1380,6 @@
       "display": "1/4",
       "dominance_pct": 100.0,
       "n": 2
-    },
-    "C6": {
-      "standard": 0.125,
-      "display": "1/8",
-      "dominance_pct": 100.0,
-      "n": 2
-    },
-    "P7": {
-      "standard": 0.125,
-      "display": "1/8",
-      "dominance_pct": 100.0,
-      "n": 1
     },
     "E1": {
       "standard": 0.25,
@@ -1387,31 +1399,19 @@
       "dominance_pct": 100.0,
       "n": 2
     },
-    "P5": {
-      "standard": 0.125,
-      "display": "1/8",
-      "dominance_pct": 100.0,
-      "n": 1
-    },
-    "K20": {
-      "standard": 0.125,
-      "display": "1/8",
-      "dominance_pct": 100.0,
-      "n": 2
-    },
     "B15": {
       "standard": 0.125,
       "display": "1/8",
       "dominance_pct": 100.0,
       "n": 2
     },
-    "F9": {
-      "standard": 0.25,
-      "display": "1/4",
+    "P7": {
+      "standard": 0.125,
+      "display": "1/8",
       "dominance_pct": 100.0,
-      "n": 2
+      "n": 1
     },
-    "B5": {
+    "C6": {
       "standard": 0.125,
       "display": "1/8",
       "dominance_pct": 100.0,

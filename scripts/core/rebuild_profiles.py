@@ -113,6 +113,9 @@ for line in all_lines_iter:
             'category': rec.get('category', ''),
             'department_raw': rec.get('department', ''),
             'brand_division': rec.get('brand_division', ''),
+            # 2026-05-14: _client_code = 聚陽 canonical 3-letter brand code (adapter 從 M7列管 注入).
+            # 帶到 reclassify / bodytype_variance, 讓 brand 維度走 canonical, 不硬解 brand_division.
+            '_client_code': rec.get('_client_code', ''),
             'design_type': rec.get('design_type', ''),
             'description': rec.get('description', ''),
             'has_mc_pom': has_mc_pom,
