@@ -9,10 +9,10 @@ internal fields). This is the canonical "single source of truth" for derive
 views — see docs/architecture/PHASE2_DERIVE_VIEWS_SPEC.md.
 
 Sources (all inputs kept read-only):
-  - path2_universal/iso_lookup_factory_v4.3.json
-    (230 entries; Department × Gender × GT × L1 with iso_distribution + n_designs)
-  - path2_universal/iso_lookup_factory_v4.json
-    (282 entries; Fabric × Department × GT × L1_code with iso_zh / machine)
+  - path2_universal/iso_lookup_brandspec_5dim.json
+    (完整 Fabric × Department × Gender × GT × L1 brand-spec ISO 表，多來源聚合；
+     2026-05-15 取代舊 iso_lookup_factory_v4.3.json + v4.json 兩本部分維度表，
+     build 時 roll 成 cascade 的 same_gt + general 兩層)
   - data/runtime/construction_bridge_v6.json
     (bridges[GT][zones][zh_zone] with methods + iso_codes)
   - recipes/*.json (71 files; same-sub-category stats)
@@ -28,7 +28,7 @@ Output schema (data/runtime/recipes_master.json — same content also one-line-p
     {
       "key": {"gender": "...", "dept": "...", "gt": "...", "it": "...", "l1": "..."},
       "aggregation_level": "same_sub|same_bucket|same_gt|general|cross_design",
-      "source": "recipe|consensus_v1|v4.3|v4|bridge",
+      "source": "recipe|consensus_v1|brandspec_5dim|bridge",
       "n_total": N,
       "iso_distribution": [{"iso": "406", "n": 9, "pct": 69.2}, ...],
       "methods": [{"name": "BINDING", "n": 5, "pct": 50.0}, ...]  # may be []
@@ -60,9 +60,7 @@ REPO_ROOT = STAR_SCHEMA.parent
 
 # Input sources (all relative to repo root)
 # 2026-05-07: 資料夾改名 General Model_Path2_Construction Suggestion → path2_universal
-V43_PATH = REPO_ROOT / "path2_universal" / "iso_lookup_factory_v4.3.json"  # 仍供 build_l1_standard_38 fallback
-V4_PATH  = REPO_ROOT / "path2_universal" / "iso_lookup_factory_v4.json"   # 2026-05-15 退役: ISO cascade 改吃 BRANDSPEC_PATH
-# 2026-05-15: same_gt + general 兩層改由單一完整 5 維 brand-spec 表 roll 出（取代 v4.3 / v4 兩本）
+# 2026-05-15: same_gt + general 兩層由單一完整 5 維 brand-spec 表 roll 出（v4.3 / v4 已退役刪除）
 BRANDSPEC_PATH = REPO_ROOT / "path2_universal" / "iso_lookup_brandspec_5dim.json"
 # 2026-05-07: 搬到 data/runtime/ (跟其他 runtime JSON 一起)
 BRIDGE_PATH = REPO_ROOT / "data" / "runtime" / "construction_bridge_v6.json"
@@ -258,24 +256,15 @@ def load_json(p: Path):
     return json.loads(p.read_text(encoding="utf-8"))
 
 
-def build_l1_standard_38(v43) -> dict:
-    """Load L1 standard 38 — prefer data/runtime/l1_standard_38.json (ground truth SOT),
-    fall back to v4.3's l1_standard_38 field if file not found.
-    2026-05-14: 修 path bug — 原寫 REPO_ROOT/data/l1_standard_38.json 找不到檔
-    (檔案在 data/runtime/)，導致一直 fallback 去用 v4.3 內嵌那份可能有錯 zh 名的。"""
-    # Ground truth file (already corrected to IE standard)
+def build_l1_standard_38() -> dict:
+    """Load L1 standard 38 from data/runtime/l1_standard_38.json (ground truth SOT).
+    2026-05-15: 移除 v4.3 fallback（v4.3 已退役刪除）— SOT 檔是 repo committed 必有檔，
+    且本 script 自己也會把它寫回（OUT_L1_STD）。檔不在直接報錯，不靜默 fallback。"""
     gt_path = REPO_ROOT / "data" / "runtime" / "l1_standard_38.json"
-    if gt_path.exists():
-        gt = json.loads(gt_path.read_text(encoding="utf-8"))
-        return gt
-
-    # Fallback: from v4.3 (may have wrong zh names)
-    std = v43.get("l1_standard_38") or {}
-    return {
-        "version": v43.get("version", "v4.3"),
-        "source": "iso_lookup_factory_v4.3.json",
-        "codes": std,
-    }
+    if not gt_path.exists():
+        raise FileNotFoundError(
+            f"L1 standard 38 SOT 不存在: {gt_path} — repo committed 必有檔")
+    return json.loads(gt_path.read_text(encoding="utf-8"))
 
 
 def build_zh_to_l1(l1_std: dict) -> dict:
@@ -839,12 +828,11 @@ def main():
     )
     args = parser.parse_args()
 
-    v43 = load_json(V43_PATH)              # 仍用於 build_l1_standard_38 的 fallback
     brandspec = load_json(BRANDSPEC_PATH)  # 完整 5 維 brand-spec ISO 表（取代 v4 + v4.3）
     bridge = load_json(BRIDGE_PATH)
 
     # 1. l1_standard_38 → also write as standalone file for the viewer
-    l1_std = build_l1_standard_38(v43)
+    l1_std = build_l1_standard_38()
     OUT_L1_STD.write_text(json.dumps(l1_std, ensure_ascii=False, indent=2), encoding="utf-8")
     zh_to_l1 = build_zh_to_l1(l1_std)
     print(f"[l1_standard_38] {len(l1_std['codes'])} codes → {OUT_L1_STD.name}", file=sys.stderr)
