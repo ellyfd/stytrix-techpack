@@ -257,10 +257,12 @@ def load_json(p: Path):
 
 
 def build_l1_standard_38(v43) -> dict:
-    """Load L1 standard 38 — prefer star_schema/data/l1_standard_38.json (ground truth),
-    fall back to v4.3's l1_standard_38 field if file not found."""
+    """Load L1 standard 38 — prefer data/runtime/l1_standard_38.json (ground truth SOT),
+    fall back to v4.3's l1_standard_38 field if file not found.
+    2026-05-14: 修 path bug — 原寫 REPO_ROOT/data/l1_standard_38.json 找不到檔
+    (檔案在 data/runtime/)，導致一直 fallback 去用 v4.3 內嵌那份可能有錯 zh 名的。"""
     # Ground truth file (already corrected to IE standard)
-    gt_path = REPO_ROOT / "data" / "l1_standard_38.json"
+    gt_path = REPO_ROOT / "data" / "runtime" / "l1_standard_38.json"
     if gt_path.exists():
         gt = json.loads(gt_path.read_text(encoding="utf-8"))
         return gt

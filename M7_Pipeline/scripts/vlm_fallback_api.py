@@ -370,7 +370,6 @@ def main():
         print(f"  python scripts\\vlm_fallback_m7.py --mode merge")
         print(f"  python scripts\\align_to_ie_m7.py")
         print(f"  python scripts\\build_consensus_m7.py")
-        print(f"  python scripts\\build_construction_bridge_v7.py")
 
 
 if __name__ == "__main__":

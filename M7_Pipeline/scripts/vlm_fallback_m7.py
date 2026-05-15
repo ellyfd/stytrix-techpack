@@ -133,7 +133,6 @@ def cmd_merge(args):
         print(f"[next] 重跑 align/consensus/v7：")
         print(f"  python scripts\\align_to_ie_m7.py")
         print(f"  python scripts\\build_consensus_m7.py")
-        print(f"  python scripts\\build_construction_bridge_v7.py")
     else:
         print("[dry-run] 沒寫入 facts.jsonl")
 
