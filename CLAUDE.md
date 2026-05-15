@@ -17,6 +17,25 @@
 
 ---
 
+## 2026-05-15 Doc Cleanup(本輪)
+
+照 Part B 的 grep gate 跑過所有 `.md`,把跟 2026-05-08 ~ 2026-05-14 大改之後 drift 的描述補回實況:
+
+- `docs/spec/pom_rules_v55_classification_logic.md` §六 產出統計 — `81 buckets → 83 files` (v5.5.1) 改 `137 buckets → 139 files` (v8),補 v6/v7/v8 跳變說明
+- `path2_universal/README.md` — 原列了 5 個檔(`v4_lookup_index.json` / `l1_code_to_v3_mapping.json` / `_index.json` / `recipe_*.json`)但實際只剩 2 個 JSON(`iso_lookup_factory_v4.3.json` / `v4.json`),整檔重寫對齊現況
+- `README.md` / `docs/spec/網站架構圖.md` / `docs/architecture/DATA_PIPELINE_MAPPING.md` — `callout_images/` / `callout_manifest.jsonl` / `--callout-dir` / `vlm_callout_extracts.json` 全部改 `construction_*` 對齊 2026-05-12 rename commit `355ffd8`
+- `docs/architecture/PHASE2_DERIVE_VIEWS_SPEC.md` — View C 73 行「未來重啟參考」章節收成 ~10 行 retired 標示;Phase 2.4 implementation plan 標 ⊘ retired,移掉 derive_view_designs_index.py 詳細步驟
+- `docs/architecture/PLATFORM_SYNC_PLAN.md` — 253 行歷史規劃壓成 27 行 plan-vs-build diff 表(計畫的 `derive_view_by_client.py` / `designs_index/` / `bucket_taxonomy v4` 等項目實況)
+- `docs/architecture/STYTRIX_ARCHITECTURE.md` — Step 4 view diagram 移掉 `l2_l3_ie_by_client/*` box,改成 actuals.by_brand + filterBibleByBrand/Category 描述;`General Model_Path2/` 路徑改 `path2_universal/`
+- `M7_Pipeline/PIPELINE.md` — 加 imported-snapshot 警告 header,標明本檔是聚陽 Windows 端 v8 狀態,與 platform 現況的 3 個 drift(by_client retired / m7_pullon → m7 rename / 10 → 24 brand)
+
+不動的(經 Part B gate 確認仍是活檔或刻意保留):
+- `data/source/M7_PULLON_DATA_SCHEMA.md` — m7_pullon_source / m7_pullon_designs / build_m7_pullon_source_v3 是聚陽 PullOn 產品線 identifier,不是 repo 路徑
+- 各 `.md` 內提到「客人 callout」「callout zone router」「callout glossary」— callout 是客人術語,不是 pipeline 流程
+- `M7_Pipeline/{PDF,PPTX}_PIPELINE.md` / `PIPELINE_GLOSSARY.md` / `construction-page-rules.md` — 聚陽 Windows 端 v11 snapshot 文件,handover 用,內容由聚陽端維護
+
+---
+
 ## 2026-05-14 Code Review 實測快照(數字皆 ground-truth)
 
 跑過實際 build / API / index.html fetch 後驗到的 ground truth(以下數字若跟其他段落 diverge,以本段為準):

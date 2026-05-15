@@ -41,8 +41,8 @@ data/
     uploads/                  使用者上傳 PDF/PPTX(處理完 workflow 刪)
     metadata/designs.jsonl    Step 1 PDF/PPTX 抽出的 D-number + cover metadata
     pptx/<slug>.txt           Step 1 PPTX 文字
-    pdf/callout_images/       Step 1 PDF callout PNG
-    pdf/callout_manifest.jsonl Step 1 manifest
+    pdf/construction_images/  Step 1 PDF construction 頁 PNG(2026-05-12 rename)
+    pdf/construction_manifest.jsonl Step 1 manifest
     unified/{dim,facts}.jsonl  Step 2a 全量合併
     vlm/{facts.jsonl,...}     Step 2b VLM 抽出
     consensus_v1/entries.jsonl  人工 consensus(275)
@@ -97,20 +97,20 @@ python star_schema/scripts/extract_raw_text.py --scan-dir data/ingest/uploads --
 | 輸入 | 輸出 |
 |---|---|
 | `data/ingest/uploads/*.pdf` | `data/ingest/metadata/designs.jsonl`(append) |
-| 同上 PDF | `data/ingest/pdf/callout_images/<DID>_p<N>.png`(216 DPI) |
-| 同上 PDF | `data/ingest/pdf/callout_manifest.jsonl` |
+| 同上 PDF | `data/ingest/pdf/construction_images/<DID>_p<N>.png`(216 DPI) |
+| 同上 PDF | `data/ingest/pdf/construction_manifest.jsonl` |
 | `data/ingest/uploads/*.pptx` | `data/ingest/pptx/<slug>.txt` |
 
 ### `star_schema/scripts/vlm_pipeline.py --map-iso`
 
 ```
-python star_schema/scripts/vlm_pipeline.py --map-iso --out data/ingest/vlm --callout-dir data/ingest/pdf/callout_images --ingest-dir data/ingest
+python star_schema/scripts/vlm_pipeline.py --map-iso --out data/ingest/vlm --construction-dir data/ingest/pdf/construction_images --ingest-dir data/ingest
 ```
 
 | 輸入 | 輸出 |
 |---|---|
-| `data/ingest/pdf/callout_images/*.png` | `data/ingest/vlm/facts.jsonl`(Claude Vision 抽 ISO/L1/zone) |
-| 同上 | `data/ingest/vlm/vlm_callout_extracts.json` |
+| `data/ingest/pdf/construction_images/*.png` | `data/ingest/vlm/facts.jsonl`(Claude Vision 抽 ISO/L1/zone) |
+| 同上 | `data/ingest/vlm/vlm_construction_extracts.json` |
 
 ### `star_schema/scripts/extract_unified.py`
 

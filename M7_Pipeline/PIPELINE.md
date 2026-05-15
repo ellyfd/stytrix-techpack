@@ -1,12 +1,27 @@
 # M7 PullOn Pipeline — 從 4 個資料源蒸餾出跨客戶做工共識
 
-> **一頁總結**：1180 件 PullOn 褲款 × 4 個資料源（客戶 PDF/PPTX + 聚陽 nt-net2 / nt-netsql2）→ 自動抽取 → 標準化 → 跨客戶共識 →
-> - **`recipes_master.json` 247 platform recipes**（5-dim canonical key，跨 brand 共識）
-> - **`l2_l3_ie_by_client/<L1>.json` 26 個檔**（10 brand × knit/woven 各自完整五階工法樹）
+> ⚠ **這份是聚陽 Windows 端 pipeline 的 imported snapshot(2026-05-13 commit `17b5629`)**,
+> 描述的是 **v8 / v11 階段** 的 M7_Pipeline 狀態。**不是 platform repo 當下的權威 spec**。
 >
-> 平台 RAG / IE 報價系統直接吸；聚陽模式選 brand 直接撈 brand-specific 五階。
+> Platform 端的權威 docs:
+> - 整體架構:[`docs/architecture/STYTRIX_ARCHITECTURE.md`](../docs/architecture/STYTRIX_ARCHITECTURE.md)
+> - workflow → file mapping:[`docs/architecture/DATA_PIPELINE_MAPPING.md`](../docs/architecture/DATA_PIPELINE_MAPPING.md)
+> - 當下 ground truth 數字:[`CLAUDE.md`](../CLAUDE.md) Part A
 >
-> **最後更新**：2026-05-08 | **版本**：v8（PDF per-client metadata 抽取 + 8 canonical multi-source consensus + alias normalizer + 自動 push 到 platform）
+> 與 platform 現況的主要 drift:
+> - 本檔提到 `l2_l3_ie_by_client/<L1>.json` 26 檔 — **已於 2026-05-08 Phase 2.5b 退役**(brand 維度走 `l2_l3_ie/<L1>.json:actuals.by_brand`)
+> - 本檔提到 `data/ingest/m7_pullon/` — **已於 2026-05-12 rename 為 `data/ingest/m7/`**
+> - 本檔提到「10 brand / 1180 件 PullOn」— platform 現況是 24 brand / 18,300 designs / 5,076 entries(v11)
+>
+> 本檔保留作 v8 → v11 演進的審計 / handover 參考,聚陽 Windows 端跑 build 看這份。
+
+> **一頁總結**:1180 件 PullOn 褲款 × 4 個資料源(客戶 PDF/PPTX + 聚陽 nt-net2 / nt-netsql2)→ 自動抽取 → 標準化 → 跨客戶共識 →
+> - **`recipes_master.json` 247 platform recipes**(5-dim canonical key,跨 brand 共識)
+> - ~~**`l2_l3_ie_by_client/<L1>.json` 26 個檔**~~ ⊘ 退役(見上方 drift 說明)
+>
+> 平台 RAG / IE 報價系統直接吸;聚陽模式選 brand 直接撈 brand-specific 五階。
+>
+> **最後更新**:2026-05-08 | **版本**:v8(PDF per-client metadata 抽取 + 8 canonical multi-source consensus + alias normalizer + 自動 push 到 platform)
 
 ---
 
