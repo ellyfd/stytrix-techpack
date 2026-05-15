@@ -3,7 +3,7 @@
 Input:
   - outputs/sketch_l1_poc/{stem}.json   (VLM L1+L2+L3 偵測)
   - outputs/platform/recipes_master_v6.jsonl  (字典 ISO/methods/clients)
-  - data/iso_dictionary.json   (ISO → 中文名+機種)
+  - stytrix-techpack/data/runtime/iso_dictionary.json   (ISO SOT → 中文名+機種)
   - M7 索引   (EIDH → metadata)
 
 Output:
@@ -29,7 +29,20 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 SKETCH_POC_DIR = ROOT / "outputs" / "sketch_l1_poc"
 RECIPES = ROOT / "outputs" / "platform" / "recipes_master_v6.jsonl"
-ISO_DICT = ROOT / "data" / "iso_dictionary.json"
+
+
+# iso_dictionary SOT = stytrix-techpack/data/runtime/iso_dictionary.json
+# (2026-05-15: 原讀 M7_Pipeline/data/iso_dictionary.json 副本，已刪，改讀 repo runtime SOT)
+def _find_iso_dict() -> Path:
+    for c in (ROOT.parent / "data" / "runtime" / "iso_dictionary.json",
+              Path("C:/temp/stytrix-techpack/data/runtime/iso_dictionary.json"),
+              ROOT / "data" / "iso_dictionary.json"):
+        if c.exists():
+            return c
+    raise FileNotFoundError(
+        "找不到 iso_dictionary.json — 需 stytrix-techpack/data/runtime/iso_dictionary.json")
+
+
 M7_INDEX_NEW = ROOT.parent / "M7列管_20260507.xlsx"
 M7_INDEX_OLD = ROOT / "M7資源索引_M7URL正確版_20260504.xlsx"
 M7_INDEX = M7_INDEX_NEW if M7_INDEX_NEW.exists() else M7_INDEX_OLD
@@ -108,7 +121,7 @@ def derive_length(design_id: str, item: str = "") -> str:
 # ════════════════════════════════════════════════════════════
 
 def load_iso_dict():
-    d = json.load(open(ISO_DICT, encoding="utf-8"))
+    d = json.load(open(_find_iso_dict(), encoding="utf-8"))
     return d.get("entries", {})
 
 

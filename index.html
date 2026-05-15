@@ -6439,7 +6439,7 @@ function App() {
           l1_code: d.code,
           l2: l2Base
             ? `${l2Base}${l4Short ? " · " + l4Short : ""}`
-            : (rec ? `${rec.recommended_iso} ${isoRec?.iso_reference?.[rec.recommended_iso]?.zh || ""}` : "—"),
+            : (rec ? `${rec.recommended_iso} ${isoDictionary?.entries?.[rec.recommended_iso]?.zh || ""}` : "—"),
           l2Base,
           source: d._fromPresence ? "struct" : "ai",
           conf: Number.isFinite(d.confidence) ? d.confidence : null,
