@@ -62,16 +62,35 @@ def normKey(s):
     return re.sub(r'[^A-Z0-9]+', '_', s.upper()).strip('_')
 
 # ── L1 Standard 38 ──
-L1_STANDARD_38 = {
-    "AE": "袖孔", "AH": "袖圍", "BM": "下襬", "BN": "貼合", "BP": "襬叉",
-    "BS": "釦鎖", "DC": "繩類", "DP": "裝飾片", "FP": "袋蓋", "FY": "前立",
-    "HD": "帽子", "HL": "釦環", "KH": "Keyhole", "LB": "商標", "LI": "裡布",
-    "LO": "褲口", "LP": "帶絆", "NK": "領", "NP": "領襟", "NT": "領貼條",
-    "OT": "其它", "PD": "褶", "PK": "口袋", "PL": "門襟", "PS": "褲合身",
-    "QT": "行縫(固定棉)", "RS": "褲襠", "SA": "剪接線_上身類", "SB": "剪接線_下身類",
-    "SH": "肩", "SL": "袖口", "SP": "袖叉", "SR": "裙合身", "SS": "脅邊",
-    "ST": "肩帶", "TH": "拇指洞", "WB": "腰頭", "ZP": "拉鍊",
-}
+# SOT: stytrix-techpack/data/runtime/l1_standard_38.json  {codes: {code: {zh, en}}}
+# 2026-05-15: 原本硬寫一份扁平表，改讀 SOT（去重）；保留 hardcoded fallback 防 CI 找不到檔。
+def _load_l1_standard_38() -> dict:
+    """回傳扁平 {code: zh}。優先讀 l1_standard_38.json SOT，讀不到/不完整就用 hardcoded fallback。"""
+    _root = find_repo_root(Path(__file__).resolve().parent)
+    cands = ([_root / "data" / "runtime" / "l1_standard_38.json"] if _root else [])
+    cands.append(Path(r"C:\temp\stytrix-techpack\data\runtime\l1_standard_38.json"))
+    for c in cands:
+        try:
+            if c.exists():
+                codes = json.load(open(c, encoding="utf-8")).get("codes", {})
+                if len(codes) >= 38:
+                    return {k: v.get("zh", "") for k, v in codes.items()}
+        except Exception:
+            continue
+    # fallback hardcoded — 2026-05-15 snapshot of l1_standard_38.json
+    return {
+        "AE": "袖孔", "AH": "袖圍", "BM": "下襬", "BN": "貼合", "BP": "襬叉",
+        "BS": "釦鎖", "DC": "繩類", "DP": "裝飾片", "FP": "袋蓋", "FY": "前立",
+        "HD": "帽子", "HL": "釦環", "KH": "Keyhole", "LB": "商標", "LI": "裡布",
+        "LO": "褲口", "LP": "帶絆", "NK": "領", "NP": "領襟", "NT": "領貼條",
+        "OT": "其它", "PD": "褶", "PK": "口袋", "PL": "門襟", "PS": "褲合身",
+        "QT": "行縫(固定棉)", "RS": "褲襠", "SA": "剪接線_上身類", "SB": "剪接線_下身類",
+        "SH": "肩", "SL": "袖口", "SP": "袖叉", "SR": "裙合身", "SS": "脅邊",
+        "ST": "肩帶", "TH": "拇指洞", "WB": "腰頭", "ZP": "拉鍊",
+    }
+
+
+L1_STANDARD_38 = _load_l1_standard_38()
 ZH_TO_L1 = {v: k for k, v in L1_STANDARD_38.items()}
 
 # ── GT routing ──
