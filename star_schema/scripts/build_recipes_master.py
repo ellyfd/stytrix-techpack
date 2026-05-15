@@ -60,8 +60,10 @@ REPO_ROOT = STAR_SCHEMA.parent
 
 # Input sources (all relative to repo root)
 # 2026-05-07: 資料夾改名 General Model_Path2_Construction Suggestion → path2_universal
-V43_PATH = REPO_ROOT / "path2_universal" / "iso_lookup_factory_v4.3.json"
-V4_PATH  = REPO_ROOT / "path2_universal" / "iso_lookup_factory_v4.json"
+V43_PATH = REPO_ROOT / "path2_universal" / "iso_lookup_factory_v4.3.json"  # 仍供 build_l1_standard_38 fallback
+V4_PATH  = REPO_ROOT / "path2_universal" / "iso_lookup_factory_v4.json"   # 2026-05-15 退役: ISO cascade 改吃 BRANDSPEC_PATH
+# 2026-05-15: same_gt + general 兩層改由單一完整 5 維 brand-spec 表 roll 出（取代 v4.3 / v4 兩本）
+BRANDSPEC_PATH = REPO_ROOT / "path2_universal" / "iso_lookup_brandspec_5dim.json"
 # 2026-05-07: 搬到 data/runtime/ (跟其他 runtime JSON 一起)
 BRIDGE_PATH = REPO_ROOT / "data" / "runtime" / "construction_bridge_v6.json"
 RECIPES_DIR = REPO_ROOT / "recipes"
@@ -415,80 +417,73 @@ def build_from_recipes(recipes_dir: Path, zh_to_l1: dict, warns: list):
     return entries, {"files_processed": processed, "skipped_zones": skipped_zones}
 
 
-def build_from_v43(v43):
-    entries = []
-    for e in v43.get("entries") or []:
-        l1 = e.get("l1_code")
-        if not l1:
-            continue
-        n_total = int(e.get("n_designs") or 0)
-        iso_list = dist_dict_to_list(e.get("iso_distribution") or {}, n_total)
-        if not iso_list:
-            # fallback: use primary iso with pct from iso_pct
-            iso = e.get("iso")
-            if iso_is_valid(iso):
-                pct_val = float(e.get("iso_pct") or 1.0)
-                iso_list = [{"iso": iso, "n": n_total, "pct": round(pct_val * 100.0, 1)}]
-        if not iso_list:
-            continue
-        entries.append({
-            "key": {
-                "gender": norm(e.get("gender")),
-                "dept": norm(e.get("department")),
-                "gt": norm(e.get("gt")),
-                "it": None,
-                "l1": l1,
-            },
-            "aggregation_level": "same_gt",
-            "source": "v4.3",
-            "n_total": n_total,
-            "iso_distribution": iso_list,
-            "methods": [],
-        })
-    return entries
+def build_from_brandspec_5dim(brandspec):
+    """2026-05-15: 取代 build_from_v43 + build_from_v4。
 
+    原本 v4.3(Dept×Gender×GT×L1)餵 `same_gt` 層、v4(Fabric×Dept×GT×L1)餵 `general` 層 —
+    兩本各自建、key 維度沒對齊、合進 master 時會兜不起來。
 
-def build_from_v4(v4):
-    entries = []
-    for e in v4.get("entries") or []:
-        l1 = e.get("l1_code")
-        if not l1:
+    改成：吃單一完整 5 維 brand-spec 表(path2_universal/iso_lookup_brandspec_5dim.json，
+    key = Fabric×Department×Gender×GT×L1，由 pptx_facets 全量抽取建)，在 build 時 roll 成
+    cascade 需要的兩層 —— `same_gt`(roll 掉 fabric) + `general`(roll 掉 gender)。
+    cascade 結構與前端不變，只是兩層改成從同一張完整表 roll 出來，維度天然對齊。
+
+    回傳 (same_gt_entries, general_entries) — schema 與舊 build_from_v43 / build_from_v4 相同。
+    """
+    from collections import Counter as _Counter, defaultdict as _dd
+
+    same_gt_acc = _dd(lambda: {"iso": _Counter(), "designs": 0})
+    general_acc = _dd(lambda: {"iso": _Counter(), "designs": 0})
+
+    for e in brandspec.get("entries") or []:
+        k = e.get("key") or {}
+        l1 = k.get("l1")
+        if not l1 or l1 == "OT":
             continue
-        iso = e.get("iso")
-        if not iso_is_valid(iso):
-            GATE.a_iso_rejected[str(iso)] += 1
-            continue
-        votes = e.get("pptx_2025_votes") or {}
-        n_votes_total = sum(votes.values())
-        # Ensure primary iso is in the distribution even if no votes
-        if votes:
-            dist = dict(votes)
-            dist.setdefault(iso, 0)  # primary may be 0 votes but still recommended
-            iso_list = dist_dict_to_list(dist, n_votes_total)
-            # promote primary to top regardless of vote rank (it's the curated pick)
-            primary_idx = next((i for i, x in enumerate(iso_list) if x["iso"] == iso), -1)
-            if primary_idx > 0:
-                iso_list.insert(0, iso_list.pop(primary_idx))
-            n_total = int(e.get("pptx_2025_designs") or n_votes_total or 1)
-        else:
-            iso_list = [{"iso": iso, "n": 1, "pct": 100.0}]
-            n_total = 1
-        entries.append({
-            "key": {
-                "gender": None,
-                "dept": norm(e.get("department")),
-                "gt": norm(e.get("gt")),
-                "it": None,
-                "l1": l1,
-                "fabric": norm(e.get("fabric")),
-            },
-            "aggregation_level": "general",
-            "source": "v4",
-            "n_total": n_total,
-            "iso_distribution": iso_list,
-            "methods": [],
-        })
-    return entries
+        fabric = norm(k.get("fabric"))
+        dept = norm(k.get("dept"))
+        gender = norm(k.get("gender"))
+        gt = norm(k.get("gt"))
+        nd = int(e.get("n_designs") or 0)
+        sg = same_gt_acc[(gender, dept, gt, l1)]      # roll 掉 fabric
+        gn = general_acc[(fabric, dept, gt, l1)]      # roll 掉 gender
+        sg["designs"] += nd
+        gn["designs"] += nd
+        for d in e.get("iso_distribution") or []:
+            iso = d.get("iso")
+            if not iso_is_valid(iso):
+                GATE.a_iso_rejected[str(iso)] += 1
+                continue
+            n = int(d.get("n") or 0)
+            sg["iso"][iso] += n
+            gn["iso"][iso] += n
+
+    def _emit(acc, level, key_fn):
+        out = []
+        for kk, a in acc.items():
+            tot = sum(a["iso"].values())
+            if tot <= 0:
+                continue
+            iso_list = [{"iso": i, "n": n, "pct": round(n / tot * 100.0, 1)}
+                        for i, n in a["iso"].most_common()]
+            out.append({
+                "key": key_fn(kk),
+                "aggregation_level": level,
+                "source": "brandspec_5dim",
+                "n_total": a["designs"] or tot,
+                "iso_distribution": iso_list,
+                "methods": [],
+            })
+        return out
+
+    same_gt_entries = _emit(
+        same_gt_acc, "same_gt",
+        lambda kk: {"gender": kk[0], "dept": kk[1], "gt": kk[2], "it": None, "l1": kk[3]})
+    general_entries = _emit(
+        general_acc, "general",
+        lambda kk: {"gender": None, "dept": kk[1], "gt": kk[2], "it": None,
+                    "l1": kk[3], "fabric": kk[0]})
+    return same_gt_entries, general_entries
 
 
 def build_from_bridge(bridge, zh_to_l1, warns):
@@ -844,8 +839,8 @@ def main():
     )
     args = parser.parse_args()
 
-    v43 = load_json(V43_PATH)
-    v4 = load_json(V4_PATH)
+    v43 = load_json(V43_PATH)              # 仍用於 build_l1_standard_38 的 fallback
+    brandspec = load_json(BRANDSPEC_PATH)  # 完整 5 維 brand-spec ISO 表（取代 v4 + v4.3）
     bridge = load_json(BRIDGE_PATH)
 
     # 1. l1_standard_38 → also write as standalone file for the viewer
@@ -903,8 +898,8 @@ def main():
               f"{facts_stats['skipped_l1']} bad L1 / {facts_stats['skipped_bucket']} bad bucket)",
               file=sys.stderr)
 
-    v43_entries = build_from_v43(v43)
-    v4_entries = build_from_v4(v4)
+    # same_gt + general 兩層改由單一完整 5 維 brand-spec 表 roll 出（取代 build_from_v43 + build_from_v4）
+    v43_entries, v4_entries = build_from_brandspec_5dim(brandspec)
     bridge_entries, bridge_stats = build_from_bridge(bridge, zh_to_l1, warns)
 
     # M7 PullOn source (聚陽 5-dim ground truth, graceful when absent)
@@ -925,8 +920,7 @@ def main():
     out = {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "source_versions": {
-            "v4.3": str(V43_PATH.relative_to(REPO_ROOT)),
-            "v4": str(V4_PATH.relative_to(REPO_ROOT)),
+            "brandspec_5dim": str(BRANDSPEC_PATH.relative_to(REPO_ROOT)),
             "bridge": str(BRIDGE_PATH.relative_to(REPO_ROOT)),
             "recipes": recipe_files,
             "consensus": str(CONSENSUS_PATH) if CONSENSUS_PATH.exists() else None,

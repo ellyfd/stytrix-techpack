@@ -1841,8 +1841,8 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
             const AGG_META = {
               same_sub:     { label: "同細類",  bg: "#ecfdf5", c: "#065f46", hint: "同性別+同部門+同大類+同細類 recipe 樣本" },
               same_bucket:  { label: "同 bucket", bg: "#f0fdfa", c: "#0f766e", hint: "extraction 樣本(consensus/OCR/unified,canonical gender+dept+gt+it 維度)" },
-              same_gt:      { label: "同大類",  bg: "#eff6ff", c: "#1e40af", hint: "同部門+同性別+同大類 v4.3 樣本" },
-              general:      { label: "通用",    bg: "#fffbeb", c: "#b45309", hint: "v4 通用手冊推薦(curated,非統計)" },
+              same_gt:      { label: "同大類",  bg: "#eff6ff", c: "#1e40af", hint: "同部門+同性別+同大類 — brand-spec 5維表 roll 掉 fabric" },
+              general:      { label: "通用",    bg: "#fffbeb", c: "#b45309", hint: "同布種+同部門+同大類 — brand-spec 5維表 roll 掉 gender" },
               cross_design: { label: "跨款",    bg: "#fef2f2", c: "#b91c1c", hint: "跨款 bridge 累積(僅 methods 可信)" },
               catch_all:    { label: "通用 catch-all", bg: "#fef3c7", c: "#854d0e", hint: "techpack 原文「全款 body seam 為 ISO X」的 catch-all fallback(無部位特異資料時使用)" },
             };
@@ -3557,8 +3557,8 @@ const PACKAGE_FILES = [
   'data/runtime/l1_standard_38.json',
   'data/runtime/pom_dictionary.json',
   'data/ingest/consensus_v1/entries.jsonl',
-  'path2_universal/iso_lookup_factory_v4.3.json',
-  'path2_universal/iso_lookup_factory_v4.json',
+  'path2_universal/iso_lookup_brandspec_5dim.json',
+  'path2_universal/iso_lookup_5dim.json',
   // ── POM RULES 產線文件 ──
   'docs/sop/pom_rules_pipeline_guide_v2.md',
   'docs/spec/pom_rules_v55_classification_logic.md',
@@ -5492,10 +5492,11 @@ function App() {
   const [visualGuide, setVisualGuide] = useState(null);
   // 通用模型 Path 2 — 單一 master + 獨立 ISO 字典 + 38 碼正名表:
   //   data/runtime/recipes_master.json  — 4 層 aggregation 合併後的 entries(由 star_schema/scripts/build_recipes_master.py 產出)
-  //                                same_sub(recipe,71 檔)→ same_gt(v4.3)→ general(v4)→ cross_design(bridge)
+  //                                same_sub(recipe,71 檔)→ same_gt → general → cross_design(bridge)
+  //                                same_gt+general 由單一 path2_universal/iso_lookup_brandspec_5dim.json roll 出(取代舊 v4.3/v4 兩本)
   //   data/runtime/iso_dictionary.json  — ISO code → {zh, en, machine} 顯示字典
-  //   data/runtime/l1_standard_38.json  — 38 碼 L1 正名表({code: {zh, en}}),取自 v4.3 的 l1_standard_38
-  // 原始 4 本手冊(v4.3 / v4 / bridge v6 / recipes/*)保留在 repo,master 由 script 重建。
+  //   data/runtime/l1_standard_38.json  — 38 碼 L1 正名表({code: {zh, en}}),SOT
+  // 來源手冊(brandspec_5dim / bridge v6 / recipes/*)保留在 repo,master 由 script 重建。
   const [recipesMaster, setRecipesMaster] = useState(null);
   const [isoDictionary, setIsoDictionary] = useState(null);
   const [l1Standard38, setL1Standard38] = useState(null);

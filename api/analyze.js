@@ -44,7 +44,7 @@ export default async function handler(req, res) {
 
   const { image, brand, fabric, gender, department, garment_type, mode } = body;
   if (!image) return res.status(400).json({ error: "missing image" });
-  // mode=universal → Path 2: 只跑 Pass 1 (L1)，前端用 iso_lookup_factory_v4.3 + v4 雙表查 ISO，不需 L2。
+  // mode=universal → Path 2: 只跑 Pass 1 (L1)，前端用 recipes_master.json(由 brand-spec 5維表 roll 出 same_gt/general)查 ISO，不需 L2。
   const skipPass2 = mode === "universal";
 
   const m = image.match(/^data:image\/(\w+);base64,(.+)$/);
