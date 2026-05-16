@@ -1,0 +1,32 @@
+{
+  "_description": "Gender fallback keyword 查表 — mk_gender (M7 列管 PRODUCT_CATEGORY) 空時走 subgroup / client default 推。主路徑 = MATERNITY override → mk_gender。",
+  "_updated": "2026-05-16",
+  "_consumer": [
+    "scripts/core/rebuild_profiles.py:resolve_gender() — 主路徑 (T1 MATERNITY override → T2 mk_gender → T3 本表 fallback)",
+    "M7_Pipeline/scripts/derive_metadata.py:derive_gender() — 5 段 fallback 改吃本表 + canonical_4dim_mapping"
+  ],
+  "_canonical_enum": ["WOMENS", "MENS", "GIRLS", "BOYS", "BABY", "MATERNITY", "UNKNOWN"],
+  "_priority": [
+    {"tier": "T1", "rule": "MATERNITY override: brand_division / department 含 MATERNITY → MATERNITY"},
+    {"tier": "T2", "rule": "mk_gender (M7 列管 PRODUCT_CATEGORY) — 主表"},
+    {"tier": "T3", "rule": "(client, subgroup) → _CANONICAL_GENDER_MAPPING (從 client_canonical_mapping.json export, 167 條 high-purity)"},
+    {"tier": "T4", "rule": "subgroup keyword 含 gender token (本表 subgroup_tokens)"},
+    {"tier": "T5", "rule": "client default (本表 client_default)"},
+    {"tier": "T6", "rule": "UNKNOWN"}
+  ],
+  "subgroup_tokens": {
+    "_match": "subgroup UPPER substring match",
+    "WOMENS":    ["WOMENS", "WOMEN", "MISSY", "WMN", "LADIES"],
+    "MENS":      ["MENS", "MISTER", "MNS"],
+    "GIRLS":     ["GIRLS", "GIRL", "JUNIOR"],
+    "BOYS":      ["BOYS", "BOY"],
+    "BABY":      ["BABY", "INFANT", "TODDLER", "NEWBORN"]
+  },
+  "maternity_override_tokens": {
+    "_match": "brand_division 或 department UPPER substring",
+    "MATERNITY": ["MATERNITY", "MTR"]
+  },
+  "client_default": {
+    "_description": "從 _CLIENT_DEFAULT_GENDER 抽出來, M7_Pipeline/scripts/derive_metadata.py 內部值需要 import 後抽。下方為 placeholder，由聚陽端 export 補齊"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "_description": "Fabric fallback keyword 查表 — M7 列管 W/K 欄空時走 category / sub_category / department 推。主路徑 = mk_fabric 原值。",
+  "_updated": "2026-05-16",
+  "_consumer": "scripts/core/reclassify_and_rebuild.py:infer_fabric() — fallback 那段改吃本表",
+  "_canonical_enum": ["Knit", "Woven", "Denim"],
+  "_default": "Woven",
+  "_priority_order_by_field": [
+    {"field": "category", "match_type": "startswith"},
+    {"field": "sub_category", "match_type": "substring"},
+    {"field": "department_raw", "match_type": "substring"}
+  ],
+  "rules": {
+    "category": {
+      "_match": "startswith UPPER",
+      "IPSS": "Knit",
+      "KNITS": "Knit",
+      "WOVEN": "Woven",
+      "DENIM": "Denim"
+    },
+    "sub_category": {
+      "_match": "substring UPPER",
+      "TSD": "Woven"
+    },
+    "department_raw": {
+      "_match": "substring UPPER",
+      "KNIT": "Knit",
+      "WOVEN": "Woven",
+      "DENIM": "Denim"
+    }
+  }
+}

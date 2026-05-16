@@ -40,6 +40,16 @@ with open(os.path.join(BASE, 'pom_dictionary.json'), encoding='utf-8') as f:
 VALID_DENOMS = {2, 4, 8, 16, 32}
 FRAC_RE = re.compile(r'(\d+)\s*[⁄/]\s*(\d+)')
 
+# 2026-05-16: 4 維度分類改 data-driven, 邏輯走 data/source/*_keywords.json
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).resolve().parent.parent / "lib"))
+from resolve_classification import (
+    resolve_dept as _resolve_dept_table,
+    resolve_fabric as _resolve_fabric_table,
+    resolve_gt as _resolve_gt_table,
+)
+
 def parse_tol(s):
     """Parse tolerance string → float inches. Only accept fractions & decimals."""
     if not s or not str(s).strip():
@@ -106,202 +116,28 @@ print("Raw tolerance loaded: {} designs, {} POM entries".format(
 # ═══════════════════════════════════════════════
 
 def real_dept_v4(p):
-    """Department classifier v4 (v5.5.1).
-    Priority:
-      1. item_type SWIM/SLEEP → Swimwear/Sleepwear
-      2. Collaboration: NFL/NBA/MISCSPORTS
-      3. dept field parsing: PERFORMANCE ACTIVE > ACTIVE > FLEECE > SLEEP > SWIM
-      4. category = IPSS → Active (運動專精)
-      5. design_type fallback
-      6. RTW (default, Woven)
-    Note: Maternity is a GENDER, not a Department.
-          ATHLETA excluded at load time.
+    """Department classifier v2 (2026-05-16) — 改 data-driven。
+    Canonical enum v2 = 6 個: ACTIVE / RTW / SWIMWEAR / SLEEPWEAR / DENIM / FLEECE
+    COLLAB→ACTIVE; MATERNITY→GENDER (resolve_gender 處理)。
+    所有 cascade 邏輯走 data/source/dept_keywords.json + data/runtime/dept_lookup_by_subgroup.json。
     """
-    it = (p.get('item_type') or '').upper()
-    cat = (p.get('category') or '').upper()
-    # Clean category (remove junk like "IPSS Created 8/25/2025...")
-    if cat.startswith('IPSS'):
-        cat = 'IPSS'
-    elif cat.startswith('KNITS'):
-        cat = 'KNITS'
-    elif cat.startswith('WOVEN'):
-        cat = 'WOVEN'
-    elif cat.startswith('DENIM'):
-        cat = 'DENIM'
-
-    dept = (p.get('department_raw') or '').upper()
-    bdiv = (p.get('brand_division') or '').upper()
-
-    # Step 1: item_type priority (overrides dept name mismatches)
-    if 'SWIM' in it and 'RASHGUARD' not in it:
-        return 'Swimwear'
-    if 'SLEEP' in it or it == 'SLEEPWEAR/LOUNGE':
-        return 'Sleepwear'
-
-    # Step 2: Collaboration
-    dept_stripped = dept.strip()
-    if dept_stripped in ('NFL', 'NBA', 'MISCSPORTS'):
-        return 'Collaboration'
-
-    # Step 3: dept field keywords
-    if 'PERFORMANCE' in dept and 'ACTIVE' in dept:
-        return 'Active'
-    if 'ACTIVE' in dept:
-        return 'Active'
-    # 2026-05-14: Athletic / 單獨 PERFORMANCE 也是 Active
-    # (修 ~1,089 筆原本掉進 RTW 預設: Athletic 722 / WOMENS PERFORMANCE 289 / KIDS PERFORMANCE 78)
-    if 'ATHLETIC' in dept:
-        return 'Active'
-    if 'PERFORMANCE' in dept:
-        return 'Active'
-    if 'FLEECE' in dept:
-        return 'Fleece'
-    if 'SLEEP' in dept:
-        return 'Sleepwear'
-    if 'SWIM' in dept:
-        it_clean = it.replace('_', ' ')
-        active_types = ['TOP', 'PANT', 'LEGGING', 'PULLOVER', 'JACKET', 'SHORT',
-                        'HOODIE', 'FLEECE', 'POLO', 'TEE', 'HENLEY', 'SHIRT',
-                        'DRESS', 'SPORT BRA', 'GRAPHIC']
-        if any(at in it_clean for at in active_types):
-            return 'Active'
-        return 'Swimwear'
-
-    # Step 4: IPSS → Active (運動專精 = Knit)
-    if cat == 'IPSS':
-        return 'Active'
-
-    # Step 5: design_type fallback
-    dt = (p.get('design_type') or '').upper()
-    if dt in ('SWIM', 'SWIM/SPORT'):
-        return 'Swimwear'
-    if dt in ('SLEEPWEAR', 'SLEEP / LOUNGE'):
-        return 'Sleepwear'
-
-    return 'RTW'
+    return _resolve_dept_table(p)
 
 
 def infer_fabric(p):
-    """Infer fabric type. 2026-05-14: 優先吃 M7列管 W/K (mk_fabric, 聚陽 canonical),
-    對不到才走 category / sub_category / department 關鍵字."""
-    mf = (p.get('mk_fabric') or '').strip()
-    if mf in ('Knit', 'Woven', 'Denim'):
-        return mf
-    cat = (p.get('category') or '').upper()
-    if cat.startswith('IPSS'):
-        return 'Knit'
-    if cat.startswith('DENIM'):
-        return 'Denim'
-    if cat.startswith('KNITS'):
-        return 'Knit'
-    if cat.startswith('WOVEN'):
-        return 'Woven'
-
-    subcat = (p.get('sub_category') or '').upper()
-    if 'TSD' in subcat:
-        return 'Woven'
-
-    dept = (p.get('department_raw') or '').upper()
-    if 'KNIT' in dept:
-        return 'Knit'
-    if 'WOVEN' in dept:
-        return 'Woven'
-    if 'DENIM' in dept:
-        return 'Denim'
-
-    return 'Woven'  # RTW default = Woven
-
-
-# ═══════════════════════════════════════════════
-# 2026-05-14 Elly 指示: garment_type 直接用聚陽 M7 manifest 的 Item 原值,
-# 不做收斂 (不歸成 TOP/PANTS/... 9 桶). manifest 的 Item 欄就是聚陽自己的
-# 款式分類, 所有品牌都用 EIDH 反查 manifest 對映進來 (adapter 寫進 manifest_item).
-# 上半身/下半身/連身的判斷 (只給 POM 排序 + tier1 預設用, 不是 garment_type 本身)
-# 走 _pipeline_base.mk_item_region().
-# ═══════════════════════════════════════════════
+    """Fabric classifier (2026-05-16) — 改 data-driven。
+    主路徑 = mk_fabric (M7 列管 W/K); fallback 走 data/source/fabric_keywords.json。
+    Canonical enum: Knit / Woven / Denim (Fleece 保留位置, 未來 M7 加才用)
+    """
+    return _resolve_fabric_table(p)
 
 
 def real_gt_v2(p):
-    """Garment type = M7 manifest Item 原值 (聚陽款式分類).
-    2026-05-14: 改成直接回傳 manifest_item, 不再收斂成 9-bucket GT taxonomy.
-    manifest_item 空 (EIDH 不在 manifest, 罕見) 才 fallback 到關鍵字邏輯.
+    """Garment type classifier (2026-05-16) — 改 data-driven。
+    主路徑 = M7 manifest_item 原值 (聚陽款式分類); fallback 9 類走 data/source/gt_keywords.json。
     """
-    # ── 主路徑: M7 manifest Item 原值就是 garment_type ──
-    mi = (p.get('manifest_item') or '').strip()
-    if mi:
-        return mi
+    return _resolve_gt_table(p)
 
-    # ── fallback: manifest_item 空 → design_type/item_type/description 關鍵字 ──
-    dt = (p.get('design_type') or '').upper()
-    it = (p.get('item_type') or '').upper()
-    desc = (p.get('description') or '').upper()
-    combined = "{} {} {}".format(dt, it, desc)
-
-    # 1. ROMPER / JUMPSUIT / ONE PIECE / ONESIE / FOOTED 1PC / OVERALLS
-    if any(k in combined for k in ['ROMPER', 'JUMPSUIT', 'OVERALL']):
-        return 'ROMPER_JUMPSUIT'
-    if any(k in combined for k in ['ONESIE', 'FOOTED 1PC', 'FOOTED PJ']):
-        return 'ROMPER_JUMPSUIT'
-    if dt == 'ONE PIECE' or '1PC' in desc or 'ONE PIECE' in desc:
-        return 'ROMPER_JUMPSUIT'
-
-    # 2. BODYSUIT
-    if any(k in combined for k in ['BODYSUIT', 'BODY SUIT']):
-        return 'BODYSUIT'
-
-    # 3. SET (check desc words too — "KNIT SET", "BALLOON SET", "PJ SET")
-    if 'SET' in dt.split() or it == 'SETS' or it == 'Set':
-        return 'SET'
-    if 'SET' in desc.split():
-        return 'SET'
-
-    # 4. DRESS / GOWN / CAFTAN
-    if any(k in combined for k in ['DRESS', 'GOWN', 'CAFTAN']):
-        return 'DRESS'
-
-    # 5. LEGGINGS (before PANTS!)
-    if 'LEGGING' in combined:
-        return 'LEGGINGS'
-
-    # 6. SHORTS / SKORT (before SKIRT and PANTS)
-    if any(k in combined for k in ['SHORT', 'SKORT', 'CHINO SHORT']):
-        return 'SHORTS'
-
-    # 7. SKIRT
-    if 'SKIRT' in combined:
-        return 'SKIRT'
-
-    # 8. PANTS / JOGGER / JEAN / CHINO / FLARE / WIDE LEG
-    if any(k in combined for k in ['PANT', 'JEAN', 'JOGGER', 'CHINO', 'BOTTOM',
-                                     'FLARE', 'WIDE LEG']):
-        return 'PANTS'
-
-    # 9. OUTERWEAR (including FLEECE, OUTERWEAR, ZIP as keywords)
-    if any(k in combined for k in ['JACKET', 'HOODIE', 'VEST', 'COAT', 'CARDIGAN',
-                                     'PULLOVER', 'PONCHO', 'ANORAK', 'ROBE',
-                                     'OUTERWEAR', 'FLEECE', 'FULL ZIP']):
-        return 'OUTERWEAR'
-
-    # 10. TOP (including swim-adjacent: rashguard, bikini, tankini, crop, mock neck)
-    if any(k in combined for k in ['TOP', 'TEE', 'TANK', 'BLOUSE', 'SHIRT', 'POLO',
-                                     'HENLEY', 'CAMI', 'TUNIC', 'CROP', 'BRA', 'BIKINI',
-                                     'RASHGUARD', 'TANKINI', 'SLEEVE', 'MOCK NECK']):
-        return 'TOP'
-
-    # 11. Swim fallback: item_type SWIM without further desc → treat as UNKNOWN still
-    # but design_type Swim → TOP (most common swim pieces are tops/1pc)
-    if dt in ('SWIM', 'SWIM/SPORT'):
-        # Check desc for bottom-like
-        if any(k in desc for k in ['BOTTOM', 'BRIEF', 'TRUNK', 'BOARDSHORT']):
-            return 'SHORTS'
-        return 'TOP'  # default swim → TOP (tankini, bikini top, etc)
-
-    return 'UNKNOWN'
-
-
-# ═══════════════════════════════════════════════
-# CLASSIFY ALL + BUILD BUCKETS
-# ═══════════════════════════════════════════════
 
 def base_code(c):
     return c.split('.')[0] if c else c

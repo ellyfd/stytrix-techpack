@@ -6,6 +6,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _pipeline_base import get_base_dir  # noqa: E402
 
+# 2026-05-16: gender 改 data-driven, 走 data/source/gender_keywords.json
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "lib"))
+from resolve_classification import resolve_gender as _resolve_gender_table
+
+
 BASE = str(get_base_dir(description=__doc__))
 
 def extract_gender(brand_division, department=''):
@@ -35,21 +40,15 @@ def extract_gender(brand_division, department=''):
 
 
 def resolve_gender(rec):
-    """gender 解析優先序 (2026-05-14):
-      1. MATERNITY override — M7列管 PRODUCT_CATEGORY 沒有「孕婦裝」這個分類,
-         但孕婦裝做工有別 (肚圍片/前片放長等), 不可併進 WOMENS。
-         brand_division / department 明寫 MATERNITY 時保留 MATERNITY。
-      2. mk_gender — 聚陽 M7列管 PRODUCT_CATEGORY (Women/Men/Girl/Boy/Baby), 100% 覆蓋。
-      3. extract_gender() 關鍵字 — 只在 mk_gender 空 (EIDH 不在 M7列管) 時 fallback。
+    """gender 解析 (2026-05-16 改 data-driven):
+      T1 MATERNITY override (brand_division / department 含 MATERNITY) → MATERNITY
+      T2 mk_gender — 聚陽 M7 列管 PRODUCT_CATEGORY 主路徑
+      T3 (client, subgroup) canonical (從 client_canonical_mapping export)
+      T4 subgroup tokens → gender_keywords.json
+      T5 client default → gender_keywords.json
+    所有 fallback 邏輯走 data/source/gender_keywords.json。
     """
-    bd = (rec.get('brand_division') or '').upper()
-    dep = (rec.get('department') or '').upper()
-    if 'MATERNITY' in bd or 'MATERNITY' in dep:
-        return 'MATERNITY'
-    mk = (rec.get('mk_gender') or '').strip()
-    if mk:
-        return mk
-    return extract_gender(rec.get('brand_division', ''), rec.get('department', ''))
+    return _resolve_gender_table(rec)
 
 
 profiles = []

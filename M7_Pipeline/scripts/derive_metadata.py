@@ -24,6 +24,25 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parent.parent
 PURE_PATH = ROOT / "PULL ON pure data.xlsx"
 
+# 2026-05-16: 4 維度分類改 data-driven
+import sys as _sys
+_sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
+try:
+    from resolve_classification import (
+        resolve_dept as _resolve_dept_table,
+        resolve_gender as _resolve_gender_table,
+        resolve_gt as _resolve_gt_table,
+    )
+except ImportError:
+    # fallback: repo scripts/lib
+    _sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "scripts" / "lib"))
+    from resolve_classification import (
+        resolve_dept as _resolve_dept_table,
+        resolve_gender as _resolve_gender_table,
+        resolve_gt as _resolve_gt_table,
+    )
+
+
 # ════════════════════════════════════════════════════════════
 # 段 1：PULL ON pure data 學出來的對照表
 # ════════════════════════════════════════════════════════════
@@ -264,121 +283,23 @@ for k, v in _GENDER_MAPPING_FROM_JSON.items():
 # ════════════════════════════════════════════════════════════
 
 def derive_gender(client: str, subgroup: str) -> str:
-    """5 段 fallback 推 gender。
-
-    優先序：
-      1. client_canonical_mapping.json (v1, 2026-05-08)
-         — 從 M7列管 5/7 索引 18,731 EIDH PRODUCT_CATEGORY 投票推
-         — 167 個 high-purity (≥60%) (client, subgroup) → gender
-      2. _MANUAL_MAPPING + 舊 client_metadata_mapping.json (legacy)
-      3. _AUTO_MAPPING (PULL ON pure data 學的)
-      4. _GENDER_TOKENS regex (subgroup 含 MENS/MISSY/BOY/GIRL 字)
-      5. _CLIENT_DEFAULT_GENDER (client level default)
-
-    注意：build_recipes_master_v6 走 EIDH 時會優先用 M7 索引 PRODUCT_CATEGORY
-    直接對應 (gender_excel)，這個函式是 fallback 才被呼叫。
+    """改 data-driven (2026-05-16)。所有 fallback 走 data/source/gender_keywords.json
+    + data/runtime/gender_lookup_by_subgroup.json。
     """
-    if not client:
-        return "UNKNOWN"
-    c = client.upper().strip()
-    sg = (subgroup or "").upper().strip()
-
-    # 段 1: client_canonical_mapping (v1 ground truth, 最高優先)
-    if (c, sg) in _CANONICAL_GENDER_MAPPING:
-        return _CANONICAL_GENDER_MAPPING[(c, sg)]
-
-    # 段 2: manual mapping + 舊 client_metadata_mapping
-    if (c, sg) in _MANUAL_MAPPING:
-        return _MANUAL_MAPPING[(c, sg)]
-
-    # 段 3: auto mapping (PULL ON pure data 學)
-    auto = _load_auto_mapping()
-    if (c, sg) in auto:
-        return auto[(c, sg)]
-
-    # 段 4: subgroup 含 gender 字
-    g = _gender_from_subgroup(sg)
-    if g:
-        return g
-
-    # 段 5: client default
-    if c in _CLIENT_DEFAULT_GENDER:
-        return _CLIENT_DEFAULT_GENDER[c]
-
-    return "UNKNOWN"
+    return _resolve_gender_table({"client": client, "subgroup": subgroup})
 
 
 def derive_dept(client: str, program: str, subgroup: str) -> str:
-    """5 段 fallback 推 dept（v3 升級）
-
-    優先序：
-      1. v3 client_canonical_mapping.json (4 維 ground truth, 最強)
-      2. v1 _DEPT_MAPPING_FROM_JSON (legacy hard mapping)
-      3. Subgroup / Program keyword regex (ACTIVE / SLEEPWEAR / FLEECE 等)
-      4. Item 類型推導 (Pajama → SLEEPWEAR, Swimwear → SWIMWEAR)
-      5. _CLIENT_DEFAULT_DEPT (client level default)
+    """改 data-driven (2026-05-16)。Canonical enum v2 = 6 個 (ACTIVE/RTW/SWIMWEAR/SLEEPWEAR/DENIM/FLEECE)。
+    COLLAB→ACTIVE; MATERNITY→GENDER。所有規則走 data/source/dept_keywords.json
+    + data/runtime/dept_lookup_by_subgroup.json (從 client_canonical_mapping export)。
     """
-    c = str(client or "").upper().strip()
-    sg = str(subgroup or "").upper().strip()
-    sg_key = (c, sg)
-
-    # 段 1: v3 canonical_4dim_mapping ground truth (最強)
-    if sg_key in _CANONICAL_4DIM_MAPPING and _CANONICAL_4DIM_MAPPING[sg_key].get("dept"):
-        return _CANONICAL_4DIM_MAPPING[sg_key]["dept"]
-
-    # 段 2: legacy v1 hard mapping
-    if sg_key in _DEPT_MAPPING_FROM_JSON:
-        return _DEPT_MAPPING_FROM_JSON[sg_key]
-    text = " ".join([str(program or ""), str(subgroup or "")]).upper()
-    if "FLEECE" in text:
-        return "FLEECE"
-    if any(t in text for t in ["ACTIVE", "PERFORMANCE", "PERF", "BOUNCE", "MOMENTUM",
-                                "BUTTERSOFT", "AIM", "DSG", "MOVEMENT", "COMPRESSION",
-                                "MAC", "FLX", "ACT", "STUDIOSMOOTH",
-                                "POWERSOFT", "JOURNEY", "WAC", "GAC", "BAC",
-                                "F.R.", " FR ", "FR_", "FR/"]):  # WAC=Women Active, FR=Fashion Ready
-        return "ACTIVE"
-    if any(t in text for t in ["MATERNITY", "MTR"]):
-        return "MATERNITY"
-    if any(t in text for t in ["SLEEP", "PJ", "LOUNGE"]):
-        return "SLEEPWEAR"
-    if "DENIM" in text:
-        return "DENIM"
-    if "WOVEN" in text:
-        return "RTW"
-    if "KNIT" in text and "FR" not in text:
-        return "RTW"
-    if any(t in text for t in ["FASHION", "SEASONAL", "DRESSY", "RTW"]):
-        return "RTW"
-    # 客戶特定推導
-    c = (client or "").upper().strip()
-    if c in ["ATHLETA", "BEYOND YOGA", "DICKS SPORTING GOODS", "UNDER ARMOUR"]:
-        return "ACTIVE"
-    if c == "DICKS" and any(t in text for t in ["WALTER HAGEN", "GOLF"]):
-        return "RTW"  # 高爾夫 dressy pants 屬 RTW
-    if any(t in text for t in ["KIDS", "BOY", "GIRL", "BABY"]):
-        # KIDS/BOY/GIRL 沒明確 dept 字眼時，預設 RTW
-        return "RTW"
-    # 段 5: client-level default（最後 fallback，覆蓋 m7_report 直接抓無 design metadata 的 EIDH）
-    if c in _CLIENT_DEFAULT_DEPT:
-        return _CLIENT_DEFAULT_DEPT[c]
-    return "UNKNOWN"
+    return _resolve_dept_table({"client": client, "program": program, "subgroup": subgroup})
 
 
 def derive_garment_type(item: str) -> str:
-    """目前 M7 索引 Item 全 'Pull On Pants' → 全 PANTS。
-    細分 LEGGINGS/SHORTS 需要從 design name / style number 推（M7 索引沒料）。
-    """
-    text = (item or "").upper()
-    if "LEGGING" in text:
-        return "LEGGINGS"
-    if "SHORT" in text:
-        return "SHORTS"
-    if "JOGGER" in text:
-        return "JOGGERS"
-    if "SKIRT" in text or "SKORT" in text:
-        return "SKIRT"
-    return "PANTS"
+    """改 data-driven (2026-05-16)。M7 manifest Item 原值優先, fallback 走 data/source/gt_keywords.json。"""
+    return _resolve_gt_table({"mk_item": item, "item_type": item})
 
 
 def derive_metadata(client: str, subgroup: str = "", item: str = "",

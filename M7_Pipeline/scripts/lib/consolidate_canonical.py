@@ -27,6 +27,8 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 _ALIASES_CACHE = None
+_REVERSE_MAP_CACHE = {}  # v2 schema reverse-map cache: field_name → {alias_upper: short_code}
+
 
 
 def _find_aliases_path():
@@ -112,8 +114,28 @@ def _normalize_style_no(value: str) -> str:
     return v
 
 
+def _build_reverse_map(field_aliases: dict) -> dict:
+    """v2 schema: {short_code: [alias, alias, ...]} → reverse map {alias_upper: short_code}.
+    short_code 自己也加進 reverse map (讓已經是短碼的 value 也命中)。
+    跳過 _underscore prefix 的 metadata key。"""
+    rev = {}
+    for short_code, alias_list in field_aliases.items():
+        if short_code.startswith("_"):
+            continue
+        if not isinstance(alias_list, list):
+            continue
+        rev[short_code.upper()] = short_code
+        for alias in alias_list:
+            if isinstance(alias, str):
+                rev[alias.upper()] = short_code
+    return rev
+
+
 def _apply_alias(field_name: str, value, aliases: dict):
-    """套用 field-specific alias normalize,non-string 直接返"""
+    """套用 field-specific alias normalize (2026-05-16: 支援 v1+v2 雙 schema)。
+    v2: {short_code: [alias_list]} via reverse map
+    v1: {alias: short_code} 直接 lookup (backward compat)
+    """
     if value is None or not isinstance(value, str):
         return value
     if not field_name:
@@ -130,21 +152,35 @@ def _apply_alias(field_name: str, value, aliases: dict):
     if field_name == "報價款號":
         return _normalize_style_no(v)
 
-    # 其他 field 走 key-value mapping
     field_aliases = aliases.get(field_name, {})
     if not isinstance(field_aliases, dict):
         return value
 
-    # exact match (preserve casing) → 試 case-insensitive match
-    if v in field_aliases and not v.startswith("_"):
-        return field_aliases[v]
-    v_upper = v.upper()
-    for k, target in field_aliases.items():
-        if k.startswith("_"):
-            continue
-        if v_upper == k.upper():
-            return target
-    return value
+    # 判斷 v1 還 v2 schema: sample 一個 value 看是 str (v1) 還 list (v2)
+    sample_val = None
+    for k, vv in field_aliases.items():
+        if not k.startswith("_"):
+            sample_val = vv
+            break
+
+    if isinstance(sample_val, list):
+        # v2 schema: 用 reverse map
+        global _REVERSE_MAP_CACHE
+        if field_name not in _REVERSE_MAP_CACHE:
+            _REVERSE_MAP_CACHE[field_name] = _build_reverse_map(field_aliases)
+        rev = _REVERSE_MAP_CACHE[field_name]
+        return rev.get(v.upper(), value)
+    else:
+        # v1 backward compat: {alias: short_code} 直接 lookup
+        if v in field_aliases and not v.startswith("_"):
+            return field_aliases[v]
+        v_upper = v.upper()
+        for k, target in field_aliases.items():
+            if k.startswith("_"):
+                continue
+            if v_upper == k.upper():
+                return target
+        return value
 
 
 def _normalize(v):
