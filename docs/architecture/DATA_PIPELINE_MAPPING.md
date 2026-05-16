@@ -138,8 +138,7 @@ python star_schema/scripts/build_recipes_master.py --strict
 | consensus_v1 (same_bucket) | `data/ingest/consensus_v1/entries.jsonl` | 275 |
 | facts_agg (same_bucket) | `data/ingest/*/facts.jsonl` glob | 動態 |
 | **m7** ⭐ (same_bucket) | `data/ingest/m7/entries.jsonl` | 5,076 entries (~750 unique buckets) |
-| v4.3 (same_gt) | `path2_universal/iso_lookup_factory_v4.3.json` | 230 |
-| v4 (general) | `path2_universal/iso_lookup_factory_v4.json` | 282 |
+| brandspec_5dim (same_gt + general) | `path2_universal/iso_lookup_brandspec_5dim.json` | 1,943 (完整 5 維表，build 時 roll 成 same_gt + general 兩層；2026-05-15 取代舊 v4.3 + v4) |
 | bridge (cross_design) | `data/runtime/construction_bridge_v6.json` | 53 |
 
 **驗證**:L1 對 `l1_standard_38`、bucket 對 `bucket_taxonomy.json`(v4 + legacy_buckets)。違規 `--strict` exit 1。

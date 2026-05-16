@@ -1,12 +1,18 @@
 # Path 2 通用模型：AI 做工推薦 Pipeline
 
+> ⚠ **2026-05-15 查表來源已換**:`iso_lookup_factory_v4.3.json` + `v4.json` 已 git rm 退役,
+> 改由單一完整 5 維表 **`iso_lookup_brandspec_5dim.json`**（Fabric × Department × Gender × GT × L1,
+> 多來源聚合:pptx_facets 必吃 + facts_aligned 選吃 + pdf_facets 接口預留）取代。
+> **Pipeline 概念不變**（VLM 判 L1 → 查表 → 工廠輸出），只是查表的 source 換了一張完整表。
+> 以下「v4.3」相關描述為歷史紀錄,實作以 `build_iso_lookup_brandspec_5dim.py` + `build_recipes_master.py` 為準。
+
 > **2026-05-07 改名公告**:本資料夾原名 `General Model_Path2_Construction Suggestion/`,改名為 `path2_universal/`。SOP 中提到的檔案位置以新路徑為準。
 
 > **路線**：AI 判視 → 直接推 ISO 給工廠，不走五階層
 > **模型定位**：通用版（不分品牌），適用所有客人
 > **建立日期**：2026-04-20
 > **資料來源**：ONY 1,328 款 Centric 8（5 種來源合併：PPTX 中文 / PDF 英文 / JSONL iso_codes / Raw PDF pdfplumber / OCR callout）
-> **查表版本**：v4.3（2026-04-20，fine GT 對齊 App UI 下拉選單，Department × Gender × GT × L1 四維）
+> **查表版本**：~~v4.3~~ → 2026-05-15 改 `iso_lookup_brandspec_5dim.json`（完整 5 維 Fabric × Department × Gender × GT × L1）
 
 ---
 
@@ -26,8 +32,8 @@
                           ↓
             ┌─────────────────────────────┐
             │  ISO 查表（Stage ②）          │
-            │  查詢：Dept × Gender × GT × L1   │
-            │  來源：iso_lookup_factory_v4.3  │
+            │  查詢：Fabric × Dept × Gender × GT × L1 │
+            │  來源：iso_lookup_brandspec_5dim │
             │  輸出：每個 L1 的 ISO + 機種     │
             └──────────────┬──────────────┘
                           ↓
@@ -81,7 +87,7 @@ L1 部位定義如下：
 
 ### Stage ② ISO 查表
 
-**輸入檔案**：`iso_lookup_factory_v4.3.json`
+**輸入檔案**：`iso_lookup_brandspec_5dim.json`（2026-05-15 起；舊 `iso_lookup_factory_v4.3.json` 已 git rm）
 
 **已知 context**（Step 1 帶入，不需 VLM 判）：
 - `department`：General / Swimwear（來自 Centric 8 Department 欄位或使用者選擇）
@@ -94,7 +100,7 @@ L1 部位定義如下：
 import json
 
 # 載入查表
-with open("iso_lookup_factory_v4.3.json") as f:
+with open("iso_lookup_brandspec_5dim.json") as f:
     table = json.load(f)
 
 # 建立索引：(department, gender, gt, l1) → entry
@@ -254,7 +260,7 @@ ISO 406（替代）← 「口袋 反折一次压1/8'' 406，袋口套结」(D206
 | 檔案 | 用途 | Stage |
 |------|------|-------|
 | `docs/spec/L1_部位定義_Sketch視覺指引.md` | VLM 的 system prompt，38 個 L1 視覺定義 | ① |
-| `iso_lookup_factory_v4.3.json` | 四維查表：Department × Gender × GT(fine) × L1 → ISO（130 entries, 292 designs） | ② |
+| `iso_lookup_brandspec_5dim.json` | 五維查表：Fabric × Department × Gender × GT × L1 → ISO（2026-05-15 取代舊 `iso_lookup_factory_v4.3.json` + `v4.json`，已 git rm） | ② |
 | `l1_code_to_v3_mapping.json` | L1 code ↔ 中文部位名對照（VLM code→查表名稱橋接） | ①→② 橋接 |
 | `construction_recipes/` | v4.1 做工配方：71 recipes, 505 designs（Gender × Dept × GT(fine) × IT） | 參考 |
 | `_parsed/construction_extracts/pptx/` | 6,998 txt 檔，792 unique designs PPTX 中文做工提取 | 資料來源 ① |

@@ -87,8 +87,7 @@
 | `data/ingest/construction_by_bucket/` | 688 設計外部資料源 | ✅ |
 | `data/construction_bridge_v6.json` | 跨設計 GT × zone × ISO bridge | ✅ |
 | `recipes/*.json` (71 檔) | same_sub_category 統計 | ✅（新 sub-category 加） |
-| `path2_universal/iso_lookup_factory_v4.3.json` | 230 entries (Dept × Gender × GT × L1) | ✅(2026-05-07 從 `General Model_Path2/` 改名)|
-| `path2_universal/iso_lookup_factory_v4.json` | 282 entries (Fabric × Dept × GT × L1) | ✅(2026-05-07 從 `General Model_Path2/` 改名)|
+| `path2_universal/iso_lookup_brandspec_5dim.json` | 完整 5 維 brand-spec ISO 表 (Fabric × Dept × Gender × GT × L1)，多來源聚合；2026-05-15 取代舊 `iso_lookup_factory_v4.3.json` + `v4.json`（已 git rm） | ✅ |
 
 ### D. POM Raw（**獨立 pipeline，⛔ 不交集**）
 
@@ -132,7 +131,7 @@ Raw → 用 Bibles 對照 → Source entries.jsonl
 | 1 | `recipe` | `recipes/*.json` (71) | 手動編輯 |
 | 2 | `consensus_v1` | `data/ingest/consensus_v1/entries.jsonl` | OCR + facts 整合（人工驗證） |
 | 3 | `facts_agg` | 動態算 `data/ingest/*/facts.jsonl` | `extract_unified.py` 跑 |
-| 4 | `iso_lookup` (v4 + v4.3 整合) | `path2_universal/iso_lookup_factory_*.json` → 整合進 master | **v3 改：v4 + v4.3 maximize merge** |
+| 4 | `brandspec_5dim` | `path2_universal/iso_lookup_brandspec_5dim.json` → build 時 roll 成 same_gt + general 兩層 | **2026-05-15：單一完整 5 維表取代舊 v4 + v4.3 兩本** |
 | 5 | `bridge` | `data/construction_bridge_v6.json` | （持續補入的整合資料）|
 | 6 | `m7` ★ | `data/ingest/m7/entries.jsonl` | **M7 端 `build_m7_pullon_source.py` 產，git push 進來** |
 | 7 | `consensus_rules / ocr_v1 / construction_by_bucket` | data/ingest 子目錄 | 既有 |
@@ -276,7 +275,7 @@ master = run_cascade(all_entries)  # cascade: same_sub → same_bucket → same_
 │ Platform 既有:                               │
 │   uploads/ / consensus_v1/ / ocr_v1/         │
 │   construction_bridge_v6 / recipes/          │
-│   iso_lookup_factory_v4 / v4.3               │
+│   iso_lookup_brandspec_5dim (取代 v4/v4.3)    │
 │ POM Raw（獨立）:                              │
 │   mc_pom_*.jsonl / ONY PDF                   │
 └──────────────┬──────────────────────────────┘
