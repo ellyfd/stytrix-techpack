@@ -146,6 +146,34 @@ function readStepRow(row) {
   return { name: null, grade: null, sec: null, primary: null, machine: null, actuals: null };
 }
 
+/* ─── formatForCustomer: 2026-05-16 加。把 generic ISO display 轉成客人慣用語。
+   讀 customer_terminology_master.entries[iso].customer_variants[brand].primary
+   + customer_style_profile.clients[brand].format_type / iso_label_rate
+   決定:
+     - primary: 客人慣用寫法 (e.g. DKS→"CVRST", ONY→"1/8" 406", BNN→"DN-COVERSTITCH")
+     - showIsoNumber: 該客人是否慣標 ISO 編號 (iso_label_rate >= 0.15 視為慣標)
+     - formatType: 該客人格式類型描述 (給 tooltip 用)
+
+   brand / iso / terminology / profile 任一空 → 回 null,caller fallback 到 generic display。
+   ── */
+function formatForCustomer(brand, iso, terminology, profile) {
+  if (!brand || !iso || !terminology || !profile) return null;
+  const entry = (terminology.entries || []).find(e => e.canonical?.iso === iso);
+  if (!entry) return null;
+  const variant = entry.customer_variants?.[brand];
+  if (!variant || !variant.primary) return null;
+  const clientProfile = profile.clients?.[brand];
+  const isoLabelRate = clientProfile?.iso_label_rate || 0;
+  return {
+    primary: variant.primary,
+    showIsoNumber: isoLabelRate >= 0.15,
+    formatType: clientProfile?.format_type || '',
+    isoLabelRate,
+    nVariants: (variant.phrasings || []).length,
+    count: variant.count || 0,
+  };
+}
+
 /* ─── filterBibleByBrand: prune Phase 2 Bible to only paths a given brand
    used (per actuals.by_brand[brand]), and override each surviving step's
    sec with that brand's sec_median. Replaces the legacy
@@ -1454,7 +1482,8 @@ function PartTableHeader({ appMode }) {
    makalot 模式為主;universal 模式仍 fallback 用 Card。 */
 function DetailPanel({ card, col, appMode,
                       onSwitchMethod, onSwitchL2, onSwitchL3, onPickUniversalIso,
-                      onClose, onRemove }) {
+                      onClose, onRemove,
+                      brand, customerTerminology, customerStyleProfile }) {
   const [showSteps, setShowSteps] = useState(false);
   // 分組 mode 下,使用者可單獨展開特定 level (l2 / l3 / l4) 而不影響其他 level。
   const [expandedLevels, setExpandedLevels] = useState(() => new Set());
@@ -1600,12 +1629,31 @@ function DetailPanel({ card, col, appMode,
       {/* universal 模式 fallback:沿用 Card 的 ISO 區塊樣式概念,但簡化 */}
       {appMode === "universal" && card.universal && (
         <div style={{ padding: "10px 12px", background: "#fafaf9", border: "1px solid #e8e5e1", borderRadius: "8px", marginTop: "4px" }}>
-          {card.universal.iso ? (
+          {card.universal.iso ? (() => {
+            // 2026-05-16: brand 有選 → 切「客人語言」顯示 (DetailPanel desktop 版)
+            const cust = formatForCustomer(brand, card.universal.iso, customerTerminology, customerStyleProfile);
+            return (
             <>
-              <div style={{ fontSize: "16px", fontWeight: 800, fontFamily: "'JetBrains Mono',monospace" }}>
-                ISO {card.universal.iso}
-              </div>
-              {card.universal.iso_zh && <div style={{ fontSize: "13px", color: "#555", marginTop: "2px" }}>{card.universal.iso_zh}</div>}
+              {cust ? (
+                <>
+                  <div title={`${brand} 慣用寫法 · 出現 ${cust.count} 次 · 格式類型: ${cust.formatType}`}
+                       style={{ fontSize: "16px", fontWeight: 800, fontFamily: "'JetBrains Mono',monospace", cursor: "help" }}>
+                    {cust.primary}
+                  </div>
+                  <div style={{ fontSize: "11px", color: "#888", marginTop: "2px" }}>
+                    {cust.showIsoNumber
+                      ? `(ISO ${card.universal.iso}${card.universal.iso_zh ? " · " + card.universal.iso_zh : ""})`
+                      : `(${brand} 不標 ISO · ISO ${card.universal.iso}${card.universal.iso_zh ? " · " + card.universal.iso_zh : ""})`}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize: "16px", fontWeight: 800, fontFamily: "'JetBrains Mono',monospace" }}>
+                    ISO {card.universal.iso}
+                  </div>
+                  {card.universal.iso_zh && <div style={{ fontSize: "13px", color: "#555", marginTop: "2px" }}>{card.universal.iso_zh}</div>}
+                </>
+              )}
               {card.universal.alternatives?.length > 0 && (
                 <div style={{ marginTop: "10px", borderTop: "1px dashed #e8e5e1", paddingTop: "8px" }}>
                   <div style={{ fontSize: "10px", color: "#555", fontWeight: 600, marginBottom: "6px" }}>替代 ISO</div>
@@ -1623,7 +1671,8 @@ function DetailPanel({ card, col, appMode,
                 </div>
               )}
             </>
-          ) : (
+            );
+          })() : (
             <div style={{ fontSize: "12px", color: "#b91c1c" }}>此組合無對應 ISO</div>
           )}
         </div>
@@ -1735,7 +1784,8 @@ function DetailPanel({ card, col, appMode,
 }
 
 /* ─── Card ─── */
-function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL2, onSwitchL3, onPickUniversalIso, appMode }) {
+function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL2, onSwitchL3, onPickUniversalIso, appMode,
+                brand, customerTerminology, customerStyleProfile }) {
   const [editId, setEditId] = useState(null);
   const [showTip, setShowTip] = useState(false);
   const [showMethods, setShowMethods] = useState(false);
@@ -1888,13 +1938,36 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
                     }}>manual</span>
                   )}
                 </div>
-                {u && u.iso ? (
+                {u && u.iso ? (() => {
+                  // 2026-05-16: brand 有選 + customer terminology 載入完成 → 切「客人語言」顯示
+                  // 例 brand=DKS 看到 "CVRST",brand=BNN 看到 "DN-COVERSTITCH" 不標 ISO
+                  // brand 空 / 該客人沒這個 ISO 變體 / 資料還沒載入 → fallback 到 generic "ISO 406 · 三本雙針"
+                  const cust = formatForCustomer(brand, u.iso, customerTerminology, customerStyleProfile);
+                  return (
                   <div style={{ marginTop: "8px", display: "flex", alignItems: "baseline", gap: "8px", flexWrap: "wrap" }}>
-                    <span style={{ fontSize: "18px", fontWeight: 800, fontFamily: "'JetBrains Mono',monospace", color: "#1a1a1a" }}>
-                      ISO {u.iso}
-                    </span>
-                    {u.iso_zh && <span style={{ fontSize: "13px", color: "#555", fontWeight: 600 }}>{u.iso_zh}</span>}
-                    {u.machine && <span style={{ fontSize: "12px", color: "#555" }}>· {u.machine}</span>}
+                    {cust ? (
+                      <>
+                        <span title={`${brand} 慣用寫法 · 出現 ${cust.count} 次 · 格式類型: ${cust.formatType}`}
+                              style={{ fontSize: "18px", fontWeight: 800, fontFamily: "'JetBrains Mono',monospace", color: "#1a1a1a", cursor: "help" }}>
+                          {cust.primary}
+                        </span>
+                        <span title={`標準 ISO 編號 + 中文 + 機種`}
+                              style={{ fontSize: "11px", color: "#888", cursor: "help" }}>
+                          {cust.showIsoNumber
+                            ? `(ISO ${u.iso}${u.iso_zh ? " · " + u.iso_zh : ""})`
+                            : `(該客人不標 ISO · ISO ${u.iso}${u.iso_zh ? " · " + u.iso_zh : ""})`}
+                        </span>
+                        {u.machine && <span style={{ fontSize: "12px", color: "#555" }}>· {u.machine}</span>}
+                      </>
+                    ) : (
+                      <>
+                        <span style={{ fontSize: "18px", fontWeight: 800, fontFamily: "'JetBrains Mono',monospace", color: "#1a1a1a" }}>
+                          ISO {u.iso}
+                        </span>
+                        {u.iso_zh && <span style={{ fontSize: "13px", color: "#555", fontWeight: 600 }}>{u.iso_zh}</span>}
+                        {u.machine && <span style={{ fontSize: "12px", color: "#555" }}>· {u.machine}</span>}
+                      </>
+                    )}
                     {showPct && u.n != null && u.n_total != null && (
                       <span style={{ fontSize: "12px", color: "#b45309", fontFamily: "'JetBrains Mono',monospace", fontWeight: 600 }}>
                         {u.n}/{u.n_total}
@@ -1905,7 +1978,8 @@ function Card({ card, isOpen, onToggle, onRemove, col, onSwitchMethod, onSwitchL
                       <span style={{ fontSize: "11px", color: "#b45309" }}>通用手冊推薦</span>
                     )}
                   </div>
-                ) : (
+                  );
+                })() : (
                   <div style={{ marginTop: "8px", fontSize: "12px", color: "#b91c1c" }}>
                     此 Fabric × GT × IT × L1 組合查表無對應資料，請手動決定 ISO。
                   </div>
@@ -5500,6 +5574,11 @@ function App() {
   const [recipesMaster, setRecipesMaster] = useState(null);
   const [isoDictionary, setIsoDictionary] = useState(null);
   const [l1Standard38, setL1Standard38] = useState(null);
+  // 2026-05-16: 客人縫法 glossary runtime (Layer 1 + Layer 2)
+  // 給 formatForCustomer() 用 — 依當前選的 brand 把 generic ISO 轉成客人慣用語
+  // (DKS→CVRST / ONY→1/8" 406 / BNN→DN-COVERSTITCH 不標 ISO 等)
+  const [customerTerminology, setCustomerTerminology] = useState(null);
+  const [customerStyleProfile, setCustomerStyleProfile] = useState(null);
   // v6 grading_patterns(data/runtime/grading_patterns.json):
   // {category|gender: {POM: {m_median, pairs:{S→M,M→L,...}, inflection, delta_sm, delta_ml}}}
   // 33 combos × 1,016 POM families,20.6% POM 有 inflection(S→M 和 M→L 的 delta 不同)。
@@ -5560,6 +5639,9 @@ function App() {
       if (!recipesMaster) loadRuntimeJSON('./data/runtime/recipes_master.json', setRecipesMaster);
       if (!isoDictionary) loadRuntimeJSON('./data/runtime/iso_dictionary.json', setIsoDictionary);
       if (!l1Standard38)  loadRuntimeJSON('./data/runtime/l1_standard_38.json', setL1Standard38);
+      // 2026-05-16: customer terminology / style profile,給 formatForCustomer() 用
+      if (!customerTerminology)  loadRuntimeJSON('./data/runtime/customer_terminology_master.json', setCustomerTerminology);
+      if (!customerStyleProfile) loadRuntimeJSON('./data/runtime/customer_style_profile.json',     setCustomerStyleProfile);
     }
   }, [sketchSrc, appMode]);
 
@@ -7198,6 +7280,9 @@ function App() {
                     const renderCard = ({ c, i }) => isMobile ? (
                       <Card key={c.id} card={c} col={MC[i]} isOpen={openId === c.id}
                         appMode={appMode}
+                        brand={brand}
+                        customerTerminology={customerTerminology}
+                        customerStyleProfile={customerStyleProfile}
                         onToggle={() => toggle(c.id)}
                         onRemove={id => { setRemoved(p => new Set([...p, id])); if (openId === id) setOpenId(null); }}
                         onSwitchMethod={(cardId, newIdx) => setCards(cs => cs.map(cc => {
@@ -7624,6 +7709,9 @@ function App() {
                       <>
                         <DetailPanel
                           card={ac} col={MC[acIdx]} appMode={appMode}
+                          brand={brand}
+                          customerTerminology={customerTerminology}
+                          customerStyleProfile={customerStyleProfile}
                           onClose={() => setOpenId(null)}
                           onRemove={id => { setRemoved(p => new Set([...p, id])); setOpenId(null); }}
                           onSwitchMethod={(cardId, newIdx) => setCards(cs => cs.map(cc => {
