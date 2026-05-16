@@ -20,7 +20,13 @@
       "嬰幼兒(月齡+T碼)": "infant"
     },
     "n_brand_gender_combos": 53,
-    "n_total_runs": 94
+    "n_total_runs": 94,
+    "_description": "53 個 brand × gender 組合 × 94 個尺寸套 — 從聚陽端 盤x客人x尺寸套x基碼_v9.xlsx 蒸餾。給前端 Size Rule toggle 用",
+    "_consumer": [
+      "index.html (前端 Size Rule toggle / Alpha vs Numeric base 切換)",
+      "tests/test_schema.py (schema invariant)",
+      "scripts/core/build_brand_size_runs.py (regen 時讀)"
+    ]
   },
   "by_brand_gender": {
     "ANF|BABY/TODDLER": [

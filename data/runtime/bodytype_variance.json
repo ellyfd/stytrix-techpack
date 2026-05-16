@@ -2,7 +2,14 @@
   "_meta": {
     "schema": "brand|gender|gt|bodytype",
     "per_brand": true,
-    "note": "2026-05-14 v9: brand 維度,每 brand 各算 petite/tall/plus"
+    "note": "2026-05-14 v9: brand 維度,每 brand 各算 petite/tall/plus",
+    "_consumer": [
+      "index.html (前端 PETITE/TALL/PLUS body type variance 估算)",
+      "scripts/core/rebuild_all_analysis_v2.py",
+      "scripts/core/stamp_source_brand.py"
+    ],
+    "_source": "POM Pipeline B 從 mc_pom_v11.jsonl 計算 per-brand bodytype 變異 (vs MISSY 基準)",
+    "_generator": "scripts/core/rebuild_all_analysis_v2.py"
   },
   "ONY|BOYS|Blouse/Shirts|PLUS": {
     "m_size_comparison": {

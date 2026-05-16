@@ -5,104 +5,219 @@
     "scripts/core/reclassify_and_rebuild.py:real_dept_v4() — 整支砍掉, 改 import resolve_dept(rec) 走本表",
     "M7_Pipeline/scripts/derive_metadata.py:derive_dept() — 同樣改吃 resolve_dept(rec)"
   ],
-  "_canonical_enum_v2": ["ACTIVE", "RTW", "SWIMWEAR", "SLEEPWEAR", "DENIM", "FLEECE"],
+  "_canonical_enum_v2": [
+    "ACTIVE",
+    "RTW",
+    "SWIMWEAR",
+    "SLEEPWEAR",
+    "DENIM",
+    "FLEECE"
+  ],
   "_enum_change_note": "從 v1 多 enum (Active/Sleepwear/Swimwear/Fleece/Collaboration/RTW/MATERNITY/UNKNOWN) 收斂到 v2 6 個: (1) COLLABORATION → 併 ACTIVE; (2) MATERNITY → 拔出 Dept, 放 GENDER 維度 (resolve_gender override 已支援); (3) 統一 UPPERCASE",
   "_priority_cascade": [
-    {"tier": "T1", "table": "by_subgroup",      "field": "(client, subgroup)", "source": "data/client_canonical_mapping.json 4 維 GT export"},
-    {"tier": "T2", "table": "by_item",          "field": "item_type / item",   "source": "本表"},
-    {"tier": "T3", "table": "by_category",      "field": "category",           "source": "本表"},
-    {"tier": "T4", "table": "by_design_type",   "field": "design_type",        "source": "本表"},
-    {"tier": "T5", "table": "by_collab_set",    "field": "department_raw",     "source": "本表 (注: COLLABORATION 併 ACTIVE)"},
-    {"tier": "T6", "table": "by_dept_keyword",  "field": "department_raw / subgroup / program (concat UPPER)", "source": "本表"},
-    {"tier": "T7", "table": "by_client_default","field": "client",             "source": "本表"},
-    {"tier": "T8", "rule": "UNKNOWN"}
+    {
+      "tier": "T1",
+      "table": "by_subgroup",
+      "field": "(client, subgroup)",
+      "source": "data/client_canonical_mapping.json 4 維 GT export"
+    },
+    {
+      "tier": "T2",
+      "table": "by_item",
+      "field": "item_type / item",
+      "source": "本表"
+    },
+    {
+      "tier": "T3",
+      "table": "by_category",
+      "field": "category",
+      "source": "本表"
+    },
+    {
+      "tier": "T4",
+      "table": "by_design_type",
+      "field": "design_type",
+      "source": "本表"
+    },
+    {
+      "tier": "T5",
+      "table": "by_collab_set",
+      "field": "department_raw",
+      "source": "本表 (注: COLLABORATION 併 ACTIVE)"
+    },
+    {
+      "tier": "T6",
+      "table": "by_dept_keyword",
+      "field": "department_raw / subgroup / program (concat UPPER)",
+      "source": "本表"
+    },
+    {
+      "tier": "T7",
+      "table": "by_client_default",
+      "field": "client",
+      "source": "本表"
+    },
+    {
+      "tier": "T8",
+      "rule": "UNKNOWN"
+    }
   ],
-
   "by_item": {
     "_match": "item / item_type UPPER substring",
-    "_priority": "SWIM 優先 (排除 RASHGUARD), 再 SLEEP, 其他不命中"  ,
+    "_priority": "SWIM 優先 (排除 RASHGUARD), 再 SLEEP, 其他不命中",
     "rules": [
-      {"match": "SWIM", "exclude": ["RASHGUARD"], "dept": "SWIMWEAR"},
-      {"match": "SLEEP", "dept": "SLEEPWEAR"},
-      {"match": "PAJAMA", "dept": "SLEEPWEAR"},
-      {"match": "PJ", "dept": "SLEEPWEAR"},
-      {"match": "LOUNGE", "dept": "SLEEPWEAR"},
-      {"match": "ROBE", "dept": "SLEEPWEAR"}
+      {
+        "match": "SWIM",
+        "exclude": [
+          "RASHGUARD"
+        ],
+        "dept": "SWIMWEAR"
+      },
+      {
+        "match": "SLEEP",
+        "dept": "SLEEPWEAR"
+      },
+      {
+        "match": "PAJAMA",
+        "dept": "SLEEPWEAR"
+      },
+      {
+        "match": "PJ",
+        "dept": "SLEEPWEAR"
+      },
+      {
+        "match": "LOUNGE",
+        "dept": "SLEEPWEAR"
+      },
+      {
+        "match": "ROBE",
+        "dept": "SLEEPWEAR"
+      }
     ]
   },
-
   "by_category": {
     "_match": "category UPPER startswith",
-    "IPSS":  "ACTIVE",
+    "IPSS": "ACTIVE",
     "DENIM": "DENIM",
     "KNITS": null,
     "WOVEN": null,
     "_note": "KNITS/WOVEN 是 fabric 訊號不是 dept, 不在本表回值, 讓 cascade 往下走"
   },
-
   "by_design_type": {
     "_match": "design_type UPPER exact",
-    "SWIM":           "SWIMWEAR",
-    "SWIM/SPORT":     "SWIMWEAR",
-    "SLEEPWEAR":      "SLEEPWEAR",
+    "SWIM": "SWIMWEAR",
+    "SWIM/SPORT": "SWIMWEAR",
+    "SLEEPWEAR": "SLEEPWEAR",
     "SLEEP / LOUNGE": "SLEEPWEAR",
-    "DENIM":          "DENIM"
+    "DENIM": "DENIM"
   },
-
   "by_collab_set": {
     "_description": "原 real_dept_v4 把 NFL/NBA/MISCSPORTS 設 Collaboration, v2 收斂 enum 改併 ACTIVE",
     "_match": "department_raw UPPER exact strip",
-    "NFL":         "ACTIVE",
-    "NBA":         "ACTIVE",
-    "MISCSPORTS":  "ACTIVE"
+    "NFL": "ACTIVE",
+    "NBA": "ACTIVE",
+    "MISCSPORTS": "ACTIVE"
   },
-
   "by_dept_keyword": {
     "_match": "concat(program, subgroup, department_raw) UPPER substring",
-    "_priority_order": ["ACTIVE", "FLEECE", "DENIM", "SLEEPWEAR", "RTW"],
+    "_priority_order": [
+      "ACTIVE",
+      "FLEECE",
+      "DENIM",
+      "SLEEPWEAR",
+      "RTW"
+    ],
     "rules": {
       "ACTIVE": {
         "tokens": [
-          "PERFORMANCE ACTIVE", "ACTIVE", "ATHLETIC", "PERFORMANCE", "PERF",
-          "BOUNCE", "MOMENTUM", "BUTTERSOFT", "AIM", "DSG", "MOVEMENT",
-          "COMPRESSION", "MAC", "FLX", "ACT", "STUDIOSMOOTH",
-          "POWERSOFT", "JOURNEY", "WAC", "GAC", "BAC",
-          "F.R.", " FR ", "FR_", "FR/"
+          "PERFORMANCE ACTIVE",
+          "ACTIVE",
+          "ATHLETIC",
+          "PERFORMANCE",
+          "PERF",
+          "BOUNCE",
+          "MOMENTUM",
+          "BUTTERSOFT",
+          "AIM",
+          "DSG",
+          "MOVEMENT",
+          "COMPRESSION",
+          "MAC",
+          "FLX",
+          "ACT",
+          "STUDIOSMOOTH",
+          "POWERSOFT",
+          "JOURNEY",
+          "WAC",
+          "GAC",
+          "BAC",
+          "F.R.",
+          " FR ",
+          "FR_",
+          "FR/"
         ],
         "_note": "WAC=Women Active, FR=Fashion Ready, 24 tokens 從 derive_dept 段3 + real_dept_v4 step3 合併"
       },
       "FLEECE": {
-        "tokens": ["FLEECE"]
+        "tokens": [
+          "FLEECE"
+        ]
       },
       "DENIM": {
-        "tokens": ["DENIM"]
+        "tokens": [
+          "DENIM"
+        ]
       },
       "SLEEPWEAR": {
-        "tokens": ["SLEEP", "PJ", "LOUNGE", "PAJAMA", "ROBE"]
+        "tokens": [
+          "SLEEP",
+          "PJ",
+          "LOUNGE",
+          "PAJAMA",
+          "ROBE"
+        ]
       },
       "RTW": {
-        "tokens": ["WOVEN", "FASHION", "SEASONAL", "DRESSY"],
+        "tokens": [
+          "WOVEN",
+          "FASHION",
+          "SEASONAL",
+          "DRESSY"
+        ],
         "_note": "原邏輯 'KNIT and not FR' → RTW 太鬆, 拔掉。WOVEN/FASHION/DRESSY 才回 RTW"
       },
       "SWIMWEAR": {
-        "tokens": ["SWIM"],
+        "tokens": [
+          "SWIM"
+        ],
         "_dept_swim_active_types_check": [
-          "TOP", "PANT", "LEGGING", "PULLOVER", "JACKET", "SHORT",
-          "HOODIE", "FLEECE", "POLO", "TEE", "HENLEY", "SHIRT",
-          "DRESS", "SPORT BRA", "GRAPHIC"
+          "TOP",
+          "PANT",
+          "LEGGING",
+          "PULLOVER",
+          "JACKET",
+          "SHORT",
+          "HOODIE",
+          "FLEECE",
+          "POLO",
+          "TEE",
+          "HENLEY",
+          "SHIRT",
+          "DRESS",
+          "SPORT BRA",
+          "GRAPHIC"
         ],
         "_swim_special_logic": "原 real_dept_v4: SWIM in dept_raw → 看 item_type 在 active_types 內 → ACTIVE; 否則 SWIMWEAR。本表保留 active_types 給 runner 用"
       }
     }
   },
-
   "by_client_default": {
     "_match": "client UPPER",
     "_description": "原 real_dept_v4 step3 客戶特定 + derive_dept 段4 客戶特定 合併",
-    "ATHLETA":               "ACTIVE",
-    "BEYOND YOGA":           "ACTIVE",
-    "DICKS SPORTING GOODS":  "ACTIVE",
-    "UNDER ARMOUR":          "ACTIVE",
+    "ATHLETA": "ACTIVE",
+    "BEYOND YOGA": "ACTIVE",
+    "DICKS SPORTING GOODS": "ACTIVE",
+    "UNDER ARMOUR": "ACTIVE",
     "_kids_default_logic": {
       "match": "client UPPER 含任一 [KIDS, BOY, GIRL, BABY] 且其他 tier 都不命中",
       "dept": "RTW",
@@ -114,10 +229,11 @@
       "_note": "高爾夫 dressy pants 是 RTW 不是 ACTIVE"
     }
   },
-
   "_removed_from_enum_v2": {
     "COLLABORATION": "併 ACTIVE — NFL/NBA/MISCSPORTS 本質是 active wear + 授權通路差異是 trim 層不是 dept",
     "MATERNITY": "拔出 Dept, 放 GENDER 維度 — real_dept_v4 註解早就堅持的: Maternity is a GENDER, not a Department. resolve_gender override 已支援",
     "UNKNOWN": "保留為 cascade fallback 終點, 不入 canonical enum"
-  }
+  },
+  "_sot": "本檔 = Dept fallback keyword cascade SOT (data/source/, 手維護)",
+  "_source": "Elly + 業務知識 + 從 reclassify_and_rebuild.py 舊 real_dept_v4 hardcoded if/elif 抽出"
 }

@@ -2,46 +2,91 @@
   "_description": "Garment Type fallback keyword 查表 — 只用在 M7 manifest_item 空 (EIDH 不在 manifest, 罕見) 時 fallback。主路徑 = mk_item 原值。",
   "_updated": "2026-05-16",
   "_consumer": "scripts/core/reclassify_and_rebuild.py:real_gt_v2() — fallback 那段改吃本表，if/elif 改 dict lookup",
-  "_priority_order": ["ROMPER_JUMPSUIT", "BODYSUIT", "SET", "DRESS", "LEGGINGS", "SHORTS", "SKIRT", "PANTS"],
-  "_match_fields": ["design_type", "item_type", "description"],
+  "_priority_order": [
+    "ROMPER_JUMPSUIT",
+    "BODYSUIT",
+    "SET",
+    "DRESS",
+    "LEGGINGS",
+    "SHORTS",
+    "SKIRT",
+    "PANTS"
+  ],
+  "_match_fields": [
+    "design_type",
+    "item_type",
+    "description"
+  ],
   "_match_logic": "concat 三個欄位 UPPER 後逐 keyword substring match, 優先順序見 _priority_order",
   "_default": "PANTS",
   "rules": [
     {
       "gt": "ROMPER_JUMPSUIT",
-      "keywords": ["ROMPER", "JUMPSUIT", "OVERALL", "ONESIE", "FOOTED 1PC", "FOOTED PJ", "ONE PIECE", "1PC"]
+      "keywords": [
+        "ROMPER",
+        "JUMPSUIT",
+        "OVERALL",
+        "ONESIE",
+        "FOOTED 1PC",
+        "FOOTED PJ",
+        "ONE PIECE",
+        "1PC"
+      ]
     },
     {
       "gt": "BODYSUIT",
-      "keywords": ["BODYSUIT", "BODY SUIT"]
+      "keywords": [
+        "BODYSUIT",
+        "BODY SUIT"
+      ]
     },
     {
       "gt": "SET",
-      "keywords": ["SET"],
+      "keywords": [
+        "SET"
+      ],
       "_note": "SET 在 design_type 或 description 以單字出現 (split-by-space) 才算, 避免 SETTLE/SETUP 誤命中。實作時用 word boundary regex"
     },
     {
       "gt": "DRESS",
-      "keywords": ["DRESS", "GOWN", "CAFTAN"]
+      "keywords": [
+        "DRESS",
+        "GOWN",
+        "CAFTAN"
+      ]
     },
     {
       "gt": "LEGGINGS",
-      "keywords": ["LEGGING"],
+      "keywords": [
+        "LEGGING"
+      ],
       "_priority_note": "必須在 SHORTS 跟 PANTS 之前判, 否則 LEGGING SHORTS 會誤分 SHORTS"
     },
     {
       "gt": "SHORTS",
-      "keywords": ["SHORT", "SKORT", "CHINO SHORT"],
+      "keywords": [
+        "SHORT",
+        "SKORT",
+        "CHINO SHORT"
+      ],
       "_priority_note": "必須在 SKIRT 之前判 (SKORT 兩字共享 SK 前綴)"
     },
     {
       "gt": "SKIRT",
-      "keywords": ["SKIRT"]
+      "keywords": [
+        "SKIRT"
+      ]
     },
     {
       "gt": "PANTS",
-      "keywords": ["PANT", "TROUSER", "JOGGER"],
+      "keywords": [
+        "PANT",
+        "TROUSER",
+        "JOGGER"
+      ],
       "_is_default": true
     }
-  ]
+  ],
+  "_sot": "本檔 = GT fallback keyword cascade SOT (data/source/, 手維護)",
+  "_source": "Elly + 業務知識 + 從 reclassify_and_rebuild.py 舊 real_gt_v2 hardcoded if/elif 抽出"
 }

@@ -99,5 +99,13 @@
       "en": "Flatlock",
       "machine": "併縫車 Flatlock"
     }
-  }
+  },
+  "_description": "ISO 機種主表 — ISO 編號 ↔ 中文 / 英文 canonical / 機種對照。新增 ISO 編號透過 PR review",
+  "_consumer": [
+    "index.html (L6320 iso_dictionary?.entries lookup)",
+    "api/analyze.js (Claude Vision prompt inject)",
+    "M7_Pipeline/scripts/export_for_stytrix_techpack.py",
+    "_pipeline_base.py (POM Pipeline 用)"
+  ],
+  "_source": "聚陽 IE 設備清單 + Centric 8 manual + ISO對應五階層機種.xlsx (data/source/) 蒸餾"
 }
