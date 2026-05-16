@@ -1,0 +1,119 @@
+{
+  "_version": "v1",
+  "_generated_at_source": "ISO_客人縫法對照表_Glossary.xlsx",
+  "_description": "各客人 縫法書寫風格 profile — 給做工建議 output formatter 用。",
+  "_consumer": "前端做工建議 formatter (五階 L5 → ISO → 客人 phrasing 時套客人 format)",
+  "_field_descriptions": {
+    "iso_label_rate": "客人 PDF 中標準 ISO 編號的比例 (0.21 = 21%)",
+    "format_type": "客人寫縫法的格式類型 (直標ISO / 縮寫+ISO / 功能描述 / 不使用)",
+    "primary_406_variant": "客人寫 ISO 406 (三本雙針) 的最常用變體寫法",
+    "default_stitch": "客人 預設縫法 (PDF 開頭聲明 或 不聲明)",
+    "identifying_features": "客人寫法的識別特徵 (大寫率 / 特殊術語 / 等)"
+  },
+  "clients": {
+    "DKS": {
+      "count": 7191,
+      "iso_label_rate": 0.21,
+      "format_type": "CVRST+直標混用",
+      "primary_406_variant": "CVRST / 2N 406 / 406",
+      "default_stitch": "514 or 516（依款）",
+      "identifying_features": "大寫94%；CVRST=2N CVRST，寫法不統一無差異"
+    },
+    "KOH": {
+      "count": 5649,
+      "iso_label_rate": 0.18,
+      "format_type": "縮寫+括號ISO",
+      "primary_406_variant": "bttm cs (ISO406)",
+      "default_stitch": "514",
+      "identifying_features": "內建KNIT STITCH INFO對照表"
+    },
+    "ONY": {
+      "count": 5568,
+      "iso_label_rate": 0.09,
+      "format_type": "直標406",
+      "primary_406_variant": "1/8\" 406 / 2N 406",
+      "default_stitch": "依款不同",
+      "identifying_features": "大寫89%；2NTS≠406（無爬網）"
+    },
+    "ATH": {
+      "count": 4555,
+      "iso_label_rate": 0.03,
+      "format_type": "#ISO 針數N 線數TH",
+      "primary_406_variant": "#406 2N 3TH CVST",
+      "default_stitch": "無固定",
+      "identifying_features": "有bonded/laser特殊工藝"
+    },
+    "BNN": {
+      "count": 2792,
+      "iso_label_rate": 0.0,
+      "format_type": "SN/DN-機種前綴",
+      "primary_406_variant": "DN-COVERSTITCH",
+      "default_stitch": "無聲明",
+      "identifying_features": "梭織品類；BLIND HEM；SN-CHAINSTITCH"
+    },
+    "JOE": {
+      "count": 1621,
+      "iso_label_rate": 0.18,
+      "format_type": "全文字小寫完整句",
+      "primary_406_variant": "2 needle bottom coverstitch",
+      "default_stitch": "SPI聲明",
+      "identifying_features": "3N straddle coverstitch = 605"
+    },
+    "A_F": {
+      "count": 1582,
+      "iso_label_rate": 0.26,
+      "format_type": "開頭ALL SEAMS聲明",
+      "primary_406_variant": "1/4\" 2N 406 / 2N (ISO 406)",
+      "default_stitch": "514 or 516",
+      "identifying_features": "每款開頭宣告預設縫法"
+    },
+    "UAM": {
+      "count": 645,
+      "iso_label_rate": 0.33,
+      "format_type": "針數+ISO直標",
+      "primary_406_variant": "2N 406",
+      "default_stitch": "514",
+      "identifying_features": "ISO標注率最高；1N/2N直標"
+    },
+    "TGT": {
+      "count": 576,
+      "iso_label_rate": 0.28,
+      "format_type": "ISO+全稱並列",
+      "primary_406_variant": "406 2 needle coverstitch",
+      "default_stitch": "無固定",
+      "identifying_features": "flatseam=607；407≠406；512/514並列"
+    },
+    "SMA": {
+      "count": 567,
+      "iso_label_rate": 0.01,
+      "format_type": "功能描述不標ISO",
+      "primary_406_variant": "—（不標ISO）",
+      "default_stitch": "xNDL TOP ST",
+      "identifying_features": "LOCK ST/TOP ST/EDGE ST格式"
+    },
+    "BYY": {
+      "count": 325,
+      "iso_label_rate": 0.06,
+      "format_type": "預設514，特定款607",
+      "primary_406_variant": "406 2NDL BTTM CVST",
+      "default_stitch": "514（4T overlock）",
+      "identifying_features": "有602假拷拉；特定款用607 flatlock"
+    },
+    "ASC": {
+      "count": 158,
+      "iso_label_rate": 0.0,
+      "format_type": "FLATSEAM預設+CM",
+      "primary_406_variant": "2NDL coverstitch / 2N stitch",
+      "default_stitch": "605（3NDL flatseam）",
+      "identifying_features": "用CM非英吋；最小資料集"
+    },
+    "OKY": {
+      "count": 146,
+      "iso_label_rate": 0.0,
+      "format_type": "部位詞彙（非縫法）",
+      "primary_406_variant": "—",
+      "default_stitch": "—",
+      "identifying_features": "幾乎無縫法術語，為部位結構名稱"
+    }
+  }
+}
