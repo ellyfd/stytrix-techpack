@@ -71,6 +71,13 @@ jobs:
       # Auto-analyzes data/ingest/pdf/construction_images/*.png with Claude Vision API.
       # Falls back to vlm_raw_extracts.json if it exists (PoC/manual mode).
       # --allow-empty: exits 0 if no images and no pre-built extracts (first run or PPTX-only upload).
+      # ── Validate Step 1 output (P2 2026-05-16) ─────────────────────────────
+      # 驗 step1_summary.json 存在 + parseable;不擋 0 files (workflow 可能 m7-only push)
+      - name: Validate Step 1 — summary parseable
+        run: |
+          test -f /tmp/step1_summary.json || (echo "::error::step1_summary.json missing"; exit 1)
+          python -c "import json; s=json.load(open('/tmp/step1_summary.json')); print('Step 1 summary OK:', s)"
+
       - name: Step 2b — VLM construction extraction
         id: vlm
         env:
@@ -110,6 +117,11 @@ jobs:
           python star_schema/scripts/extract_unified.py \
             --ingest-dir data/ingest \
             --out data/ingest/unified
+
+      # ── Validate Step 2a output (P2 2026-05-16) ────────────────────────────
+      # 驗 unified/facts.jsonl 行數 >= 100 + dim.jsonl 存在;Step 3 跑之前最後一關
+      - name: Validate Step 2a — facts.jsonl sanity
+        run: python scripts/core/validate_step2a_facts.py
 
       # ── Pre-Step 3 sanity: validate bucket_taxonomy + pom_rules schema ────
       # Cheap (<1s) early gate. Catches schema drift before Step 3 spends time
@@ -161,6 +173,18 @@ jobs:
       # 數字 8 base / BR WOMENS 只有字母 M base)。xlsx 變動就要重跑。
       - name: Step 4e — derive brand_size_runs.json (per-客人 size 套列管)
         run: python scripts/core/build_brand_size_runs.py
+
+      # ── Step 4z — post-derive validation (P2 2026-05-16) ──────────────────
+      # 跑完 Step 4a/b/c/d/e 後重跑 schema invariants,catch derive 過程的 drift
+      # (Pre-Step 3 pytest 驗的是 incoming repo state, 不是這次 derive 出來的新狀態)
+      - name: Step 4z — post-derive validation (l2_l3_ie / brands / alias / size_runs)
+        run: |
+          python -m pytest tests/test_schema.py::test_l2_l3_ie_index_38_parts \
+                           tests/test_schema.py::test_brands_shape \
+                           tests/test_schema.py::test_brand_pom_alias_present \
+                           tests/test_schema.py::test_brand_size_runs_present \
+                           tests/test_schema.py::test_code_manifest_shape \
+                           -v
 
       # ── Commit derived outputs ─────────────────────────────────────────────
       - name: Commit updated data
