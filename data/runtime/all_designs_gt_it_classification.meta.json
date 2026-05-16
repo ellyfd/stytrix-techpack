@@ -1,0 +1,14 @@
+{
+  "_description": "1,292 個 design 的 12 維分類字典 (design_id → {gt, item_type, gender, dept, fabric, description, design_type, brand_division, has_mc_pom, category, department_raw, ...})。當 EIDH 不在 m7 manifest 時的 fallback lookup,維持 vlm_pipeline + extract_unified 的相容性",
+  "_consumer": [
+    "scripts/core/rebuild_all_analysis_v2.py (regen 時讀回 existing 做 incremental update)",
+    "star_schema/scripts/extract_unified.py (legacy fallback - m7 manifest 命中失敗時)",
+    "star_schema/scripts/vlm_pipeline.py (legacy fallback - GT/IT backfill 用)"
+  ],
+  "_source": "從 m7 manifest + Centric 8 PLM extraction + PDF metadata 整合產出",
+  "_generator": "scripts/core/rebuild_all_analysis_v2.py",
+  "_generated_at": "(file mtime - 每次 rebuild_all_analysis_v2.py 跑完更新)",
+  "_target_file": "all_designs_gt_it_classification.json",
+  "_note": "本檔為 sidecar metadata。主檔頂層 keys 是 design IDs (D100304 等) 不適合 inline 加 _-prefix metadata 避免污染 key 空間",
+  "_n_records_at_audit": 1292
+}

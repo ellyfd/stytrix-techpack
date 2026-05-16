@@ -1,0 +1,16 @@
+{
+  "_description": "410 POM 代號中英對照字典 (例 A1=Hood Width / 帽寬;A2=Hood Length / 帽長;B1-B12=...)。POM code 編碼:字母前綴標部位類別 + 數字標細項",
+  "_consumer": [
+    "index.html (前端 POM table 顯示中英 label)",
+    "scripts/core/reclassify_and_rebuild.py (Pipeline B 用)",
+    "scripts/core/_pipeline_base.py (helper - validates POM codes)",
+    "api/push-pom-dict.js (admin API 端點 - 聚陽端新增 POM 代號用)"
+  ],
+  "_source": "聚陽 Centric 8 / IE 端維護的 POM 代號表 SOT",
+  "_generator": "(無 in-repo writer。聚陽端維護後 push 進 repo, 或透過 api/push-pom-dict.js)",
+  "_generated_at": "(file mtime - 聚陽端 push commit 時更新)",
+  "_target_file": "pom_dictionary.json",
+  "_sot_note": "POM 代號表的 SOT 是聚陽 Centric 8 系統。data/runtime/pom_dictionary.json 是該 SOT 的 snapshot。要動加 POM 走 api/push-pom-dict.js 或聚陽端 push",
+  "_note": "本檔為 sidecar metadata。主檔頂層 keys 是 POM codes (A1/A2/B1...) 不適合 inline 加 _-prefix metadata",
+  "_n_codes_at_audit": 410
+}

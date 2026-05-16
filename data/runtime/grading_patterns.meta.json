@@ -1,0 +1,16 @@
+{
+  "_description": "POM grading 樣本資料 (7 MB) — 195 buckets × POM × size-pair grading 中位數。每 bucket key = '<dept>_<gt>|<gender>' (例 'Active_Blouse/Shirts|BOYS'),value 是該 bucket 的 POM grading patterns (例 B25 = {XS→S: median 0.1875 / S→M: median 0.1875 / ...})",
+  "_consumer": [
+    "index.html (前端 POM grading 推薦時 lazy fetch)",
+    "scripts/core/rebuild_all_analysis_v2.py (regen 時讀回 incremental update)",
+    "scripts/core/rebuild_grading_3d.py (3D grading 重算來源)",
+    "scripts/core/stamp_source_brand.py"
+  ],
+  "_source": "POM Pipeline B 從 mc_pom_v11.jsonl 計算 per-bucket POM × size-pair 中位數",
+  "_generator": "scripts/core/rebuild_all_analysis_v2.py",
+  "_generated_at": "(file mtime - POM Pipeline B regen 時更新)",
+  "_target_file": "grading_patterns.json",
+  "_size_warning": "檔案 ~7 MB。前端 lazy fetch + cache,不在 boot 同步載",
+  "_note": "本檔為 sidecar metadata。主檔頂層 keys 是 bucket IDs 不適合 inline 加 _-prefix metadata",
+  "_n_buckets_at_audit": 195
+}
